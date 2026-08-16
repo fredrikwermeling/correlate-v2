@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.41 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>Wiki: retroelement histograms, plainer explanations.</b> The retroelement section now shows where the line sits among the 669 measured lines, with a histogram for the total signal, each family and the active-element count, matching the genome section's panels. Its text sticks to what the score is and how it was measured. WGD, ploidy, aneuploidy and CIN in Genome signatures are explained in plain language, and the CIN tier text now matches the computed tier. The retroelement sort gains a chooser for which measurement to sort by: total, LINE-1, HERV-K, SVA or active elements.</li>
+                </ul>
                 <p><strong>v.88.40 (2026-08-15)</strong></p>
                 <ul>
                     <li><b>Heatmap filters now rescope each other.</b> Picking a lineage immediately narrows the subtype and disease lists (and the map), instead of waiting for Redraw, and the genetic alteration filters narrow the counts those lists show. The colour rows under the grid now carry a title saying what they show, on screen and in exports. And the page scrolls normally with the pointer over the heatmap or any other drawn image; only the network keeps the wheel for zooming.</li>
@@ -6828,7 +6832,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.40</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.41</a>
         </span>
     </div>
 
@@ -9250,6 +9254,15 @@
                 <input type="text" id="clbSortGene" autocomplete="off" placeholder="TP53, BRCA1, ..." style="width:160px;" title="Gene symbol(s) for GE / Expression sort, or compound name for Drug-response sort (e.g. PALBOCICLIB). Multiple values are averaged per cell line.">
                 <div id="clbSortDrugDropdown" class="clb-dropdown" style="min-width:320px;"></div>
               </div>
+              <div id="clbSortRetroWrap" class="clb-anchor" style="visibility:hidden;">
+                <select id="clbSortRetroMeasure" style="width:160px;" title="Which retroelement measurement the sort uses">
+                  <option value="t" selected>Total signal</option>
+                  <option value="l1">LINE-1</option>
+                  <option value="hk">HERV-K</option>
+                  <option value="sva">SVA</option>
+                  <option value="a">Active elements</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -9769,6 +9782,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_40"></script>
+    <script src="app.js?v=v88_41"></script>
 </body>
 </html>

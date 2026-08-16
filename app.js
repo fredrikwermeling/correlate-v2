@@ -39391,6 +39391,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         push('Amplification / deletion filter', val('clbCnFilter'));
         push('Sort', val('clbSortBy'));
         push('Sort gene or compound', val('clbSortGene'));
+        if (val('clbSortBy') === 'retro') {
+            const retroMeasureNames = { t: 'Total signal', l1: 'LINE-1', hk: 'HERV-K', sva: 'SVA', a: 'Active elements' };
+            push('Sort retroelement measure', retroMeasureNames[val('clbSortRetroMeasure')] || 'Total signal');
+        }
         if (this._clbCollectionStates?.size) {
             push('Quick filters', [...this._clbCollectionStates].map(([k, v]) => `${k} (${v})`).join(', '));
         }
@@ -40055,6 +40059,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // relative-positioned <div> together with the drug-picker dropdown.
             const sortGeneWrap = document.getElementById('clbSortGeneWrap');
             if (sortGeneWrap) sortGeneWrap.style.visibility = needsGene ? 'visible' : 'hidden';
+            // Retroelement measurement chooser, same reserved-space trick,
+            // shown only for the retro sort so it never shoves neighbours.
+            const sortRetroWrap = document.getElementById('clbSortRetroWrap');
+            if (sortRetroWrap) sortRetroWrap.style.visibility = (mode === 'retro') ? 'visible' : 'hidden';
             if (clbSortGene) {
                 clbSortGene.placeholder = mode === 'drug' ? 'click → list of PRISM compounds'
                                         : mode === 'cn' ? 'any gene, full DepMap CN matrix'
@@ -40141,6 +40149,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         clbSortDir.addEventListener('click', () => {
             this._clbSortAsc = !this._clbSortAsc;
             this._syncClbSortDirBtn();
+            this.renderCellLineList();
+        });
+        // Retroelement measurement chooser: changing it re-sorts the list,
+        // same re-render the sort-mode select itself triggers.
+        document.getElementById('clbSortRetroMeasure')?.addEventListener('change', () => {
             this.renderCellLineList();
         });
 
@@ -40293,6 +40306,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (_sortGene) _sortGene.style.display = '';
             const _sortDrugDd = document.getElementById('clbSortDrugDropdown');
             if (_sortDrugDd) _sortDrugDd.style.display = 'none';
+            // Same reserved-space trick for the retro measurement chooser:
+            // hide the wrapper and restore the select to its default.
+            const _sortRetroWrap = document.getElementById('clbSortRetroWrap');
+            if (_sortRetroWrap) _sortRetroWrap.style.visibility = 'hidden';
+            const _sortRetroMeasure = document.getElementById('clbSortRetroMeasure');
+            if (_sortRetroMeasure) _sortRetroMeasure.value = 't';
             this._clbSortMode = 'name';
             this._clbSortAsc = true;
             this._syncClbSortDirBtn();
@@ -40969,6 +40988,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let geValueLabel = ''; // short "GE" / "Expr" tag for the inline value
         let geValueTooltip = '';
         let geGenesLabel = '';
+        let retroMeasure = 't'; // which retroelement measurement mode==='retro' sorted by
+        const retroMeasureLabels = { t: 'Total signal', l1: 'LINE-1', hk: 'HERV-K', sva: 'SVA', a: 'Active elements' };
 
         // Build secondary comparator (the existing sort mode)
         let secondaryCmp;
@@ -41171,9 +41192,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         } else if (mode === 'retro') {
             // Retroelement signal. Lines without public RNA-seq have no
             // score and go to the end, same as the other measured sorts.
+            // Which measurement to sort by (total / L1 / HERV-K / SVA / active
+            // count) comes from the clbSortRetroMeasure chooser.
+            const rm = document.getElementById('clbSortRetroMeasure')?.value || 't';
+            retroMeasure = rm;
             countMap = new Map();
-            for (const [cl, v] of Object.entries(this.retroData?.lines || {})) countMap.set(cl, v.t);
-            geGenesLabel = '750 elements';
+            for (const [cl, v] of Object.entries(this.retroData?.lines || {})) countMap.set(cl, v[rm]);
+            geGenesLabel = `750 elements (${retroMeasureLabels[rm]})`;
             secondaryCmp = (a, b) => {
                 const va = countMap.get(a);
                 const vb = countMap.get(b);
@@ -41239,7 +41264,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                       : mode === 'cn' ? `Copy number of <b>${geGenesLabel || '(no gene picked)'}</b>, DepMap relative scale (1.0 = diploid). Tier shown next to each line: <b>deep del</b> &lt; 0.3, <b>het loss</b> 0.3&ndash;0.7, <b>WT</b> 0.7&ndash;1.3, <b>low gain</b> 1.3&ndash;2.0, <b>gain</b> 2.0&ndash;3.0, <b>amp</b> 3.0&ndash;5.0, <b>strong amp</b> &ge; 5.0. Hybrid source: WGS-derived calls (latest, cleanest) by default; lines tagged <code>wes</code> are filled from DepMap's 24Q4 OmicsCNGene fallback for lines never WGS'd (Jurkat, K562, etc.), slightly noisier for focal events. ${cnScope}; lines without CN data show &ldquo;&mdash;&rdquo;.`
                       : mode === 'drug' ? `Drug-response AUC for <b>${geGenesLabel || '(no compound matched)'}</b>, 0 = all cells killed, 1 = no killing; ascending = most sensitive first`
                       : mode === 'ifn' ? `Interferon score: the average of ${geGenesLabel || '34 ISGs'}, each expressed as how far the line sits from the panel average for that gene (a z-score). 0 is typical, +1 means the line runs a standard deviation high on these genes, &minus;1 a standard deviation low. Lines with no expression data, or measured on under 60% of the genes, are unscored and sit at the end.`
-                      : mode === 'retro' ? 'Retroelement signal: summed RNA-seq reads (counts per million) over 750 full-length LINE-1, HERV-K and SVA elements outside genes, unique reads only. The panel median is about 40 CPM and the top tenth, about 80 CPM and up, counts as retroelement-high. 669 of 1,208 lines have a public alignment to measure; unscored lines sit at the end.'
+                      : mode === 'retro' ? `Retroelement signal, ${retroMeasureLabels[retroMeasure]}: ${retroMeasure === 'a' ? 'how many of the 750 measured full-length elements are switched on (above 0.5 CPM) in each line'
+                          : `summed RNA-seq reads (counts per million), unique reads only, over the ${retroMeasure === 't' ? '750 full-length LINE-1, HERV-K and SVA' : 'full-length ' + retroMeasureLabels[retroMeasure]} elements outside genes`}.${retroMeasure === 't' ? ' The panel median is about 40 CPM and the top tenth, about 80 CPM and up, counts as retroelement-high.' : ''} 669 of 1,208 lines have a public alignment to measure; unscored lines sit at the end.`
                       : mode;
             caption = `<div style="${captionStyle}">
                 Values shown: <b>${lbl}</b> per cell line.
@@ -41262,7 +41288,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     : mode === 'cn' ? `Copy number${geGenesLabel ? ` for ${geGenesLabel}` : ''}`
                     : mode === 'drug' ? `Drug response AUC${geGenesLabel ? ` for ${geGenesLabel}` : ''}`
                     : mode === 'ifn' ? 'Interferon score (mean ISG z-score)'
-                    : mode === 'retro' ? 'Retroelement signal (CPM)'
+                    : mode === 'retro' ? (retroMeasure === 'a' ? 'Active elements (count)' : `Retroelement signal, ${retroMeasureLabels[retroMeasure]} (CPM)`)
                     : String(mode))
                 : '';
 
@@ -41337,7 +41363,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         else                 { tier = 'strong amp'; fg = '#1e3a8a'; bg = '#93c5fd'; }
                         sortValStr = `<span style="font-size:10px; color:${fg}; background:${bg}; padding:1px 6px; border-radius:8px; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="CN ${v} (DepMap relative, 1.0 = diploid)">${tier} <span style="opacity:0.55; font-size:9px;">${v}</span></span>`;
                     } else if (mode === 'retro') {
-                        sortValStr = `<span style="font-size:10px; color:${color}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="Retroelement signal (CPM)">${Number(raw).toFixed(1)} CPM</span>`;
+                        const retroTitle = retroMeasure === 'a' ? 'Active elements (count)' : `Retroelement signal, ${retroMeasureLabels[retroMeasure]} (CPM)`;
+                        const retroValStr = retroMeasure === 'a' ? `${raw}` : `${Number(raw).toFixed(1)} CPM`;
+                        sortValStr = `<span style="font-size:10px; color:${color}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${retroTitle}">${retroValStr}</span>`;
                     } else {
                         sortValStr = `<span style="font-size:10px; color:${color}; margin-left:auto; flex-shrink:0; font-variant-numeric:tabular-nums;" title="${mode}"><span style="color:#9ca3af;">${unitLbl}</span> ${v}</span>`;
                     }
@@ -44743,9 +44771,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // missing value must NOT render as "No", that wrongly implies the
             // line was tested and came back negative.
             const wgdLabel = gs.WGD === true
-                ? '<span style="color:#dc2626; font-weight:600;">Yes</span> <span style="font-size:10px; color:#6b7280;">, genome doubled at some point in tumor evolution; common, about 73% of the lines that have a ploidy call (58% of the full panel), and shapes downstream interpretation</span>'
+                ? '<span style="color:#dc2626; font-weight:600;">Yes</span> <span style="font-size:10px; color:#6b7280;">, the full chromosome set was duplicated at some point in this line\'s evolution, so gains and losses are read against a roughly doubled genome. Common in cancer: about 73% of the lines with a call. Called by PureCN from sequencing coverage and allele ratios.</span>'
                 : gs.WGD === false
-                    ? 'No <span style="font-size:10px; color:#6b7280;">, no whole-genome doubling event detected</span>'
+                    ? 'No <span style="font-size:10px; color:#6b7280;">, no whole-genome doubling detected: this genome was never duplicated wholesale, and its ploidy reflects individual chromosome gains and losses only.</span>'
                     : '';
             const msiVal = gs.MSIScore;
             let msiLabel = '';
@@ -44762,17 +44790,17 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const desc = gs.Ploidy < 2.3 ? 'near-diploid' :
                              gs.Ploidy < 3.4 ? 'near-triploid' :
                              gs.Ploidy < 4.6 ? 'near-tetraploid' : 'highly polyploid';
-                return `${gs.Ploidy.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; normal diploid = 2.0; the median across this panel is about 3.1, so a value near 3 is typical rather than unusual)</span>`;
+                return `${gs.Ploidy.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; the average number of genome copies per cell, estimated by PureCN from sequencing coverage. A normal cell is diploid at 2.0. The panel median is about 3.1, so a value near 3 is typical here, usually a whole-genome doubling followed by chromosome losses.)</span>`;
             })() : '';
             const aneupLabel = gs.Aneuploidy != null ? (() => {
                 const desc = gs.Aneuploidy < 15 ? 'low' :
                              gs.Aneuploidy < 25 ? 'medium' : 'high';
-                return `${gs.Aneuploidy} / 39 <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; counts how many of the 39 chromosome arms are gained or lost, higher = more chromosomally abnormal. Ben-David <i>et al.</i> 2021 scoring; high tier &ge; 25)</span>`;
+                return `${gs.Aneuploidy} / 39 <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; how many of the 39 chromosome arms are gained or lost as a whole, relative to this line's own overall ploidy. 0 means every arm is balanced, 39 means every arm is off. Whole-arm events only, so it complements the fine-scale instability measured by CIN below. Ben-David <i>et al.</i> 2021 scoring; high tier is 25 and up.)</span>`;
             })() : '';
             const cinLabel = gs.CIN != null ? (() => {
                 const desc = gs.CIN < 0.45 ? 'low' :
                              gs.CIN < 0.72 ? 'medium' : 'high';
-                return `${gs.CIN.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; fraction of the genome subject to fine-scale copy-number change; high tier &ge; 0.5)</span>`;
+                return `${gs.CIN.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; chromosomal instability: the fraction of the genome whose copy number deviates from this line's own baseline, capturing focal fragment-scale gains and losses rather than whole arms. A genome can look even at arm level and still be high here. High tier is 0.72 and up.)</span>`;
             })() : '';
             const lohLabel = gs.LoHFraction != null ? (() => {
                 // Loss-of-heterozygosity fraction. Typical diploid genome runs
@@ -44821,9 +44849,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
         // --- Retroelement signal ---
         // Summed CPM over 750 full-length intergenic LINE-1 / HERV-K / SVA
-        // elements, measured from the public CCLE RNA-seq alignments.
-        // Phrasing reused from the CLB card help text; see retroScore() /
-        // _retroHighCutoff() above.
+        // elements, measured from the public CCLE RNA-seq alignments. Text
+        // here states only what it is and how it was computed; see retroScore()
+        // / _retroHighCutoff() above.
         let retroWikiHtml;
         {
             const re = this.retroScore?.(cellLineId);
@@ -44834,13 +44862,24 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const pctRank = allVals.length ? Math.round((nBelow / allVals.length) * 100) : null;
                 const isHigh = cut != null && re.t >= cut;
                 retroWikiHtml = `
-                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">RNA output of 750 full-length <b>LINE-1</b>, <b>HERV-K</b> and <b>SVA</b> elements that sit outside genes, so the signal comes from the elements' own promoters rather than a host gene. Unique reads only, expressed as counts per million; measured directly from the public CCLE hg19 alignments. Lines with a higher signal depend measurably more on ADAR1 (r = &minus;0.18 across 669 lines, p = 2.6e-06, still there after controlling for the interferon score, partial r = &minus;0.15), consistent with de-repressed retroelements as a trigger for viral mimicry.</p>
+                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The transcriptional output of 750 retroelements, measured from this line's public CCLE RNA-seq alignment. The panel covers full-length <b>LINE-1</b>, <b>HERV-K</b> and <b>SVA</b> copies that lie outside genes, so reads reflect the elements' own promoter activity rather than a host gene's transcript. Only uniquely mapped reads are counted, summed per element and expressed as counts per million of the library; an element is called active above 0.5 CPM. 669 of the 1,208 lines have a public alignment to measure; the panel median total is about 40 CPM, and the top tenth (about 80 CPM and up) is called retroelement-high.</p>
                 ${row('Total signal', `${re.t.toFixed(1)} CPM <span style="font-size:10px; color:#6b7280;">(panel percentile ${pctRank}${pctRank !== null ? 'th' : ''}, panel median is about 40 CPM)</span>`)}
                 ${row('LINE-1 (L1)', `${re.l1.toFixed(1)} CPM`)}
                 ${row('HERV-K', `${re.hk.toFixed(1)} CPM`)}
                 ${row('SVA', `${re.sva.toFixed(1)} CPM`)}
                 ${row('Active elements', `${re.a} / 750`)}
-                ${isHigh ? `<div style="margin-top:8px; padding:8px 10px; background:#fef3c7; border-left:3px solid #d97706; font-size:11px; color:#92400e;"><b>Retroelement-high:</b> top tenth of the measured panel.</div>` : ''}`;
+                ${isHigh ? `<div style="margin-top:8px; padding:8px 10px; background:#fef3c7; border-left:3px solid #d97706; font-size:11px; color:#92400e;"><b>Retroelement-high:</b> top tenth of the measured panel.</div>` : ''}
+                <div style="margin-top:16px; padding-top:12px; border-top:1px dashed #e5e7eb;">
+                    <div style="font-weight:600; color:#374151; font-size:12px; margin-bottom:6px;">Where this line sits among the 669 measured lines</div>
+                    <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">Distribution of each measure across the measured lines; the dashed red line marks this cell line. The CPM axes are on a log2 scale because the signal is strongly skewed.</p>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div id="clbWikiHistRetroTotal" style="height:170px;"></div>
+                        <div id="clbWikiHistRetroL1" style="height:170px;"></div>
+                        <div id="clbWikiHistRetroHervk" style="height:170px;"></div>
+                        <div id="clbWikiHistRetroSva" style="height:170px;"></div>
+                        <div id="clbWikiHistRetroActive" style="height:170px;"></div>
+                    </div>
+                </div>`;
             } else {
                 retroWikiHtml = `<p style="margin:0; font-size:11px; color:#6b7280;">Not measured: this line has no public hg19 RNA-seq alignment in the CCLE collection, so no retroelement signal can be computed. 669 of 1,208 lines are covered.</p>`;
             }
@@ -45621,6 +45660,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (gs) {
             requestAnimationFrame(() => this._renderGenomeDistributions(cellLineId));
         }
+        // Retroelement panels, same pattern, only for measured lines.
+        if (this.retroScore?.(cellLineId)) {
+            requestAnimationFrame(() => this._renderRetroDistributions(cellLineId));
+        }
         // Per-drug AUC histograms (parallel to the genome panel).
         if (this._drugHistPending && this._drugHistPending.cellLineId === cellLineId) {
             requestAnimationFrame(() => this._renderDrugDistributions(this._drugHistPending));
@@ -45850,6 +45893,66 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             layout.yaxis.range = [0, yMax * 1.18];
             Plotly.newPlot(wgdEl, [trace], layout, config);
         }
+    }
+
+    // Cohort-distribution histograms for the Wiki's Retroelement signal
+    // section, mirroring _renderGenomeDistributions: five small Plotly panels
+    // (Total / LINE-1 / HERV-K / SVA on a log2(CPM+1) scale, plus Active
+    // elements as raw counts), this cell line's value marked with a dashed
+    // red line. Cohort arrays are cached on the instance the first time this
+    // runs. Only called for lines with a measured retro score.
+    _renderRetroDistributions(cellLineId) {
+        if (typeof Plotly === 'undefined') return;
+        const lines = this.retroData?.lines;
+        if (!lines) return;
+        if (!this._retroMetricArrays) {
+            const arr = { t: [], l1: [], hk: [], sva: [], a: [] };
+            for (const v of Object.values(lines)) {
+                if (v.t != null) arr.t.push(Math.log2(v.t + 1));
+                if (v.l1 != null) arr.l1.push(Math.log2(v.l1 + 1));
+                if (v.hk != null) arr.hk.push(Math.log2(v.hk + 1));
+                if (v.sva != null) arr.sva.push(Math.log2(v.sva + 1));
+                if (v.a != null) arr.a.push(v.a);
+            }
+            this._retroMetricArrays = arr;
+        }
+        const arrs = this._retroMetricArrays;
+        const re = lines[cellLineId];
+        if (!re) return;
+
+        // Own copy of the compact layout, same shape as _renderGenomeDistributions'
+        // baseLayout so the two panel families read as one.
+        const baseLayout = (xTitle, yTitle = '# lines') => ({
+            margin: { l: 36, r: 10, t: 16, b: 34 },
+            xaxis: { title: { text: xTitle, font: { size: 10, color: '#6b7280' } }, tickfont: { size: 9, color: '#9ca3af' }, showgrid: false, zeroline: false, showline: true, linecolor: '#d1d5db' },
+            yaxis: { title: { text: yTitle, font: { size: 10, color: '#6b7280' } }, tickfont: { size: 9, color: '#9ca3af' }, showgrid: true, gridcolor: '#f3f4f6', zeroline: false },
+            bargap: 0.15,
+            showlegend: false,
+            paper_bgcolor: '#ffffff',
+            plot_bgcolor: '#ffffff',
+            font: { family: 'Open Sans, sans-serif' }
+        });
+        const config = { displaylogo: false, responsive: true, modeBarButtonsToRemove: ['lasso2d', 'select2d'] };
+
+        const draw = (divId, vals, currentVal, xTitle, binSize, decimals) => {
+            const el = document.getElementById(divId);
+            if (!el || !vals.length) return;
+            const trace = {
+                type: 'histogram',
+                x: vals,
+                xbins: { size: binSize },
+                marker: this._wikiHistMarker(),
+                hovertemplate: `<b>%{x}</b>: %{y} lines<extra></extra>`
+            };
+            const layout = { ...baseLayout(xTitle), ...this._wikiHistMarkerLine(currentVal, decimals) };
+            Plotly.newPlot(el, [trace], layout, config);
+        };
+
+        draw('clbWikiHistRetroTotal', arrs.t,   re.t != null ? Math.log2(re.t + 1) : null,   'Total, log2(CPM+1)',  0.25, 2);
+        draw('clbWikiHistRetroL1',    arrs.l1,  re.l1 != null ? Math.log2(re.l1 + 1) : null, 'LINE-1, log2(CPM+1)', 0.25, 2);
+        draw('clbWikiHistRetroHervk', arrs.hk,  re.hk != null ? Math.log2(re.hk + 1) : null, 'HERV-K, log2(CPM+1)', 0.25, 2);
+        draw('clbWikiHistRetroSva',   arrs.sva, re.sva != null ? Math.log2(re.sva + 1) : null, 'SVA, log2(CPM+1)',  0.25, 2);
+        draw('clbWikiHistRetroActive', arrs.a,  re.a,  'Active elements (of 750)', 3, 0);
     }
 
     // CSV export of the four genome-signature metrics across the full cohort,
