@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.44 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>Z-score basis, and mutation-dose grouping.</b> The heatmap's z-score can now be computed against all cell lines instead of only the shown ones: a melanoma-only view of a MAPK signature looks flat scored within melanoma, and strong scored against the whole panel, and both readings are now available under Scaling. Grouping by a genetic alteration splits into wild-type, one copy and both copies, in that order, matching the second-row colours, so mutation dose reads directly off the blocks.</li>
+                </ul>
                 <p><strong>v.88.43 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>The heatmap's controls now follow the browser's design.</b> Same toolbar rows, same box sizes, with lineage and the genetic alteration filters side by side as in the Cell Line Browser, and every change applies immediately, no Redraw needed. Cell lines with no data for the shown genes are hidden by default, with a toggle and an honest count either way. Group labels under the grid use up to three staggered rows and standard abbreviations (DLBCL, CLL/SLL, AML), so most groups are named instead of only the widest two; very small groups keep their colour and legend entry but skip the text.</li>
@@ -6840,7 +6844,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.43</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.44</a>
         </span>
     </div>
 
@@ -8657,8 +8661,9 @@
                                 <option value="expr" selected>mRNA expression</option>
                                 <option value="ge">CRISPR gene effect</option>
                             </select>
-                            <select id="hmScale" style="width:150px;" title="Z-score compares each gene to its own spread across the cell lines shown; raw values keep their original units">
-                                <option value="z" selected>Z-score per gene</option>
+                            <select id="hmScale" style="width:150px;" title="Z-score compares each gene to its own spread; choose whether that spread is measured across only the cell lines shown or across the whole panel. Raw values keep their original units">
+                                <option value="z" selected>Z-score, vs shown lines</option>
+                                <option value="zall">Z-score, vs all lines</option>
                                 <option value="raw">Raw values</option>
                             </select>
                             <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the gene rows by how alike their profiles are, regardless of how cell lines are sorted, and draw the tree that produced the order">
@@ -8719,11 +8724,11 @@
                                 <option value="lineage" selected>Lineage</option>
                                 <option value="subtype">Subtype</option>
                                 <option value="disease">Disease</option>
-                                <option value="alteration">Genetic alteration</option>
+                                <option value="alteration" title="Splits into three groups by copies mutated: wild-type, one copy, both copies">Genetic alteration</option>
                             </select>
-                            <input type="text" id="hmGroupGene" list="hmGroupGeneList" disabled placeholder="e.g. BRAF" style="width:110px;" title="Split cell lines into mutated / wild-type for this gene. Uses hotspot mutations, or damaging mutations if the gene has no hotspot data.">
+                            <input type="text" id="hmGroupGene" list="hmGroupGeneList" disabled placeholder="e.g. BRAF" style="width:110px;" title="Split cell lines into wild-type / one copy / both copies for this gene. Uses hotspot mutations, or damaging mutations if the gene has no hotspot data.">
                             <datalist id="hmGroupGeneList"></datalist>
-                            <select id="hmGroupOrder" disabled style="width:120px;" title="How the groups are ordered left to right">
+                            <select id="hmGroupOrder" disabled style="width:120px;" title="How the groups are ordered left to right. Alteration groups always run wild-type to both copies, ignoring this.">
                                 <option value="size" selected>By size</option>
                                 <option value="score">By score</option>
                             </select>
@@ -9765,6 +9770,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_43"></script>
+    <script src="app.js?v=v88_44"></script>
 </body>
 </html>

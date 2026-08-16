@@ -31146,7 +31146,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     ? (this._GENE_SET_LIBRARY()[presetKey]?.label || presetKey)
                     : 'Custom gene list';
                 const measure = d.dataType === 'ge' ? 'CRISPR gene effect (Chronos)' : 'mRNA expression (log2 TPM+1)';
-                const scaling = d.scaleMode === 'z' ? 'z-scored per gene across the cell lines shown' : 'raw values';
+                const scaling = d.scaleMode === 'z' ? 'z-scored per gene, mean and SD computed across only the cell lines shown in this file'
+                    : d.scaleMode === 'zall' ? `z-scored per gene, mean and SD computed across all ${d.zAllN.toLocaleString()} cell lines with data in the full ${measure} matrix, not just the cell lines in this file: a value of +2 means that gene is high versus the WHOLE panel, which is not the same claim as being high versus just the lines shown here`
+                    : 'raw values';
                 const cohortMode = document.getElementById('hmCohort')?.value || 'visible';
                 const cohortWord = {
                     visible: 'the cell lines the browser is filtered to',
@@ -31185,15 +31187,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     plotType: 'heatmap', stratification: d.groupByMode === 'none' ? 'none' : groupWord
                 };
                 description = `Gene set heatmap: ${setLabel} (${d.genes.length} genes) across ${d.orderedCLs.length} cell lines (${cohortWord}${d.lineageLabel ? `, ${d.lineageLabel} only` : ''}), ${measure}, ${scaling}${d.groupByMode !== 'none' ? `, grouped by ${groupWord}` : ''}.`;
-                const colourWord = d.scaleMode === 'z' ? 'blue is low, red is high' : d.dataType === 'expr' ? 'white is low, dark green is high' : 'blue is enriched, red is depleted';
+                const colourWord = (d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'blue is low, red is high' : d.dataType === 'expr' ? 'white is low, dark green is high' : 'blue is enriched, red is depleted';
                 context.plotDescribesWhat = `A heatmap: each row is one of the ${d.genes.length} genes in the "${setLabel}" set, each column is one cell line (${d.orderedCLs.length} shown). Colour is ${measure}, ${scaling}: ${colourWord}.`
                     + (d.groups ? ` A coloured band beneath the grid marks the ${visibleGroups.length} group${visibleGroups.length === 1 ? '' : 's'} the columns are split into by ${groupWord}${hiddenGroupKeys.length ? `; ${hiddenGroupKeys.length} more group${hiddenGroupKeys.length === 1 ? '' : 's'} (${hiddenGroupKeys.join(', ')}) were hidden by the user and are not in this file` : ''}.` : '')
                     + (d.ann2 ? ` A second coloured band beneath that one marks each column's ${d.ann2.attrLabel}.` : '')
                     + (d.geneTree ? ' A small tree to the left of the gene labels shows how the rows were clustered.' : '');
 
                 // The matrix itself, exactly as drawn: rows and columns in
-                // display order, values as shown (z-scored or raw), so a
-                // reader can recompute anything the picture shows.
+                // display order, values as shown (z-scored vs shown lines,
+                // z-scored vs the whole panel, or raw), so a reader can
+                // recompute anything the picture shows.
                 context.matrix = {
                     genes: d.orderedGenes.slice(),
                     cellLines: d.orderedCLs.map(cl => this.getCellLineName(cl)),
@@ -53338,9 +53341,14 @@ ${clone.innerHTML}
         if (groupByMode === 'subtype') return this.getCellLineSublineage(cl) || 'Not recorded';
         if (groupByMode === 'disease') return this.cellLineMetadata?.oncotreeSubtype?.[cl] || 'Not recorded';
         if (groupByMode === 'alteration' && altInfo?.source) {
+            // Same three-way split the second annotation row uses
+            // (_hmAnn2HotspotLevel): >=2 copies, >=1 copy, or none. The
+            // damaging-mutation matrix (the fallback for a gene with no
+            // hotspot calls) uses the same 1/2-valued levels, so no
+            // separate handling is needed for that source.
             const matrix = altInfo.source === 'hotspot' ? this.mutations : this.damagingMutations;
             const level = matrix?.geneData?.[altInfo.gene]?.mutations?.[cl] || 0;
-            return level >= 1 ? `${altInfo.gene} mutated` : `${altInfo.gene} wild-type`;
+            return level >= 2 ? 'Both copies' : level >= 1 ? 'One copy' : 'Wild-type';
         }
         return 'All';
     }
@@ -53399,7 +53407,17 @@ ${clone.innerHTML}
             }
         }
 
-        const scaledRows = scaleMode === 'z' ? rawRows.map(r => this._hmZRow(r)) : rawRows;
+        const scaledRows = scaleMode === 'z' ? rawRows.map(r => this._hmZRow(r))
+            : scaleMode === 'zall' ? rawRows.map((r, i) => this._hmZRowAll(r, genes[i], dataType))
+            : rawRows;
+        // For the hint line / caption / AI export to name the reference
+        // population ("vs all N lines with data"): the largest per-gene n
+        // among the shown genes, since a gene's own full-panel count can run
+        // a little below the panel size when a handful of lines lack it.
+        let zAllN = 0;
+        if (scaleMode === 'zall') {
+            for (const g of genes) { const s = this._hmZAllStatsFor(g, dataType); if (s && s.n > zAllN) zAllN = s.n; }
+        }
         const geneIndexInResult = new Map(genes.map((g, i) => [g, i]));
 
         // Per-cell-line mean of the values as shown: used by the score sort,
@@ -53508,7 +53526,13 @@ ${clone.innerHTML}
             // The order is fixed once here, by size or by score, and does
             // NOT depend on which entries are hidden: clicking a legend
             // entry greys it in place rather than reshuffling its neighbours.
-            if (groupOrderMode === 'score') {
+            // Alteration grouping is the one exception: wild-type to both
+            // copies is a fixed biological order, so it ignores the
+            // size/score select entirely (noted on that select's title).
+            if (groupByMode === 'alteration') {
+                const ALTERATION_ORDER = ['Wild-type', 'One copy', 'Both copies'];
+                groups.sort((a, b) => ALTERATION_ORDER.indexOf(a.key) - ALTERATION_ORDER.indexOf(b.key));
+            } else if (groupOrderMode === 'score') {
                 groups.sort((a, b) => {
                     const na = Number.isNaN(a.score), nb = Number.isNaN(b.score);
                     if (na && nb) return a.key.localeCompare(b.key);
@@ -53519,8 +53543,16 @@ ${clone.innerHTML}
             } else {
                 groups.sort((a, b) => b.cellLines.length - a.cellLines.length || a.key.localeCompare(b.key));
             }
-            const palette = this._HM_GROUP_PALETTE();
-            groups.forEach((g, i) => { g.color = palette[i % palette.length]; });
+            // Alteration mode's colours match the second annotation row's
+            // fixed palette exactly, rather than the qualitative group
+            // palette, so mutation dose reads the same way in both bands.
+            if (groupByMode === 'alteration') {
+                const ALTERATION_COLORS = { 'Wild-type': '#f3f4f6', 'One copy': '#3b82f6', 'Both copies': '#1e40af' };
+                groups.forEach(g => { g.color = ALTERATION_COLORS[g.key] || '#e5e7eb'; });
+            } else {
+                const palette = this._HM_GROUP_PALETTE();
+                groups.forEach((g, i) => { g.color = palette[i % palette.length]; });
+            }
             hiddenCount = groups.filter(g => g.hidden).length;
 
             // Hidden groups keep their legend entry (greyed, still
@@ -53568,7 +53600,7 @@ ${clone.innerHTML}
         // around 0 so a depleted line and an enriched one read as mirror
         // colours.
         let domain;
-        if (scaleMode === 'z') {
+        if (scaleMode === 'z' || scaleMode === 'zall') {
             domain = { lo: -2.5, hi: 2.5 };
         } else if (dataType === 'expr') {
             let lo = Infinity, hi = -Infinity;
@@ -53584,7 +53616,7 @@ ${clone.innerHTML}
 
         this._hmData = {
             genes, orderedGenes, geneTree, cohort, orderedCLs, geneIndexInResult, cohortIndex,
-            rawRows, scaledRows, dataType, scaleMode, domain, missingGenes,
+            rawRows, scaledRows, dataType, scaleMode, domain, missingGenes, zAllN,
             groups, groupByMode, altInfo, groupOrderMode, showMedian, hiddenCount,
             lineageLabel, subtypeLabel, diseaseLabel, ann2, noDataCount, hideNoDataChecked
         };
@@ -53657,6 +53689,58 @@ ${clone.innerHTML}
         const sd = Math.sqrt(ss / (k - 1));
         if (!(sd > 0)) return raw.map(() => NaN);
         return Float64Array.from(raw, v => Number.isNaN(v) ? NaN : (v - mean) / sd);
+    }
+
+    // One gene's raw values across EVERY cell line in the full matrix (not
+    // just the current cohort), used only to compute the 'zall' mean/SD.
+    // Mirrors the per-column lookups _hmBuildAndPaint uses for the cohort,
+    // just run over the whole panel instead.
+    _hmFullPanelVector(gene, dataType) {
+        if (dataType === 'ge') {
+            const idx = this.geneIndex?.get(gene);
+            return idx === undefined ? null : this.getGeneData(idx);
+        }
+        if (!this.expressionLoaded || !this.expressionGeneIndex?.has(gene.toUpperCase())) return null;
+        const n = this.metadata.cellLines.length;
+        const v = new Float64Array(n);
+        for (let i = 0; i < n; i++) v[i] = this.getExpressionValueByGEIndex(gene, i);
+        return v;
+    }
+
+    // Per-gene mean/SD over the WHOLE panel, regardless of any cohort filter,
+    // for the 'zall' scaling basis (motivating case: a melanoma-only view of
+    // a MAPK signature reads flat scored against the 67 shown lines, but
+    // strongly high scored against the full DepMap panel). Cached forever,
+    // keyed by gene, since the underlying matrices are static for a session.
+    _hmZAllStatsFor(gene, dataType) {
+        if (!this._hmZAllStats) this._hmZAllStats = { expr: new Map(), ge: new Map() };
+        const cache = this._hmZAllStats[dataType];
+        if (cache.has(gene)) return cache.get(gene);
+        const vec = this._hmFullPanelVector(gene, dataType);
+        let stats = null;
+        if (vec) {
+            let s = 0, k = 0;
+            for (const v of vec) if (!Number.isNaN(v)) { s += v; k++; }
+            if (k >= 2) {
+                const mean = s / k;
+                let ss = 0;
+                for (const v of vec) if (!Number.isNaN(v)) ss += (v - mean) ** 2;
+                const sd = Math.sqrt(ss / (k - 1));
+                if (sd > 0) stats = { mean, sd, n: k };
+            }
+        }
+        cache.set(gene, stats);
+        return stats;
+    }
+
+    // Scales one gene's row (already narrowed to the shown cohort) against
+    // that gene's whole-panel mean/SD instead of the shown lines' own, so a
+    // gene that is uniformly high within a narrow cohort still reads as high
+    // rather than flat.
+    _hmZRowAll(raw, gene, dataType) {
+        const stats = this._hmZAllStatsFor(gene, dataType);
+        if (!stats) return raw.map(() => NaN);
+        return Float64Array.from(raw, v => Number.isNaN(v) ? NaN : (v - stats.mean) / stats.sd);
     }
 
     // Correlation distance, pairwise-complete over the two vectors. Fewer
@@ -53768,7 +53852,7 @@ ${clone.innerHTML}
 
     _hmColorFor(v, scaleMode, dataType, domain) {
         if (v == null || Number.isNaN(v)) return '#f3f4f6';
-        if (scaleMode === 'z') return this._hmDivergingColor(Math.max(-1, Math.min(1, v / 2.5)));
+        if (scaleMode === 'z' || scaleMode === 'zall') return this._hmDivergingColor(Math.max(-1, Math.min(1, v / 2.5)));
         if (dataType === 'expr') {
             const span = (domain.hi - domain.lo) || 1;
             return this._hmSequentialGreen(Math.max(0, Math.min(1, (v - domain.lo) / span)));
@@ -53981,6 +54065,22 @@ ${clone.innerHTML}
                     ctx.fillStyle = g.color;
                     ctx.fillRect(g.startCol * cellW, stripY, (g.endCol - g.startCol) * cellW, GROUP_STRIP_H);
                 });
+                // Alteration mode's wild-type band shares the same near-white
+                // fill (#f3f4f6) as the surrounding panel, so without an
+                // outline it reads as a gap rather than a colour meaning "no
+                // mutation". Same f3f4f6 + #d1d5db pairing used elsewhere in
+                // the app for a near-white swatch (e.g. the oncoprint filter
+                // legend).
+                if (d.groupByMode === 'alteration') {
+                    ctx.strokeStyle = '#d1d5db';
+                    ctx.lineWidth = 1;
+                    visibleGroups.filter(g => g.key === 'Wild-type').forEach(g => {
+                        ctx.strokeRect(
+                            Math.round(g.startCol * cellW) + 0.5, stripY + 0.5,
+                            Math.max(0, Math.round((g.endCol - g.startCol) * cellW) - 1), GROUP_STRIP_H - 1
+                        );
+                    });
+                }
                 ctx.strokeStyle = '#9ca3af';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
@@ -54053,7 +54153,7 @@ ${clone.innerHTML}
             ctx.fillText(d.domain.lo.toFixed(1), barX, barY + barH + 4);
             ctx.textAlign = 'right';
             ctx.fillText(d.domain.hi.toFixed(1), barX + barW, barY + barH + 4);
-            if (d.scaleMode === 'z' || d.dataType === 'ge') {
+            if (d.scaleMode === 'z' || d.scaleMode === 'zall' || d.dataType === 'ge') {
                 ctx.textAlign = 'center';
                 ctx.fillText('0', barX + barW * (0 - d.domain.lo) / (d.domain.hi - d.domain.lo), barY + barH + 4);
             }
@@ -54216,9 +54316,11 @@ ${clone.innerHTML}
         // Hint line: what's drawn, plus anything that didn't resolve.
         const hint = document.getElementById('hmHint');
         if (hint) {
-            const scaleWord = d.scaleMode === 'z' ? 'z-scored per gene' : 'raw values';
+            const scaleWord = d.scaleMode === 'z' ? 'z-scored per gene vs shown lines'
+                : d.scaleMode === 'zall' ? `z-scored per gene vs all ${d.zAllN.toLocaleString()} lines with data`
+                : 'raw values';
             const dataWord = d.dataType === 'expr' ? 'mRNA expression' : 'CRISPR gene effect';
-            const colourWord = d.scaleMode === 'z'
+            const colourWord = (d.scaleMode === 'z' || d.scaleMode === 'zall')
                 ? 'Blue is low, red is high.'
                 : d.dataType === 'expr' ? 'White is low, dark green is high.' : 'Blue is enriched, red is depleted.';
             const groupWord = this._hmGroupByLabel(d.groupByMode, d.altInfo);
@@ -54397,7 +54499,7 @@ ${clone.innerHTML}
         const rawV = d.rawRows[gi][ci];
         const shownV = d.scaledRows[gi][ci];
         const valueText = Number.isNaN(rawV) ? 'no data'
-            : d.scaleMode === 'z' ? `${rawV.toFixed(2)} (z=${Number.isNaN(shownV) ? 'n/a' : shownV.toFixed(2)})`
+            : (d.scaleMode === 'z' || d.scaleMode === 'zall') ? `${rawV.toFixed(2)} (z=${Number.isNaN(shownV) ? 'n/a' : shownV.toFixed(2)})`
             : rawV.toFixed(2);
         const lineage = this.getCellLineLineage(cl) || 'unknown lineage';
         this._hmShowTooltip(e.clientX, e.clientY, `${gene} · ${this.getCellLineName(cl)} · ${lineage} · ${valueText}`);
@@ -54484,7 +54586,9 @@ ${clone.innerHTML}
             : (this._GENE_SET_LIBRARY()[presetKey]?.label || presetKey || 'Gene set');
         const measureWord = d.dataType === 'expr' ? 'mRNA expression' : 'CRISPR gene effect';
         const line1 = `${setLabel}, ${measureWord}`;
-        const scaleWord = d.scaleMode === 'z' ? 'Z-scored per gene.' : 'Raw values.';
+        const scaleWord = d.scaleMode === 'z' ? 'Z-scored per gene, vs shown lines.'
+            : d.scaleMode === 'zall' ? `Z-scored per gene, vs all ${d.zAllN.toLocaleString()} lines with data.`
+            : 'Raw values.';
         const groupWord = d.groups ? `Grouped by ${this._hmGroupByLabel(d.groupByMode, d.altInfo)}.` : '';
         const ann2Word = d.ann2 ? `Second row: ${d.ann2.attrLabel}.` : '';
         const dateStr = new Date().toISOString().slice(0, 10);
@@ -54609,7 +54713,9 @@ ${clone.innerHTML}
         if (!d) return;
         const csvField = (s) => `"${String(s).replace(/"/g, '""')}"`;
         const measureWord = d.dataType === 'expr' ? 'mRNA expression' : 'CRISPR gene effect';
-        const scaleWord = d.scaleMode === 'z' ? 'z-scored per gene' : 'raw values';
+        const scaleWord = d.scaleMode === 'z' ? 'z-scored per gene vs shown lines'
+            : d.scaleMode === 'zall' ? `z-scored per gene vs all ${d.zAllN.toLocaleString()} lines with data`
+            : 'raw values';
         const cohortMode = document.getElementById('hmCohort')?.value || 'visible';
         const cohortWord = { visible: 'cell lines the browser is filtered to', selected: 'ticked cell lines', all: 'all cell lines' }[cohortMode] || cohortMode;
         const lineageWord = d.lineageLabel ? `${d.lineageLabel} only` : 'all lineages';
