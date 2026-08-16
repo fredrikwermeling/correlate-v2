@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.46 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>Annotation rows.</b> The heatmap's second row grows into up to four annotation rows, each showing a lineage, a hotspot mutation, a fusion or copy number for a gene of your choice, picked from a searchable box that lists the most common genes first, scaled to the filters applied. A new sort, annotation rows (altered first), blocks the columns by those rows in order, all BRAF-mutated to the left, NRAS blocks within, expression-sorted inside every block, so the heatmap reads like an oncoprint.</li>
+                </ul>
                 <p><strong>v.88.45 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>Heatmap polish.</b> The toolbar boxes align into columns across the rows, and the genetic alteration filters sit together on their own line. Group labels under the colour strip stay inside the picture instead of getting cut mid-word, prefer one flat line of text, and only stagger with connector lines where it is genuinely crowded. The group legend says what clicking does: click hides or shows a group, double-click keeps only it. And a Copy genes button copies the shown genes in drawn order.</li>
@@ -6848,7 +6852,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.45</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.46</a>
         </span>
     </div>
 
@@ -8717,13 +8721,14 @@
                         </div>
                     </div>
                     <div class="clb-row clb-row-alt">
-                        <span class="clb-row-label">Layout</span>
+                        <span class="clb-row-label">Sort</span>
                         <div class="clb-row-items">
                             <select id="hmSort" style="width:200px;">
                                 <option value="score" selected>Score (mean of shown genes)</option>
                                 <option value="lineage">Lineage</option>
                                 <option value="name">Name</option>
                                 <option value="cluster">Cluster (similar profiles together)</option>
+                                <option value="annotation" title="Blocks columns by the annotation rows below, in order: altered lines first, score-sorted within each block">Annotation rows (altered first)</option>
                             </select>
                             <select id="hmGroupBy" style="width:150px;" title="Blocks cell lines by lineage, subtype, disease or a gene's mutation status, sorting within each block, and draws a colour strip under the grid">
                                 <option value="none">No grouping</option>
@@ -8747,17 +8752,14 @@
                             <label style="display:flex; align-items:center; gap:3px; font-size:10px; color:#6b7280; cursor:pointer;" id="hmShowMedianWrap" title="Show each group's median score (of the genes shown) beside its count">
                                 <input type="checkbox" id="hmShowMedian" disabled style="margin:0;"> Show median
                             </label>
-                            <span class="clb-sep"></span>
-                            <select id="hmAnnotation2" style="width:200px;" title="Draws a second colour band under the group band, for a different attribute, so two things can be compared at once">
-                                <option value="none" selected>None</option>
-                                <option value="lineage">Lineage</option>
-                                <option value="hotspot">Hotspot mutation in a gene</option>
-                                <option value="cn">Amplification / deletion of a gene</option>
-                            </select>
-                            <input type="text" id="hmAnn2Gene" list="hmGroupGeneList" disabled placeholder="e.g. BRAF" style="width:110px;" title="Colour the second row by this gene's hotspot mutation status (0 / 1 / 2 copies)">
-                            <input type="text" id="hmAnn2CnGene" list="hmAnn2CnGeneList" disabled placeholder="e.g. MYC" style="width:110px;" title="Colour the second row by this gene's curated amplification / deletion status">
-                            <datalist id="hmAnn2CnGeneList"></datalist>
                             <button id="hmRedrawBtn" class="btn btn-success btn-sm">Redraw</button>
+                        </div>
+                    </div>
+                    <div class="clb-row clb-row-alt">
+                        <span class="clb-row-label">Annotation rows</span>
+                        <div class="clb-row-items" style="align-items:flex-start;">
+                            <div id="hmAnnRowsBlock" style="display:flex; flex-direction:column; gap:6px;"></div>
+                            <button type="button" id="hmAnnRowAddBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Add another annotation row">+ Add row</button>
                         </div>
                     </div>
                 </div>
@@ -9778,6 +9780,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_45"></script>
+    <script src="app.js?v=v88_46"></script>
 </body>
 </html>

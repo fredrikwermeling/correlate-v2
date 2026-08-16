@@ -31159,6 +31159,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const groupWord = this._hmGroupByLabel(d.groupByMode, d.altInfo);
                 const visibleGroups = (d.groups || []).filter(g => !g.hidden);
                 const hiddenGroupKeys = (d.groups || []).filter(g => g.hidden).map(g => g.key);
+                const sortSummary = this._hmSortSummary(d);
 
                 context = {
                     type: 'gene_set_heatmap',
@@ -31173,6 +31174,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         d.diseaseLabel ? `disease gate: ${d.diseaseLabel} only` : 'disease gate: none',
                         filterParts.length ? `alteration filters: ${filterParts.join(', ')}` : 'alteration filters: none'
                     ].join('; '),
+                    cellLineSort: sortSummary,
                     groupBy: d.groupByMode === 'none' ? 'none' : groupWord,
                     groups: d.groups ? visibleGroups.map(g => ({
                         key: g.key, n: g.count,
@@ -31183,14 +31185,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     hiddenGroupsNote: hiddenGroupKeys.length
                         ? 'These groups were hidden by the user via the legend and are excluded from everything in this file: the matrix, cellLines, groups and their scores.'
                         : null,
+                    annotationRows: d.annRows.length ? d.annRows.map(r => ({
+                        attrLabel: r.attrLabel, mode: r.mode, gene: r.gene, categories: r.legend.map(e => e.label)
+                    })) : null,
                     missingGenes: d.missingGenes.length ? d.missingGenes : null,
                     plotType: 'heatmap', stratification: d.groupByMode === 'none' ? 'none' : groupWord
                 };
-                description = `Gene set heatmap: ${setLabel} (${d.genes.length} genes) across ${d.orderedCLs.length} cell lines (${cohortWord}${d.lineageLabel ? `, ${d.lineageLabel} only` : ''}), ${measure}, ${scaling}${d.groupByMode !== 'none' ? `, grouped by ${groupWord}` : ''}.`;
+                description = `Gene set heatmap: ${setLabel} (${d.genes.length} genes) across ${d.orderedCLs.length} cell lines (${cohortWord}${d.lineageLabel ? `, ${d.lineageLabel} only` : ''}), ${sortSummary}, ${measure}, ${scaling}${d.groupByMode !== 'none' ? `, grouped by ${groupWord}` : ''}.`;
                 const colourWord = (d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'blue is low, red is high' : d.dataType === 'expr' ? 'white is low, dark green is high' : 'blue is enriched, red is depleted';
-                context.plotDescribesWhat = `A heatmap: each row is one of the ${d.genes.length} genes in the "${setLabel}" set, each column is one cell line (${d.orderedCLs.length} shown). Colour is ${measure}, ${scaling}: ${colourWord}.`
+                context.plotDescribesWhat = `A heatmap: each row is one of the ${d.genes.length} genes in the "${setLabel}" set, each column is one cell line (${d.orderedCLs.length} shown, ${sortSummary}). Colour is ${measure}, ${scaling}: ${colourWord}.`
                     + (d.groups ? ` A coloured band beneath the grid marks the ${visibleGroups.length} group${visibleGroups.length === 1 ? '' : 's'} the columns are split into by ${groupWord}${hiddenGroupKeys.length ? `; ${hiddenGroupKeys.length} more group${hiddenGroupKeys.length === 1 ? '' : 's'} (${hiddenGroupKeys.join(', ')}) were hidden by the user and are not in this file` : ''}.` : '')
-                    + (d.ann2 ? ` A second coloured band beneath that one marks each column's ${d.ann2.attrLabel}.` : '')
+                    + (d.annRows.length ? ` ${d.annRows.length} more coloured band${d.annRows.length === 1 ? '' : 's'} beneath that mark each column's ${d.annRows.map(r => r.attrLabel).join(', ')} respectively.` : '')
                     + (d.geneTree ? ' A small tree to the left of the gene labels shows how the rows were clustered.' : '');
 
                 // The matrix itself, exactly as drawn: rows and columns in
@@ -52735,9 +52740,8 @@ ${clone.innerHTML}
             // so both reset the same way.
             this._hmResetControls();
             this._hmSyncGroupControls();
-            this._hmSyncAnnotation2Controls();
+            this._hmRenderAnnRowsBlock();
             this._hmPopulateGroupGeneList();
-            this._hmPopulateAnn2CnGeneList();
             this._renderFilterChips('heatmap');
             this._hmRedraw();
         };
@@ -52821,16 +52825,19 @@ ${clone.innerHTML}
         document.getElementById('hmSubtype')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmDisease')?.addEventListener('change', () => this._hmRedraw());
 
-        // Second annotation row: same present-but-disabled pattern as the
-        // group-by gene box, so switching modes never shoves anything sideways.
-        document.getElementById('hmAnnotation2')?.addEventListener('change', () => {
-            this._hmSyncAnnotation2Controls();
+        // Annotation rows: up to 4 rows, each with its own type + gene
+        // widget, added/removed here. Per-row controls are wired inside
+        // _hmRenderAnnRowsBlock itself, since they're rebuilt whenever the
+        // row list changes structurally (add/remove/type change); only the
+        // Add button is a static element wired once.
+        document.getElementById('hmAnnRowAddBtn')?.addEventListener('click', () => {
+            if ((this._hmAnnRows || []).length >= 4) return;
+            this._hmAnnRows.push({ mode: 'hotspot', gene: null });
+            this._hmRenderAnnRowsBlock();
             this._hmRedraw();
         });
-        document.getElementById('hmAnn2Gene')?.addEventListener('change', () => this._hmRedraw());
-        document.getElementById('hmAnn2CnGene')?.addEventListener('change', () => this._hmRedraw());
         this._hmSyncGroupControls();
-        this._hmSyncAnnotation2Controls();
+        this._hmRenderAnnRowsBlock();
     }
 
     // Reopening starts fresh: every control goes back to its default rather
@@ -52856,9 +52863,11 @@ ${clone.innerHTML}
         const medianCb = document.getElementById('hmShowMedian');
         if (medianCb) medianCb.checked = false;
         set('hmMinGroupSize', '1');
-        set('hmAnnotation2', 'none');
-        set('hmAnn2Gene', '');
-        set('hmAnn2CnGene', '');
+        // A fresh open shows zero annotation rows (the old default was
+        // "None", the single-row equivalent of nothing configured), not one
+        // pre-added row: the block starts empty and the user adds what they
+        // want to compare.
+        this._hmAnnRows = [];
         [['hmHotspotFilter', 'hmHotspotLevel', '1+2'], ['hmFusionFilter', 'hmFusionLevel', '1+2'], ['hmCnFilter', 'hmCnLevel', 'altered']]
             .forEach(([inputId, levelId, def]) => {
                 set(inputId, '');
@@ -52938,28 +52947,88 @@ ${clone.innerHTML}
         dl.innerHTML = Array.from(names).sort().map(g => `<option value="${this.esc(g)}"></option>`).join('');
     }
 
-    // Enables/disables the second-row gene boxes without hiding either, so
-    // switching what the second band shows never shoves the redraw button
-    // sideways (same present-but-disabled pattern as the group-by gene box).
-    _hmSyncAnnotation2Controls() {
-        const mode = document.getElementById('hmAnnotation2')?.value || 'none';
-        const hotInput = document.getElementById('hmAnn2Gene');
-        if (hotInput) { hotInput.disabled = mode !== 'hotspot'; hotInput.style.opacity = mode === 'hotspot' ? '1' : '0.45'; }
-        const cnInput = document.getElementById('hmAnn2CnGene');
-        if (cnInput) { cnInput.disabled = mode !== 'cn'; cnInput.style.opacity = mode === 'cn' ? '1' : '0.45'; }
-    }
+    // Renders the "Annotation rows" block from this._hmAnnRows (up to 4
+    // rows: { mode: 'lineage'|'hotspot'|'fusion'|'cn', gene }). Rebuilds the
+    // block's DOM from scratch on every call (structural changes only: add,
+    // remove, type change), so element ids stay stable per position
+    // (hmAnnRow0Type, hmAnnRow0Hotspot, ...) and the searchable gene widgets
+    // are re-wired against the fresh elements every time. Typing/picking a
+    // gene does NOT call this (it would blow away focus/dropdown mid-pick);
+    // it only updates state and redraws.
+    _hmRenderAnnRowsBlock() {
+        const wrap = document.getElementById('hmAnnRowsBlock');
+        if (!wrap) return;
+        const rows = this._hmAnnRows || (this._hmAnnRows = []);
+        const TYPE_OPTIONS = [
+            ['lineage', 'Lineage'], ['hotspot', 'Hotspot mutation'], ['fusion', 'Fusion'], ['cn', 'Copy number']
+        ];
+        const KINDS = [
+            ['hotspot', 'e.g. BRAF', 'Colour this row by this gene\'s hotspot mutation status (0 / 1 / 2 copies)'],
+            ['fusion', 'e.g. EWSR1', 'Colour this row by whether this gene is fused'],
+            ['cn', 'e.g. MYC', 'Colour this row by this gene\'s curated amplification / deletion status']
+        ];
+        const cap = (k) => k.charAt(0).toUpperCase() + k.slice(1);
+        wrap.innerHTML = rows.map((row, i) => {
+            // Lineage needs no gene; the box shown for it is disabled and
+            // cleared rather than hidden outright, the same present-but-
+            // disabled pattern used everywhere else in this toolbar so
+            // nothing beside it ever shifts.
+            const activeKind = row.mode === 'lineage' ? 'hotspot' : row.mode;
+            const disabled = row.mode === 'lineage';
+            const slots = KINDS.map(([kind, placeholder, title]) => {
+                const visible = activeKind === kind;
+                const id = `hmAnnRow${i}${cap(kind)}`;
+                const val = disabled ? '' : this.esc(row.gene || '');
+                return `<div id="${id}Wrap" class="filter-input-wrap" style="position:relative; width:130px; ${visible ? '' : 'display:none;'}">
+                    <input type="text" id="${id}" class="form-control" placeholder="${disabled ? 'No gene needed' : placeholder}" autocomplete="off" style="width:124px; font-size:11px; padding:3px 6px;" title="${this.esc(title)}" value="${val}"${disabled ? ' disabled' : ''}>
+                    <div id="${id}Dropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                </div>`;
+            }).join('');
+            return `<div class="hm-ann-row" data-idx="${i}" style="display:flex; align-items:center; gap:6px;">
+                <span class="clb-group-label" style="flex:0 0 auto; width:38px;">Row ${i + 1}</span>
+                <select id="hmAnnRow${i}Type" style="width:150px;">
+                    ${TYPE_OPTIONS.map(([v, label]) => `<option value="${v}"${row.mode === v ? ' selected' : ''}>${label}</option>`).join('')}
+                </select>
+                <span style="display:inline-block; width:130px; vertical-align:top;">${slots}</span>
+                <button type="button" class="btn btn-outline btn-sm hm-ann-row-remove" data-idx="${i}" style="font-size:10px; padding:0 6px;" title="Remove this row">&times;</button>
+            </div>`;
+        }).join('');
 
-    // Suggestions for the second row's CN gene box: every gene in the
-    // curated amplification or deletion panel, the same panel
-    // _cellLinePassesCnFilter checks against.
-    _hmPopulateAnn2CnGeneList() {
-        const dl = document.getElementById('hmAnn2CnGeneList');
-        if (!dl) return;
-        const cn = this.clinicalCn;
-        const names = new Set();
-        (cn?.amplificationPanel || []).forEach(e => names.add(e.gene));
-        (cn?.deletionPanel || []).forEach(e => names.add(e.gene));
-        dl.innerHTML = Array.from(names).sort().map(g => `<option value="${this.esc(g)}"></option>`).join('');
+        const addBtn = document.getElementById('hmAnnRowAddBtn');
+        if (addBtn) {
+            const atLimit = rows.length >= 4;
+            addBtn.disabled = atLimit;
+            addBtn.title = atLimit ? 'Up to 4 annotation rows' : 'Add another annotation row';
+        }
+
+        rows.forEach((row, i) => {
+            const typeSel = document.getElementById(`hmAnnRow${i}Type`);
+            typeSel?.addEventListener('change', () => {
+                this._hmAnnRows[i].mode = typeSel.value;
+                if (typeSel.value === 'lineage') this._hmAnnRows[i].gene = null;
+                this._hmRenderAnnRowsBlock();
+                this._hmRedraw();
+            });
+            wrap.querySelector(`.hm-ann-row-remove[data-idx="${i}"]`)?.addEventListener('click', () => {
+                this._hmAnnRows.splice(i, 1);
+                this._hmRenderAnnRowsBlock();
+                this._hmRedraw();
+            });
+            // Same searchable hotspot/fusion/CN widget the heatmap's own
+            // Genetic alteration filters use, scoped to the full cohort
+            // (every filter applied) rather than "excluding this kind": an
+            // annotation row doesn't narrow the cohort the way a filter
+            // does, so there's no self-exclusion to do.
+            KINDS.forEach(([kind]) => {
+                const id = `hmAnnRow${i}${cap(kind)}`;
+                const onChange = () => {
+                    const input = document.getElementById(id);
+                    this._hmAnnRows[i].gene = (input?.value || '').trim().toUpperCase() || null;
+                    this._hmRedraw();
+                };
+                this._setupMutFilterWidget(kind, id, `${id}Dropdown`, onChange, () => new Set(this._hmData?.cohort || []));
+            });
+        });
     }
 
     // Toggles the custom-gene textarea and refreshes the preset's note. Both
@@ -53133,17 +53202,17 @@ ${clone.innerHTML}
         const showMedian = !!document.getElementById('hmShowMedian')?.checked;
         const clusterGenes = !!document.getElementById('hmClusterGenes')?.checked;
 
-        // Second annotation row: resolved the same way as "group by
-        // alteration" above, so a gene box left empty or a gene absent from
-        // the relevant matrix falls back to no second row with a reason,
-        // rather than a silent empty band.
-        const ann2Resolved = this._hmResolveAnnotation2();
-        const ann2Note = ann2Resolved.note || '';
+        // Annotation rows: resolved the same way "group by alteration" above
+        // is, so a gene box left empty or a gene absent from the relevant
+        // matrix drops just that row with a reason, rather than a silent
+        // empty band.
+        const annRowsResolved = this._hmResolveAnnotationRows();
+        const annRowsNote = annRowsResolved.note || '';
 
         this._hmBuildAndPaint({
-            genes, missingGenes, cohort, cohortNote: cohortNote + filterNote + groupNote + ann2Note, dataType, scaleMode, sortMode,
+            genes, missingGenes, cohort, cohortNote: cohortNote + filterNote + groupNote + annRowsNote, dataType, scaleMode, sortMode,
             groupByMode, altInfo, groupOrderMode, showMedian, clusterGenes, lineageLabel, subtypeLabel, diseaseLabel, minGroupSize,
-            annotation2Mode: ann2Resolved.mode, ann2Gene: ann2Resolved.gene
+            annotationRows: annRowsResolved.rows
         });
     }
 
@@ -53286,37 +53355,51 @@ ${clone.innerHTML}
         return { gene: raw, source: null };
     }
 
-    // Which gene the second annotation row's boxes name, and whether it
-    // resolves. Hotspot falls back to damaging mutations like the group-by
-    // gene box; CN checks the curated amplification/deletion panels, with
-    // the full CN matrix (when loaded) as a fallback for a gene outside the
-    // curated set. An empty box, or a gene with no data in the box's own
-    // mode, draws no second row rather than an empty band, with a note
-    // saying why (same pattern _hmResolveAlterationGroupGene uses).
-    _hmResolveAnnotation2() {
-        const mode = document.getElementById('hmAnnotation2')?.value || 'none';
-        if (mode === 'none' || mode === 'lineage') return { mode, gene: null, note: '' };
-        if (mode === 'hotspot') {
-            const raw = (document.getElementById('hmAnn2Gene')?.value || '').trim().toUpperCase();
-            if (!raw) return { mode: 'none', gene: null, note: '' };
-            if (!(this.mutations?.geneData?.[raw] || this.damagingMutations?.geneData?.[raw])) {
-                return { mode: 'none', gene: raw, note: `${raw} has no hotspot or damaging mutation data, second row not drawn. ` };
+    // Which gene each annotation row's own widget names, and whether it
+    // resolves, read from this._hmAnnRows (not the DOM: the widgets only
+    // update that state, since re-reading the DOM by id would require
+    // knowing which of the row's 3 stacked inputs is the live one). Hotspot
+    // falls back to damaging mutations like the group-by gene box; CN checks
+    // the curated amplification/deletion panels, with the full CN matrix
+    // (when loaded) as a fallback for a gene outside the curated set; fusion
+    // accepts any gene box value, same as the fusion alteration filter. An
+    // empty box drops that row silently (same as the old single second row
+    // left on "None"); a gene with no data in the row's own mode drops it
+    // with a note saying why (same pattern _hmResolveAlterationGroupGene
+    // uses).
+    _hmResolveAnnotationRows() {
+        const rows = this._hmAnnRows || [];
+        const resolved = [];
+        let note = '';
+        for (const row of rows) {
+            if (resolved.length >= 4) break;
+            if (row.mode === 'lineage') { resolved.push({ mode: 'lineage', gene: null }); continue; }
+            const raw = (row.gene || '').trim().toUpperCase();
+            if (!raw) continue;
+            if (row.mode === 'hotspot') {
+                if (!(this.mutations?.geneData?.[raw] || this.damagingMutations?.geneData?.[raw])) {
+                    note += `${raw} has no hotspot or damaging mutation data, that annotation row is not drawn. `;
+                    continue;
+                }
+                resolved.push({ mode: 'hotspot', gene: raw });
+            } else if (row.mode === 'fusion') {
+                resolved.push({ mode: 'fusion', gene: raw });
+            } else {
+                const inCuratedPanel = (this.clinicalCn?.amplificationPanel || []).some(e => (e.gene || '').toUpperCase() === raw)
+                    || (this.clinicalCn?.deletionPanel || []).some(e => (e.gene || '').toUpperCase() === raw);
+                if (!inCuratedPanel && !(this.cnLoaded && this.cnGeneIndex?.has(raw))) {
+                    note += `${raw} has no curated or measured copy-number data, that annotation row is not drawn. `;
+                    continue;
+                }
+                resolved.push({ mode: 'cn', gene: raw });
             }
-            return { mode, gene: raw, note: '' };
         }
-        const raw = (document.getElementById('hmAnn2CnGene')?.value || '').trim().toUpperCase();
-        if (!raw) return { mode: 'none', gene: null, note: '' };
-        const inCuratedPanel = (this.clinicalCn?.amplificationPanel || []).some(e => (e.gene || '').toUpperCase() === raw)
-            || (this.clinicalCn?.deletionPanel || []).some(e => (e.gene || '').toUpperCase() === raw);
-        if (!inCuratedPanel && !(this.cnLoaded && this.cnGeneIndex?.has(raw))) {
-            return { mode: 'none', gene: raw, note: `${raw} has no curated or measured copy-number data, second row not drawn. ` };
-        }
-        return { mode, gene: raw, note: '' };
+        return { rows: resolved, note };
     }
 
-    // Hotspot mutation level for the second row: same hotspot-then-damaging
-    // fallback as the group-by gene box, so a tumour suppressor scored only
-    // by loss-of-function still shows something.
+    // Hotspot mutation level for a hotspot-mode annotation row: same
+    // hotspot-then-damaging fallback as the group-by gene box, so a tumour
+    // suppressor scored only by loss-of-function still shows something.
     _hmAnn2HotspotLevel(cl, gene) {
         const mm = this.mutations?.geneData?.[gene]?.mutations || this.damagingMutations?.geneData?.[gene]?.mutations;
         return mm ? (mm[cl] || 0) : 0;
@@ -53374,7 +53457,36 @@ ${clone.innerHTML}
         return 'none';
     }
 
-    _hmBuildAndPaint({ genes, missingGenes, cohort, cohortNote, dataType, scaleMode, sortMode, groupByMode = 'none', altInfo = null, groupOrderMode = 'size', showMedian = false, clusterGenes = true, lineageLabel = '', subtypeLabel = '', diseaseLabel = '', minGroupSize = 1, annotation2Mode = 'none', ann2Gene = null }) {
+    // Names the active cell-line sort, for every mode, so the summary line
+    // and the AI export never leave a reader guessing what order the
+    // columns are actually in. Written for a user who read "Group order: By
+    // score" and assumed the cells were score-sorted while "Sort cell
+    // lines: Lineage" was in fact active, which in a single-lineage view
+    // produced what looked like a random order.
+    _hmSortSummary(d) {
+        const sortMode = d.sortMode;
+        if (sortMode === 'cluster') return 'columns clustered';
+        if (sortMode === 'name') return 'sorted by name';
+        if (sortMode === 'lineage') {
+            const lineages = new Set(d.orderedCLs.map(cl => this.getCellLineLineage(cl) || 'Not recorded'));
+            // A single-lineage view (the lineage gate narrowed to one, or
+            // the cohort just happens to be one lineage) has nothing left
+            // for a lineage sort to order: the degenerate case explains
+            // itself rather than leaving what looks like a random order
+            // unexplained.
+            return 'sorted by lineage' + (lineages.size <= 1
+                ? ' (all shown lines share one lineage, so this sort has nothing to order; pick Score)' : '');
+        }
+        if (sortMode === 'annotation') {
+            if (d.annRows.length) {
+                return `sorted by annotation rows (${d.annRows.map(r => r.attrLabel).join(', then ')}), altered first, score within blocks`;
+            }
+            return 'sorted by score (the annotation rows sort needs at least one row; none are set, so this fell back to score)';
+        }
+        return 'sorted by score';
+    }
+
+    _hmBuildAndPaint({ genes, missingGenes, cohort, cohortNote, dataType, scaleMode, sortMode, groupByMode = 'none', altInfo = null, groupOrderMode = 'size', showMedian = false, clusterGenes = true, lineageLabel = '', subtypeLabel = '', diseaseLabel = '', minGroupSize = 1, annotationRows = [] }) {
         const geIndexByCL = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
         let cohortIndex = new Map(cohort.map((cl, i) => [cl, i]));
 
@@ -53441,14 +53553,18 @@ ${clone.innerHTML}
             for (const row of scaledRows) { const v = row[ci]; if (!Number.isNaN(v)) { s += v; k++; } }
             clScore.set(cl, k ? s / k : NaN);
         });
-        const sortByScore = (list) => list.slice().sort((a, b) => {
+        // Shared score comparator: score sort uses it directly, and the
+        // "annotation rows" sort falls back to it as its final tie-break, so
+        // the two can never disagree about what "score within blocks" means.
+        const scoreCompare = (a, b) => {
             const va = clScore.get(a), vb = clScore.get(b);
             const na = Number.isNaN(va), nb = Number.isNaN(vb);
             if (na && nb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
             if (na) return 1;
             if (nb) return -1;
             return vb - va;
-        });
+        };
+        const sortByScore = (list) => list.slice().sort(scoreCompare);
 
         let orderedGenes = genes.slice();
         let geneTree = null;
@@ -53489,6 +53605,21 @@ ${clone.innerHTML}
                     return v;
                 });
                 return this._hmClusterOrder(list, vectors);
+            }
+            // Blocks columns by the annotation rows in order (row 1
+            // outermost): altered/highest first within each row, lexico-
+            // graphic across rows, then the score sort as the final
+            // tie-break so expression ordering survives within every block.
+            // Falls through to score (below) when there are zero annotation
+            // rows, same as choosing Score directly.
+            if (sortMode === 'annotation' && annotationRows.length) {
+                return list.slice().sort((a, b) => {
+                    for (const row of annotationRows) {
+                        const c = this._hmAnnRowSortCompare(row, a, b);
+                        if (c !== 0) return c;
+                    }
+                    return scoreCompare(a, b);
+                });
             }
             return sortByScore(list);
         };
@@ -53625,15 +53756,61 @@ ${clone.innerHTML}
             domain = { lo: -(m || 1), hi: (m || 1) };
         }
 
-        const ann2 = this._hmBuildAnnotation2(annotation2Mode, ann2Gene, orderedCLs);
+        // One built strip per annotation row, in order; a row only fails to
+        // build when there are no columns to draw (orderedCLs empty), since
+        // annotationRows was already filtered to resolvable mode/gene pairs.
+        const annRows = annotationRows.map(r => this._hmBuildAnnotation2(r.mode, r.gene, orderedCLs)).filter(Boolean);
 
         this._hmData = {
             genes, orderedGenes, geneTree, cohort, orderedCLs, geneIndexInResult, cohortIndex,
-            rawRows, scaledRows, dataType, scaleMode, domain, missingGenes, zAllN,
+            rawRows, scaledRows, dataType, scaleMode, sortMode, domain, missingGenes, zAllN,
             groups, groupByMode, altInfo, groupOrderMode, showMedian, hiddenCount,
-            lineageLabel, subtypeLabel, diseaseLabel, ann2, noDataCount, hideNoDataChecked
+            lineageLabel, subtypeLabel, diseaseLabel, annRows, noDataCount, hideNoDataChecked
         };
         this._hmPaintAndWire(cohortNote + clusterNote);
+    }
+
+    // Per cell-line category label for one annotation row (mode + gene),
+    // shared by _hmBuildAnnotation2 (the strip painter) and the "annotation
+    // rows" sort, so a cell line's colour and its sort rank can never
+    // disagree about what category it's in.
+    _hmAnnRowValueFor(mode, gene) {
+        if (mode === 'lineage') return (cl) => this.getCellLineLineage(cl) || 'Not recorded';
+        if (mode === 'hotspot') return (cl) => {
+            const lvl = this._hmAnn2HotspotLevel(cl, gene);
+            return lvl >= 2 ? 'Both copies' : lvl >= 1 ? 'One copy' : 'Wild-type';
+        };
+        if (mode === 'fusion') return (cl) => this._geFusionPasses(cl, gene) ? 'Fused' : 'No fusion';
+        return (cl) => {
+            const ev = this._hmCnEventFor(cl, gene);
+            if (ev.kind === 'wt') return 'No event';
+            if (ev.kind === 'amp') return ev.level >= 2 ? 'Deep amp' : 'Amp';
+            return ev.level >= 2 ? 'Deep del' : 'Del';
+        };
+    }
+
+    // Numeric "how altered" rank for one row's category, highest = most
+    // altered = sorts first (leftmost) under the "annotation rows" sort.
+    // Lineage has no altered/not-altered axis, so it isn't ranked here; the
+    // sort compares its category name alphabetically instead.
+    _hmAnnRowRank(mode, category) {
+        const RANKS = {
+            hotspot: { 'Wild-type': 0, 'One copy': 1, 'Both copies': 2 },
+            fusion: { 'No fusion': 0, 'Fused': 1 },
+            cn: { 'No event': 0, 'Del': 1, 'Deep del': 2, 'Amp': 3, 'Deep amp': 4 }
+        };
+        return RANKS[mode]?.[category] ?? 0;
+    }
+
+    // Comparator for one annotation row under the "annotation rows" sort:
+    // altered/highest first for hotspot, fusion and CN rows; alphabetical
+    // by lineage name for a lineage row (there's no "altered" axis to rank).
+    // Uses the exact same category function _hmBuildAnnotation2 uses to
+    // colour the strip, so sort order and strip colour can never disagree.
+    _hmAnnRowSortCompare(row, a, b) {
+        const valueFor = this._hmAnnRowValueFor(row.mode, row.gene);
+        if (row.mode === 'lineage') return valueFor(a).localeCompare(valueFor(b));
+        return this._hmAnnRowRank(row.mode, valueFor(b)) - this._hmAnnRowRank(row.mode, valueFor(a));
     }
 
     // Qualitative palette for the group annotation strip: distinct at a
@@ -53645,33 +53822,28 @@ ${clone.innerHTML}
                 '#d67195', '#b279a2', '#9e765f', '#8c8c8c', '#6a9f58', '#c47ba0'];
     }
 
-    // The second annotation row: one colour per column, plus the legend
+    // One annotation row's strip: a colour per column, plus the legend
     // entries for whichever categories are actually present. Hotspot and CN
     // use the app's own conventions (the oncoprint mutation grid's blue
     // pair for 1/2 copies; red for amplification, blue for deletion, to
-    // match the CN filter dropdown's swatches), so a reader who has seen
-    // those elsewhere reads this the same way. Lineage gets its own palette
-    // cycle, coloured by how common each lineage is in what's actually
-    // drawn (not the whole panel), same as the primary group band.
+    // match the CN filter dropdown's swatches), fusion reuses the same red
+    // "altered" colour hotspot's top tier and CN's amp tiers don't already
+    // claim, so a reader who has seen those elsewhere reads this the same
+    // way. Lineage gets its own palette cycle, coloured by how common each
+    // lineage is in what's actually drawn (not the whole panel), same as
+    // the primary group band. Also returns `values` (the raw category per
+    // column, pre-colour), which the tooltip uses to name what's hovered.
     _hmBuildAnnotation2(mode, gene, orderedCLs) {
         if (mode === 'none' || !orderedCLs.length) return null;
         const FIXED_COLORS = {
             'Wild-type': '#f3f4f6', 'One copy': '#3b82f6', 'Both copies': '#1e40af',
             'No event': '#f3f4f6', 'Amp': '#fca5a5', 'Deep amp': '#dc2626',
-            'Del': '#93c5fd', 'Deep del': '#1e40af'
+            'Del': '#93c5fd', 'Deep del': '#1e40af',
+            'No fusion': '#f3f4f6', 'Fused': '#dc2626'
         };
-        const attrLabel = mode === 'lineage' ? 'Lineage' : mode === 'hotspot' ? `${gene} mutation` : `${gene} CN`;
-        const valueFor = (cl) => {
-            if (mode === 'lineage') return this.getCellLineLineage(cl) || 'Not recorded';
-            if (mode === 'hotspot') {
-                const lvl = this._hmAnn2HotspotLevel(cl, gene);
-                return lvl >= 2 ? 'Both copies' : lvl >= 1 ? 'One copy' : 'Wild-type';
-            }
-            const ev = this._hmCnEventFor(cl, gene);
-            if (ev.kind === 'wt') return 'No event';
-            if (ev.kind === 'amp') return ev.level >= 2 ? 'Deep amp' : 'Amp';
-            return ev.level >= 2 ? 'Deep del' : 'Del';
-        };
+        const attrLabel = mode === 'lineage' ? 'Lineage' : mode === 'hotspot' ? `${gene} mutation`
+            : mode === 'fusion' ? `${gene} fusion` : `${gene} CN`;
+        const valueFor = this._hmAnnRowValueFor(mode, gene);
         const values = orderedCLs.map(valueFor);
         const catColor = new Map();
         let order;
@@ -53683,13 +53855,14 @@ ${clone.innerHTML}
             order.forEach((label, i) => catColor.set(label, palette[i % palette.length]));
         } else {
             order = mode === 'hotspot' ? ['Wild-type', 'One copy', 'Both copies']
+                : mode === 'fusion' ? ['No fusion', 'Fused']
                 : ['No event', 'Amp', 'Deep amp', 'Del', 'Deep del'];
             order.forEach(label => catColor.set(label, FIXED_COLORS[label]));
         }
         const present = new Set(values);
         const legend = order.filter(label => present.has(label))
             .map(label => ({ label: `${attrLabel}: ${label}`, color: catColor.get(label) }));
-        return { mode, gene, attrLabel, colors: values.map(v => catColor.get(v) || '#e5e7eb'), legend };
+        return { mode, gene, attrLabel, colors: values.map(v => catColor.get(v) || '#e5e7eb'), legend, values };
     }
 
     _hmZRow(raw) {
@@ -54004,13 +54177,15 @@ ${clone.innerHTML}
         const groupLabelPlan = this._hmBuildGroupLabelPlan(d.groups, cellW, groupLabelText);
         d.groupLabelPlan = groupLabelPlan;
         const groupExtra = d.groups ? (GROUP_STRIP_H + GROUP_TICK_H + groupLabelPlan.rows * GROUP_LABEL_ROW_H) : 0;
-        // The second annotation row sits directly under the group section as
-        // a whole (colour band, ticks and labels together), same 14px
-        // height, with no ticks/labels of its own: its legend, prefixed with
-        // the attribute name, does that job instead. Zero height when off,
-        // so nothing shifts and no space is reserved for a band that isn't drawn.
+        // Each annotation row sits directly under the previous one (the
+        // first row right under the group section as a whole: colour band,
+        // ticks and labels together), same 14px height per row, with no
+        // ticks/labels of its own: each row's legend line, prefixed with
+        // its attribute name, does that job instead. Zero height when there
+        // are no rows, so nothing shifts and no space is reserved for a
+        // band that isn't drawn.
         const ANN2_STRIP_H = 14;
-        const ann2Extra = d.ann2 ? ANN2_STRIP_H : 0;
+        const ann2Extra = d.annRows.length * ANN2_STRIP_H;
         const gridH = geneAreaH + groupExtra + ann2Extra;
         const legendW = 260, legendH = 46;
 
@@ -54060,9 +54235,9 @@ ${clone.innerHTML}
                 const capped = groupTitle.charAt(0).toUpperCase() + groupTitle.slice(1);
                 ctx.fillText(fitStripTitle(capped), labelW - 6, geneAreaH + GROUP_STRIP_H / 2);
             }
-            if (d.ann2) {
-                ctx.fillText(fitStripTitle(d.ann2.attrLabel), labelW - 6, geneAreaH + groupExtra + ANN2_STRIP_H / 2);
-            }
+            d.annRows.forEach((row, i) => {
+                ctx.fillText(fitStripTitle(row.attrLabel), labelW - 6, geneAreaH + groupExtra + i * ANN2_STRIP_H + ANN2_STRIP_H / 2);
+            });
         };
         const paintGrid = (ctx, opts = {}) => {
             if (!opts.plain) {
@@ -54144,17 +54319,29 @@ ${clone.innerHTML}
                     plan.items.forEach(it => ctx.fillText(it.text, it.x, tickTop + 1 + it.row * GROUP_LABEL_ROW_H));
                 }
             }
-            // The second row: directly beneath the whole group section above
-            // (or beneath the gene rows, when there's no primary grouping),
-            // aligned to the same columns. No ticks or per-segment text of
-            // its own; the legend below the grid carries the labelling.
-            if (d.ann2) {
-                const y2 = geneAreaH + groupExtra;
+            // Annotation rows: stacked directly beneath the whole group
+            // section above (or beneath the gene rows, when there's no
+            // primary grouping), each aligned to the same columns, in row
+            // order. No ticks or per-segment text of their own; the legend
+            // below the grid carries the labelling.
+            d.annRows.forEach((row, i) => {
+                const y2 = geneAreaH + groupExtra + i * ANN2_STRIP_H;
                 d.orderedCLs.forEach((cl, colIdx) => {
-                    ctx.fillStyle = d.ann2.colors[colIdx] || '#e5e7eb';
+                    ctx.fillStyle = row.colors[colIdx] || '#e5e7eb';
                     ctx.fillRect(colIdx * cellW, y2, cellW, ANN2_STRIP_H);
                 });
-            }
+                // Near-white categories (Wild-type / No event / No fusion)
+                // read as a gap without an outline, same #f3f4f6 + #d1d5db
+                // near-white-swatch pairing used elsewhere in the app (e.g.
+                // the alteration group band's wild-type outline above).
+                ctx.strokeStyle = '#d1d5db';
+                ctx.lineWidth = 1;
+                d.orderedCLs.forEach((cl, colIdx) => {
+                    if ((row.colors[colIdx] || '') === '#f3f4f6') {
+                        ctx.strokeRect(Math.round(colIdx * cellW) + 0.5, y2 + 0.5, Math.max(0, Math.round(cellW) - 1), ANN2_STRIP_H - 1);
+                    }
+                });
+            });
         };
         // clearRect is for the on-screen canvas, which persists across
         // redraws and needs the previous frame wiped. On a freshly created
@@ -54235,26 +54422,32 @@ ${clone.innerHTML}
             });
         };
 
-        // Second-row legend: plain colour chips, no click/hide behaviour
+        // Annotation-row legends: plain colour chips, no click/hide behaviour
         // (that's the primary group legend's job), each entry already
-        // prefixed with the attribute name (e.g. "BRAF mutation: One copy")
-        // so the two bands can't be confused for one another.
+        // prefixed with its row's attribute name (e.g. "BRAF mutation: One
+        // copy") so rows can't be confused for one another. One legend LINE
+        // per row, stacked in order: each row starts on a fresh line rather
+        // than wrapping into the row before it, though a row with many
+        // categories can still wrap onto more than one line of its own.
         let ann2LegendLayout = null;
-        if (d.ann2 && d.ann2.legend.length) {
+        if (d.annRows.length) {
             const probe3 = document.createElement('canvas').getContext('2d');
             probe3.font = '10px Arial';
             const swatch = 10, textGap = 4, itemGapX = 14, itemH = 16;
             const legendWidth = Math.max(320, Math.min(900, labelW + gridW));
             let x = 0, y = 0;
             const items = [];
-            d.ann2.legend.forEach(entry => {
-                const tw = probe3.measureText(entry.label).width;
-                const itemW = swatch + textGap + tw;
-                if (x > 0 && x + itemW > legendWidth) { x = 0; y += itemH; }
-                items.push({ x, y, w: itemW, h: itemH, color: entry.color, text: entry.label, swatch });
-                x += itemW + itemGapX;
+            d.annRows.forEach((row, rowIdx) => {
+                if (rowIdx > 0) { x = 0; y += itemH; }
+                row.legend.forEach(entry => {
+                    const tw = probe3.measureText(entry.label).width;
+                    const itemW = swatch + textGap + tw;
+                    if (x > 0 && x + itemW > legendWidth) { x = 0; y += itemH; }
+                    items.push({ x, y, w: itemW, h: itemH, color: entry.color, text: entry.label, swatch });
+                    x += itemW + itemGapX;
+                });
             });
-            ann2LegendLayout = { items, width: legendWidth, height: y + itemH };
+            ann2LegendLayout = items.length ? { items, width: legendWidth, height: y + itemH } : null;
         }
         const paintAnn2Legend = (ctx) => {
             if (!ann2LegendLayout) return;
@@ -54274,7 +54467,7 @@ ${clone.innerHTML}
 
         this._hmPaint = { paintLabels, paintGrid, paintLegend, paintGroupLegend, paintAnn2Legend };
         Object.assign(this._hmData, {
-            labelW, gridW, gridH, cellW, cellH, legendW, legendH, geneAreaH, groupStripH: GROUP_STRIP_H,
+            labelW, gridW, gridH, cellW, cellH, legendW, legendH, geneAreaH, groupStripH: GROUP_STRIP_H, groupExtra, ann2StripH: ANN2_STRIP_H,
             groupLegendW: groupLegendLayout?.width || 0, groupLegendH: groupLegendLayout?.height || 0,
             groupLegendLayout,
             ann2LegendW: ann2LegendLayout?.width || 0, ann2LegendH: ann2LegendLayout?.height || 0,
@@ -54326,8 +54519,8 @@ ${clone.innerHTML}
             groupLegendCanvas._hmWired = true;
         }
 
-        // Second-row legend canvas: same zero-when-off sizing as the group
-        // legend, and no click wiring (plain chips, nothing to hide).
+        // Annotation-rows legend canvas: same zero-when-off sizing as the
+        // group legend, and no click wiring (plain chips, nothing to hide).
         const ann2LegendCanvas = document.getElementById('hmAnn2LegendCanvas');
         if (ann2LegendCanvas) {
             if (ann2LegendLayout) {
@@ -54354,7 +54547,7 @@ ${clone.innerHTML}
                 ? 'Blue is low, red is high.'
                 : d.dataType === 'expr' ? 'White is low, dark green is high.' : 'Blue is enriched, red is depleted.';
             const groupWord = this._hmGroupByLabel(d.groupByMode, d.altInfo);
-            let base = `${nGenes} genes x ${nCL} cell lines`;
+            let base = `${nGenes} genes x ${nCL} cell lines, ${this._hmSortSummary(d)}`;
             // The choice (hidden or shown) is always stated, never left to be
             // inferred from a count that quietly changed.
             if (d.noDataCount > 0) {
@@ -54366,7 +54559,7 @@ ${clone.innerHTML}
             if (d.subtypeLabel) base += `, ${d.subtypeLabel} only`;
             if (d.diseaseLabel) base += `, ${d.diseaseLabel} only`;
             if (d.groups) base += `, grouped by ${groupWord} (${d.groups.length} group${d.groups.length === 1 ? '' : 's'})`;
-            if (d.ann2) base += `, second row: ${d.ann2.attrLabel}`;
+            if (d.annRows.length) base += `, annotation rows: ${d.annRows.map(r => r.attrLabel).join(', ')}`;
             let text = `${base}, ${dataWord}, ${scaleWord}. ${colourWord}`;
             if (noteText) text = noteText + text;
             if (d.missingGenes.length) {
@@ -54517,6 +54710,18 @@ ${clone.innerHTML}
             else this._hmHideTooltip();
             return;
         }
+        // Annotation-row strips: which of the stacked rows the pointer is
+        // over, then that row's category for the hovered column, e.g.
+        // "BRAF mutation · One copy".
+        const annTop = d.geneAreaH + d.groupExtra;
+        if (d.annRows.length && y >= annTop && y < annTop + d.annRows.length * d.ann2StripH) {
+            const rowIdx = Math.floor((y - annTop) / d.ann2StripH);
+            const row = d.annRows[rowIdx];
+            if (row && colIdx >= 0 && colIdx < d.orderedCLs.length) {
+                this._hmShowTooltip(e.clientX, e.clientY, `${row.attrLabel} · ${row.values[colIdx]}`);
+            } else this._hmHideTooltip();
+            return;
+        }
         const rowIdx = Math.floor(y / d.cellH);
         if (rowIdx < 0 || rowIdx >= d.orderedGenes.length || colIdx < 0 || colIdx >= d.orderedCLs.length) {
             this._hmHideTooltip();
@@ -54622,9 +54827,10 @@ ${clone.innerHTML}
             : d.scaleMode === 'zall' ? `Z-scored per gene, vs all ${d.zAllN.toLocaleString()} lines with data.`
             : 'Raw values.';
         const groupWord = d.groups ? `Grouped by ${this._hmGroupByLabel(d.groupByMode, d.altInfo)}.` : '';
-        const ann2Word = d.ann2 ? `Second row: ${d.ann2.attrLabel}.` : '';
+        const ann2Word = d.annRows.length ? `Annotation rows: ${d.annRows.map(r => r.attrLabel).join(', ')}.` : '';
+        const sortWord = `Cell lines ${this._hmSortSummary(d)}.`;
         const dateStr = new Date().toISOString().slice(0, 10);
-        const line2 = [this._hmCohortPhrase(d.orderedCLs.length), groupWord, ann2Word, scaleWord, `DepMap ${DEPMAP_VERSION}, ${dateStr}.`]
+        const line2 = [this._hmCohortPhrase(d.orderedCLs.length), sortWord, groupWord, ann2Word, scaleWord, `DepMap ${DEPMAP_VERSION}, ${dateStr}.`]
             .filter(Boolean).join(' ');
         return { line1, line2 };
     }
@@ -54670,7 +54876,7 @@ ${clone.innerHTML}
         const captionH = this._hmCaptionGeometry(d).height;
         let totalH = captionH + d.gridH + 10 + d.legendH;
         if (d.groups) totalH += 8 + d.groupLegendH;
-        if (d.ann2) totalH += 8 + d.ann2LegendH;
+        if (d.annRows.length) totalH += 8 + d.ann2LegendH;
         return { totalW, totalH, captionH };
     }
 
@@ -54704,7 +54910,7 @@ ${clone.innerHTML}
         ctx.save(); ctx.translate(0, y); paint.paintLegend(ctx, { plain: true }); ctx.restore();
         y += d.legendH;
         if (d.groups) { y += 8; ctx.save(); ctx.translate(0, y); paint.paintGroupLegend(ctx); ctx.restore(); y += d.groupLegendH; }
-        if (d.ann2) { y += 8; ctx.save(); ctx.translate(0, y); paint.paintAnn2Legend(ctx); ctx.restore(); }
+        if (d.annRows.length) { y += 8; ctx.save(); ctx.translate(0, y); paint.paintAnn2Legend(ctx); ctx.restore(); }
         return canvas;
     }
 
@@ -54755,13 +54961,14 @@ ${clone.innerHTML}
         const filterParts = this._hmActiveFilterParts();
         const filterWord = filterParts.length ? `, filtered to ${filterParts.join(', ')}` : '';
         const groupWord = d.groups ? `grouped by ${this._hmGroupByLabel(d.groupByMode, d.altInfo)}` : 'not grouped';
-        const ann2Word = d.ann2 ? `, second row ${d.ann2.attrLabel}` : '';
+        const ann2Word = d.annRows.length ? `, annotation rows ${d.annRows.map(r => r.attrLabel).join(', ')}` : '';
+        const sortWord = this._hmSortSummary(d);
         const dateStr = new Date().toISOString().slice(0, 10);
         // Provenance lives in the CORNER CELL, not a line of its own: a
         // plain sentence above the header once made a spreadsheet read the
         // real column names as a row of data, because a header row only
         // works as a header if row 1 IS the header row.
-        const corner = `Gene [${measureWord}, ${scaleWord}, ${cohortWord}${filterWord}, ${lineageWord}${narrowWord ? `, ${narrowWord}` : ''}, ${groupWord}${ann2Word}, DepMap ${DEPMAP_VERSION}, ${dateStr}]`;
+        const corner = `Gene [${measureWord}, ${scaleWord}, ${cohortWord}${filterWord}, ${lineageWord}${narrowWord ? `, ${narrowWord}` : ''}, ${sortWord}, ${groupWord}${ann2Word}, DepMap ${DEPMAP_VERSION}, ${dateStr}]`;
         const header = csvField(corner) + ',' + d.orderedCLs.map(cl => this.getCellLineName(cl)).join(',');
         const rows = d.orderedGenes.map(g => {
             const row = d.scaledRows[d.geneIndexInResult.get(g)];
