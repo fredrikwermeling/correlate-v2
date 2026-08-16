@@ -6688,6 +6688,35 @@ class CorrelationExplorer {
             });
             document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNetEnr(); });
         }
+        // Heatmap for the network. Same anchored-menu shape as the Enrichr
+        // dropdown just above: a small button opens a choice of which genes
+        // to draw rather than guessing one.
+        const netHmBtn = document.getElementById('networkHeatmapBtn');
+        const netHmMenu = document.getElementById('networkHeatmapMenu');
+        if (netHmBtn && netHmMenu) {
+            const closeNetHm = () => {
+                netHmMenu.style.display = 'none';
+                netHmBtn.setAttribute('aria-expanded', 'false');
+            };
+            netHmBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const willOpen = netHmMenu.style.display !== 'block';
+                if (willOpen) this._netSyncHeatmapMenu();
+                netHmMenu.style.display = willOpen ? 'block' : 'none';
+                netHmBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            });
+            netHmMenu.querySelectorAll('[data-net-heatmap]').forEach(item => {
+                item.addEventListener('click', () => {
+                    if (item.disabled) return;
+                    closeNetHm();
+                    this._openHeatmapFromNetwork(item.dataset.netHeatmap);
+                });
+            });
+            document.addEventListener('click', (e) => {
+                if (!netHmMenu.contains(e.target) && e.target !== netHmBtn) closeNetHm();
+            });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNetHm(); });
+        }
         document.getElementById('enrichrDockBtn')?.addEventListener('click', () => {
             this._setEnrichrFloating(!document.getElementById('enrichrModal')?.classList.contains('enrichr-floating'));
         });
@@ -36297,6 +36326,68 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
     }
 
+    // The three gene lists the network -> Heatmap dropdown offers: the
+    // user's own typed input, every node actually drawn, and the drawn
+    // nodes that weren't part of the input (the ones the correlation
+    // surfaced). Shared by the menu's live counts and the click handler so
+    // they can never disagree about what a choice means.
+    _netHeatmapGeneSets() {
+        const entered = ((this.getGeneList && this.getGeneList()) || []).map(g => String(g).toUpperCase());
+        const all = this.networkData?.nodes
+            ? this.networkData.nodes.getIds().map(g => String(g).toUpperCase())
+            : [];
+        const enteredSet = new Set(entered);
+        const correlating = all.filter(g => !enteredSet.has(g));
+        return { entered, all, correlating };
+    }
+
+    // Refreshes the network Heatmap dropdown's live counts and disables
+    // whichever choice is empty, or every choice when no network is drawn.
+    _netSyncHeatmapMenu() {
+        const { entered, all, correlating } = this._netHeatmapGeneSets();
+        const hasNetwork = all.length > 0;
+        const rows = [
+            ['networkHeatmapEntered', entered.length],
+            ['networkHeatmapAll', all.length],
+            ['networkHeatmapCorrelating', correlating.length]
+        ];
+        rows.forEach(([id, n]) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            const countEl = btn.querySelector('[data-count]');
+            if (countEl) countEl.textContent = String(n);
+            const disabled = n === 0 || !hasNetwork;
+            btn.disabled = disabled;
+            btn.style.opacity = disabled ? '0.45' : '1';
+            btn.style.cursor = disabled ? 'not-allowed' : 'pointer';
+            btn.title = disabled
+                ? (!hasNetwork ? 'Draw a network first' : 'No genes in this group')
+                : (btn.dataset.baseTitle || '');
+        });
+    }
+
+    // Draws the chosen gene set as a gene set heatmap. Opens the modal
+    // through its normal path FIRST (which resets every control), then
+    // layers the network's genes on top, the same v.88.25 lesson the
+    // save/restore view and network/scatter restores all follow: set state
+    // that lives outside a form control AFTER the open-reset, or it's lost.
+    _openHeatmapFromNetwork(kind) {
+        const { entered, all, correlating } = this._netHeatmapGeneSets();
+        const genes = kind === 'entered' ? entered : kind === 'all' ? all : correlating;
+        if (!genes.length) return;
+        this._hmOpenModal();
+        const presetSel = document.getElementById('hmPreset');
+        if (presetSel) presetSel.value = 'custom';
+        const genesBox = document.getElementById('hmGenes');
+        if (genesBox) genesBox.value = genes.join('\n');
+        // The network is built on gene effect (Chronos), not expression;
+        // the user can switch to mRNA themselves from the heatmap's own
+        // control once it's open. Cohort is left at its default (visible).
+        const dtSel = document.getElementById('hmDataType');
+        if (dtSel) dtSel.value = 'ge';
+        this._hmRedraw();
+    }
+
     async openEnrichr(source) {
         this._enrichrFromNetwork = false;
         this._setEnrichrFloating(false);
@@ -40807,6 +40898,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     closeCellLineBrowser() {
         document.getElementById('cellLineBrowserModal').style.display = 'none';
+        // Undo any z-index bump _hmDrillToBrowser applied to stack this
+        // modal above an open heatmap, so a later, ordinary open doesn't
+        // inherit it. 1350 is this modal's own declared z-index.
+        document.getElementById('cellLineBrowserModal').style.zIndex = '1350';
         // Clear oncoprint filters so they don't leak into other parts of the app
         this._oncoprintFilters = {};
         this._activeOncoprintFilters = null;
@@ -48346,6 +48441,8 @@ ${clone.innerHTML}
 
         document.getElementById('selectionInspectModal').style.display = 'none';
         document.getElementById('cellLineBrowserModal').style.display = 'none';
+        // Undo any z-index bump _hmDrillToBrowser applied (see closeCellLineBrowser).
+        document.getElementById('cellLineBrowserModal').style.zIndex = '1350';
 
         this._pendingSelectionLabel = `Selection (${selected.length} cell line${selected.length === 1 ? '' : 's'})`;
 
@@ -52845,6 +52942,7 @@ ${clone.innerHTML}
         document.getElementById('hmShowMedian')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmClusterGenes')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmDrillBackBtn')?.addEventListener('click', () => this._hmDrillBackToAll());
+        document.getElementById('hmDrillToBrowserBtn')?.addEventListener('click', () => this._hmDrillToBrowser());
         // Cohort and lineage define the cell-line set the other selects are
         // scoped from, so they redraw immediately (same as subtype/disease)
         // rather than waiting for Redraw, and the rest of the lists rescope
@@ -55054,9 +55152,38 @@ ${clone.innerHTML}
     // starts or ends.
     _hmSyncDrillBackButton() {
         const btn = document.getElementById('hmDrillBackBtn');
+        const toBrowserBtn = document.getElementById('hmDrillToBrowserBtn');
         if (!btn) return;
-        if (this._hmDrillLabel) { btn.textContent = this._hmDrillLabel; btn.style.visibility = 'visible'; }
-        else { btn.style.visibility = 'hidden'; }
+        if (this._hmDrillLabel) {
+            btn.textContent = this._hmDrillLabel;
+            btn.style.visibility = 'visible';
+            if (toBrowserBtn) toBrowserBtn.style.visibility = 'visible';
+        } else {
+            btn.style.visibility = 'hidden';
+            if (toBrowserBtn) toBrowserBtn.style.visibility = 'hidden';
+        }
+    }
+
+    // Ticks exactly the cell lines currently drawn (the drilled group's
+    // columns, after "hide lines without data" has already removed any)
+    // in the Cell Line Browser, then opens it on top of the heatmap, which
+    // is left open behind it. Works the same for a real grouping drill and
+    // a synthetic cluster drill (v.88.47): both narrow orderedCLs the same
+    // way, so there's nothing cluster-specific to special-case here.
+    _hmDrillToBrowser() {
+        const cells = this._hmData?.orderedCLs;
+        if (!cells || !cells.length) return;
+        this._clbSelectedCellLines = new Set(cells);
+        this.openCellLineBrowser();
+        // The browser's default z-index sits below the heatmap modal's, so
+        // that opening the heatmap from the browser draws it on top. Here
+        // the direction is reversed: the heatmap stays open, so the browser
+        // needs to be stacked above it instead. Reset in closeCellLineBrowser
+        // so a later, ordinary open doesn't inherit the bump.
+        const heatmapModal = document.getElementById('heatmapModal');
+        const heatmapZ = heatmapModal ? (parseInt(getComputedStyle(heatmapModal).zIndex, 10) || 0) : 0;
+        const clbModal = document.getElementById('cellLineBrowserModal');
+        if (clbModal && heatmapZ) clbModal.style.zIndex = String(heatmapZ + 10);
     }
 
     _hmOnGridHover(e) {

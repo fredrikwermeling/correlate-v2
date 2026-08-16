@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.49 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>The heatmap connects outward.</b> The network gains a Heatmap button that draws its genes as a gene set heatmap: your input genes, every network gene, or only the correlating ones. And after drilling into a heatmap group or cluster, one click ticks exactly those cell lines in the Cell Line Browser, ready for its filters, sorts and exports.</li>
+                </ul>
                 <p><strong>v.88.48 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>Heatmap settings, and views you can save.</b> A Settings button adjusts the heatmap's font sizes and cell dimensions, for the screen and every export, same panel as the network's. And Save view downloads the whole configuration, gene set, cohort, filters, annotation rows, clustering, hidden groups and settings, as a small .json file: drop it on the app later and the exact heatmap reopens, including a snapshot of the cell lines it was drawn on.</li>
@@ -6860,7 +6864,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.48</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.49</a>
         </span>
     </div>
 
@@ -7470,6 +7474,15 @@
                                 <button class="btn btn-secondary mobile-hide" onclick="app.copyNetworkToClipboard()" title="Copy the network as an image to the clipboard, legend included, ready to paste into an email or slide">Copy network</button>
                                 <button class="btn btn-secondary" id="downloadNetworkSVG" style="display:none;">SVG</button>
                                 <button class="btn btn-secondary" id="networkAnalyzeWithAI" title="Package this network as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
+                                <span style="position:relative; display:inline-flex; flex:1;">
+                                    <button class="btn btn-secondary" id="networkHeatmapBtn" aria-haspopup="true" aria-expanded="false" style="flex:1;" title="Draw the network's genes as a gene set heatmap">Heatmap &#9662;</button>
+                                    <div id="networkHeatmapMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1500; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.14); min-width:230px; padding:4px;">
+                                        <div style="font-size:10px; color:#9ca3af; padding:3px 10px 4px;">Which genes to draw?</div>
+                                        <button class="options-menu-item" id="networkHeatmapEntered" data-net-heatmap="entered" data-base-title="Only the genes you typed into the input list">Genes I entered (<span data-count>0</span>)</button>
+                                        <button class="options-menu-item" id="networkHeatmapAll" data-net-heatmap="all" data-base-title="Every gene node drawn in the network">All network genes (<span data-count>0</span>)</button>
+                                        <button class="options-menu-item" id="networkHeatmapCorrelating" data-net-heatmap="correlating" data-base-title="Network genes that were not part of your input, the ones the correlation surfaced">Correlating genes only (<span data-count>0</span>)</button>
+                                    </div>
+                                </span>
                                 <button class="btn btn-secondary" id="downloadAllData" title="Download everything behind this run as one zip: the correlation table, the clusters, the gene-effect values for the genes in the network, and the settings used, as CSV files you can open in a spreadsheet, R or similar">All Data (ZIP)</button>
                             </div>
                         </div>
@@ -8798,6 +8811,7 @@
                 <div id="hmHint" style="font-size:10px; color:#9ca3af; margin-bottom:4px;"></div>
                 <div style="min-height:20px; margin-bottom:4px;">
                     <button type="button" id="hmDrillBackBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; visibility:hidden;" title="Undo the double-click drill-down, restoring the grouping and cell lines shown before it">Show all</button>
+                    <button type="button" id="hmDrillToBrowserBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; margin-left:6px; visibility:hidden;" title="Mark exactly these cell lines as ticked in the Cell Line Browser, so they can be filtered, sorted and exported there">Tick these lines in the browser</button>
                 </div>
                 <div style="display:flex; align-items:flex-start; width:100%;">
                     <canvas id="hmLabelCanvas" style="flex:none; cursor:default;"></canvas>
@@ -9806,6 +9820,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_48"></script>
+    <script src="app.js?v=v88_49"></script>
 </body>
 </html>
