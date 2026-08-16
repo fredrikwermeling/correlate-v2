@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.51 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>Clustering, tidied.</b> Cluster genes and Cluster cell lines now sit together in the top row. A Tree detail setting (Settings) draws the cell-line dendrograms at full, medium or coarse resolution, collapsing the finest branches when they are just visual noise. And within every cluster the columns now run high score to low instead of arbitrary order, so a clustered heatmap reads left to right like the score sort does.</li>
+                </ul>
                 <p><strong>v.88.50 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>Dendrograms everywhere clustering runs, and honest empty columns.</b> With a grouping active, Cluster cell lines now draws a small tree above each group instead of silently skipping the dendrogram; the single-tree view is unchanged. Cell lines with no data for the shown genes draw as hatched columns when shown, so hiding or showing them visibly means something, and their tooltip says why they are empty.</li>
@@ -6868,7 +6872,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.50</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.51</a>
         </span>
     </div>
 
@@ -8702,6 +8706,23 @@
                             <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the gene rows by how alike their profiles are, regardless of how cell lines are sorted, and draw the tree that produced the order">
                                 <input type="checkbox" id="hmClusterGenes" checked style="margin:0;"> Cluster genes
                             </label>
+                            <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the cell-line columns by how alike their profiles are and draw a dendrogram above the grid, matching the gene tree on the left">
+                                <input type="checkbox" id="hmClusterCells" style="margin:0;"> Cluster cell lines
+                            </label>
+                            <select id="hmClusterK" style="width:150px;" title="How many clusters to cut the tree into; Tree order only draws the dendrogram without colouring clusters">
+                                <option value="0" selected>Tree order only</option>
+                                <option value="2">2 clusters</option>
+                                <option value="3">3 clusters</option>
+                                <option value="4">4 clusters</option>
+                                <option value="5">5 clusters</option>
+                                <option value="6">6 clusters</option>
+                                <option value="7">7 clusters</option>
+                                <option value="8">8 clusters</option>
+                                <option value="9">9 clusters</option>
+                                <option value="10">10 clusters</option>
+                                <option value="11">11 clusters</option>
+                                <option value="12">12 clusters</option>
+                            </select>
                         </div>
                     </div>
                     <div class="clb-row clb-row-alt">
@@ -8753,23 +8774,6 @@
                                 <option value="lineage">Lineage</option>
                                 <option value="name">Name</option>
                                 <option value="annotation" title="Blocks columns by the annotation rows below, in order: altered lines first, score-sorted within each block">Annotation rows (altered first)</option>
-                            </select>
-                            <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the cell-line columns by how alike their profiles are and draw a dendrogram above the grid, matching the gene tree on the left">
-                                <input type="checkbox" id="hmClusterCells" style="margin:0;"> Cluster cell lines
-                            </label>
-                            <select id="hmClusterK" style="width:150px;" title="How many clusters to cut the tree into; Tree order only draws the dendrogram without colouring clusters">
-                                <option value="0" selected>Tree order only</option>
-                                <option value="2">2 clusters</option>
-                                <option value="3">3 clusters</option>
-                                <option value="4">4 clusters</option>
-                                <option value="5">5 clusters</option>
-                                <option value="6">6 clusters</option>
-                                <option value="7">7 clusters</option>
-                                <option value="8">8 clusters</option>
-                                <option value="9">9 clusters</option>
-                                <option value="10">10 clusters</option>
-                                <option value="11">11 clusters</option>
-                                <option value="12">12 clusters</option>
                             </select>
                             <select id="hmGroupBy" style="width:150px;" title="Blocks cell lines by lineage, subtype, disease or a gene's mutation status, sorting within each block, and draws a colour strip under the grid">
                                 <option value="none">No grouping</option>
@@ -9824,6 +9828,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_50"></script>
+    <script src="app.js?v=v88_51"></script>
 </body>
 </html>

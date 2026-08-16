@@ -53833,7 +53833,7 @@ ${clone.innerHTML}
             // for the top dendrogram, not just the leaf order.
             if (clusterCells) {
                 if (!allowCluster) return sortByScore(list);
-                return this._hmClusterOrder(list, vectorsFor(list));
+                return this._hmClusterOrder(list, vectorsFor(list), cl => clScore.get(cl));
             }
             if (sortMode === 'lineage') {
                 return list.slice().sort((a, b) => {
@@ -53959,7 +53959,7 @@ ${clone.innerHTML}
                 // root to draw for this group; a 1-line group has nothing
                 // to merge, so it keeps the plain orderList path and no tree.
                 if (clusterCells && allowCluster && g.cellLines.length >= 2) {
-                    const tree = this._hmClusterTree(g.cellLines, vectorsFor(g.cellLines));
+                    const tree = this._hmClusterTree(g.cellLines, vectorsFor(g.cellLines), cl => clScore.get(cl));
                     g.orderedCellLines = tree.order;
                     g.clusterRoot = tree.root;
                 } else {
@@ -54001,7 +54001,7 @@ ${clone.innerHTML}
                 clusterNote = `Clustering is limited to ${CLUSTER_CAP} cell lines (this cohort has ${cohort.length}); narrow it with the browser's filters first. Cell lines are sorted by score instead. `;
                 orderedCLs = sortByScore(cohort);
             } else {
-                const tree = this._hmClusterTree(cohort, vectorsFor(cohort));
+                const tree = this._hmClusterTree(cohort, vectorsFor(cohort), cl => clScore.get(cl));
                 colTree = tree.root;
                 orderedCLs = tree.order;
                 if (clusterK >= 2 && cohort.length >= clusterK) {
@@ -54302,7 +54302,16 @@ ${clone.innerHTML}
     // recompute. Builds the merge tree (for the gene dendrogram) and returns
     // its leaf order (an in-order walk) in the same pass, so the cell-line
     // "Cluster" sort and the gene rows share one implementation.
-    _hmClusterTree(keys, vectors) {
+    //
+    // `scoreFn` (cell-line trees only; the gene tree call never passes it)
+    // triggers a leaf-ordering pass afterward: at every internal node, the
+    // child subtree with the higher mean score is swapped to the left, so
+    // columns trend high-to-low left-to-right within every cluster and
+    // subcluster. This never changes which leaves merge together (cluster
+    // membership and merge heights are untouched), only the left/right
+    // order children are drawn and walked in, so the leaf order it produces
+    // is rebuilt from the (possibly swapped) tree the same way as always.
+    _hmClusterTree(keys, vectors, scoreFn) {
         const n = keys.length;
         if (n === 0) return { order: [], root: null };
         if (n === 1) return { order: keys.slice(), root: { leaf: keys[0] } };
@@ -54339,19 +54348,54 @@ ${clone.innerHTML}
             active.splice(bj, 1);
         }
         const root = nodes[active[0]];
-        const order = [];
-        (function walk(node) {
-            if (node.leaf !== undefined) { order.push(node.leaf); return; }
-            walk(node.left); walk(node.right);
-        })(root);
-        return { order, root };
+        if (scoreFn) this._hmScoreOrderTree(root, scoreFn);
+        return { order: this._hmTreeLeafOrder(root), root };
     }
 
     // Leaf order only, for the "cluster within each group" path, which
     // doesn't draw a dendrogram and doesn't need the tree.
-    _hmClusterOrder(keys, vectors) {
+    _hmClusterOrder(keys, vectors, scoreFn) {
         if (keys.length <= 2) return keys.slice();
-        return this._hmClusterTree(keys, vectors).order;
+        return this._hmClusterTree(keys, vectors, scoreFn).order;
+    }
+
+    // In-order leaf walk of a cluster/dendrogram tree: left subtree, then
+    // right. Shared by _hmClusterTree (initial order, and again after
+    // _hmScoreOrderTree swaps children) so both passes read leaves off the
+    // tree the same way.
+    _hmTreeLeafOrder(root) {
+        const order = [];
+        (function walk(node) {
+            if (!node) return;
+            if (node.leaf !== undefined) { order.push(node.leaf); return; }
+            walk(node.left); walk(node.right);
+        })(root);
+        return order;
+    }
+
+    // Post-order walk that swaps each internal node's two children in
+    // place so the one with the higher mean `scoreFn` score comes first
+    // (left): a standard leaf-ordering heuristic laid on top of clustering
+    // that doesn't move any leaf out of the cluster it merged into, only
+    // changes which of its two children is drawn/walked first. A subtree
+    // with no scored leaves at all (mean is NaN) sorts last, the same
+    // convention scoreCompare uses elsewhere for the cell-line score sort.
+    // Returns this subtree's own {sum, n} so the caller (an ancestor call)
+    // can compare against its sibling without re-walking leaves already
+    // visited.
+    _hmScoreOrderTree(node, scoreFn) {
+        if (!node) return { sum: 0, n: 0 };
+        if (node.leaf !== undefined) {
+            const v = scoreFn(node.leaf);
+            return Number.isNaN(v) ? { sum: 0, n: 0 } : { sum: v, n: 1 };
+        }
+        const L = this._hmScoreOrderTree(node.left, scoreFn);
+        const R = this._hmScoreOrderTree(node.right, scoreFn);
+        const meanL = L.n ? L.sum / L.n : NaN;
+        const meanR = R.n ? R.sum / R.n : NaN;
+        const swap = Number.isNaN(meanL) ? !Number.isNaN(meanR) : (!Number.isNaN(meanR) && meanR > meanL);
+        if (swap) { const t = node.left; node.left = node.right; node.right = t; }
+        return { sum: L.sum + R.sum, n: L.n + R.n };
     }
 
     // Cuts a column (cell-line) dendrogram into k contiguous clusters:
@@ -54398,7 +54442,18 @@ ${clone.innerHTML}
     // an optional `node => color` lookup used to tint a cut cluster's own
     // branches, called with no 4th argument (undefined) by the existing gene
     // dendrogram call, which keeps every segment's colour null (plain grey).
-    _hmDendroLayout(root, leafRowIndex, cellH, dendroW, colorFor) {
+    // `minLeaves` (only ever passed by the top/column dendrogram, per the
+    // "Tree detail" setting; the gene tree call omits it and draws in full)
+    // collapses any internal node whose own leaf count falls under the
+    // threshold into a single stem instead of recursing into its branching:
+    // the parent still draws its normal branch down to that node's own merge
+    // depth, and from there this function draws one line straight to the
+    // leaf band, centred on the collapsed subtree's column span. Leaf counts
+    // are precomputed in one pass so the per-node check is O(1); a collapsed
+    // node's own colour (if it's a cut cluster's root) still resolves the
+    // same way a normal node's would, so a small cluster doesn't lose its
+    // tint just because its branching got collapsed.
+    _hmDendroLayout(root, leafRowIndex, cellH, dendroW, colorFor, minLeaves) {
         if (!root || root.leaf !== undefined) return [];
         let maxH = 0;
         (function findMax(node) {
@@ -54408,6 +54463,28 @@ ${clone.innerHTML}
         })(root);
         const xOf = (h) => maxH > 0 ? dendroW * (1 - h / maxH) : dendroW * 0.15;
         const segments = [];
+        let leafCountOf = null;
+        if (minLeaves > 1) {
+            leafCountOf = new Map();
+            (function count(node) {
+                if (node.leaf !== undefined) { leafCountOf.set(node, 1); return 1; }
+                const c = count(node.left) + count(node.right);
+                leafCountOf.set(node, c);
+                return c;
+            })(root);
+        }
+        // Only called on a node already decided to collapse, and collapsed
+        // regions never nest (the walk stops recursing once it collapses
+        // one), so this still costs O(n) in total across the whole tree.
+        const leafYRange = (node) => {
+            if (node.leaf !== undefined) {
+                const y = (leafRowIndex.get(node.leaf) ?? 0) * cellH + cellH / 2;
+                return [y, y];
+            }
+            const [l1, l2] = leafYRange(node.left);
+            const [r1, r2] = leafYRange(node.right);
+            return [Math.min(l1, r1), Math.max(l2, r2)];
+        };
         // `color` threads the nearest ancestor cluster's colour down to
         // every descendant segment; a node becomes the new colour only when
         // colorFor names one for it (i.e. it IS a cut cluster's root), so
@@ -54418,6 +54495,13 @@ ${clone.innerHTML}
                 return { x: dendroW, y: (leafRowIndex.get(node.leaf) ?? 0) * cellH + cellH / 2 };
             }
             const nodeColor = colorFor ? (colorFor(node) || color) : color;
+            if (leafCountOf && leafCountOf.get(node) < minLeaves) {
+                const [minY, maxY] = leafYRange(node);
+                const x = xOf(node.height);
+                const y = (minY + maxY) / 2;
+                segments.push({ x1: x, y1: y, x2: dendroW, y2: y, color: nodeColor });
+                return { x, y };
+            }
             const L = layout(node.left, nodeColor), R = layout(node.right, nodeColor);
             const x = xOf(node.height);
             segments.push({ x1: x, y1: L.y, x2: L.x, y2: L.y, color: nodeColor });
@@ -54813,8 +54897,17 @@ ${clone.innerHTML}
             const clusterColorMap = new Map((d.groups || []).filter(g => g.node).map(g => [g.node, g.color]));
             const colorFor = clusterColorMap.size ? (node => clusterColorMap.get(node)) : undefined;
             const roots = d.colTree ? [d.colTree] : (d.groups || []).filter(g => g.clusterRoot).map(g => g.clusterRoot);
+            // Tree detail (Settings): how many leaves an internal node needs
+            // before it's drawn in full rather than collapsed to a stem.
+            // Full keeps every merge (threshold 1, nothing has fewer than
+            // that); Medium and Coarse thin out the finest branching on wide
+            // or per-group trees. Cell-line trees only, both single and
+            // per-group; the gene tree's own _hmDendroLayout call never
+            // passes this.
+            const TREE_DETAIL_MIN_LEAVES = { full: 1, medium: 4, coarse: 8 };
+            const minLeaves = TREE_DETAIL_MIN_LEAVES[hmS.treeDetail] || 1;
             const segments = [];
-            for (const root of roots) segments.push(...this._hmDendroLayout(root, leafColIndex, cellW, TOP_DENDRO_H, colorFor));
+            for (const root of roots) segments.push(...this._hmDendroLayout(root, leafColIndex, cellW, TOP_DENDRO_H, colorFor, minLeaves));
             const byColor = new Map();
             for (const s of segments) {
                 const c = s.color || '#9ca3af';
@@ -55567,7 +55660,7 @@ ${clone.innerHTML}
     // button and its shared textSettingsPanel) and saveable views =====
 
     _HM_SETTINGS_DEFAULTS() {
-        return { geneFont: 10, labelFont: 9, legendFont: 9, cellWMax: 14, cellH: 14 };
+        return { geneFont: 10, labelFont: 9, legendFont: 9, cellWMax: 14, cellH: 14, treeDetail: 'full' };
     }
 
     _hmLoadSettings() {
@@ -55614,6 +55707,17 @@ ${clone.innerHTML}
             ${sizeRow('Cell width max', 'hm_ts_cellWMax', s.cellWMax, 2, 40)}
             ${sizeRow('Cell height', 'hm_ts_cellH', s.cellH, 4, 40)}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Cell-line dendrograms</div>
+            <div style="display:flex; align-items:center; margin-bottom:5px; gap:4px;">
+                <span style="width:15px;"></span>
+                <span style="color:#374151;flex:1;min-width:55px;font-size:11px;">Tree detail</span>
+                <select id="hm_ts_treeDetail" onchange="app._hmTsApply()" style="width:100px;font-size:11px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;" title="How finely the cell-line dendrogram branches. Coarser settings collapse small merges into a single stem, which reads cleaner on wide views and per-group trees.">
+                    <option value="full" ${s.treeDetail === 'full' ? 'selected' : ''}>Full</option>
+                    <option value="medium" ${s.treeDetail === 'medium' ? 'selected' : ''}>Medium</option>
+                    <option value="coarse" ${s.treeDetail === 'coarse' ? 'selected' : ''}>Coarse</option>
+                </select>
+            </div>
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <button onclick="app._hmTsReset()" style="font-size:10px;padding:3px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;color:#374151;">Reset to defaults</button>
             <div style="font-size:9px;color:#9ca3af;margin-top:6px;">Applies on screen and to every heatmap export (image, copy). Saved for next time.</div>
         `;
@@ -55636,12 +55740,14 @@ ${clone.innerHTML}
             const v = parseInt(document.getElementById(id)?.value, 10);
             return Number.isFinite(v) ? v : def;
         };
+        const treeDetailVal = document.getElementById('hm_ts_treeDetail')?.value;
         this._hmSettings = {
             geneFont: num('hm_ts_geneFont', defaults.geneFont),
             labelFont: num('hm_ts_labelFont', defaults.labelFont),
             legendFont: num('hm_ts_legendFont', defaults.legendFont),
             cellWMax: num('hm_ts_cellWMax', defaults.cellWMax),
-            cellH: num('hm_ts_cellH', defaults.cellH)
+            cellH: num('hm_ts_cellH', defaults.cellH),
+            treeDetail: ['full', 'medium', 'coarse'].includes(treeDetailVal) ? treeDetailVal : defaults.treeDetail
         };
         this._hmSaveSettingsToStorage();
         this._hmRedraw();
