@@ -52884,6 +52884,19 @@ ${clone.innerHTML}
                 (this._hmAnnRows || (this._hmAnnRows = [])).push({ mode: 'lineage', gene: null });
                 this._hmRenderAnnRowsBlock();
             }
+            // Checking the box means "cluster everything": with a Group by
+            // still active, clustering would only run inside each group,
+            // which is not what checking this obviously means. Switch
+            // grouping off on this same off->on transition so one tree spans
+            // the whole cohort; the lineage-annotation-row auto-add above
+            // keeps that information visible as a colour row instead. Users
+            // who want within-group trees pick a Group by afterwards, which
+            // re-engages per-group clustering unchanged.
+            if (e.target.checked) {
+                const groupSel = document.getElementById('hmGroupBy');
+                if (groupSel) groupSel.value = 'none';
+                this._hmSyncGroupControls();
+            }
             this._hmSyncClusterControls();
             this._hmRedraw();
         });
@@ -53236,12 +53249,21 @@ ${clone.innerHTML}
                     <div id="${id}Dropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
                 </div>`;
             }).join('');
+            // Reorder arrows: row order IS sort order for the annotation-rows
+            // sort (Row 1 forms the outermost blocks), so moving a row here
+            // has a direct, visible effect once that sort is picked. First
+            // row's up and last row's down are disabled in place (greyed,
+            // not hidden) rather than removed, so the arrow pair never shifts.
+            const orderTitle = 'Row order is sort order: with the annotation-rows sort, Row 1 forms the outermost blocks';
+            const isFirst = i === 0, isLast = i === rows.length - 1;
             return `<div class="hm-ann-row" data-idx="${i}" style="display:flex; align-items:center; gap:6px;">
                 <span class="clb-group-label" style="flex:0 0 auto; width:38px;">Row ${i + 1}</span>
                 <select id="hmAnnRow${i}Type" style="width:150px;">
                     ${TYPE_OPTIONS.map(([v, label]) => `<option value="${v}"${row.mode === v ? ' selected' : ''}>${label}</option>`).join('')}
                 </select>
                 <span style="display:inline-block; width:130px; vertical-align:top;">${slots}</span>
+                <button type="button" class="btn btn-outline btn-sm hm-ann-row-up" data-idx="${i}" style="font-size:10px; padding:0 6px;"${isFirst ? ' disabled' : ''} title="${orderTitle}">&uarr;</button>
+                <button type="button" class="btn btn-outline btn-sm hm-ann-row-down" data-idx="${i}" style="font-size:10px; padding:0 6px;"${isLast ? ' disabled' : ''} title="${orderTitle}">&darr;</button>
                 <button type="button" class="btn btn-outline btn-sm hm-ann-row-remove" data-idx="${i}" style="font-size:10px; padding:0 6px;" title="Remove this row">&times;</button>
             </div>`;
         }).join('');
@@ -53252,6 +53274,10 @@ ${clone.innerHTML}
             addBtn.disabled = atLimit;
             addBtn.title = atLimit ? 'Up to 4 annotation rows' : 'Add another annotation row';
         }
+        // "Sort: Annotation rows" only has an effect worth knowing about once
+        // rows exist to block by; present but hidden below that.
+        const sortNote = document.getElementById('hmAnnRowsSortNote');
+        if (sortNote) sortNote.style.display = rows.length ? '' : 'none';
 
         rows.forEach((row, i) => {
             const typeSel = document.getElementById(`hmAnnRow${i}Type`);
@@ -53263,6 +53289,18 @@ ${clone.innerHTML}
             });
             wrap.querySelector(`.hm-ann-row-remove[data-idx="${i}"]`)?.addEventListener('click', () => {
                 this._hmAnnRows.splice(i, 1);
+                this._hmRenderAnnRowsBlock();
+                this._hmRedraw();
+            });
+            wrap.querySelector(`.hm-ann-row-up[data-idx="${i}"]`)?.addEventListener('click', () => {
+                if (i === 0) return;
+                [this._hmAnnRows[i - 1], this._hmAnnRows[i]] = [this._hmAnnRows[i], this._hmAnnRows[i - 1]];
+                this._hmRenderAnnRowsBlock();
+                this._hmRedraw();
+            });
+            wrap.querySelector(`.hm-ann-row-down[data-idx="${i}"]`)?.addEventListener('click', () => {
+                if (i === this._hmAnnRows.length - 1) return;
+                [this._hmAnnRows[i], this._hmAnnRows[i + 1]] = [this._hmAnnRows[i + 1], this._hmAnnRows[i]];
                 this._hmRenderAnnRowsBlock();
                 this._hmRedraw();
             });
@@ -53762,7 +53800,13 @@ ${clone.innerHTML}
             return 'columns clustered';
         }
         const sortMode = d.sortMode;
-        if (sortMode === 'name') return 'sorted by name';
+        // Rows can be added under any sort without switching it (v.88.57):
+        // when they're sitting there unused by score/lineage/name, say so
+        // rather than leaving the mismatch to be noticed by chance. Clustering
+        // is already ruled out above, so reaching here means it's off.
+        const rowsNotUsedNudge = (d.annRows.length && sortMode !== 'annotation')
+            ? ' (annotation rows shown but not sorted on; pick Sort: Annotation rows to block by them)' : '';
+        if (sortMode === 'name') return 'sorted by name' + rowsNotUsedNudge;
         if (sortMode === 'lineage') {
             const lineages = new Set(d.orderedCLs.map(cl => this.getCellLineLineage(cl) || 'Not recorded'));
             // A single-lineage view (the lineage gate narrowed to one, or
@@ -53771,7 +53815,7 @@ ${clone.innerHTML}
             // itself rather than leaving what looks like a random order
             // unexplained.
             return 'sorted by lineage' + (lineages.size <= 1
-                ? ' (all shown lines share one lineage, so this sort has nothing to order; pick Score)' : '');
+                ? ' (all shown lines share one lineage, so this sort has nothing to order; pick Score)' : '') + rowsNotUsedNudge;
         }
         if (sortMode === 'annotation') {
             if (d.annRows.length) {
@@ -53779,7 +53823,7 @@ ${clone.innerHTML}
             }
             return 'sorted by score (the annotation rows sort needs at least one row; none are set, so this fell back to score)';
         }
-        return 'sorted by score';
+        return 'sorted by score' + rowsNotUsedNudge;
     }
 
     _hmBuildAndPaint({ genes, missingGenes, cohort, cohortNote, dataType, scaleMode, sortMode, groupByMode = 'none', altInfo = null, groupOrderMode = 'size', showMedian = false, clusterGenes = true, clusterCells = false, clusterK = 0, lineageLabel = '', subtypeLabel = '', diseaseLabel = '', minGroupSize = 1, annotationRows = [] }) {

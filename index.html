@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.57 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>Sorting on annotation rows, made obvious, and clustering means everything.</b> Checking Cluster cell lines now clusters the whole cohort into one tree, switching grouping off and keeping lineage visible as a colour row, since that is what the question usually is; pick a grouping afterwards for within-group trees. Annotation rows can be reordered with arrows, and row order is sort order: the annotation-rows sort blocks the columns by Row 1, then Row 2 within, and so on. The sort options say what they do, and the summary line points out when annotation rows are shown but not sorted on. The network's Enrichr menu also states its choices plainly: all input genes, or everything in the network.</li>
+                </ul>
                 <p><strong>v.88.56 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>Subtype and disease annotation rows.</b> The heatmap's annotation rows can now show subtype and Oncotree disease alongside lineage, mutations, fusions and copy number, with the same colours, legends and altered-first sorting.</li>
@@ -6892,7 +6896,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.56</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.57</a>
         </span>
     </div>
 
@@ -7475,9 +7479,9 @@
                                 <button class="btn btn-secondary" id="netEnrichrBtn" aria-haspopup="true" aria-expanded="false" title="Pathway enrichment via Enrichr, for the genes you typed in or for the ones actually drawn">Enrichr &#9662;</button>
                                 <div id="netEnrichrMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1500; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.14); min-width:230px; padding:4px;">
                                     <div style="font-size:10px; color:#9ca3af; padding:3px 10px 4px;">Which genes to send?</div>
-                                    <button class="options-menu-item" data-net-enrichr="input" title="Every gene in the box above, whether or not it reached the picture">All genes</button>
+                                    <button class="options-menu-item" data-net-enrichr="input" title="Every gene in the box above, whether or not it reached the picture">All input genes</button>
                                     <button class="options-menu-item" data-net-enrichr="correlated" title="The genes that are actually connected to something: the clusters, without the unconnected genes parked to the side">Correlated genes (the clusters)</button>
-                                    <button class="options-menu-item" data-net-enrichr="drawn" title="Every gene drawn, clusters and unconnected genes alike">Everything in the image</button>
+                                    <button class="options-menu-item" data-net-enrichr="drawn" title="Every gene drawn, clusters and unconnected genes alike">Everything in the network</button>
                                     <div style="border-top:1px solid #e5e7eb; margin:4px 0 0; padding-top:4px;">
                                         <a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" class="options-menu-item" style="color:#9ca3af; font-size:10px; text-decoration:none; display:block;">About Enrichr &#8599;</a>
                                     </div>
@@ -8733,7 +8737,7 @@
                                 <option value="xcoarse">Very coarse</option>
                                 <option value="minimal">Minimal</option>
                             </select>
-                            <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the cell-line columns by how alike their profiles are and draw a dendrogram above the grid, matching the gene tree on the left">
+                            <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the columns by similarity, one tree over all shown lines; pick a Group by afterwards to cluster within groups instead">
                                 <input type="checkbox" id="hmClusterCells" style="margin:0;"> Cluster cell lines
                             </label>
                             <select id="hmClusterK" style="width:150px;" title="How many clusters to cut the tree into; Tree order only draws the dendrogram without colouring clusters">
@@ -8804,10 +8808,10 @@
                         <span class="clb-row-label">Sort</span>
                         <div class="clb-row-items">
                             <select id="hmSort" style="width:200px;">
-                                <option value="score" selected>Score (mean of shown genes)</option>
-                                <option value="lineage">Lineage</option>
-                                <option value="name">Name</option>
-                                <option value="annotation" title="Blocks columns by the annotation rows below, in order: altered lines first, score-sorted within each block">Annotation rows (altered first)</option>
+                                <option value="score" selected>Score (mean of shown genes, high left)</option>
+                                <option value="lineage">Lineage (A-Z, then subtype)</option>
+                                <option value="name">Name (A-Z)</option>
+                                <option value="annotation" title="Blocks the columns by Row 1, then Row 2 within, and so on; mutated / fused / altered lines come first, categories run A-Z, and within the innermost blocks the columns are score-sorted.">Annotation rows (Row 1 first)</option>
                             </select>
                             <select id="hmGroupBy" style="width:150px;" title="Blocks cell lines by lineage, subtype, disease or a gene's mutation status, sorting within each block, and draws a colour strip under the grid">
                                 <option value="none">No grouping</option>
@@ -8839,6 +8843,7 @@
                         <div class="clb-row-items" style="align-items:flex-start;">
                             <div id="hmAnnRowsBlock" style="display:flex; flex-direction:column; gap:6px;"></div>
                             <button type="button" id="hmAnnRowAddBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Add another annotation row">+ Add row</button>
+                            <span id="hmAnnRowsSortNote" style="display:none; font-size:10px; color:#9ca3af;">Sort: Annotation rows orders the columns by these rows, top row outermost.</span>
                         </div>
                     </div>
                 </div>
@@ -9862,6 +9867,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_56"></script>
+    <script src="app.js?v=v88_57"></script>
 </body>
 </html>
