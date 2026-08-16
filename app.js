@@ -53197,7 +53197,8 @@ ${clone.innerHTML}
     }
 
     // Renders the "Annotation rows" block from this._hmAnnRows (up to 4
-    // rows: { mode: 'lineage'|'hotspot'|'fusion'|'cn', gene }). Rebuilds the
+    // rows: { mode: 'lineage'|'subtype'|'disease'|'hotspot'|'fusion'|'cn',
+    // gene }). Rebuilds the
     // block's DOM from scratch on every call (structural changes only: add,
     // remove, type change), so element ids stay stable per position
     // (hmAnnRow0Type, hmAnnRow0Hotspot, ...) and the searchable gene widgets
@@ -53209,8 +53210,10 @@ ${clone.innerHTML}
         if (!wrap) return;
         const rows = this._hmAnnRows || (this._hmAnnRows = []);
         const TYPE_OPTIONS = [
-            ['lineage', 'Lineage'], ['hotspot', 'Hotspot mutation'], ['fusion', 'Fusion'], ['cn', 'Copy number']
+            ['lineage', 'Lineage'], ['subtype', 'Subtype'], ['disease', 'Disease'],
+            ['hotspot', 'Hotspot mutation'], ['fusion', 'Fusion'], ['cn', 'Copy number']
         ];
+        const CATEGORICAL_MODES = new Set(['lineage', 'subtype', 'disease']);
         const KINDS = [
             ['hotspot', 'e.g. BRAF', 'Colour this row by this gene\'s hotspot mutation status (0 / 1 / 2 copies)'],
             ['fusion', 'e.g. EWSR1', 'Colour this row by whether this gene is fused'],
@@ -53218,12 +53221,12 @@ ${clone.innerHTML}
         ];
         const cap = (k) => k.charAt(0).toUpperCase() + k.slice(1);
         wrap.innerHTML = rows.map((row, i) => {
-            // Lineage needs no gene; the box shown for it is disabled and
-            // cleared rather than hidden outright, the same present-but-
-            // disabled pattern used everywhere else in this toolbar so
-            // nothing beside it ever shifts.
-            const activeKind = row.mode === 'lineage' ? 'hotspot' : row.mode;
-            const disabled = row.mode === 'lineage';
+            // Lineage, subtype and disease need no gene; the box shown for
+            // them is disabled and cleared rather than hidden outright, the
+            // same present-but-disabled pattern used everywhere else in
+            // this toolbar so nothing beside it ever shifts.
+            const activeKind = CATEGORICAL_MODES.has(row.mode) ? 'hotspot' : row.mode;
+            const disabled = CATEGORICAL_MODES.has(row.mode);
             const slots = KINDS.map(([kind, placeholder, title]) => {
                 const visible = activeKind === kind;
                 const id = `hmAnnRow${i}${cap(kind)}`;
@@ -53254,7 +53257,7 @@ ${clone.innerHTML}
             const typeSel = document.getElementById(`hmAnnRow${i}Type`);
             typeSel?.addEventListener('change', () => {
                 this._hmAnnRows[i].mode = typeSel.value;
-                if (typeSel.value === 'lineage') this._hmAnnRows[i].gene = null;
+                if (CATEGORICAL_MODES.has(typeSel.value)) this._hmAnnRows[i].gene = null;
                 this._hmRenderAnnRowsBlock();
                 this._hmRedraw();
             });
@@ -53658,7 +53661,7 @@ ${clone.innerHTML}
         let note = '';
         for (const row of rows) {
             if (resolved.length >= 4) break;
-            if (row.mode === 'lineage') { resolved.push({ mode: 'lineage', gene: null }); continue; }
+            if (row.mode === 'lineage' || row.mode === 'subtype' || row.mode === 'disease') { resolved.push({ mode: row.mode, gene: null }); continue; }
             const raw = (row.gene || '').trim().toUpperCase();
             if (!raw) continue;
             if (row.mode === 'hotspot') {
@@ -54160,6 +54163,8 @@ ${clone.innerHTML}
     // disagree about what category it's in.
     _hmAnnRowValueFor(mode, gene) {
         if (mode === 'lineage') return (cl) => this.getCellLineLineage(cl) || 'Not recorded';
+        if (mode === 'subtype') return (cl) => this.getCellLineSublineage(cl) || 'Not recorded';
+        if (mode === 'disease') return (cl) => this.cellLineMetadata?.oncotreeSubtype?.[cl] || 'Not recorded';
         if (mode === 'hotspot') return (cl) => {
             const lvl = this._hmAnn2HotspotLevel(cl, gene);
             return lvl >= 2 ? 'Both copies' : lvl >= 1 ? 'One copy' : 'Wild-type';
@@ -54175,8 +54180,9 @@ ${clone.innerHTML}
 
     // Numeric "how altered" rank for one row's category, highest = most
     // altered = sorts first (leftmost) under the "annotation rows" sort.
-    // Lineage has no altered/not-altered axis, so it isn't ranked here; the
-    // sort compares its category name alphabetically instead.
+    // Lineage, subtype and disease have no altered/not-altered axis, so
+    // they aren't ranked here; the sort compares their category name
+    // alphabetically instead.
     _hmAnnRowRank(mode, category) {
         const RANKS = {
             hotspot: { 'Wild-type': 0, 'One copy': 1, 'Both copies': 2 },
@@ -54188,12 +54194,13 @@ ${clone.innerHTML}
 
     // Comparator for one annotation row under the "annotation rows" sort:
     // altered/highest first for hotspot, fusion and CN rows; alphabetical
-    // by lineage name for a lineage row (there's no "altered" axis to rank).
-    // Uses the exact same category function _hmBuildAnnotation2 uses to
-    // colour the strip, so sort order and strip colour can never disagree.
+    // by category name for a lineage, subtype or disease row (there's no
+    // "altered" axis to rank). Uses the exact same category function
+    // _hmBuildAnnotation2 uses to colour the strip, so sort order and strip
+    // colour can never disagree.
     _hmAnnRowSortCompare(row, a, b) {
         const valueFor = this._hmAnnRowValueFor(row.mode, row.gene);
-        if (row.mode === 'lineage') return valueFor(a).localeCompare(valueFor(b));
+        if (row.mode === 'lineage' || row.mode === 'subtype' || row.mode === 'disease') return valueFor(a).localeCompare(valueFor(b));
         return this._hmAnnRowRank(row.mode, valueFor(b)) - this._hmAnnRowRank(row.mode, valueFor(a));
     }
 
@@ -54248,10 +54255,11 @@ ${clone.innerHTML}
     // match the CN filter dropdown's swatches), fusion reuses the same red
     // "altered" colour hotspot's top tier and CN's amp tiers don't already
     // claim, so a reader who has seen those elsewhere reads this the same
-    // way. Lineage gets its own palette cycle, coloured by how common each
-    // lineage is in what's actually drawn (not the whole panel), same as
-    // the primary group band. Also returns `values` (the raw category per
-    // column, pre-colour), which the tooltip uses to name what's hovered.
+    // way. Lineage, subtype and disease each get their own palette cycle,
+    // coloured by how common each category is in what's actually drawn (not
+    // the whole panel), same as the primary group band. Also returns
+    // `values` (the raw category per column, pre-colour), which the tooltip
+    // uses to name what's hovered.
     _hmBuildAnnotation2(mode, gene, orderedCLs) {
         if (mode === 'none' || !orderedCLs.length) return null;
         const FIXED_COLORS = {
@@ -54260,13 +54268,13 @@ ${clone.innerHTML}
             'Del': '#93c5fd', 'Deep del': '#1e40af',
             'No fusion': '#f3f4f6', 'Fused': '#dc2626'
         };
-        const attrLabel = mode === 'lineage' ? 'Lineage' : mode === 'hotspot' ? `${gene} mutation`
-            : mode === 'fusion' ? `${gene} fusion` : `${gene} CN`;
+        const attrLabel = mode === 'lineage' ? 'Lineage' : mode === 'subtype' ? 'Subtype' : mode === 'disease' ? 'Disease'
+            : mode === 'hotspot' ? `${gene} mutation` : mode === 'fusion' ? `${gene} fusion` : `${gene} CN`;
         const valueFor = this._hmAnnRowValueFor(mode, gene);
         const values = orderedCLs.map(valueFor);
         const catColor = new Map();
         let order;
-        if (mode === 'lineage') {
+        if (mode === 'lineage' || mode === 'subtype' || mode === 'disease') {
             const counts = new Map();
             for (const v of values) counts.set(v, (counts.get(v) || 0) + 1);
             order = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b));
