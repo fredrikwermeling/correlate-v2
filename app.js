@@ -31156,7 +31156,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     all: 'every cell line'
                 }[cohortMode] || cohortMode;
                 const filterParts = this._hmActiveFilterParts();
-                const groupWord = this._hmGroupByLabel(d.groupByMode, d.altInfo);
+                // Cluster groups keep groupByMode 'none' (clustering only
+                // ever runs when Group by is none), so groupWord/stratification
+                // would otherwise read "none" while context.groups was full
+                // of Cluster 1..k entries; named explicitly instead so the
+                // two never contradict each other.
+                const groupWord = d.clustersActive ? `cell-line clusters (k=${d.clusterK})` : this._hmGroupByLabel(d.groupByMode, d.altInfo);
+                const groupedAtAll = d.groupByMode !== 'none' || d.clustersActive;
                 const visibleGroups = (d.groups || []).filter(g => !g.hidden);
                 const hiddenGroupKeys = (d.groups || []).filter(g => g.hidden).map(g => g.key);
                 const sortSummary = this._hmSortSummary(d);
@@ -31175,12 +31181,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         filterParts.length ? `alteration filters: ${filterParts.join(', ')}` : 'alteration filters: none'
                     ].join('; '),
                     cellLineSort: sortSummary,
-                    groupBy: d.groupByMode === 'none' ? 'none' : groupWord,
-                    groups: d.groups ? visibleGroups.map(g => ({
-                        key: g.key, n: g.count,
-                        score: Number.isNaN(g.score) ? null : parseFloat(g.score.toFixed(3)),
-                        median: Number.isNaN(g.median) ? null : parseFloat(g.median.toFixed(3))
-                    })) : null,
+                    groupBy: groupedAtAll ? groupWord : 'none',
+                    groups: d.groups ? visibleGroups.map(g => {
+                        const row = {
+                            key: g.key, n: g.count,
+                            score: Number.isNaN(g.score) ? null : parseFloat(g.score.toFixed(3)),
+                            median: Number.isNaN(g.median) ? null : parseFloat(g.median.toFixed(3))
+                        };
+                        if (d.clustersActive) {
+                            const comp = this._hmClusterComposition(g.cellLines);
+                            row.composition = {
+                                topLineages: comp.topLineages, topSubtypes: comp.topSubtypes, nLines: comp.nLines,
+                                meanScore: row.score, meanIfnScore: comp.meanIfnScore, meanRetroCpm: comp.meanRetroCpm, meanCin: comp.meanCin
+                            };
+                        }
+                        return row;
+                    }) : null,
                     hiddenGroups: hiddenGroupKeys.length ? hiddenGroupKeys : null,
                     hiddenGroupsNote: hiddenGroupKeys.length
                         ? 'These groups were hidden by the user via the legend and are excluded from everything in this file: the matrix, cellLines, groups and their scores.'
@@ -31189,14 +31205,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         attrLabel: r.attrLabel, mode: r.mode, gene: r.gene, categories: r.legend.map(e => e.label)
                     })) : null,
                     missingGenes: d.missingGenes.length ? d.missingGenes : null,
-                    plotType: 'heatmap', stratification: d.groupByMode === 'none' ? 'none' : groupWord
+                    plotType: 'heatmap', stratification: groupedAtAll ? groupWord : 'none'
                 };
-                description = `Gene set heatmap: ${setLabel} (${d.genes.length} genes) across ${d.orderedCLs.length} cell lines (${cohortWord}${d.lineageLabel ? `, ${d.lineageLabel} only` : ''}), ${sortSummary}, ${measure}, ${scaling}${d.groupByMode !== 'none' ? `, grouped by ${groupWord}` : ''}.`;
+                if (d.clustersActive) {
+                    context.clusters_readMe = `Each "Cluster N" entry in groups is hierarchical clustering (average linkage, correlation distance) of the ${d.orderedCLs.length} cell lines in this file, run on the ${d.genes.length} genes in this gene set only, then cut into ${d.clusterK} parts. Cluster identity says nothing about similarity outside this exact gene set and cohort: the same cell lines clustered on a different gene set, or a different cohort, would very likely split differently. The composition field on each cluster exists to help answer WHY its lines ended up together.`;
+                    context.composition_readMe = 'Each cluster\'s composition: topLineages / topSubtypes are its most common lineage / subtype (getCellLineLineage / getCellLineSublineage), top 3 with their counts. nLines is the cluster size. meanScore is the mean of this heatmap\'s own per-line score (mean of the shown, as-displayed gene values) over the cluster. meanIfnScore is the mean interferon signature score (ifnScore()). meanRetroCpm is the mean retroelement signal in counts per million (retroScore().t). meanCin is the mean chromosomal instability score (OmicsGlobalSignatures CIN). Every mean is taken over only the cluster\'s cell lines that HAVE a value for that field; a field is null only when NONE of the cluster\'s lines have a value for it, never a silent zero.';
+                    context.suggestedQuestions = [
+                        'What distinguishes these cell-line clusters from each other?',
+                        'Which cluster would respond differently to a therapy, and why?'
+                    ];
+                }
+                description = `Gene set heatmap: ${setLabel} (${d.genes.length} genes) across ${d.orderedCLs.length} cell lines (${cohortWord}${d.lineageLabel ? `, ${d.lineageLabel} only` : ''}), ${sortSummary}, ${measure}, ${scaling}${groupedAtAll ? `, grouped by ${groupWord}` : ''}.`;
                 const colourWord = (d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'blue is low, red is high' : d.dataType === 'expr' ? 'white is low, dark green is high' : 'blue is enriched, red is depleted';
                 context.plotDescribesWhat = `A heatmap: each row is one of the ${d.genes.length} genes in the "${setLabel}" set, each column is one cell line (${d.orderedCLs.length} shown, ${sortSummary}). Colour is ${measure}, ${scaling}: ${colourWord}.`
                     + (d.groups ? ` A coloured band beneath the grid marks the ${visibleGroups.length} group${visibleGroups.length === 1 ? '' : 's'} the columns are split into by ${groupWord}${hiddenGroupKeys.length ? `; ${hiddenGroupKeys.length} more group${hiddenGroupKeys.length === 1 ? '' : 's'} (${hiddenGroupKeys.join(', ')}) were hidden by the user and are not in this file` : ''}.` : '')
                     + (d.annRows.length ? ` ${d.annRows.length} more coloured band${d.annRows.length === 1 ? '' : 's'} beneath that mark each column's ${d.annRows.map(r => r.attrLabel).join(', ')} respectively.` : '')
-                    + (d.geneTree ? ' A small tree to the left of the gene labels shows how the rows were clustered.' : '');
+                    + (d.geneTree ? ' A small tree to the left of the gene labels shows how the rows were clustered.' : '')
+                    + (d.hasTopDendro ? ' A matching tree above the grid shows how the COLUMNS (cell lines) were clustered.' : '');
 
                 // The matrix itself, exactly as drawn: rows and columns in
                 // display order, values as shown (z-scored vs shown lines,
@@ -52740,6 +52765,7 @@ ${clone.innerHTML}
             // so both reset the same way.
             this._hmResetControls();
             this._hmSyncGroupControls();
+            this._hmSyncClusterControls();
             this._hmRenderAnnRowsBlock();
             this._hmPopulateGroupGeneList();
             this._renderFilterChips('heatmap');
@@ -52761,6 +52787,8 @@ ${clone.innerHTML}
         document.getElementById('hmDataType')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmScale')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmSort')?.addEventListener('change', () => this._hmRedraw());
+        document.getElementById('hmClusterCells')?.addEventListener('change', () => { this._hmSyncClusterControls(); this._hmRedraw(); });
+        document.getElementById('hmClusterK')?.addEventListener('change', () => this._hmRedraw());
         // Fires on blur/focus-loss, not on every keystroke, so a half-typed
         // gene list doesn't repaint mid-edit; Redraw stays useful for that.
         document.getElementById('hmGenes')?.addEventListener('change', () => this._hmRedraw());
@@ -52782,7 +52810,16 @@ ${clone.innerHTML}
                 setTimeout(() => { btn.textContent = t; }, 1200);
             } catch (e) {}
         });
-        document.getElementById('hmExportAIBtn')?.addEventListener('click', () => this._aiShowDialog?.('heatmap'));
+        document.getElementById('hmExportAIBtn')?.addEventListener('click', () => {
+            this._aiShowDialog?.('heatmap');
+            // Same prefill pattern the selection/gate exports use: only when
+            // there's an actual question this file was built to answer, and
+            // only if the box is still empty.
+            if (this._hmData?.clustersActive) {
+                const q = document.getElementById('aiQuestion');
+                if (q && !q.value.trim()) q.value = 'What distinguishes these cell-line clusters from each other?';
+            }
+        });
 
         // Genetic-alteration filters: same searchable hotspot/fusion/CN
         // widget the browser, params, scatter, GE and CA popouts use, wired
@@ -52808,6 +52845,7 @@ ${clone.innerHTML}
         // than appearing/disappearing so nothing beside it jumps sideways.
         document.getElementById('hmGroupBy')?.addEventListener('change', () => {
             this._hmSyncGroupControls();
+            this._hmSyncClusterControls();
             this._hmPopulateGroupGeneList();
             this._hmRedraw();
         });
@@ -52837,6 +52875,7 @@ ${clone.innerHTML}
             this._hmRedraw();
         });
         this._hmSyncGroupControls();
+        this._hmSyncClusterControls();
         this._hmRenderAnnRowsBlock();
     }
 
@@ -52857,6 +52896,9 @@ ${clone.innerHTML}
         set('hmDisease', '');
         set('hmScale', 'z');
         set('hmSort', 'score');
+        const clusterCb = document.getElementById('hmClusterCells');
+        if (clusterCb) clusterCb.checked = false;
+        set('hmClusterK', '0');
         set('hmGroupBy', 'lineage');
         set('hmGroupGene', '');
         set('hmGroupOrder', 'size');
@@ -52933,6 +52975,35 @@ ${clone.innerHTML}
         if (minGroupWrap) {
             minGroupWrap.style.opacity = mode === 'none' ? '0.45' : '1';
             minGroupWrap.style.pointerEvents = mode === 'none' ? 'none' : '';
+        }
+    }
+
+    // Cluster cell lines and its cluster-count select disable each other's
+    // neighbours in place, same present-but-disabled pattern as the rest of
+    // this toolbar. hmSort is meaningless once the checkbox picks the column
+    // order instead; hmClusterK is meaningless both when the checkbox is off
+    // (nothing to cut) and when Group by is active (groups already partition
+    // the columns, so there is no single tree left to cut). Note: hmGroupOrder
+    // needs no separate handling here, mode === 'none' already disables it
+    // above, and clustering across the whole cohort only ever runs when Group
+    // by is none.
+    _hmSyncClusterControls() {
+        const groupMode = document.getElementById('hmGroupBy')?.value || 'none';
+        const cellsOn = !!document.getElementById('hmClusterCells')?.checked;
+        const sortSel = document.getElementById('hmSort');
+        if (sortSel) {
+            sortSel.disabled = cellsOn;
+            sortSel.title = cellsOn ? 'Column order comes from the clustering tree while Cluster cell lines is on' : '';
+            sortSel.style.opacity = cellsOn ? '0.45' : '1';
+        }
+        const kSel = document.getElementById('hmClusterK');
+        if (kSel) {
+            const groupActive = groupMode !== 'none';
+            kSel.disabled = !cellsOn || groupActive;
+            kSel.title = groupActive
+                ? 'Cluster count needs No grouping; groups already partition the lines'
+                : (cellsOn ? 'How many clusters to cut the tree into; Tree order only draws the dendrogram without colouring clusters' : 'Turn on Cluster cell lines to choose a cluster count');
+            kSel.style.opacity = (!cellsOn || groupActive) ? '0.45' : '1';
         }
     }
 
@@ -53058,6 +53129,12 @@ ${clone.innerHTML}
         const scaleMode = document.getElementById('hmScale')?.value || 'z';
         const cohortMode = document.getElementById('hmCohort')?.value || 'visible';
         const sortMode = document.getElementById('hmSort')?.value || 'score';
+        // Cluster cell lines is a checkbox, not a Sort option, so it can be
+        // live-combined with Group by (cluster within each group) instead of
+        // being mutually exclusive with every other sort. hmSort itself is
+        // disabled in place while this is on (_hmSyncClusterControls).
+        const clusterCells = !!document.getElementById('hmClusterCells')?.checked;
+        const clusterK = parseInt(document.getElementById('hmClusterK')?.value, 10) || 0;
         // Reassigned below when "Genetic alteration" grouping has no usable
         // gene, falling back to no grouping rather than an empty band.
         let groupByMode = document.getElementById('hmGroupBy')?.value || 'none';
@@ -53194,8 +53271,10 @@ ${clone.innerHTML}
         }
         // A hidden legend group from a previous grouping scheme means
         // nothing under a different one (its key won't recur), so it is
-        // dropped rather than silently carried over.
-        const hiddenSig = `${groupByMode}|${altInfo?.gene || ''}`;
+        // dropped rather than silently carried over. Cluster groups
+        // ("Cluster 1".."Cluster k") are keyed by clusterK too, since the
+        // same key under a different k is a different partition.
+        const hiddenSig = (clusterCells && groupByMode === 'none') ? `cluster|${clusterK}` : `${groupByMode}|${altInfo?.gene || ''}`;
         if (this._hmHiddenGroupsSig !== hiddenSig) { this._hmHiddenGroups = new Set(); this._hmHiddenGroupsSig = hiddenSig; }
 
         const groupOrderMode = document.getElementById('hmGroupOrder')?.value || 'size';
@@ -53211,7 +53290,7 @@ ${clone.innerHTML}
 
         this._hmBuildAndPaint({
             genes, missingGenes, cohort, cohortNote: cohortNote + filterNote + groupNote + annRowsNote, dataType, scaleMode, sortMode,
-            groupByMode, altInfo, groupOrderMode, showMedian, clusterGenes, lineageLabel, subtypeLabel, diseaseLabel, minGroupSize,
+            groupByMode, altInfo, groupOrderMode, showMedian, clusterGenes, clusterCells, clusterK, lineageLabel, subtypeLabel, diseaseLabel, minGroupSize,
             annotationRows: annRowsResolved.rows
         });
     }
@@ -53464,8 +53543,16 @@ ${clone.innerHTML}
     // lines: Lineage" was in fact active, which in a single-lineage view
     // produced what looked like a random order.
     _hmSortSummary(d) {
+        // Cluster cell lines overrides whatever hmSort holds (it's disabled
+        // in place while this is on), so it's checked first, independent of
+        // sortMode entirely, and covers all three shapes: clustering inside
+        // each group, tree order only, and a tree cut into k clusters.
+        if (d.clusterCells) {
+            if (d.groupByMode !== 'none') return 'columns clustered within each group';
+            if (d.clustersActive) return `columns clustered, cut into ${d.clusterK} clusters`;
+            return 'columns clustered';
+        }
         const sortMode = d.sortMode;
-        if (sortMode === 'cluster') return 'columns clustered';
         if (sortMode === 'name') return 'sorted by name';
         if (sortMode === 'lineage') {
             const lineages = new Set(d.orderedCLs.map(cl => this.getCellLineLineage(cl) || 'Not recorded'));
@@ -53486,7 +53573,7 @@ ${clone.innerHTML}
         return 'sorted by score';
     }
 
-    _hmBuildAndPaint({ genes, missingGenes, cohort, cohortNote, dataType, scaleMode, sortMode, groupByMode = 'none', altInfo = null, groupOrderMode = 'size', showMedian = false, clusterGenes = true, lineageLabel = '', subtypeLabel = '', diseaseLabel = '', minGroupSize = 1, annotationRows = [] }) {
+    _hmBuildAndPaint({ genes, missingGenes, cohort, cohortNote, dataType, scaleMode, sortMode, groupByMode = 'none', altInfo = null, groupOrderMode = 'size', showMedian = false, clusterGenes = true, clusterCells = false, clusterK = 0, lineageLabel = '', subtypeLabel = '', diseaseLabel = '', minGroupSize = 1, annotationRows = [] }) {
         const geIndexByCL = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
         let cohortIndex = new Map(cohort.map((cl, i) => [cl, i]));
 
@@ -53579,11 +53666,33 @@ ${clone.innerHTML}
             geneTree = tree.root;
         }
 
+        // One per-cell-line vector (its value for every shown gene, in the
+        // scaling currently on screen), for whichever list is being
+        // clustered: shared by "cluster within each group" below and the
+        // whole-cohort column tree further down, so the two never compute a
+        // cell line's vector two different ways.
+        const vectorsFor = (list) => list.map(cl => {
+            const ci = cohortIndex.get(cl);
+            const v = new Float64Array(genes.length);
+            scaledRows.forEach((row, gi) => { v[gi] = row[ci]; });
+            return v;
+        });
+
         // Orders one list of cell lines per `sortMode`. Used both for the
         // whole cohort (no grouping) and for each group's slice in turn
         // (grouping on), so clustering, when chosen, runs within a group
         // rather than across the whole set.
         const orderList = (list, allowCluster) => {
+            // Cluster cell lines overrides hmSort entirely (the select is
+            // disabled in place while it's on): this is the "cluster within
+            // each group" path used when Group by is also active. The
+            // ungrouped, whole-cohort case builds its own tree further down
+            // instead of calling this, since it also needs the tree itself
+            // for the top dendrogram, not just the leaf order.
+            if (clusterCells) {
+                if (!allowCluster) return sortByScore(list);
+                return this._hmClusterOrder(list, vectorsFor(list));
+            }
             if (sortMode === 'lineage') {
                 return list.slice().sort((a, b) => {
                     const la = this.getCellLineLineage(a) || '', lb = this.getCellLineLineage(b) || '';
@@ -53595,16 +53704,6 @@ ${clone.innerHTML}
             }
             if (sortMode === 'name') {
                 return list.slice().sort((a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b)));
-            }
-            if (sortMode === 'cluster') {
-                if (!allowCluster) return sortByScore(list);
-                const vectors = list.map(cl => {
-                    const ci = cohortIndex.get(cl);
-                    const v = new Float64Array(genes.length);
-                    scaledRows.forEach((row, gi) => { v[gi] = row[ci]; });
-                    return v;
-                });
-                return this._hmClusterOrder(list, vectors);
             }
             // Blocks columns by the annotation rows in order (row 1
             // outermost): altered/highest first within each row, lexico-
@@ -53643,6 +53742,8 @@ ${clone.innerHTML}
         let orderedCLs;
         let clusterNote = '';
         let hiddenCount = 0;
+        let colTree = null;          // column dendrogram root; only built when Group by is none and Cluster cell lines is on
+        let clustersActive = false;  // true once the tree above was actually cut into k>=2 synthetic groups
         let belowMinCount = 0;
         if (groupByMode !== 'none') {
             const byKey = new Map();
@@ -53709,7 +53810,7 @@ ${clone.innerHTML}
             let col = 0;
             visibleGroups.forEach(g => {
                 const allowCluster = g.cellLines.length <= CLUSTER_CAP;
-                if (sortMode === 'cluster' && !allowCluster) cappedGroupNames.push(g.key);
+                if (clusterCells && !allowCluster) cappedGroupNames.push(g.key);
                 g.orderedCellLines = orderList(g.cellLines, allowCluster);
                 g.startCol = col;
                 g.count = g.orderedCellLines.length;
@@ -53731,13 +53832,66 @@ ${clone.innerHTML}
                     ? 'No group has at least that many cell lines, so there is nothing to draw. Lower "Min n" to see groups. '
                     : 'Every group is hidden, so there is nothing to draw. Click a legend entry below to bring one back. ';
             }
-        } else {
+        } else if (clusterCells) {
+            // Cluster cell lines with no grouping: build the column tree
+            // over the whole (ungrouped) cohort, order columns by it, and
+            // draw a dendrogram above the grid. With k>=2 the tree is also
+            // cut into k synthetic groups ("Cluster 1".."Cluster k", in
+            // left-to-right tree order) fed through the exact same group
+            // machinery lineage/subtype/disease/alteration use: colour
+            // strip, staggered labels, legend with click-to-hide and
+            // double-click drill. Min-n is deliberately NOT applied to
+            // clusters, they are a partition of the shown cohort, not an
+            // optional bucket, so none are dropped for being small.
             const allowCluster = cohort.length <= CLUSTER_CAP;
-            if (sortMode === 'cluster' && !allowCluster) {
+            if (!allowCluster) {
                 clusterNote = `Clustering is limited to ${CLUSTER_CAP} cell lines (this cohort has ${cohort.length}); narrow it with the browser's filters first. Cell lines are sorted by score instead. `;
+                orderedCLs = sortByScore(cohort);
+            } else {
+                const tree = this._hmClusterTree(cohort, vectorsFor(cohort));
+                colTree = tree.root;
+                orderedCLs = tree.order;
+                if (clusterK >= 2 && cohort.length >= clusterK) {
+                    const cut = this._hmCutColumnClusters(tree, clusterK);
+                    const palette = this._HM_GROUP_PALETTE();
+                    const hiddenSet = this._hmHiddenGroups || new Set();
+                    groups = cut.map((c, i) => {
+                        const key = `Cluster ${i + 1}`;
+                        // orderedCellLines mirrors cellLines (both already in
+                        // tree order): kept alongside it because the CSV
+                        // export's per-column group lookup reads
+                        // orderedCellLines, the same field the other grouping
+                        // modes populate.
+                        return {
+                            key, cellLines: c.leaves, orderedCellLines: c.leaves, count: c.leaves.length, hidden: hiddenSet.has(key),
+                            score: meanScoreOf(c.leaves), median: medianScoreOf(c.leaves),
+                            color: palette[i % palette.length], node: c.node
+                        };
+                    });
+                    hiddenCount = groups.filter(g => g.hidden).length;
+                    const visibleClusters = groups.filter(g => !g.hidden);
+                    let col = 0;
+                    orderedCLs = [];
+                    visibleClusters.forEach(g => {
+                        g.startCol = col; col += g.count; g.endCol = col;
+                        orderedCLs.push(...g.cellLines);
+                    });
+                    if (hiddenCount) {
+                        clusterNote += `${hiddenCount} cluster${hiddenCount === 1 ? '' : 's'} hidden from the legend, click to bring back. `;
+                    }
+                    clustersActive = true;
+                }
             }
-            orderedCLs = orderList(cohort, allowCluster);
+        } else {
+            orderedCLs = orderList(cohort, cohort.length <= CLUSTER_CAP);
         }
+        // The top dendrogram only makes sense when it shows every column
+        // that's actually drawn: hiding one cluster removes its cell lines
+        // from the grid entirely, and the tree above was built (and coloured)
+        // over the full, pre-hide cohort, so it's dropped for that redraw
+        // rather than drawn misaligned. The strip, legend and drill-down all
+        // keep working via the same hide mechanism every other group uses.
+        const hasTopDendro = !!colTree && hiddenCount === 0;
 
         // Colour domain: z-score is always clamped to +-2.5; raw expression
         // is scaled to the data's own range; raw gene effect is symmetric
@@ -53765,7 +53919,8 @@ ${clone.innerHTML}
             genes, orderedGenes, geneTree, cohort, orderedCLs, geneIndexInResult, cohortIndex,
             rawRows, scaledRows, dataType, scaleMode, sortMode, domain, missingGenes, zAllN,
             groups, groupByMode, altInfo, groupOrderMode, showMedian, hiddenCount,
-            lineageLabel, subtypeLabel, diseaseLabel, annRows, noDataCount, hideNoDataChecked
+            lineageLabel, subtypeLabel, diseaseLabel, annRows, noDataCount, hideNoDataChecked,
+            clusterCells, clusterK, clustersActive, colTree, hasTopDendro
         };
         this._hmPaintAndWire(cohortNote + clusterNote);
     }
@@ -53820,6 +53975,41 @@ ${clone.innerHTML}
     _HM_GROUP_PALETTE() {
         return ['#4c78a8', '#f58518', '#54a24b', '#b79a20', '#439894', '#e45756',
                 '#d67195', '#b279a2', '#9e765f', '#8c8c8c', '#6a9f58', '#c47ba0'];
+    }
+
+    // What one cluster's cell lines are actually made of, for the AI export
+    // (the "why did these lines end up together" question the export exists
+    // to help answer): the top 3 lineages and subtypes by count, and the
+    // mean of a few omics signatures over just the lines that have a value
+    // for each (skipped, not zeroed, when a line lacks it). meanScore is
+    // NOT computed here, the caller already has the cluster's own score
+    // (mean of the shown genes) and passes it in alongside this.
+    _hmClusterComposition(cellLines) {
+        const lineageCounts = new Map(), subtypeCounts = new Map();
+        let ifnSum = 0, ifnN = 0, retroSum = 0, retroN = 0, cinSum = 0, cinN = 0;
+        for (const cl of cellLines) {
+            const lin = this.getCellLineLineage(cl) || 'Not recorded';
+            lineageCounts.set(lin, (lineageCounts.get(lin) || 0) + 1);
+            const sub = this.getCellLineSublineage(cl) || 'Not recorded';
+            subtypeCounts.set(sub, (subtypeCounts.get(sub) || 0) + 1);
+            const ifn = this.ifnScore ? this.ifnScore(cl) : undefined;
+            if (ifn != null && !Number.isNaN(ifn)) { ifnSum += ifn; ifnN++; }
+            const retro = this.retroScore ? this.retroScore(cl) : null;
+            if (retro && retro.t != null && !Number.isNaN(retro.t)) { retroSum += retro.t; retroN++; }
+            const cin = this.globalSignatures?.byCellLine?.[cl]?.CIN;
+            if (cin != null && !Number.isNaN(cin)) { cinSum += cin; cinN++; }
+        }
+        const top3 = (counts) => Array.from(counts.entries())
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .slice(0, 3).map(([name, n]) => ({ name, n }));
+        return {
+            topLineages: top3(lineageCounts),
+            topSubtypes: top3(subtypeCounts),
+            nLines: cellLines.length,
+            meanIfnScore: ifnN ? parseFloat((ifnSum / ifnN).toFixed(3)) : null,
+            meanRetroCpm: retroN ? parseFloat((retroSum / retroN).toFixed(2)) : null,
+            meanCin: cinN ? parseFloat((cinSum / cinN).toFixed(3)) : null
+        };
     }
 
     // One annotation row's strip: a colour per column, plus the legend
@@ -53999,19 +54189,58 @@ ${clone.innerHTML}
         return { order, root };
     }
 
-    // Leaf order only, for the cell-line "Cluster" sort, which doesn't draw
-    // a dendrogram and doesn't need the tree.
+    // Leaf order only, for the "cluster within each group" path, which
+    // doesn't draw a dendrogram and doesn't need the tree.
     _hmClusterOrder(keys, vectors) {
         if (keys.length <= 2) return keys.slice();
         return this._hmClusterTree(keys, vectors).order;
+    }
+
+    // Cuts a column (cell-line) dendrogram into k contiguous clusters:
+    // starting from the whole tree as one cluster, repeatedly splits
+    // whichever currently-active subtree has the highest merge height (the
+    // "loosest" grouping left) until there are k parts. Leaves are never
+    // reordered, so every part is a contiguous run of the tree's own leaf
+    // order, which is what lets the grid, the dendrogram branch colours and
+    // the group strip all agree on the same column ranges. Returns the parts
+    // left-to-right (by their first leaf's position in `tree.order`), each
+    // as { node, leaves }; `node` is the actual tree node (not a copy), kept
+    // so the dendrogram painter can match branches to their cluster by
+    // reference. Can return fewer than k parts if the tree runs out of
+    // splittable (non-leaf) nodes first.
+    _hmCutColumnClusters(tree, k) {
+        const { root, order } = tree;
+        if (!root) return [];
+        if (root.leaf !== undefined) return [{ node: root, leaves: order.slice() }];
+        let active = [root];
+        while (active.length < k) {
+            let bi = -1, bh = -Infinity;
+            active.forEach((node, i) => { if (node.leaf === undefined && node.height > bh) { bh = node.height; bi = i; } });
+            if (bi === -1) break;
+            const node = active[bi];
+            active.splice(bi, 1, node.left, node.right);
+        }
+        const leavesOf = (node) => {
+            const out = [];
+            (function walk(n) { if (n.leaf !== undefined) out.push(n.leaf); else { walk(n.left); walk(n.right); } })(node);
+            return out;
+        };
+        const orderIndex = new Map(order.map((key, i) => [key, i]));
+        return active.map(node => ({ node, leaves: leavesOf(node) }))
+            .sort((a, b) => orderIndex.get(a.leaves[0]) - orderIndex.get(b.leaves[0]));
     }
 
     // Rectangular dendrogram layout for a gene tree: leaves at the right
     // edge (touching the labels), the deepest merge at the left edge, height
     // scaled linearly so the tallest merge spans the full width. Returns the
     // line segments to stroke, in the same (unscaled) coordinates the label
-    // canvas paints in.
-    _hmDendroLayout(root, leafRowIndex, cellH, dendroW) {
+    // canvas paints in. The top (column) dendrogram reuses this unchanged,
+    // just transposed at paint time (x and y swapped when stroking) rather
+    // than with a second geometry engine; its only addition is `colorFor`,
+    // an optional `node => color` lookup used to tint a cut cluster's own
+    // branches, called with no 4th argument (undefined) by the existing gene
+    // dendrogram call, which keeps every segment's colour null (plain grey).
+    _hmDendroLayout(root, leafRowIndex, cellH, dendroW, colorFor) {
         if (!root || root.leaf !== undefined) return [];
         let maxH = 0;
         (function findMax(node) {
@@ -54021,18 +54250,24 @@ ${clone.innerHTML}
         })(root);
         const xOf = (h) => maxH > 0 ? dendroW * (1 - h / maxH) : dendroW * 0.15;
         const segments = [];
-        const layout = (node) => {
+        // `color` threads the nearest ancestor cluster's colour down to
+        // every descendant segment; a node becomes the new colour only when
+        // colorFor names one for it (i.e. it IS a cut cluster's root), so
+        // branches above every cut stay null (grey) all the way down until
+        // the walk crosses into a cluster.
+        const layout = (node, color) => {
             if (node.leaf !== undefined) {
                 return { x: dendroW, y: (leafRowIndex.get(node.leaf) ?? 0) * cellH + cellH / 2 };
             }
-            const L = layout(node.left), R = layout(node.right);
+            const nodeColor = colorFor ? (colorFor(node) || color) : color;
+            const L = layout(node.left, nodeColor), R = layout(node.right, nodeColor);
             const x = xOf(node.height);
-            segments.push({ x1: x, y1: L.y, x2: L.x, y2: L.y });
-            segments.push({ x1: x, y1: R.y, x2: R.x, y2: R.y });
-            segments.push({ x1: x, y1: L.y, x2: x, y2: R.y });
+            segments.push({ x1: x, y1: L.y, x2: L.x, y2: L.y, color: nodeColor });
+            segments.push({ x1: x, y1: R.y, x2: R.x, y2: R.y, color: nodeColor });
+            segments.push({ x1: x, y1: L.y, x2: x, y2: R.y, color: nodeColor });
             return { x, y: (L.y + R.y) / 2 };
         };
-        layout(root);
+        layout(root, null);
         return segments;
     }
 
@@ -54154,6 +54389,13 @@ ${clone.innerHTML}
         const dendroW = hasDendro ? DENDRO_W : 0;
         const labelW = textLabelW + dendroW;
         const gridW = nCL * cellW;
+        // Top (column) dendrogram: a second canvas above the grid, same
+        // width, drawn only when Cluster cell lines built one (see
+        // _hmBuildAndPaint's hasTopDendro). The gene-label canvas gets a
+        // matching CSS margin-top below so its rows stay aligned with the
+        // grid's, rather than the grid's own coordinate space changing.
+        const TOP_DENDRO_H = 60;
+        const hasTopDendro = !!d.hasTopDendro;
         const geneAreaH = nGenes * cellH;
         // The group strip, its boundary ticks and its labels are drawn on
         // the grid canvas directly beneath the last gene row: that
@@ -54231,7 +54473,7 @@ ${clone.innerHTML}
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#6b7280';
             if (d.groups) {
-                const groupTitle = this._hmGroupByLabel(d.groupByMode, d.altInfo);
+                const groupTitle = d.clustersActive ? 'Cluster' : this._hmGroupByLabel(d.groupByMode, d.altInfo);
                 const capped = groupTitle.charAt(0).toUpperCase() + groupTitle.slice(1);
                 ctx.fillText(fitStripTitle(capped), labelW - 6, geneAreaH + GROUP_STRIP_H / 2);
             }
@@ -54342,6 +54584,39 @@ ${clone.innerHTML}
                     }
                 });
             });
+        };
+        // Column (top) dendrogram: the exact transpose of the gene tree in
+        // paintLabels, reusing _hmDendroLayout rather than a second geometry
+        // engine. That function's `x` is the depth axis (0 = deepest merge,
+        // dendroW = an unmerged leaf) and its `y` is the leaf's position; for
+        // a horizontal gene tree those map straight onto screen x/y, but here
+        // the leaves are COLUMNS and the root belongs at the TOP, so the two
+        // are swapped when stroking: screen x = segment y (column position),
+        // screen y = segment x (0 at the top, TOP_DENDRO_H at the bottom,
+        // touching the grid's first row). Segments carry a cluster colour
+        // (set on the cut cluster's own root and inherited by its
+        // descendants); branches above every cut come back with color: null
+        // and stroke grey, same as the gene tree.
+        const paintDendroTop = (ctx, opts = {}) => {
+            if (!hasTopDendro) return;
+            if (!opts.plain) { ctx.fillStyle = '#f9fafb'; ctx.fillRect(0, 0, gridW, TOP_DENDRO_H); }
+            const leafColIndex = new Map(d.orderedCLs.map((cl, i) => [cl, i]));
+            const clusterColorMap = new Map((d.groups || []).filter(g => g.node).map(g => [g.node, g.color]));
+            const colorFor = clusterColorMap.size ? (node => clusterColorMap.get(node)) : undefined;
+            const segments = this._hmDendroLayout(d.colTree, leafColIndex, cellW, TOP_DENDRO_H, colorFor);
+            const byColor = new Map();
+            for (const s of segments) {
+                const c = s.color || '#9ca3af';
+                if (!byColor.has(c)) byColor.set(c, []);
+                byColor.get(c).push(s);
+            }
+            ctx.lineWidth = 1;
+            for (const [color, segs] of byColor) {
+                ctx.strokeStyle = color;
+                ctx.beginPath();
+                for (const s of segs) { ctx.moveTo(s.y1, s.x1); ctx.lineTo(s.y2, s.x2); }
+                ctx.stroke();
+            }
         };
         // clearRect is for the on-screen canvas, which persists across
         // redraws and needs the previous frame wiped. On a freshly created
@@ -54465,13 +54740,14 @@ ${clone.innerHTML}
             });
         };
 
-        this._hmPaint = { paintLabels, paintGrid, paintLegend, paintGroupLegend, paintAnn2Legend };
+        this._hmPaint = { paintLabels, paintGrid, paintLegend, paintGroupLegend, paintAnn2Legend, paintDendroTop };
         Object.assign(this._hmData, {
             labelW, gridW, gridH, cellW, cellH, legendW, legendH, geneAreaH, groupStripH: GROUP_STRIP_H, groupExtra, ann2StripH: ANN2_STRIP_H,
             groupLegendW: groupLegendLayout?.width || 0, groupLegendH: groupLegendLayout?.height || 0,
             groupLegendLayout,
             ann2LegendW: ann2LegendLayout?.width || 0, ann2LegendH: ann2LegendLayout?.height || 0,
-            ann2LegendLayout
+            ann2LegendLayout,
+            topDendroH: hasTopDendro ? TOP_DENDRO_H : 0
         });
 
         const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
@@ -54489,6 +54765,27 @@ ${clone.innerHTML}
         gc.setTransform(dpr, 0, 0, dpr, 0, 0); gc.clearRect(0, 0, gridW, gridH); paintGrid(gc);
         const lgc = legendCanvas.getContext('2d');
         lgc.setTransform(dpr, 0, 0, dpr, 0, 0); paintLegend(lgc);
+
+        // Top dendrogram canvas: sits inside #hmGridScroll directly above
+        // hmGridCanvas (same width, so the two scroll together), sized to
+        // zero when there's nothing to draw. hmLabelCanvas gets a matching
+        // margin-top so its gene rows stay aligned with the grid's, the same
+        // marginTop-when-present pattern the group/annotation legend
+        // canvases use below; the grid canvas's own coordinate space is
+        // untouched either way.
+        const dendroTopCanvas = document.getElementById('hmDendroTopCanvas');
+        if (dendroTopCanvas) {
+            if (hasTopDendro) {
+                sizeCanvas(dendroTopCanvas, gridW, TOP_DENDRO_H);
+                const dtc = dendroTopCanvas.getContext('2d');
+                dtc.setTransform(dpr, 0, 0, dpr, 0, 0);
+                dtc.clearRect(0, 0, gridW, TOP_DENDRO_H);
+                paintDendroTop(dtc);
+            } else {
+                dendroTopCanvas.width = 0; dendroTopCanvas.height = 0;
+            }
+        }
+        labelCanvas.style.marginTop = hasTopDendro ? TOP_DENDRO_H + 'px' : '0';
 
         // The group legend canvas is sized to zero (and its top margin
         // dropped) when grouping is off, so switching grouping off leaves no
@@ -54546,7 +54843,12 @@ ${clone.innerHTML}
             const colourWord = (d.scaleMode === 'z' || d.scaleMode === 'zall')
                 ? 'Blue is low, red is high.'
                 : d.dataType === 'expr' ? 'White is low, dark green is high.' : 'Blue is enriched, red is depleted.';
-            const groupWord = this._hmGroupByLabel(d.groupByMode, d.altInfo);
+            // Cluster groups keep groupByMode 'none' (clustering only runs
+            // when Group by is none), so the plain groupByMode label would
+            // read "grouped by none" while a cluster strip and legend are
+            // plainly on screen; named explicitly instead, same fix the AI
+            // export context applies for the same reason.
+            const groupWord = d.clustersActive ? `cell-line clusters (k=${d.clusterK})` : this._hmGroupByLabel(d.groupByMode, d.altInfo);
             let base = `${nGenes} genes x ${nCL} cell lines, ${this._hmSortSummary(d)}`;
             // The choice (hidden or shown) is always stated, never left to be
             // inferred from a count that quietly changed.
@@ -54634,7 +54936,10 @@ ${clone.innerHTML}
     // whichever of the two happened.
     _hmDrillInto(g) {
         const d = this._hmData;
-        if (!d || !g || d.groupByMode === 'none') return;
+        // Cluster groups keep groupByMode 'none' (they replace the top
+        // dendrogram, not the Group by select), so the guard below also
+        // accepts that case rather than only a real grouping.
+        if (!d || !g || (d.groupByMode === 'none' && !d.clustersActive)) return;
         const groupBySel = document.getElementById('hmGroupBy');
         const lineageSel = document.getElementById('hmLineage');
         this._hmDrillBack = {
@@ -54658,6 +54963,13 @@ ${clone.innerHTML}
             this._hmDrillCells = new Set(g.cellLines);
             this._hmDrillLabel = 'Show all groups';
             if (groupBySel) groupBySel.value = 'lineage';
+        } else if (d.groupByMode === 'none' && d.clustersActive) {
+            // Clusters only ever partition the whole (ungrouped) cohort, so
+            // there's no finer level to regroup by: narrow to this cluster's
+            // cell lines and leave Group by/Cluster cell lines as they are,
+            // which re-clusters just that narrowed set on the next redraw.
+            this._hmDrillCells = new Set(g.cellLines);
+            this._hmDrillLabel = 'Show all clusters';
         } else {
             // Subtype / disease have no finer level to regroup by, so this
             // only narrows the cell lines.
@@ -54665,6 +54977,7 @@ ${clone.innerHTML}
             this._hmDrillLabel = `Show all ${d.groupByMode === 'subtype' ? 'subtypes' : 'diseases'}`;
         }
         this._hmSyncGroupControls();
+        this._hmSyncClusterControls();
         this._hmPopulateGroupGeneList();
         this._hmRedraw();
     }
@@ -54683,6 +54996,7 @@ ${clone.innerHTML}
         this._hmDrillLabel = null;
         this._hmHiddenGroups = new Set();
         this._hmSyncGroupControls();
+        this._hmSyncClusterControls();
         this._hmPopulateGroupGeneList();
         this._hmRedraw();
     }
@@ -54762,7 +55076,7 @@ ${clone.innerHTML}
         if (el) el.style.display = 'none';
     }
     _hmClearCanvases() {
-        ['hmLabelCanvas', 'hmGridCanvas', 'hmLegendCanvas', 'hmGroupLegendCanvas', 'hmAnn2LegendCanvas'].forEach(id => {
+        ['hmLabelCanvas', 'hmGridCanvas', 'hmLegendCanvas', 'hmGroupLegendCanvas', 'hmAnn2LegendCanvas', 'hmDendroTopCanvas'].forEach(id => {
             const cv = document.getElementById(id);
             if (cv) { cv.width = 0; cv.height = 0; }
         });
@@ -54772,6 +55086,8 @@ ${clone.innerHTML}
         if (legendHint) legendHint.style.display = 'none';
         const ann2LegendCanvas = document.getElementById('hmAnn2LegendCanvas');
         if (ann2LegendCanvas) ann2LegendCanvas.style.marginTop = '0';
+        const labelCanvas = document.getElementById('hmLabelCanvas');
+        if (labelCanvas) labelCanvas.style.marginTop = '0';
         this._hmData = null;
         this._hmPaint = null;
     }
@@ -54805,7 +55121,11 @@ ${clone.innerHTML}
         const filterParts = this._hmActiveFilterParts();
         if (filterParts.length) phrase += `, filtered to ${filterParts.join(', ')}`;
         const minN = parseInt(document.getElementById('hmMinGroupSize')?.value) || 1;
-        if (minN > 1 && d?.groups) phrase += `, groups under n=${minN} excluded`;
+        // Min-n is never applied to cluster groups (they partition the whole
+        // cohort by construction, see _hmBuildAndPaint), so this note would
+        // be false for them even though the (disabled, but not reset)
+        // control still holds a leftover value from an earlier grouping.
+        if (minN > 1 && d?.groups && !d.clustersActive) phrase += `, groups under n=${minN} excluded`;
         return phrase + '.';
     }
 
@@ -54826,7 +55146,9 @@ ${clone.innerHTML}
         const scaleWord = d.scaleMode === 'z' ? 'Z-scored per gene, vs shown lines.'
             : d.scaleMode === 'zall' ? `Z-scored per gene, vs all ${d.zAllN.toLocaleString()} lines with data.`
             : 'Raw values.';
-        const groupWord = d.groups ? `Grouped by ${this._hmGroupByLabel(d.groupByMode, d.altInfo)}.` : '';
+        const groupWord = d.groups
+            ? `Grouped by ${d.clustersActive ? `cell-line clusters (k=${d.clusterK})` : this._hmGroupByLabel(d.groupByMode, d.altInfo)}.`
+            : '';
         const ann2Word = d.annRows.length ? `Annotation rows: ${d.annRows.map(r => r.attrLabel).join(', ')}.` : '';
         const sortWord = `Cell lines ${this._hmSortSummary(d)}.`;
         const dateStr = new Date().toISOString().slice(0, 10);
@@ -54867,14 +55189,15 @@ ${clone.innerHTML}
         for (const ln of geo.subtitleLines) { ctx.fillText(ln, 0, y); y += geo.subtitleFs * 1.35; }
     }
 
-    // Total export/copy canvas size: the caption, the grid (with its group
-    // strip and second row, if any), the colour legend, and the group and
-    // second-row legends where those apply. Kept as one function so image
-    // export, clipboard copy and the on-screen layout can't drift apart.
+    // Total export/copy canvas size: the caption, the top dendrogram band
+    // (when Cluster cell lines drew one), the grid (with its group strip and
+    // second row, if any), the colour legend, and the group and second-row
+    // legends where those apply. Kept as one function so image export,
+    // clipboard copy and the on-screen layout can't drift apart.
     _hmTotalCanvasSize(d) {
         const totalW = d.labelW + d.gridW;
         const captionH = this._hmCaptionGeometry(d).height;
-        let totalH = captionH + d.gridH + 10 + d.legendH;
+        let totalH = captionH + (d.topDendroH || 0) + d.gridH + 10 + d.legendH;
         if (d.groups) totalH += 8 + d.groupLegendH;
         if (d.annRows.length) totalH += 8 + d.ann2LegendH;
         return { totalW, totalH, captionH };
@@ -54904,9 +55227,11 @@ ${clone.innerHTML}
         // export is meant to sit on a slide or a page, not the app's own
         // background, so only the data cells and the chosen background
         // (white or transparent) should show.
-        ctx.save(); ctx.translate(0, captionH); paint.paintLabels(ctx, { plain: true }); ctx.restore();
-        ctx.save(); ctx.translate(d.labelW, captionH); paint.paintGrid(ctx, { plain: true }); ctx.restore();
-        let y = captionH + d.gridH + 10;
+        const topDendroH = d.topDendroH || 0;
+        ctx.save(); ctx.translate(0, captionH + topDendroH); paint.paintLabels(ctx, { plain: true }); ctx.restore();
+        if (topDendroH) { ctx.save(); ctx.translate(d.labelW, captionH); paint.paintDendroTop(ctx, { plain: true }); ctx.restore(); }
+        ctx.save(); ctx.translate(d.labelW, captionH + topDendroH); paint.paintGrid(ctx, { plain: true }); ctx.restore();
+        let y = captionH + topDendroH + d.gridH + 10;
         ctx.save(); ctx.translate(0, y); paint.paintLegend(ctx, { plain: true }); ctx.restore();
         y += d.legendH;
         if (d.groups) { y += 8; ctx.save(); ctx.translate(0, y); paint.paintGroupLegend(ctx); ctx.restore(); y += d.groupLegendH; }
@@ -54960,7 +55285,9 @@ ${clone.innerHTML}
         const narrowWord = [d.subtypeLabel, d.diseaseLabel].filter(Boolean).map(w => `${w} only`).join(', ');
         const filterParts = this._hmActiveFilterParts();
         const filterWord = filterParts.length ? `, filtered to ${filterParts.join(', ')}` : '';
-        const groupWord = d.groups ? `grouped by ${this._hmGroupByLabel(d.groupByMode, d.altInfo)}` : 'not grouped';
+        const groupWord = d.groups
+            ? `grouped by ${d.clustersActive ? `cell-line clusters (k=${d.clusterK})` : this._hmGroupByLabel(d.groupByMode, d.altInfo)}`
+            : 'not grouped';
         const ann2Word = d.annRows.length ? `, annotation rows ${d.annRows.map(r => r.attrLabel).join(', ')}` : '';
         const sortWord = this._hmSortSummary(d);
         const dateStr = new Date().toISOString().slice(0, 10);
