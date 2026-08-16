@@ -52953,7 +52953,20 @@ ${clone.innerHTML}
         document.getElementById('hmGroupGene')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmGroupOrder')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmShowMedian')?.addEventListener('change', () => this._hmRedraw());
-        document.getElementById('hmClusterGenes')?.addEventListener('change', () => this._hmRedraw());
+        document.getElementById('hmClusterGenes')?.addEventListener('change', () => {
+            this._hmSyncClusterControls();
+            this._hmRedraw();
+        });
+        document.getElementById('hmTreeDetailGenes')?.addEventListener('change', () => {
+            this._hmSettings = Object.assign({}, this._HM_SETTINGS_DEFAULTS(), this._hmSettings || {}, { treeDetailGenes: document.getElementById('hmTreeDetailGenes').value });
+            this._hmSaveSettingsToStorage();
+            this._hmRedraw();
+        });
+        document.getElementById('hmTreeDetailCells')?.addEventListener('change', () => {
+            this._hmSettings = Object.assign({}, this._HM_SETTINGS_DEFAULTS(), this._hmSettings || {}, { treeDetailCells: document.getElementById('hmTreeDetailCells').value });
+            this._hmSaveSettingsToStorage();
+            this._hmRedraw();
+        });
         document.getElementById('hmDrillBackBtn')?.addEventListener('click', () => this._hmDrillBackToAll());
         document.getElementById('hmDrillToBrowserBtn')?.addEventListener('click', () => this._hmDrillToBrowser());
         // Cohort and lineage define the cell-line set the other selects are
@@ -53007,6 +53020,15 @@ ${clone.innerHTML}
         // button and the Cell Line Browser button) share this function,
         // so both reset the same way.
         this._hmResetControls();
+        // Tree detail lives in this._hmSettings (persisted across opens,
+        // like the font/cell-size settings), not among the controls
+        // _hmResetControls reverts to their fixed defaults, so the two
+        // toolbar selects are initialized from it here instead.
+        const hmS = Object.assign({}, this._HM_SETTINGS_DEFAULTS(), this._hmSettings || {});
+        const genesDetailSel = document.getElementById('hmTreeDetailGenes');
+        if (genesDetailSel) genesDetailSel.value = hmS.treeDetailGenes;
+        const cellsDetailSel = document.getElementById('hmTreeDetailCells');
+        if (cellsDetailSel) cellsDetailSel.value = hmS.treeDetailCells;
         this._hmSyncGroupControls();
         this._hmSyncClusterControls();
         this._hmRenderAnnRowsBlock();
@@ -53130,6 +53152,7 @@ ${clone.innerHTML}
     _hmSyncClusterControls() {
         const groupMode = document.getElementById('hmGroupBy')?.value || 'none';
         const cellsOn = !!document.getElementById('hmClusterCells')?.checked;
+        const genesOn = !!document.getElementById('hmClusterGenes')?.checked;
         const sortSel = document.getElementById('hmSort');
         if (sortSel) {
             sortSel.disabled = cellsOn;
@@ -53144,6 +53167,21 @@ ${clone.innerHTML}
                 ? 'Cluster count needs No grouping; groups already partition the lines'
                 : (cellsOn ? 'How many clusters to cut the tree into; Tree order only draws the dendrogram without colouring clusters' : 'Turn on Cluster cell lines to choose a cluster count');
             kSel.style.opacity = (!cellsOn || groupActive) ? '0.45' : '1';
+        }
+        // Tree detail selects: each is only meaningful while its own tree is
+        // actually being drawn, so each tracks its own checkbox rather than
+        // the other's.
+        const genesDetailSel = document.getElementById('hmTreeDetailGenes');
+        if (genesDetailSel) {
+            genesDetailSel.disabled = !genesOn;
+            genesDetailSel.title = genesOn ? 'How much branch detail the gene tree on the left draws' : 'Turn on Cluster genes to change how much branch detail its tree draws';
+            genesDetailSel.style.opacity = genesOn ? '1' : '0.45';
+        }
+        const cellsDetailSel = document.getElementById('hmTreeDetailCells');
+        if (cellsDetailSel) {
+            cellsDetailSel.disabled = !cellsOn;
+            cellsDetailSel.title = cellsOn ? 'How much branch detail the cell-line tree above the grid draws' : 'Turn on Cluster cell lines to change how much branch detail its tree draws';
+            cellsDetailSel.style.opacity = cellsOn ? '1' : '0.45';
         }
     }
 
@@ -54787,7 +54825,13 @@ ${clone.innerHTML}
             }
             if (hasDendro) {
                 const leafRowIndex = new Map(d.orderedGenes.map((g, i) => [g, i]));
-                const segments = this._hmDendroLayout(d.geneTree, leafRowIndex, cellH, dendroW);
+                // Tree detail (hmTreeDetailGenes, top toolbar row): same
+                // collapse-to-a-stem behaviour as the cell-line tree above
+                // the grid, applied to the gene tree's own branches. Row
+                // order and gene labels are untouched either way, only how
+                // finely the merges themselves are drawn.
+                const minLeaves = this._hmTreeDetailMinLeaves(hmS.treeDetailGenes);
+                const segments = this._hmDendroLayout(d.geneTree, leafRowIndex, cellH, dendroW, undefined, minLeaves);
                 ctx.strokeStyle = '#9ca3af';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
@@ -54964,15 +55008,14 @@ ${clone.innerHTML}
             const clusterColorMap = new Map((d.groups || []).filter(g => g.node).map(g => [g.node, g.color]));
             const colorFor = clusterColorMap.size ? (node => clusterColorMap.get(node)) : undefined;
             const roots = d.colTree ? [d.colTree] : (d.groups || []).filter(g => g.clusterRoot).map(g => g.clusterRoot);
-            // Tree detail (Settings): how many leaves an internal node needs
-            // before it's drawn in full rather than collapsed to a stem.
-            // Full keeps every merge (threshold 1, nothing has fewer than
-            // that); Medium and Coarse thin out the finest branching on wide
-            // or per-group trees. Cell-line trees only, both single and
-            // per-group; the gene tree's own _hmDendroLayout call never
-            // passes this.
-            const TREE_DETAIL_MIN_LEAVES = { full: 1, medium: 4, coarse: 8 };
-            const minLeaves = TREE_DETAIL_MIN_LEAVES[hmS.treeDetail] || 1;
+            // Tree detail (hmTreeDetailCells, top toolbar row): how many
+            // leaves an internal node needs before it's drawn in full
+            // rather than collapsed to a stem. Full keeps every merge
+            // (threshold 1, nothing has fewer than that); the coarser
+            // levels thin out the finest branching on wide or per-group
+            // trees. Cell-line trees only, both single and per-group; the
+            // gene tree's own _hmDendroLayout call uses treeDetailGenes.
+            const minLeaves = this._hmTreeDetailMinLeaves(hmS.treeDetailCells);
             const segments = [];
             for (const root of roots) segments.push(...this._hmDendroLayout(root, leafColIndex, cellW, TOP_DENDRO_H, colorFor, minLeaves));
             const byColor = new Map();
@@ -55735,7 +55778,33 @@ ${clone.innerHTML}
     // button and its shared textSettingsPanel) and saveable views =====
 
     _HM_SETTINGS_DEFAULTS() {
-        return { geneFont: 10, labelFont: 9, legendFont: 9, cellWMax: 14, cellH: 14, treeDetail: 'full' };
+        return { geneFont: 10, labelFont: 9, legendFont: 9, cellWMax: 14, cellH: 14, treeDetailCells: 'full', treeDetailGenes: 'full' };
+    }
+
+    // Maps a tree detail setting to the minimum leaf count an internal node
+    // needs before it's drawn in full rather than collapsed to a single
+    // stem; shared by both the cell-line tree (paintDendroTop) and the gene
+    // tree (paintLabels) so the five levels mean the same thing in both.
+    _hmTreeDetailMinLeaves(val) {
+        const MAP = { full: 1, medium: 4, coarse: 8, xcoarse: 16, minimal: 32 };
+        return MAP[val] || 1;
+    }
+
+    // Merges a raw settings object (from localStorage or a saved view file)
+    // onto the current defaults, migrating the pre-v.88.55 single
+    // `treeDetail` key (cell-line trees only, back then) onto the new
+    // `treeDetailCells`; the gene tree never had a control before, so it
+    // just takes the default. Shared by _hmLoadSettings (localStorage) and
+    // _hmRestoreView (a saved view's `settings` block) so an old file
+    // migrates the same way an old localStorage value does.
+    _hmMergeSettings(raw) {
+        const defaults = this._HM_SETTINGS_DEFAULTS();
+        const merged = Object.assign({}, defaults, (raw && typeof raw === 'object') ? raw : {});
+        if (raw && typeof raw === 'object' && 'treeDetail' in raw) {
+            merged.treeDetailCells = raw.treeDetail;
+            delete merged.treeDetail;
+        }
+        return merged;
     }
 
     _hmLoadSettings() {
@@ -55743,8 +55812,7 @@ ${clone.innerHTML}
         try {
             const raw = localStorage.getItem('hmSettings');
             if (!raw) return defaults;
-            const saved = JSON.parse(raw);
-            return Object.assign({}, defaults, (saved && typeof saved === 'object') ? saved : {});
+            return this._hmMergeSettings(JSON.parse(raw));
         } catch (e) { return defaults; }
     }
 
@@ -55782,17 +55850,6 @@ ${clone.innerHTML}
             ${sizeRow('Cell width max', 'hm_ts_cellWMax', s.cellWMax, 2, 40)}
             ${sizeRow('Cell height', 'hm_ts_cellH', s.cellH, 4, 40)}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
-            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Cell-line dendrograms</div>
-            <div style="display:flex; align-items:center; margin-bottom:5px; gap:4px;">
-                <span style="width:15px;"></span>
-                <span style="color:#374151;flex:1;min-width:55px;font-size:11px;">Tree detail</span>
-                <select id="hm_ts_treeDetail" onchange="app._hmTsApply()" style="width:100px;font-size:11px;padding:2px 4px;border:1px solid #d1d5db;border-radius:4px;" title="How finely the cell-line dendrogram branches. Coarser settings collapse small merges into a single stem, which reads cleaner on wide views and per-group trees.">
-                    <option value="full" ${s.treeDetail === 'full' ? 'selected' : ''}>Full</option>
-                    <option value="medium" ${s.treeDetail === 'medium' ? 'selected' : ''}>Medium</option>
-                    <option value="coarse" ${s.treeDetail === 'coarse' ? 'selected' : ''}>Coarse</option>
-                </select>
-            </div>
-            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <button onclick="app._hmTsReset()" style="font-size:10px;padding:3px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;color:#374151;">Reset to defaults</button>
             <div style="font-size:9px;color:#9ca3af;margin-top:6px;">Applies on screen and to every heatmap export (image, copy). Saved for next time.</div>
         `;
@@ -55815,21 +55872,29 @@ ${clone.innerHTML}
             const v = parseInt(document.getElementById(id)?.value, 10);
             return Number.isFinite(v) ? v : def;
         };
-        const treeDetailVal = document.getElementById('hm_ts_treeDetail')?.value;
-        this._hmSettings = {
+        // Tree detail no longer lives in this panel (it's the two toolbar
+        // selects now), so it's carried forward from whatever is already
+        // set rather than read from a control here.
+        this._hmSettings = Object.assign({}, defaults, this._hmSettings || {}, {
             geneFont: num('hm_ts_geneFont', defaults.geneFont),
             labelFont: num('hm_ts_labelFont', defaults.labelFont),
             legendFont: num('hm_ts_legendFont', defaults.legendFont),
             cellWMax: num('hm_ts_cellWMax', defaults.cellWMax),
-            cellH: num('hm_ts_cellH', defaults.cellH),
-            treeDetail: ['full', 'medium', 'coarse'].includes(treeDetailVal) ? treeDetailVal : defaults.treeDetail
-        };
+            cellH: num('hm_ts_cellH', defaults.cellH)
+        });
         this._hmSaveSettingsToStorage();
         this._hmRedraw();
     }
 
     _hmTsReset() {
-        this._hmSettings = this._HM_SETTINGS_DEFAULTS();
+        // Resets only what this panel still owns (text/cell sizes); tree
+        // detail belongs to the toolbar selects now and isn't touched by
+        // this button.
+        const defaults = this._HM_SETTINGS_DEFAULTS();
+        this._hmSettings = Object.assign({}, defaults, {
+            treeDetailCells: this._hmSettings?.treeDetailCells ?? defaults.treeDetailCells,
+            treeDetailGenes: this._hmSettings?.treeDetailGenes ?? defaults.treeDetailGenes
+        });
         this._hmSaveSettingsToStorage();
         this.openHeatmapSettings();
         this._hmRedraw();
@@ -55985,8 +56050,13 @@ ${clone.innerHTML}
             : null;
         this._hmDrillLabel = state.drillLabel || null;
 
-        this._hmSettings = Object.assign({}, this._HM_SETTINGS_DEFAULTS(), state.settings || {});
+        this._hmSettings = this._hmMergeSettings(state.settings);
         this._hmSaveSettingsToStorage();
+        // Push the restored values into the two toolbar selects: they read
+        // this._hmSettings only when the modal opens, and _hmOpenModal ran
+        // at the top of this function before the settings above existed.
+        set('hmTreeDetailGenes', this._hmSettings.treeDetailGenes);
+        set('hmTreeDetailCells', this._hmSettings.treeDetailCells);
 
         await this._hmRedraw();
     }

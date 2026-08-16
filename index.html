@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.55 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>Tree detail moves next to the clustering toggles.</b> Two selects in the top row now control how much branch detail the gene tree (left) and the cell-line tree (top) draw, from Full down to two new coarser levels, Very coarse and Minimal. The setting is out of the Settings panel and beside the toggles it belongs to, still remembered and still carried into saved views and exports.</li>
+                </ul>
                 <p><strong>v.88.54 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>The heatmap says when it is working.</b> A draw that takes longer than about two seconds, typically the first open on a large cohort, now shows the same working spinner the analysis run uses, instead of looking frozen. Quick draws finish before the spinner would appear, so nothing flickers.</li>
@@ -6884,7 +6888,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.54</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.55</a>
         </span>
     </div>
 
@@ -8718,6 +8722,13 @@
                             <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the gene rows by how alike their profiles are, regardless of how cell lines are sorted, and draw the tree that produced the order">
                                 <input type="checkbox" id="hmClusterGenes" checked style="margin:0;"> Cluster genes
                             </label>
+                            <select id="hmTreeDetailGenes" style="width:110px;" title="How much branch detail the gene tree on the left draws">
+                                <option value="full" selected>Full</option>
+                                <option value="medium">Medium</option>
+                                <option value="coarse">Coarse</option>
+                                <option value="xcoarse">Very coarse</option>
+                                <option value="minimal">Minimal</option>
+                            </select>
                             <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the cell-line columns by how alike their profiles are and draw a dendrogram above the grid, matching the gene tree on the left">
                                 <input type="checkbox" id="hmClusterCells" style="margin:0;"> Cluster cell lines
                             </label>
@@ -8734,6 +8745,13 @@
                                 <option value="10">10 clusters</option>
                                 <option value="11">11 clusters</option>
                                 <option value="12">12 clusters</option>
+                            </select>
+                            <select id="hmTreeDetailCells" style="width:110px;" title="How much branch detail the cell-line tree above the grid draws">
+                                <option value="full" selected>Full</option>
+                                <option value="medium">Medium</option>
+                                <option value="coarse">Coarse</option>
+                                <option value="xcoarse">Very coarse</option>
+                                <option value="minimal">Minimal</option>
                             </select>
                         </div>
                     </div>
@@ -9840,6 +9858,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_54"></script>
+    <script src="app.js?v=v88_55"></script>
 </body>
 </html>
