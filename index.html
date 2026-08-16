@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.58 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>Network filters follow into the heatmap.</b> Opening the heatmap from the network now uses exactly the cell lines the analysis was run on, stated in the summary line; change the Cell lines box to leave that cohort.</li>
+                </ul>
                 <p><strong>v.88.57 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>Sorting on annotation rows, made obvious, and clustering means everything.</b> Checking Cluster cell lines now clusters the whole cohort into one tree, switching grouping off and keeping lineage visible as a colour row, since that is what the question usually is; pick a grouping afterwards for within-group trees. Annotation rows can be reordered with arrows, and row order is sort order: the annotation-rows sort blocks the columns by Row 1, then Row 2 within, and so on. The sort options say what they do, and the summary line points out when annotation rows are shown but not sorted on. The network's Enrichr menu also states its choices plainly: all input genes, or everything in the network.</li>
@@ -6896,7 +6900,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.57</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.58</a>
         </span>
     </div>
 
@@ -7510,9 +7514,9 @@
                                     <button class="btn btn-secondary" id="networkHeatmapBtn" aria-haspopup="true" aria-expanded="false" style="flex:1;" title="Draw the network's genes as a gene set heatmap">Heatmap &#9662;</button>
                                     <div id="networkHeatmapMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1500; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.14); min-width:230px; padding:4px;">
                                         <div style="font-size:10px; color:#9ca3af; padding:3px 10px 4px;">Which genes to draw?</div>
-                                        <button class="options-menu-item" id="networkHeatmapEntered" data-net-heatmap="entered" data-base-title="Only the genes you typed into the input list">Genes I entered (<span data-count>0</span>)</button>
-                                        <button class="options-menu-item" id="networkHeatmapAll" data-net-heatmap="all" data-base-title="Every gene node drawn in the network">All network genes (<span data-count>0</span>)</button>
-                                        <button class="options-menu-item" id="networkHeatmapCorrelating" data-net-heatmap="correlating" data-base-title="Network genes that were not part of your input, the ones the correlation surfaced">Correlating genes only (<span data-count>0</span>)</button>
+                                        <button class="options-menu-item" id="networkHeatmapEntered" data-net-heatmap="entered" data-base-title="Only the genes you typed into the input list; when filtered, the heatmap opens on the same cell lines the analysis was run on">Genes I entered (<span data-count>0</span>)</button>
+                                        <button class="options-menu-item" id="networkHeatmapAll" data-net-heatmap="all" data-base-title="Every gene node drawn in the network; when filtered, the heatmap opens on the same cell lines the analysis was run on">All network genes (<span data-count>0</span>)</button>
+                                        <button class="options-menu-item" id="networkHeatmapCorrelating" data-net-heatmap="correlating" data-base-title="Network genes that were not part of your input, the ones the correlation surfaced; when filtered, the heatmap opens on the same cell lines the analysis was run on">Correlating genes only (<span data-count>0</span>)</button>
                                     </div>
                                 </span>
                                 <button class="btn btn-secondary" id="downloadAllData" title="Download everything behind this run as one zip: the correlation table, the clusters, the gene-effect values for the genes in the network, and the settings used, as CSV files you can open in a spreadsheet, R or similar">All Data (ZIP)</button>
@@ -9867,6 +9871,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_57"></script>
+    <script src="app.js?v=v88_58"></script>
 </body>
 </html>

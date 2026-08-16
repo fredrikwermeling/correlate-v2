@@ -8795,6 +8795,11 @@ class CorrelationExplorer {
                 // banner used to read the live dropdowns, so changing a filter
                 // without re-running relabelled an unchanged network.
                 this._resultsFilterText = this._composeNetworkFilterText();
+                // Record the actual cohort too (cellLineIndices are indexes
+                // into metadata.cellLines), so anything opened from this
+                // network later (the heatmap) can reuse the exact lines the
+                // analysis ran on instead of falling back to its own default.
+                this._resultsCellLines = cellLineIndices.map(i => this.metadata.cellLines[i]);
                 if (this.results.success) {
                     this.displayResults();
                     this.showStatus('success',
@@ -36382,9 +36387,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (genesBox) genesBox.value = genes.join('\n');
         // The network is built on gene effect (Chronos), not expression;
         // the user can switch to mRNA themselves from the heatmap's own
-        // control once it's open. Cohort is left at its default (visible).
+        // control once it's open.
         const dtSel = document.getElementById('hmDataType');
         if (dtSel) dtSel.value = 'ge';
+        // Carry the analysis' own cell-line cohort into the heatmap, the
+        // same override mechanism a restored "Save view" file uses (set
+        // AFTER _hmOpenModal's reset above, or it's dropped, the v.88.25
+        // lesson). A full, unfiltered cohort is the heatmap's own default
+        // anyway, so skip the override then and leave the note out as noise.
+        if (this._resultsCellLines && this._resultsCellLines.length < this.metadata.cellLines.length) {
+            this._hmCohortOverride = {
+                cellLines: this._resultsCellLines.slice(),
+                // _resultsFilterText already reads "Filters: Skin · n=75";
+                // strip its label and count so the note doesn't repeat both.
+                note: (() => {
+                    const f = (this._resultsFilterText || '').replace(/^Filters:\s*/, '').replace(/\s*·\s*n=\d+\s*$/, '').trim();
+                    return `cohort from the network analysis (${this._resultsCellLines.length} lines${f ? ', ' + f : ''})`;
+                })()
+            };
+        }
         this._hmRedraw();
     }
 
@@ -53429,8 +53450,15 @@ ${clone.innerHTML}
             // in the app can't be relied on to reproduce it), so use that
             // exact snapshot instead of resolving the cohort mode live.
             cohort = this._hmCohortOverride.cellLines.slice();
-            const savedDate = this._hmCohortOverride.date ? this._hmCohortOverride.date.slice(0, 10) : 'earlier';
-            cohortNote = `Restored cohort of ${cohort.length} line${cohort.length === 1 ? '' : 's'} (saved ${savedDate}). `;
+            // The network-carried override (_openHeatmapFromNetwork) supplies
+            // its own note instead of a saved date, since it's not a reopened
+            // file, it's the cohort the analysis just ran on.
+            if (this._hmCohortOverride.note) {
+                cohortNote = `Using the ${this._hmCohortOverride.note}. `;
+            } else {
+                const savedDate = this._hmCohortOverride.date ? this._hmCohortOverride.date.slice(0, 10) : 'earlier';
+                cohortNote = `Restored cohort of ${cohort.length} line${cohort.length === 1 ? '' : 's'} (saved ${savedDate}). `;
+            }
         } else if (cohortMode === 'selected') {
             cohort = Array.from(this._clbSelectedCellLines || []);
             if (!cohort.length) {
