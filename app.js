@@ -310,6 +310,13 @@ class CorrelationExplorer {
         this._clbVisibleCellLines = [];
         this._clbShowSelectedOnly = false;
 
+        // Heatmap: font/cell-size settings (persisted) and the cohort
+        // override a restored "Save view" file writes when its cohort mode
+        // was 'visible'/'selected' (cleared as soon as the user touches the
+        // cohort select again, see setupHeatmapModal).
+        this._hmSettings = this._hmLoadSettings();
+        this._hmCohortOverride = null;
+
         this.init();
     }
 
@@ -24079,6 +24086,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         try { meta = JSON.parse(await file.text()); }
         catch (e) { alert('Could not read this Correlate metadata file (invalid JSON).'); return; }
         if (!meta || typeof meta !== 'object') { alert('No Correlate metadata found in this file.'); return; }
+        // A heatmap "Save view" file is its own schema (type, not graphType):
+        // it has no image/network behind it, just the heatmap's own controls
+        // and the state that lives outside them, so it gets its own restore
+        // path rather than going through _applyRestoreMeta's graphType branches.
+        if (meta.type === 'correlate_heatmap_view') { return this._hmRestoreView(meta); }
         // Unified restore: rebuilds the network (if captured) and the popout with
         // its exact filters/settings; loads expression first when needed.
         return this._applyRestoreMeta(meta);
@@ -52748,31 +52760,8 @@ ${clone.innerHTML}
     // resolution from the same logical-coordinate functions the exports use.
     setupHeatmapModal() {
         this._hmBuildPresetOptions();
-        const openModal = () => {
-            const modal = document.getElementById('heatmapModal');
-            if (modal) modal.style.display = 'flex';
-            // Rebuilt on open, not just at startup: mutation data (behind the
-            // "Top hotspot-mutated genes" preset) and the cell-line total
-            // (behind "Every cell line (n)") can both still be loading when
-            // setupHeatmapModal first runs.
-            this._hmBuildPresetOptions();
-            this._hmRefreshCohortLabel();
-            // Reopening starts fresh rather than carrying the previous
-            // session's picks: a heatmap left grouped, drilled into, or
-            // filtered from an earlier look is confusing baggage for
-            // whatever it's opened for next. Both entry points (the Options
-            // button and the Cell Line Browser button) share this function,
-            // so both reset the same way.
-            this._hmResetControls();
-            this._hmSyncGroupControls();
-            this._hmSyncClusterControls();
-            this._hmRenderAnnRowsBlock();
-            this._hmPopulateGroupGeneList();
-            this._renderFilterChips('heatmap');
-            this._hmRedraw();
-        };
-        document.getElementById('showHeatmapDirect')?.addEventListener('click', openModal);
-        document.getElementById('clbHeatmapBtn')?.addEventListener('click', openModal);
+        document.getElementById('showHeatmapDirect')?.addEventListener('click', () => this._hmOpenModal());
+        document.getElementById('clbHeatmapBtn')?.addEventListener('click', () => this._hmOpenModal());
         const close = () => {
             const modal = document.getElementById('heatmapModal');
             if (modal) modal.style.display = 'none';
@@ -52794,6 +52783,8 @@ ${clone.innerHTML}
         document.getElementById('hmGenes')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmHideNoData')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmRedrawBtn')?.addEventListener('click', () => this._hmRedraw());
+        document.getElementById('hmSettingsBtn')?.addEventListener('click', () => this.openHeatmapSettings());
+        document.getElementById('hmSaveViewBtn')?.addEventListener('click', () => this._hmSaveView());
         document.getElementById('hmExportImageBtn')?.addEventListener('click', () => this._hmExportImage());
         document.getElementById('hmCopyBtn')?.addEventListener('click', () => this._hmCopy());
         document.getElementById('hmCsvBtn')?.addEventListener('click', () => this._hmExportCsv());
@@ -52858,7 +52849,13 @@ ${clone.innerHTML}
         // scoped from, so they redraw immediately (same as subtype/disease)
         // rather than waiting for Redraw, and the rest of the lists rescope
         // right away.
-        document.getElementById('hmCohort')?.addEventListener('change', () => this._hmRedraw());
+        document.getElementById('hmCohort')?.addEventListener('change', () => {
+            // A restored view's cohort snapshot only stands until the user
+            // picks a cohort mode themselves; from then on the ordinary
+            // visible/selected/all resolution takes back over.
+            this._hmCohortOverride = null;
+            this._hmRedraw();
+        });
         document.getElementById('hmLineage')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmSubtype')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmDisease')?.addEventListener('change', () => this._hmRedraw());
@@ -52877,6 +52874,34 @@ ${clone.innerHTML}
         this._hmSyncGroupControls();
         this._hmSyncClusterControls();
         this._hmRenderAnnRowsBlock();
+    }
+
+    // The modal's normal open path: shared by the Options button, the Cell
+    // Line Browser button, and _hmRestoreView (which calls this FIRST, so a
+    // restore starts from the same clean slate an ordinary open does, before
+    // layering the saved state back on top).
+    _hmOpenModal() {
+        const modal = document.getElementById('heatmapModal');
+        if (modal) modal.style.display = 'flex';
+        // Rebuilt on open, not just at startup: mutation data (behind the
+        // "Top hotspot-mutated genes" preset) and the cell-line total
+        // (behind "Every cell line (n)") can both still be loading when
+        // setupHeatmapModal first runs.
+        this._hmBuildPresetOptions();
+        this._hmRefreshCohortLabel();
+        // Reopening starts fresh rather than carrying the previous
+        // session's picks: a heatmap left grouped, drilled into, or
+        // filtered from an earlier look is confusing baggage for
+        // whatever it's opened for next. Both entry points (the Options
+        // button and the Cell Line Browser button) share this function,
+        // so both reset the same way.
+        this._hmResetControls();
+        this._hmSyncGroupControls();
+        this._hmSyncClusterControls();
+        this._hmRenderAnnRowsBlock();
+        this._hmPopulateGroupGeneList();
+        this._renderFilterChips('heatmap');
+        this._hmRedraw();
     }
 
     // Reopening starts fresh: every control goes back to its default rather
@@ -52922,6 +52947,10 @@ ${clone.innerHTML}
         this._hmDrillCells = null;
         this._hmDrillBack = null;
         this._hmDrillLabel = null;
+        // A restored view's frozen cohort snapshot belongs to that one
+        // reopen; a fresh open (Options button, CLB button) starts from the
+        // ordinary visible/selected/all resolution instead.
+        this._hmCohortOverride = null;
     }
 
     // Rebuilds the preset dropdown (curated sets + the runtime "Top
@@ -53184,7 +53213,15 @@ ${clone.innerHTML}
         // the modal cold (no browser opened, nothing ticked) still draws
         // something rather than an empty grid.
         let cohort, cohortNote = '';
-        if (cohortMode === 'selected') {
+        if (this._hmCohortOverride) {
+            // A reopened "Save view" file: the visible/selected cohort it
+            // was drawn on is frozen into the file (browser state elsewhere
+            // in the app can't be relied on to reproduce it), so use that
+            // exact snapshot instead of resolving the cohort mode live.
+            cohort = this._hmCohortOverride.cellLines.slice();
+            const savedDate = this._hmCohortOverride.date ? this._hmCohortOverride.date.slice(0, 10) : 'earlier';
+            cohortNote = `Restored cohort of ${cohort.length} line${cohort.length === 1 ? '' : 's'} (saved ${savedDate}). `;
+        } else if (cohortMode === 'selected') {
             cohort = Array.from(this._clbSelectedCellLines || []);
             if (!cohort.length) {
                 cohortNote = 'No cell lines are ticked, showing the browser list instead. ';
@@ -54315,7 +54352,11 @@ ${clone.innerHTML}
         const eligible = groups.filter(g => !g.hidden && g.count >= 3);
         if (!eligible.length) return { rows: 0, items: [] };
         const probe = document.createElement('canvas').getContext('2d');
-        probe.font = '9px Arial';
+        // Same setting the actual draw (paintGrid, below) uses for these
+        // labels: a mismatch here would measure at one size and paint at
+        // another, so a label that "fit" would overflow or collide.
+        const labelFont = Object.assign({}, this._HM_SETTINGS_DEFAULTS(), this._hmSettings || {}).labelFont;
+        probe.font = `${labelFont}px Arial`;
         const ROWS = 3, GAP = 4, MIN_CHARS = 6;
         const lastRightX = new Array(ROWS).fill(-Infinity);
         const items = [];
@@ -54373,11 +54414,18 @@ ${clone.innerHTML}
         if (!labelCanvas || !gridCanvas || !legendCanvas) return;
 
         const nGenes = d.orderedGenes.length, nCL = d.orderedCLs.length;
-        const cellH = 14;
+        // Font sizes and cell dimensions come from the Settings panel
+        // (this._hmSettings), defaults matching what used to be hardcoded
+        // here, applied on screen and in every export alike.
+        const hmS = Object.assign({}, this._HM_SETTINGS_DEFAULTS(), this._hmSettings || {});
+        const cellH = hmS.cellH;
         const targetW = 620;
-        const cellW = Math.max(2, Math.min(14, Math.floor(targetW / Math.max(1, nCL))));
+        const cellW = Math.max(2, Math.min(hmS.cellWMax, Math.floor(targetW / Math.max(1, nCL))));
         const probe = document.createElement('canvas').getContext('2d');
-        probe.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        // Same setting the actual gene-label draw uses below, or the width
+        // reserved for the label gutter would mis-measure against what's
+        // actually painted into it.
+        probe.font = `${hmS.geneFont}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
         let textLabelW = 40;
         for (const g of d.orderedGenes) textLabelW = Math.max(textLabelW, Math.ceil(probe.measureText(g).width) + 12);
         textLabelW = Math.min(textLabelW, 160);
@@ -54450,7 +54498,7 @@ ${clone.innerHTML}
                 for (const s of segments) { ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); }
                 ctx.stroke();
             }
-            ctx.font = '10px Arial';
+            ctx.font = `${hmS.geneFont}px Arial`;
             ctx.textAlign = 'right';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#374151';
@@ -54468,7 +54516,7 @@ ${clone.innerHTML}
                 while (trimmed.length > 1 && ctx.measureText(trimmed + '…').width > maxW) trimmed = trimmed.slice(0, -1);
                 return trimmed + '…';
             };
-            ctx.font = '9px Arial';
+            ctx.font = `${hmS.labelFont}px Arial`;
             ctx.textAlign = 'right';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#6b7280';
@@ -54554,7 +54602,7 @@ ${clone.innerHTML}
                         ctx.lineTo(it.x, tickTop + 1 + it.row * GROUP_LABEL_ROW_H);
                     });
                     ctx.stroke();
-                    ctx.font = '9px Arial';
+                    ctx.font = `${hmS.labelFont}px Arial`;
                     ctx.fillStyle = '#374151';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'top';
@@ -54636,7 +54684,7 @@ ${clone.innerHTML}
             ctx.strokeStyle = '#d1d5db'; ctx.lineWidth = 1;
             ctx.strokeRect(barX, barY, barW, barH);
             ctx.fillStyle = '#6b7280';
-            ctx.font = '9px Arial';
+            ctx.font = `${hmS.legendFont}px Arial`;
             ctx.textBaseline = 'top';
             ctx.textAlign = 'left';
             ctx.fillText(d.domain.lo.toFixed(1), barX, barY + barH + 4);
@@ -55313,6 +55361,253 @@ ${clone.innerHTML}
         }
         csv += rows.join('\n') + '\n';
         this.downloadFile(csv, csvName('heatmap'), 'text/csv');
+    }
+
+    // ===== Heatmap text/cell-size settings (mirrors the network's Settings
+    // button and its shared textSettingsPanel) and saveable views =====
+
+    _HM_SETTINGS_DEFAULTS() {
+        return { geneFont: 10, labelFont: 9, legendFont: 9, cellWMax: 14, cellH: 14 };
+    }
+
+    _hmLoadSettings() {
+        const defaults = this._HM_SETTINGS_DEFAULTS();
+        try {
+            const raw = localStorage.getItem('hmSettings');
+            if (!raw) return defaults;
+            const saved = JSON.parse(raw);
+            return Object.assign({}, defaults, (saved && typeof saved === 'object') ? saved : {});
+        } catch (e) { return defaults; }
+    }
+
+    _hmSaveSettingsToStorage() {
+        try { localStorage.setItem('hmSettings', JSON.stringify(this._hmSettings)); } catch (e) { /* best-effort */ }
+    }
+
+    // Opens the same shared textSettingsPanel the network's Settings button
+    // uses (openNetworkTextSettings), with the heatmap's own rows instead.
+    openHeatmapSettings() {
+        const panel = document.getElementById('textSettingsPanel');
+        const body = document.getElementById('textSettingsBody');
+        if (!panel || !body) return;
+        this._textSettingsPlotId = '__heatmap__';
+        const s = Object.assign({}, this._HM_SETTINGS_DEFAULTS(), this._hmSettings || {});
+
+        const sizeRow = (label, id, val, min, max) => `
+            <div style="display:flex; align-items:center; margin-bottom:5px; gap:4px;">
+                <span style="width:15px;"></span>
+                <span style="color:#374151;flex:1;min-width:55px;font-size:11px;">${label}</span>
+                <div style="display:flex; align-items:center;">
+                    <button onclick="app._hmTsStep('${id}',-1)" style="width:20px;height:20px;border:1px solid #d1d5db;background:#f9fafb;border-radius:4px 0 0 4px;cursor:pointer;font-size:12px;line-height:1;">−</button>
+                    <input type="number" id="${id}" value="${val}" min="${min}" max="${max}" style="width:36px;text-align:center;border:1px solid #d1d5db;border-left:none;border-right:none;font-size:10px;padding:1px;-moz-appearance:textfield;appearance:textfield;" oninput="app._hmTsApply()">
+                    <button onclick="app._hmTsStep('${id}',1)" style="width:20px;height:20px;border:1px solid #d1d5db;background:#f9fafb;border-radius:0 4px 4px 0;cursor:pointer;font-size:12px;line-height:1;">+</button>
+                </div>
+            </div>`;
+
+        body.innerHTML = `
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Text</div>
+            ${sizeRow('Gene labels', 'hm_ts_geneFont', s.geneFont, 6, 20)}
+            ${sizeRow('Group / annotation labels', 'hm_ts_labelFont', s.labelFont, 6, 20)}
+            ${sizeRow('Legend text', 'hm_ts_legendFont', s.legendFont, 6, 20)}
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Cells</div>
+            ${sizeRow('Cell width max', 'hm_ts_cellWMax', s.cellWMax, 2, 40)}
+            ${sizeRow('Cell height', 'hm_ts_cellH', s.cellH, 4, 40)}
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <button onclick="app._hmTsReset()" style="font-size:10px;padding:3px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;color:#374151;">Reset to defaults</button>
+            <div style="font-size:9px;color:#9ca3af;margin-top:6px;">Applies on screen and to every heatmap export (image, copy). Saved for next time.</div>
+        `;
+        panel.style.display = 'block';
+    }
+
+    _hmTsStep(id, dir) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = Math.max(parseInt(el.min) || 1, Math.min(parseInt(el.max) || 99, (parseInt(el.value) || 0) + dir));
+        this._hmTsApply();
+    }
+
+    // The panel's apply hook: reads its inputs into this._hmSettings,
+    // persists them, and redraws, same pattern the network's _netTsApply
+    // uses for its own live controls.
+    _hmTsApply() {
+        const defaults = this._HM_SETTINGS_DEFAULTS();
+        const num = (id, def) => {
+            const v = parseInt(document.getElementById(id)?.value, 10);
+            return Number.isFinite(v) ? v : def;
+        };
+        this._hmSettings = {
+            geneFont: num('hm_ts_geneFont', defaults.geneFont),
+            labelFont: num('hm_ts_labelFont', defaults.labelFont),
+            legendFont: num('hm_ts_legendFont', defaults.legendFont),
+            cellWMax: num('hm_ts_cellWMax', defaults.cellWMax),
+            cellH: num('hm_ts_cellH', defaults.cellH)
+        };
+        this._hmSaveSettingsToStorage();
+        this._hmRedraw();
+    }
+
+    _hmTsReset() {
+        this._hmSettings = this._HM_SETTINGS_DEFAULTS();
+        this._hmSaveSettingsToStorage();
+        this.openHeatmapSettings();
+        this._hmRedraw();
+    }
+
+    // Everything needed to redraw the exact heatmap on screen right now, as
+    // one JSON-serializable object. cohortCellLines snapshots the resolved
+    // cohort itself, not just cohortMode: "visible"/"selected" depend on
+    // Cell Line Browser state a saved file can't carry, only the picture it
+    // drew, so that picture is frozen into the file instead.
+    _hmViewState() {
+        const val = (id) => document.getElementById(id)?.value ?? '';
+        const checked = (id) => !!document.getElementById(id)?.checked;
+        const presetKey = val('hmPreset');
+        const cohortMode = val('hmCohort') || 'visible';
+        const d = this._hmData;
+        return {
+            type: 'correlate_heatmap_view',
+            appVersion: document.getElementById('versionBadge')?.textContent || '',
+            date: new Date().toISOString(),
+            preset: presetKey,
+            customGenes: presetKey === 'custom' ? val('hmGenes') : '',
+            dataType: val('hmDataType') || 'expr',
+            scale: val('hmScale') || 'z',
+            cohortMode,
+            cohortCellLines: cohortMode !== 'all' ? (d?.cohort ? d.cohort.slice() : []) : undefined,
+            lineage: val('hmLineage'),
+            subtype: val('hmSubtype'),
+            disease: val('hmDisease'),
+            hotspot: val('hmHotspotFilter'),
+            hotspotLevel: val('hmHotspotLevel') || '1+2',
+            fusion: val('hmFusionFilter'),
+            fusionLevel: val('hmFusionLevel') || '1+2',
+            cn: val('hmCnFilter'),
+            cnLevel: val('hmCnLevel') || 'altered',
+            hideNoData: checked('hmHideNoData'),
+            sort: val('hmSort') || 'score',
+            groupBy: val('hmGroupBy') || 'none',
+            groupGene: val('hmGroupGene'),
+            groupOrder: val('hmGroupOrder') || 'size',
+            minN: parseInt(val('hmMinGroupSize'), 10) || 1,
+            showMedian: checked('hmShowMedian'),
+            clusterGenes: checked('hmClusterGenes'),
+            clusterCells: checked('hmClusterCells'),
+            clusterK: parseInt(val('hmClusterK'), 10) || 0,
+            annRows: (this._hmAnnRows || []).map(r => ({ mode: r.mode, gene: r.gene || null })),
+            hiddenGroups: this._hmHiddenGroups ? [...this._hmHiddenGroups] : [],
+            drillCells: this._hmDrillCells ? [...this._hmDrillCells] : null,
+            drillLabel: this._hmDrillLabel || null,
+            settings: Object.assign({}, this._HM_SETTINGS_DEFAULTS(), this._hmSettings || {})
+        };
+    }
+
+    _hmSaveView() {
+        const state = this._hmViewState();
+        this.downloadFile(JSON.stringify(state, null, 2), `correlate_heatmap_view_${state.date.slice(0, 10)}.json`, 'application/json');
+    }
+
+    // Reopens a file saved by _hmSaveView/_hmSaveViewBtn. Opens the modal via
+    // its normal open path FIRST (which resets every control), then layers
+    // the saved state on top, then redraws once. State that lives outside a
+    // form control (annRows, hidden groups, drill state, the cohort
+    // snapshot, settings) must be set AFTER the open-reset or it is silently
+    // dropped, the same v.88.25 lesson the network/scatter restores follow.
+    async _hmRestoreView(state) {
+        if (!state || typeof state !== 'object') return;
+        this._hmOpenModal();
+
+        const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+        const setChecked = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
+
+        set('hmPreset', state.preset);
+        if (state.preset === 'custom') {
+            const box = document.getElementById('hmGenes');
+            if (box) box.value = state.customGenes || '';
+        }
+        set('hmDataType', state.dataType);
+        set('hmScale', state.scale);
+
+        // Cohort mode plus, for visible/selected, the frozen snapshot that
+        // stands in for it until the user picks a cohort themselves.
+        set('hmCohort', state.cohortMode);
+        this._hmCohortOverride = (state.cohortMode !== 'all' && state.cohortCellLines?.length)
+            ? { cellLines: state.cohortCellLines.slice(), date: state.date }
+            : null;
+
+        // Alteration filters: value, then the paired level select and its
+        // visibility, mirroring the sync() closures in setupHeatmapModal
+        // (not re-run here, so applied directly).
+        [['hmHotspotFilter', 'hmHotspotLevel', state.hotspot, state.hotspotLevel],
+         ['hmFusionFilter', 'hmFusionLevel', state.fusion, state.fusionLevel],
+         ['hmCnFilter', 'hmCnLevel', state.cn, state.cnLevel]].forEach(([inputId, levelId, v, lvl]) => {
+            const input = document.getElementById(inputId), level = document.getElementById(levelId);
+            if (input) input.value = v || '';
+            if (level) {
+                if (lvl) level.value = lvl;
+                level.style.display = (v || '').trim() ? '' : 'none';
+            }
+        });
+
+        setChecked('hmHideNoData', state.hideNoData);
+        set('hmSort', state.sort);
+        setChecked('hmClusterGenes', state.clusterGenes);
+        setChecked('hmClusterCells', state.clusterCells);
+        set('hmClusterK', state.clusterK != null ? String(state.clusterK) : '0');
+        set('hmGroupBy', state.groupBy);
+        set('hmGroupGene', state.groupGene || '');
+        set('hmGroupOrder', state.groupOrder);
+        set('hmMinGroupSize', state.minN != null ? String(state.minN) : '1');
+        setChecked('hmShowMedian', state.showMedian);
+
+        // Lineage/subtype/disease options are rebuilt from the resolved
+        // cohort on every redraw, so a value with no matching <option> yet
+        // is silently dropped (a bare .value assignment fails). Inject a
+        // placeholder option first so it "sticks" through the redraw below,
+        // which replaces it with the real, counted option (present because
+        // the snapshotted cohort already carries this narrowing).
+        const ensureOption = (selId, v) => {
+            if (!v) return;
+            const sel = document.getElementById(selId);
+            if (!sel) return;
+            if (![...sel.options].some(o => o.value === v)) {
+                const o = document.createElement('option');
+                o.value = v; o.textContent = v;
+                sel.appendChild(o);
+            }
+            sel.value = v;
+        };
+        ensureOption('hmLineage', state.lineage);
+        ensureOption('hmSubtype', state.subtype);
+        ensureOption('hmDisease', state.disease);
+
+        this._hmSyncGroupControls();
+        this._hmSyncClusterControls();
+
+        // State living outside form controls: set after the open-reset.
+        this._hmAnnRows = Array.isArray(state.annRows) ? state.annRows.map(r => ({ mode: r.mode, gene: r.gene || null })) : [];
+        this._hmRenderAnnRowsBlock();
+        this._hmHiddenGroups = new Set(Array.isArray(state.hiddenGroups) ? state.hiddenGroups : []);
+        // Pre-set the signature the next redraw would otherwise compute
+        // fresh (see the hiddenGroupsSig check in _hmRedraw): without this,
+        // that check reads a mismatch on the very first restored redraw and
+        // wipes the hidden set just restored above.
+        const rGroupByMode = state.groupBy || 'none', rClusterCells = !!state.clusterCells, rClusterK = state.clusterK || 0;
+        const rSigGene = rGroupByMode === 'alteration' ? (this._hmResolveAlterationGroupGene()?.gene || '') : '';
+        this._hmHiddenGroupsSig = (rClusterCells && rGroupByMode === 'none') ? `cluster|${rClusterK}` : `${rGroupByMode}|${rSigGene}`;
+        this._hmDrillCells = (Array.isArray(state.drillCells) && state.drillCells.length) ? new Set(state.drillCells) : null;
+        // A restored drill has no live undo snapshot; give "Show all" a
+        // back-target that simply clears the drill, so the button the label
+        // promises actually works instead of sitting dead.
+        this._hmDrillBack = this._hmDrillCells
+            ? { groupByMode: rGroupByMode, lineageValue: state.lineage || '', drillCells: null }
+            : null;
+        this._hmDrillLabel = state.drillLabel || null;
+
+        this._hmSettings = Object.assign({}, this._HM_SETTINGS_DEFAULTS(), state.settings || {});
+        this._hmSaveSettingsToStorage();
+
+        await this._hmRedraw();
     }
 }
 

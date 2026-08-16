@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.48 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>Heatmap settings, and views you can save.</b> A Settings button adjusts the heatmap's font sizes and cell dimensions, for the screen and every export, same panel as the network's. And Save view downloads the whole configuration, gene set, cohort, filters, annotation rows, clustering, hidden groups and settings, as a small .json file: drop it on the app later and the exact heatmap reopens, including a snapshot of the cell lines it was drawn on.</li>
+                </ul>
                 <p><strong>v.88.47 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>Cluster the cell lines, see the tree, ask why.</b> A Cluster cell lines toggle orders the columns by similarity and draws a dendrogram above the grid, matching the gene tree on the left. A cluster-count setting cuts the tree into 2 to 12 clusters, coloured in the tree, the strip and the legend, with the usual click-to-hide and drill-down. The AI export then carries each cluster's composition, its lineages, subtypes and scores, so an assistant can answer what actually distinguishes the clusters. With a grouping active, clustering runs within each group as before.</li>
@@ -6856,7 +6860,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.47</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.48</a>
         </span>
     </div>
 
@@ -8806,11 +8810,13 @@
                 <canvas id="hmAnn2LegendCanvas" style="display:block;"></canvas>
             </div>
             <div class="modal-footer" style="justify-content:flex-start; flex-wrap:wrap; gap:6px;">
+                <button id="hmSettingsBtn" class="btn btn-outline btn-sm" style="font-size:11px; font-weight:700;" title="Font sizes and cell dimensions for the heatmap and its exports">Settings</button>
                 <button id="hmExportImageBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px;" title="Choose format, print size and resolution">Export image...</button>
                 <button id="hmCopyBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px;" title="Copy the heatmap as an image to the clipboard, ready to paste into an email or slide">Copy</button>
                 <button id="hmCsvBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="The gene x cell line matrix as data, values as currently shown (z-scored or raw)">.csv</button>
                 <button id="hmCopyGenesBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Copy the genes shown, one per line, in the order they are drawn">Copy genes</button>
                 <button id="hmExportAIBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Package this heatmap for a language model: the gene set, the matrix, the cohort and the grouping, plus a picture of what's on screen">Export for AI</button>
+                <button id="hmSaveViewBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Download this exact heatmap as a small .json file; drop it on the app later to reopen it">Save view</button>
                 <span style="flex:1 1 auto;"></span>
                 <button id="heatmapClose2" class="btn btn-secondary btn-sm">Close</button>
             </div>
@@ -9800,6 +9806,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_47"></script>
+    <script src="app.js?v=v88_48"></script>
 </body>
 </html>
