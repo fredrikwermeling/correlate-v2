@@ -54301,8 +54301,13 @@ ${clone.innerHTML}
         // share this problem: each is built only from its own group's
         // (already-visible) cell lines, so a hidden GROUP just removes its
         // own tree while the rest keep correct offsets, nothing misaligns.
-        const anyGroupTree = !!(groups && groups.some(g => g.clusterRoot));
-        const hasTopDendro = clusterCells && ((!!colTree && hiddenCount === 0) || anyGroupTree);
+        // A tree under 4 leaves is a bare stem or two, not a shape worth a
+        // band: the single (colTree) case needs the WHOLE cohort at 4+ (its
+        // one tree either draws or the band doesn't exist at all), while the
+        // per-group case only needs ONE qualifying group (that group draws
+        // its tree, any group under 4 simply has none, same shared band).
+        const anyGroupTree = !!(groups && groups.some(g => g.clusterRoot && g.cellLines.length >= 4));
+        const hasTopDendro = clusterCells && ((!!colTree && hiddenCount === 0 && cohort.length >= 4) || anyGroupTree);
 
         // Colour domain: z-score is always clamped to +-2.5; raw expression
         // is scaled to the data's own range; raw gene effect is symmetric
@@ -54955,20 +54960,26 @@ ${clone.innerHTML}
         textLabelW = Math.min(textLabelW, 160);
         // A small tree to the left of the gene labels when rows are
         // clustered, drawn from the merge heights the clustering already
-        // produced. Skipped for a single gene (nothing to merge).
+        // produced. Skipped below 3 genes: a 2-leaf bracket says nothing a
+        // label pair doesn't already say, and reserving its gutter would
+        // just shove the labels left for no payoff.
         const DENDRO_W = 60;
-        const hasDendro = !!d.geneTree && nGenes >= 2;
+        const hasDendro = !!d.geneTree && nGenes >= 3;
         const dendroW = hasDendro ? DENDRO_W : 0;
         const labelW = textLabelW + dendroW;
         const gridW = nCL * cellW;
+        const geneAreaH = nGenes * cellH;
         // Top (column) dendrogram: a second canvas above the grid, same
         // width, drawn only when Cluster cell lines built one (see
-        // _hmBuildAndPaint's hasTopDendro). The gene-label canvas gets a
-        // matching CSS margin-top below so its rows stay aligned with the
-        // grid's, rather than the grid's own coordinate space changing.
-        const TOP_DENDRO_H = 60;
+        // _hmBuildAndPaint's hasTopDendro). Height tracks the gene grid
+        // itself (never taller than it, floored at 24px) so a short grid
+        // doesn't carry a band of dangling collapsed stems far taller than
+        // its own content; every consumer below reads this one value. The
+        // gene-label canvas gets a matching CSS margin-top below so its
+        // rows stay aligned with the grid's, rather than the grid's own
+        // coordinate space changing.
+        const TOP_DENDRO_H = Math.min(60, Math.max(24, geneAreaH));
         const hasTopDendro = !!d.hasTopDendro;
-        const geneAreaH = nGenes * cellH;
         // The group strip, its boundary ticks and its labels are drawn on
         // the grid canvas directly beneath the last gene row: that
         // guarantees column alignment for free, rather than trying to keep a
@@ -55020,7 +55031,7 @@ ${clone.innerHTML}
                 // the grid, applied to the gene tree's own branches. Row
                 // order and gene labels are untouched either way, only how
                 // finely the merges themselves are drawn.
-                const minLeaves = this._hmTreeDetailMinLeaves(hmS.treeDetailGenes);
+                const minLeaves = this._hmEffectiveMinLeaves(hmS.treeDetailGenes, nGenes);
                 const segments = this._hmDendroLayout(d.geneTree, leafRowIndex, cellH, dendroW, undefined, minLeaves);
                 ctx.strokeStyle = '#9ca3af';
                 ctx.lineWidth = 1;
@@ -55197,17 +55208,26 @@ ${clone.innerHTML}
             const leafColIndex = new Map(d.orderedCLs.map((cl, i) => [cl, i]));
             const clusterColorMap = new Map((d.groups || []).filter(g => g.node).map(g => [g.node, g.color]));
             const colorFor = clusterColorMap.size ? (node => clusterColorMap.get(node)) : undefined;
-            const roots = d.colTree ? [d.colTree] : (d.groups || []).filter(g => g.clusterRoot).map(g => g.clusterRoot);
+            // A group under 4 leaves has no tree of its own (see
+            // hasTopDendro above); the single colTree case is already all-
+            // or-nothing via hasTopDendro, so this filter only ever removes
+            // per-group roots.
+            const roots = d.colTree ? [d.colTree] : (d.groups || []).filter(g => g.clusterRoot && g.cellLines.length >= 4).map(g => g.clusterRoot);
             // Tree detail (hmTreeDetailCells, top toolbar row): how many
             // leaves an internal node needs before it's drawn in full
             // rather than collapsed to a stem. Full keeps every merge
             // (threshold 1, nothing has fewer than that); the coarser
             // levels thin out the finest branching on wide or per-group
-            // trees. Cell-line trees only, both single and per-group; the
-            // gene tree's own _hmDendroLayout call uses treeDetailGenes.
-            const minLeaves = this._hmTreeDetailMinLeaves(hmS.treeDetailCells);
+            // trees, clamped per tree by _hmEffectiveMinLeaves so a small
+            // tree never collapses to bare stems just because the setting
+            // was tuned for a much bigger one. Cell-line trees only, both
+            // single and per-group; the gene tree's own _hmDendroLayout
+            // call uses treeDetailGenes via the same helper.
             const segments = [];
-            for (const root of roots) segments.push(...this._hmDendroLayout(root, leafColIndex, cellW, TOP_DENDRO_H, colorFor, minLeaves));
+            for (const root of roots) {
+                const minLeaves = this._hmEffectiveMinLeaves(hmS.treeDetailCells, this._hmTreeLeafOrder(root).length);
+                segments.push(...this._hmDendroLayout(root, leafColIndex, cellW, TOP_DENDRO_H, colorFor, minLeaves));
+            }
             const byColor = new Map();
             for (const s of segments) {
                 const c = s.color || '#9ca3af';
@@ -55982,6 +56002,17 @@ ${clone.innerHTML}
     _hmTreeDetailMinLeaves(val) {
         const MAP = { full: 1, medium: 4, coarse: 8, xcoarse: 16, minimal: 32 };
         return MAP[val] || 1;
+    }
+
+    // Clamps the tree detail setting to the size of the ONE tree it's about
+    // to draw: a 14-leaf group tree draws essentially full even at Very
+    // coarse/Minimal (a small tree has nothing to gain from collapsing),
+    // while a 1,000-leaf tree still honours the setting as chosen. Shared by
+    // both the gene tree (paintLabels) and every cell-line tree
+    // (paintDendroTop, called once per root since a per-group tree's own
+    // leaf count differs from its neighbours').
+    _hmEffectiveMinLeaves(val, nLeaves) {
+        return Math.min(this._hmTreeDetailMinLeaves(val), Math.max(1, Math.floor(nLeaves / 4)));
     }
 
     // Merges a raw settings object (from localStorage or a saved view file)
