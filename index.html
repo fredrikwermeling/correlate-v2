@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.59 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>The alteration-grouping gene box got real.</b> Picking the gene for Group by: Genetic alteration now works like the other filter boxes: a searchable list showing each gene's mutation count in the currently filtered cell lines, most mutated first, including the genes scored by damaging mutations.</li>
+                </ul>
                 <p><strong>v.88.58 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>Network filters follow into the heatmap.</b> Opening the heatmap from the network now uses exactly the cell lines the analysis was run on, stated in the summary line; change the Cell lines box to leave that cohort.</li>
@@ -6900,7 +6904,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.58</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.59</a>
         </span>
     </div>
 
@@ -8824,8 +8828,10 @@
                                 <option value="disease">Disease</option>
                                 <option value="alteration" title="Splits into three groups by copies mutated: wild-type, one copy, both copies">Genetic alteration</option>
                             </select>
-                            <input type="text" id="hmGroupGene" list="hmGroupGeneList" disabled placeholder="e.g. BRAF" style="width:110px;" title="Split cell lines into wild-type / one copy / both copies for this gene. Uses hotspot mutations, or damaging mutations if the gene has no hotspot data.">
-                            <datalist id="hmGroupGeneList"></datalist>
+                            <div id="hmGroupGeneWrap" class="filter-input-wrap" style="position:relative; width:110px;">
+                                <input type="text" id="hmGroupGene" class="form-control" disabled placeholder="e.g. BRAF" autocomplete="off" style="font-size:11px; padding:3px 6px;" title="Split cell lines into wild-type / one copy / both copies for this gene. Uses hotspot mutations, or damaging mutations if the gene has no hotspot data.">
+                                <div id="hmGroupGeneDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
+                            </div>
                             <select id="hmGroupOrder" disabled style="width:120px;" title="How the groups are ordered left to right. Alteration groups always run wild-type to both copies, ignoring this.">
                                 <option value="size" selected>By size</option>
                                 <option value="score">By score</option>
@@ -9871,6 +9877,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_58"></script>
+    <script src="app.js?v=v88_59"></script>
 </body>
 </html>

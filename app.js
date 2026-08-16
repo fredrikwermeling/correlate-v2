@@ -52963,6 +52963,7 @@ ${clone.innerHTML}
         this._setupMutFilterWidget('hotspot', 'hmHotspotFilter', 'hmHotspotDropdown', _hmFilterChanged, () => this._hmCohortExcluding('hotspot'));
         this._setupMutFilterWidget('fusion', 'hmFusionFilter', 'hmFusionDropdown', _hmFilterChanged, () => this._hmCohortExcluding('fusion'));
         this._setupMutFilterWidget('cn', 'hmCnFilter', 'hmCnDropdown', _hmFilterChanged, () => this._hmCohortExcluding('cn'));
+        this._hmWireGroupGeneWidget();
         [['hmHotspotFilter', 'hmHotspotLevel'], ['hmFusionFilter', 'hmFusionLevel'], ['hmCnFilter', 'hmCnLevel']]
             .forEach(([inputId, levelId]) => {
                 const input = document.getElementById(inputId);
@@ -52981,7 +52982,6 @@ ${clone.innerHTML}
         document.getElementById('hmGroupBy')?.addEventListener('change', () => {
             this._hmSyncGroupControls();
             this._hmSyncClusterControls();
-            this._hmPopulateGroupGeneList();
             this._hmRedraw();
         });
         document.getElementById('hmGroupGene')?.addEventListener('change', () => this._hmRedraw());
@@ -53066,7 +53066,6 @@ ${clone.innerHTML}
         this._hmSyncGroupControls();
         this._hmSyncClusterControls();
         this._hmRenderAnnRowsBlock();
-        this._hmPopulateGroupGeneList();
         this._renderFilterChips('heatmap');
         this._hmRedraw();
     }
@@ -53156,7 +53155,14 @@ ${clone.innerHTML}
     _hmSyncGroupControls() {
         const mode = document.getElementById('hmGroupBy')?.value || 'none';
         const geneInput = document.getElementById('hmGroupGene');
-        if (geneInput) { geneInput.disabled = mode !== 'alteration'; geneInput.style.opacity = mode === 'alteration' ? '1' : '0.45'; }
+        if (geneInput) {
+            geneInput.disabled = mode !== 'alteration';
+            geneInput.style.opacity = mode === 'alteration' ? '1' : '0.45';
+            // Disabling mid-pick would otherwise leave the dropdown open
+            // with no way to close it (a disabled input fires no blur/click
+            // that would normally dismiss it).
+            if (geneInput.disabled) { const dd = document.getElementById('hmGroupGeneDropdown'); if (dd) dd.style.display = 'none'; }
+        }
         const orderSel = document.getElementById('hmGroupOrder');
         if (orderSel) { orderSel.disabled = mode === 'none'; orderSel.style.opacity = mode === 'none' ? '0.45' : '1'; }
         const medianCb = document.getElementById('hmShowMedian');
@@ -53219,15 +53225,107 @@ ${clone.innerHTML}
         }
     }
 
-    // Suggestions for the "group by alteration" gene box: every gene with
-    // hotspot OR damaging-mutation data, since either can supply the split.
-    _hmPopulateGroupGeneList() {
-        const dl = document.getElementById('hmGroupGeneList');
-        if (!dl) return;
-        const names = new Set();
-        (this.mutations?.genes || []).forEach(g => names.add(g));
-        (this.damagingMutations?.genes || []).forEach(g => names.add(g));
-        dl.innerHTML = Array.from(names).sort().map(g => `<option value="${this.esc(g)}"></option>`).join('');
+    // Options for the "group by alteration" gene box: every gene with
+    // hotspot OR damaging-mutation data (either can supply the split, see
+    // _hmResolveAlterationGroupGene), counted within `cohortSet` and sorted
+    // highest count first. Which matrix a gene's count comes from mirrors
+    // _hmResolveAlterationGroupGene's own precedence exactly: presence in
+    // the hotspot matrix wins regardless of count (so all ~49 hotspot
+    // genes are always listed, even a 0-count one for this cohort, since
+    // that IS what picking it would group on); only genes absent from the
+    // hotspot matrix fall through to the damaging matrix, and only when
+    // they have a count here (that side is ~9700 genes, most 0 in any
+    // given cohort, so those are left out rather than cluttering the
+    // list). Damaging-fallback entries carry a "damaging" count suffix so
+    // that fallback is visible. Mirrors _buildFilterItems('hotspot', ...)
+    // but with the extra damaging-matrix genes _setupMutFilterWidget's
+    // 'hotspot' kind has no path to (see _hmWireGroupGeneWidget for why
+    // that widget isn't reused here).
+    _hmBuildGroupGeneItems(cohortSet) {
+        const items = [];
+        const seen = new Set();
+        for (const gene of (this.mutations?.genes || [])) {
+            seen.add(gene);
+            const muts = this.mutations.geneData?.[gene]?.mutations || {};
+            let n = 0; for (const cl in muts) if (muts[cl] >= 1 && cohortSet.has(cl)) n++;
+            items.push({ value: gene, n, primary: gene, secondary: 'hotspot mutation', damaging: false });
+        }
+        for (const gene of (this.damagingMutations?.genes || [])) {
+            if (seen.has(gene)) continue;
+            const muts = this.damagingMutations.geneData?.[gene]?.mutations || {};
+            let n = 0; for (const cl in muts) if (muts[cl] >= 1 && cohortSet.has(cl)) n++;
+            if (n > 0) items.push({ value: gene, n, primary: gene, secondary: 'damaging mutation, no hotspot data', damaging: true });
+        }
+        items.sort((a, b) => b.n - a.n);
+        return items.map(it => ({ value: it.value, primary: it.primary, secondary: it.secondary, count: it.damaging ? `${it.n} damaging` : it.n }));
+    }
+
+    // Renders the group-by gene dropdown. Same visual/interaction shape as
+    // _renderHotspotFilterDropdown (count-sorted, substring search, click to
+    // pick) but over this box's own combined gene universe, so it keeps its
+    // own small render function rather than reusing that one.
+    _hmRenderGroupGeneDropdown(filter, items) {
+        const dd = document.getElementById('hmGroupGeneDropdown');
+        if (!dd) return;
+        const q = (filter || '').toLowerCase().trim();
+        const matches = q ? items.filter(it => it.value.toLowerCase().includes(q)) : items;
+        if (matches.length === 0) {
+            dd.innerHTML = `<div style="padding:10px 12px; color:#9ca3af;">No matching gene.</div>`;
+            return;
+        }
+        const visible = matches.slice(0, 200);
+        dd.innerHTML = visible.map(it =>
+            `<div class="hm-groupgene-opt" data-value="${it.value}" `
+            + `style="padding:6px 10px; cursor:pointer; border-bottom:1px solid #f3f4f6;" `
+            + `onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background=''">`
+            + `<div style="font-weight:600; color:#374151;">${it.primary} `
+            + `<span style="color:#6b7280; font-weight:400; font-size:10px;">n=${it.count}</span></div>`
+            + `<div style="font-size:10px; color:#9ca3af;">${it.secondary}</div>`
+            + `</div>`
+        ).join('');
+        const input = document.getElementById('hmGroupGene');
+        dd.querySelectorAll('.hm-groupgene-opt').forEach(el => {
+            el.addEventListener('mousedown', (e) => e.preventDefault());
+            el.addEventListener('click', () => {
+                if (input) { input.value = el.dataset.value; input.dispatchEvent(new Event('change')); }
+                dd.style.display = 'none';
+            });
+        });
+    }
+
+    // Wires the group-by gene box to its dropdown: searchable and
+    // count-sorted like the hotspot/fusion/CN filter widgets
+    // (_setupMutFilterWidget), but that widget's 'hotspot' kind only knows
+    // this.mutations.genes (the 49 hotspot genes) with no path to the
+    // damaging-mutation fallback genes this box has always offered, so
+    // reusing it here would silently drop them from the picker. Wired by
+    // hand instead, built to match that widget's behaviour: recompute the
+    // list (over the full current heatmap cohort, all heatmap filters
+    // applied) when the dropdown opens, not on every redraw; typing
+    // narrows by substring; click picks; Escape or an outside click closes.
+    _hmWireGroupGeneWidget() {
+        const input = document.getElementById('hmGroupGene');
+        const dd = document.getElementById('hmGroupGeneDropdown');
+        if (!input || !dd || input._hmGroupGeneWired) return;
+        input._hmGroupGeneWired = true;
+        const open = (isFocus) => {
+            if (input.disabled) return;
+            // A kind that never matches 'hotspot'/'fusion'/'cn' makes
+            // _hmCohortExcluding apply ALL of them (plus cohort/lineage/
+            // subtype/disease), i.e. the full current heatmap cohort, since
+            // this box is not itself one of those three filters.
+            const cohort = this._hmCohortExcluding('groupGene');
+            const items = this._hmBuildGroupGeneItems(cohort);
+            const q = isFocus ? '' : input.value;
+            this._hmRenderGroupGeneDropdown(q, items);
+            dd.style.display = 'block';
+        };
+        input.addEventListener('focus', () => open(true));
+        input.addEventListener('input', () => open(false));
+        input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { dd.style.display = 'none'; input.blur(); } });
+        document.addEventListener('click', (e) => {
+            if (e.target !== input && !dd.contains(e.target)) dd.style.display = 'none';
+        });
     }
 
     // Renders the "Annotation rows" block from this._hmAnnRows (up to 4
@@ -55478,7 +55576,6 @@ ${clone.innerHTML}
         }
         this._hmSyncGroupControls();
         this._hmSyncClusterControls();
-        this._hmPopulateGroupGeneList();
         this._hmRedraw();
     }
 
@@ -55497,7 +55594,6 @@ ${clone.innerHTML}
         this._hmHiddenGroups = new Set();
         this._hmSyncGroupControls();
         this._hmSyncClusterControls();
-        this._hmPopulateGroupGeneList();
         this._hmRedraw();
     }
 
