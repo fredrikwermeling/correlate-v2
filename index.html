@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.50 (2026-08-16)</strong></p>
+                <ul>
+                    <li><b>Dendrograms everywhere clustering runs, and honest empty columns.</b> With a grouping active, Cluster cell lines now draws a small tree above each group instead of silently skipping the dendrogram; the single-tree view is unchanged. Cell lines with no data for the shown genes draw as hatched columns when shown, so hiding or showing them visibly means something, and their tooltip says why they are empty.</li>
+                </ul>
                 <p><strong>v.88.49 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>The heatmap connects outward.</b> The network gains a Heatmap button that draws its genes as a gene set heatmap: your input genes, every network gene, or only the correlating ones. And after drilling into a heatmap group or cluster, one click ticks exactly those cell lines in the Cell Line Browser, ready for its filters, sorts and exports.</li>
@@ -6864,7 +6868,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.49</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.50</a>
         </span>
     </div>
 
@@ -9820,6 +9824,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_49"></script>
+    <script src="app.js?v=v88_50"></script>
 </body>
 </html>

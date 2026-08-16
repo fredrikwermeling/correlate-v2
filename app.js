@@ -53683,7 +53683,7 @@ ${clone.innerHTML}
         // sortMode entirely, and covers all three shapes: clustering inside
         // each group, tree order only, and a tree cut into k clusters.
         if (d.clusterCells) {
-            if (d.groupByMode !== 'none') return 'columns clustered within each group';
+            if (d.groupByMode !== 'none') return 'columns clustered within each group (tree per group above the grid)';
             if (d.clustersActive) return `columns clustered, cut into ${d.clusterK} clusters`;
             return 'columns clustered';
         }
@@ -53737,11 +53737,18 @@ ${clone.innerHTML}
         // either way (shown or hidden, never silently absent).
         const hideNoDataChecked = !!document.getElementById('hmHideNoData')?.checked;
         let noDataCount = 0;
+        // Cell lines with no value for ANY shown gene: when the checkbox
+        // above leaves them on screen (unchecked), the grid painter hatches
+        // every cell of these columns instead of the near-white a weak
+        // z-score also uses, so "no data" and "weak signal" stop looking
+        // identical. A partial column (missing some genes, not all) is real
+        // data with gaps and is never added here.
+        const allNACellLines = new Set();
         {
             const keepIdx = [];
             cohort.forEach((cl, ci) => {
                 if (rawRows.some(row => !Number.isNaN(row[ci]))) keepIdx.push(ci);
-                else noDataCount++;
+                else { noDataCount++; allNACellLines.add(cl); }
             });
             if (noDataCount > 0 && hideNoDataChecked) {
                 cohort = keepIdx.map(ci => cohort[ci]);
@@ -53946,7 +53953,18 @@ ${clone.innerHTML}
             visibleGroups.forEach(g => {
                 const allowCluster = g.cellLines.length <= CLUSTER_CAP;
                 if (clusterCells && !allowCluster) cappedGroupNames.push(g.key);
-                g.orderedCellLines = orderList(g.cellLines, allowCluster);
+                // When clustering, build the group's own tree directly
+                // (instead of going through orderList -> _hmClusterOrder,
+                // which throws the tree away) so the top dendrogram has a
+                // root to draw for this group; a 1-line group has nothing
+                // to merge, so it keeps the plain orderList path and no tree.
+                if (clusterCells && allowCluster && g.cellLines.length >= 2) {
+                    const tree = this._hmClusterTree(g.cellLines, vectorsFor(g.cellLines));
+                    g.orderedCellLines = tree.order;
+                    g.clusterRoot = tree.root;
+                } else {
+                    g.orderedCellLines = orderList(g.cellLines, allowCluster);
+                }
                 g.startCol = col;
                 g.count = g.orderedCellLines.length;
                 col += g.count;
@@ -54020,13 +54038,18 @@ ${clone.innerHTML}
         } else {
             orderedCLs = orderList(cohort, cohort.length <= CLUSTER_CAP);
         }
-        // The top dendrogram only makes sense when it shows every column
-        // that's actually drawn: hiding one cluster removes its cell lines
-        // from the grid entirely, and the tree above was built (and coloured)
-        // over the full, pre-hide cohort, so it's dropped for that redraw
-        // rather than drawn misaligned. The strip, legend and drill-down all
-        // keep working via the same hide mechanism every other group uses.
-        const hasTopDendro = !!colTree && hiddenCount === 0;
+        // The single-cohort tree only makes sense when it shows every column
+        // that's actually drawn: hiding one synthetic cluster removes its
+        // cell lines from the grid entirely, and that tree was built (and
+        // coloured) over the full, pre-hide cohort, so it's dropped for that
+        // redraw rather than drawn misaligned. The strip, legend and
+        // drill-down all keep working via the same hide mechanism every
+        // other group uses. Per-group trees (groupByMode !== 'none') don't
+        // share this problem: each is built only from its own group's
+        // (already-visible) cell lines, so a hidden GROUP just removes its
+        // own tree while the rest keep correct offsets, nothing misaligns.
+        const anyGroupTree = !!(groups && groups.some(g => g.clusterRoot));
+        const hasTopDendro = clusterCells && ((!!colTree && hiddenCount === 0) || anyGroupTree);
 
         // Colour domain: z-score is always clamped to +-2.5; raw expression
         // is scaled to the data's own range; raw gene effect is symmetric
@@ -54054,7 +54077,7 @@ ${clone.innerHTML}
             genes, orderedGenes, geneTree, cohort, orderedCLs, geneIndexInResult, cohortIndex,
             rawRows, scaledRows, dataType, scaleMode, sortMode, domain, missingGenes, zAllN,
             groups, groupByMode, altInfo, groupOrderMode, showMedian, hiddenCount,
-            lineageLabel, subtypeLabel, diseaseLabel, annRows, noDataCount, hideNoDataChecked,
+            lineageLabel, subtypeLabel, diseaseLabel, annRows, noDataCount, hideNoDataChecked, allNACellLines,
             clusterCells, clusterK, clustersActive, colTree, hasTopDendro
         };
         this._hmPaintAndWire(cohortNote + clusterNote);
@@ -54406,6 +54429,30 @@ ${clone.innerHTML}
         return segments;
     }
 
+    // The hatch tile used to fill an all-NA column: light gray diagonal
+    // lines (#e5e7eb) on an off-white ground (#f9fafb), built once and
+    // cached on the instance. A CanvasPattern made from it is cheap to
+    // recreate per target context (on-screen grid, export canvas), so only
+    // the tiny source bitmap itself needs the cache.
+    _hmNoDataTile() {
+        if (this.__hmNoDataTile) return this.__hmNoDataTile;
+        const size = 8;
+        const tile = document.createElement('canvas');
+        tile.width = size; tile.height = size;
+        const tctx = tile.getContext('2d');
+        tctx.fillStyle = '#f9fafb';
+        tctx.fillRect(0, 0, size, size);
+        tctx.strokeStyle = '#e5e7eb';
+        tctx.lineWidth = 1;
+        tctx.beginPath();
+        tctx.moveTo(0, size); tctx.lineTo(size, 0);
+        tctx.moveTo(-size / 4, size / 4); tctx.lineTo(size / 4, -size / 4);
+        tctx.moveTo(size * 3 / 4, size * 5 / 4); tctx.lineTo(size * 5 / 4, size * 3 / 4);
+        tctx.stroke();
+        this.__hmNoDataTile = tile;
+        return tile;
+    }
+
     _hmColorFor(v, scaleMode, dataType, domain) {
         if (v == null || Number.isNaN(v)) return '#f3f4f6';
         if (scaleMode === 'z' || scaleMode === 'zall') return this._hmDivergingColor(Math.max(-1, Math.min(1, v / 2.5)));
@@ -54632,12 +54679,22 @@ ${clone.innerHTML}
                 ctx.fillStyle = '#f3f4f6';
                 ctx.fillRect(0, 0, gridW, geneAreaH);
             }
+            // An all-NA column (no value for any shown gene, "Hide lines
+            // without data" left unchecked) is hatched instead of coloured
+            // by value, so it reads as "no data" rather than a pale, weak
+            // z-score; a partial column keeps the plain per-cell colour
+            // below, individual gaps and all included.
+            const noDataFill = (d.allNACellLines && d.allNACellLines.size) ? ctx.createPattern(this._hmNoDataTile(), 'repeat') : null;
             d.orderedGenes.forEach((g, rowIdx) => {
                 const row = d.scaledRows[d.geneIndexInResult.get(g)];
                 const y = rowIdx * cellH;
                 d.orderedCLs.forEach((cl, colIdx) => {
-                    const v = row[d.cohortIndex.get(cl)];
-                    ctx.fillStyle = this._hmColorFor(v, d.scaleMode, d.dataType, d.domain);
+                    if (noDataFill && d.allNACellLines.has(cl)) {
+                        ctx.fillStyle = noDataFill;
+                    } else {
+                        const v = row[d.cohortIndex.get(cl)];
+                        ctx.fillStyle = this._hmColorFor(v, d.scaleMode, d.dataType, d.domain);
+                    }
                     ctx.fillRect(colIdx * cellW, y, Math.max(1, cellW - (cellW > 3 ? 1 : 0)), cellH - 1);
                 });
             });
@@ -54743,13 +54800,21 @@ ${clone.innerHTML}
         // (set on the cut cluster's own root and inherited by its
         // descendants); branches above every cut come back with color: null
         // and stroke grey, same as the gene tree.
+        // Ungrouped draws the single whole-cohort tree (d.colTree); grouped
+        // draws one small tree per group instead (d.groups[].clusterRoot).
+        // Both share leafColIndex, built from the FINAL orderedCLs (already
+        // the concatenation of every visible group's own order), so a
+        // group's tree lands on exactly its own columns without any extra
+        // per-group offset math.
         const paintDendroTop = (ctx, opts = {}) => {
             if (!hasTopDendro) return;
             if (!opts.plain) { ctx.fillStyle = '#f9fafb'; ctx.fillRect(0, 0, gridW, TOP_DENDRO_H); }
             const leafColIndex = new Map(d.orderedCLs.map((cl, i) => [cl, i]));
             const clusterColorMap = new Map((d.groups || []).filter(g => g.node).map(g => [g.node, g.color]));
             const colorFor = clusterColorMap.size ? (node => clusterColorMap.get(node)) : undefined;
-            const segments = this._hmDendroLayout(d.colTree, leafColIndex, cellW, TOP_DENDRO_H, colorFor);
+            const roots = d.colTree ? [d.colTree] : (d.groups || []).filter(g => g.clusterRoot).map(g => g.clusterRoot);
+            const segments = [];
+            for (const root of roots) segments.push(...this._hmDendroLayout(root, leafColIndex, cellW, TOP_DENDRO_H, colorFor));
             const byColor = new Map();
             for (const s of segments) {
                 const c = s.color || '#9ca3af';
@@ -55218,6 +55283,14 @@ ${clone.innerHTML}
         }
         const gene = d.orderedGenes[rowIdx];
         const cl = d.orderedCLs[colIdx];
+        // An all-NA column is hatched across every row (see paintGrid), so
+        // its tooltip says so column-wide too rather than repeating a
+        // per-gene "no data" that would wrongly imply just this one gene
+        // is missing.
+        if (d.allNACellLines && d.allNACellLines.has(cl)) {
+            this._hmShowTooltip(e.clientX, e.clientY, `${this.getCellLineName(cl)} · no data for the shown genes`);
+            return;
+        }
         const gi = d.geneIndexInResult.get(gene);
         const ci = d.cohortIndex.get(cl);
         const rawV = d.rawRows[gi][ci];
