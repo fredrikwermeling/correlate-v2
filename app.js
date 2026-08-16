@@ -52873,7 +52873,20 @@ ${clone.innerHTML}
         document.getElementById('hmDataType')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmScale')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmSort')?.addEventListener('change', () => this._hmRedraw());
-        document.getElementById('hmClusterCells')?.addEventListener('change', () => { this._hmSyncClusterControls(); this._hmRedraw(); });
+        document.getElementById('hmClusterCells')?.addEventListener('change', (e) => {
+            // Turning clustering on with no annotation row set yet auto-adds
+            // a lineage row, so the colour strip under the grid immediately
+            // answers "do the clusters follow lineage?". Only on the off->on
+            // transition: if the user removes it while clustering stays on,
+            // _hmAnnRows is empty again but this handler doesn't re-fire, so
+            // it stays removed until they uncheck and recheck.
+            if (e.target.checked && (this._hmAnnRows || []).length === 0) {
+                (this._hmAnnRows || (this._hmAnnRows = [])).push({ mode: 'lineage', gene: null });
+                this._hmRenderAnnRowsBlock();
+            }
+            this._hmSyncClusterControls();
+            this._hmRedraw();
+        });
         document.getElementById('hmClusterK')?.addEventListener('change', () => this._hmRedraw());
         // Fires on blur/focus-loss, not on every keystroke, so a half-typed
         // gene list doesn't repaint mid-edit; Redraw stays useful for that.
@@ -53797,7 +53810,7 @@ ${clone.innerHTML}
 
         let orderedGenes = genes.slice();
         let geneTree = null;
-        const CLUSTER_CAP = 400;
+        const CLUSTER_CAP = 1300;
         // Row (gene) clustering runs off its own checkbox, independent of
         // how the cell-line columns are sorted: genes that behave alike sit
         // together whether the columns are by score, name or their own
@@ -54328,26 +54341,60 @@ ${clone.innerHTML}
         // matrix slot i; slot `a` is overwritten with the merged node each
         // round, mirroring how the distance matrix itself is updated in place.
         const nodes = keys.map(k => ({ leaf: k }));
-        const active = keys.map((_, i) => i);
-        while (active.length > 1) {
-            let bi = 0, bj = 1, bd = Infinity;
-            for (let x = 0; x < active.length; x++) {
-                for (let y = x + 1; y < active.length; y++) {
-                    const a = active[x], b = active[y];
-                    if (dist[a][b] < bd) { bd = dist[a][b]; bi = x; bj = y; }
+        // Nearest-neighbor chain (Murtagh): exact for a reducible linkage
+        // (average linkage is one), so it always finds the same merges a
+        // full best-pair rescan would, but in O(n^2) total instead of
+        // O(n^3): follow a stack of nearest-neighbour pointers from any
+        // active slot until the top two are each other's nearest neighbour
+        // (a reciprocal pair, always safe to merge for a reducible
+        // linkage), merge them, then resume from whatever is left on the
+        // stack instead of restarting the chain from scratch.
+        const isActive = new Array(n).fill(true);
+        let remaining = n;
+        const chain = [];
+        while (remaining > 1) {
+            if (chain.length === 0) {
+                for (let i = 0; i < n; i++) { if (isActive[i]) { chain.push(i); break; } }
+            }
+            const top = chain[chain.length - 1];
+            let nn = -1, nnd = Infinity;
+            for (let c = 0; c < n; c++) {
+                if (!isActive[c] || c === top) continue;
+                const d = dist[top][c];
+                if (d < nnd) { nnd = d; nn = c; }
+            }
+            // Tie handling: prefer the chain's own predecessor over any
+            // other candidate tied with it, so a tie can't stall the chain
+            // short of a reciprocal pair (standard NN-chain tie rule).
+            if (chain.length >= 2) {
+                const prev = chain[chain.length - 2];
+                if (dist[top][prev] === nnd) nn = prev;
+            }
+            if (chain.length >= 2 && nn === chain[chain.length - 2]) {
+                const a = Math.min(top, nn), b = Math.max(top, nn);
+                const bd = dist[a][b];
+                for (let c = 0; c < n; c++) {
+                    if (!isActive[c] || c === a || c === b) continue;
+                    const nd = (size[a] * dist[a][c] + size[b] * dist[b][c]) / (size[a] + size[b]);
+                    dist[a][c] = nd; dist[c][a] = nd;
                 }
+                nodes[a] = { height: bd, left: nodes[a], right: nodes[b] };
+                size[a] += size[b];
+                isActive[b] = false;
+                remaining--;
+                chain.pop(); chain.pop();
+                // Defensive: a slot the merge just deactivated shouldn't
+                // linger deeper in the chain either (it shouldn't for a
+                // reducible linkage, but a stale entry there would corrupt
+                // the next nn scan).
+                for (let i = chain.length - 1; i >= 0; i--) { if (chain[i] === b) chain.splice(i, 1); }
+            } else {
+                chain.push(nn);
             }
-            const a = active[bi], b = active[bj];
-            for (const c of active) {
-                if (c === a || c === b) continue;
-                const nd = (size[a] * dist[a][c] + size[b] * dist[b][c]) / (size[a] + size[b]);
-                dist[a][c] = nd; dist[c][a] = nd;
-            }
-            nodes[a] = { height: bd, left: nodes[a], right: nodes[b] };
-            size[a] += size[b];
-            active.splice(bj, 1);
         }
-        const root = nodes[active[0]];
+        let rootSlot = -1;
+        for (let i = 0; i < n; i++) { if (isActive[i]) { rootSlot = i; break; } }
+        const root = nodes[rootSlot];
         if (scoreFn) this._hmScoreOrderTree(root, scoreFn);
         return { order: this._hmTreeLeafOrder(root), root };
     }
