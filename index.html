@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.63 (2026-08-18)</strong></p>
+                <ul>
+                    <li><b>Clustered by default, with a suggested cluster count.</b> The heatmap opens with the cell lines clustered and coloured into an automatically suggested number of clusters (pick your own under Clustering), lineage colours underneath, and the colours scaled against all cell lines by default so a filtered view still says where the lines sit among all cancers. The tree-detail selects say they only change the drawing, and a ? beside Scaling explains exactly how the colours are computed, per gene, never across the gene set, with the legend stating the scale in use.</li>
+                </ul>
                 <p><strong>v.88.62 (2026-08-18)</strong></p>
                 <ul>
                     <li><b>Heatmap fixes.</b> The clustering controls sit together on their own toolbar row. Show median works whenever there are groups to label, including coloured clusters, instead of being tied to the Group by choice. Clicking outside the heatmap no longer closes it. And adding an annotation row now opens the gene picker and says the row draws once a gene is picked, instead of silently showing nothing.</li>
@@ -6916,7 +6920,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.62</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.63</a>
         </span>
     </div>
 
@@ -8743,10 +8747,11 @@
                                 <option value="ge">CRISPR gene effect</option>
                             </select>
                             <select id="hmScale" style="width:200px;" title="Z-score compares each gene to its own spread; choose whether that spread is measured across only the cell lines shown or across the whole panel. Raw values keep their original units">
-                                <option value="z" selected>Z-score, vs shown lines</option>
-                                <option value="zall">Z-score, vs all lines</option>
+                                <option value="z">Z-score, vs shown lines</option>
+                                <option value="zall" selected>Z-score, vs all lines</option>
                                 <option value="raw">Raw values</option>
                             </select>
+                            <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;" title="How the colours are computed. Z-score, vs shown lines: each GENE is centred on its own mean and scaled by its own spread across the cell lines currently drawn, so every row uses the full colour range and rows are comparable; a cell says how that line sits for that gene relative to the other shown lines. Z-score, vs all lines: same per-gene scaling but measured across every cell line in the panel, so a cell says how the line sits against all cancers even when only a subset is drawn. Raw values: the actual units (log2 TPM+1 for expression, Chronos score for gene effect), one shared scale for the whole grid, rows with naturally high levels dominate the colours. Normalisation is always per gene, never across the whole gene set.">?</span>
                         </div>
                     </div>
                     <div class="clb-row clb-row-alt">
@@ -8755,7 +8760,7 @@
                             <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the gene rows by how alike their profiles are, regardless of how cell lines are sorted, and draw the tree that produced the order">
                                 <input type="checkbox" id="hmClusterGenes" checked style="margin:0;"> Cluster genes
                             </label>
-                            <select id="hmTreeDetailGenes" style="width:110px;" title="How much branch detail the gene tree on the left draws">
+                            <select id="hmTreeDetailGenes" style="width:110px;" title="Drawing detail only, does not change the clustering: How much branch detail the gene tree on the left draws">
                                 <option value="full" selected>Full</option>
                                 <option value="medium">Medium</option>
                                 <option value="coarse">Coarse</option>
@@ -8763,10 +8768,11 @@
                                 <option value="minimal">Minimal</option>
                             </select>
                             <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the columns by similarity, one tree over all shown lines; pick a Group by afterwards to cluster within groups instead">
-                                <input type="checkbox" id="hmClusterCells" style="margin:0;"> Cluster cell lines
+                                <input type="checkbox" id="hmClusterCells" checked style="margin:0;"> Cluster cell lines
                             </label>
                             <select id="hmClusterK" style="width:150px;" title="How many clusters to cut the tree into; Tree order only draws the dendrogram without colouring clusters">
-                                <option value="0" selected>Tree order only</option>
+                                <option value="auto" selected>Auto (suggested)</option>
+                                <option value="0">Tree order only</option>
                                 <option value="2">2 clusters</option>
                                 <option value="3">3 clusters</option>
                                 <option value="4">4 clusters</option>
@@ -8779,7 +8785,7 @@
                                 <option value="11">11 clusters</option>
                                 <option value="12">12 clusters</option>
                             </select>
-                            <select id="hmTreeDetailCells" style="width:110px;" title="How much branch detail the cell-line tree above the grid draws">
+                            <select id="hmTreeDetailCells" style="width:110px;" title="Drawing detail only, does not change the clustering: How much branch detail the cell-line tree above the grid draws">
                                 <option value="full" selected>Full</option>
                                 <option value="medium">Medium</option>
                                 <option value="coarse">Coarse</option>
@@ -8839,8 +8845,8 @@
                                 <option value="annotation" title="Blocks the columns by Row 1, then Row 2 within, and so on; mutated / fused / altered lines come first, categories run A-Z, and within the innermost blocks the columns are score-sorted.">Annotation rows (Row 1 first)</option>
                             </select>
                             <select id="hmGroupBy" style="width:150px;" title="Blocks cell lines by lineage, subtype, disease or a gene's mutation status, sorting within each block, and draws a colour strip under the grid">
-                                <option value="none">No grouping</option>
-                                <option value="lineage" selected>Lineage</option>
+                                <option value="none" selected>No grouping</option>
+                                <option value="lineage">Lineage</option>
                                 <option value="subtype">Subtype</option>
                                 <option value="disease">Disease</option>
                                 <option value="alteration" title="Splits into three groups by copies mutated: wild-type, one copy, both copies">Genetic alteration</option>
@@ -9894,6 +9900,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_62"></script>
+    <script src="app.js?v=v88_63"></script>
 </body>
 </html>

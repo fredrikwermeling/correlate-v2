@@ -31207,7 +31207,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 // would otherwise read "none" while context.groups was full
                 // of Cluster 1..k entries; named explicitly instead so the
                 // two never contradict each other.
-                const groupWord = d.clustersActive ? `cell-line clusters (k=${d.clusterK})` : this._hmGroupByLabel(d.groupByMode, d.altInfo);
+                const groupWord = d.clustersActive ? `cell-line clusters (${this._hmClusterKLabel(d)})` : this._hmGroupByLabel(d.groupByMode, d.altInfo);
                 const groupedAtAll = d.groupByMode !== 'none' || d.clustersActive;
                 const visibleGroups = (d.groups || []).filter(g => !g.hidden);
                 const hiddenGroupKeys = (d.groups || []).filter(g => g.hidden).map(g => g.key);
@@ -53104,22 +53104,27 @@ ${clone.innerHTML}
         set('hmLineage', '');
         set('hmSubtype', '');
         set('hmDisease', '');
-        set('hmScale', 'z');
+        // v.88.63: a fresh open clusters the cell lines straight away, at
+        // an automatically suggested resolution, scaled against the whole
+        // panel (not just the shown lines) so a filtered view still says
+        // where its lines sit among all cancers; the lineage row underneath
+        // immediately answers "do the clusters follow lineage?". Set
+        // directly here rather than toggling the checkbox and relying on
+        // its change handler (which does the same three things on a manual
+        // off->on flip) since that handler never fires for a value assigned
+        // straight to .checked.
+        set('hmScale', 'zall');
         set('hmSort', 'score');
         const clusterCb = document.getElementById('hmClusterCells');
-        if (clusterCb) clusterCb.checked = false;
-        set('hmClusterK', '0');
-        set('hmGroupBy', 'lineage');
+        if (clusterCb) clusterCb.checked = true;
+        set('hmClusterK', 'auto');
+        set('hmGroupBy', 'none');
         set('hmGroupGene', '');
         set('hmGroupOrder', 'size');
         const medianCb = document.getElementById('hmShowMedian');
         if (medianCb) medianCb.checked = false;
         set('hmMinGroupSize', '1');
-        // A fresh open shows zero annotation rows (the old default was
-        // "None", the single-row equivalent of nothing configured), not one
-        // pre-added row: the block starts empty and the user adds what they
-        // want to compare.
-        this._hmAnnRows = [];
+        this._hmAnnRows = [{ mode: 'lineage', gene: null }];
         [['hmHotspotFilter', 'hmHotspotLevel', '1+2'], ['hmFusionFilter', 'hmFusionLevel', '1+2'], ['hmCnFilter', 'hmCnLevel', 'altered']]
             .forEach(([inputId, levelId, def]) => {
                 set(inputId, '');
@@ -53187,8 +53192,9 @@ ${clone.innerHTML}
         // Show median labels GROUPS, and a cut cluster tree (Cluster cell
         // lines on, k >= 2) makes groups just as much as a Group by pick
         // does; only disabled when there is truly nothing to label.
+        const kRawForEligibility = document.getElementById('hmClusterK')?.value;
         const clustersEligible = !!document.getElementById('hmClusterCells')?.checked
-            && (parseInt(document.getElementById('hmClusterK')?.value, 10) || 0) >= 2;
+            && (kRawForEligibility === 'auto' || (parseInt(kRawForEligibility, 10) || 0) >= 2);
         const noGroups = mode === 'none' && !clustersEligible;
         const medianCb = document.getElementById('hmShowMedian');
         if (medianCb) medianCb.disabled = noGroups;
@@ -53239,13 +53245,13 @@ ${clone.innerHTML}
         const genesDetailSel = document.getElementById('hmTreeDetailGenes');
         if (genesDetailSel) {
             genesDetailSel.disabled = !genesOn;
-            genesDetailSel.title = genesOn ? 'How much branch detail the gene tree on the left draws' : 'Turn on Cluster genes to change how much branch detail its tree draws';
+            genesDetailSel.title = genesOn ? 'Drawing detail only, does not change the clustering: How much branch detail the gene tree on the left draws' : 'Drawing detail only, does not change the clustering: Turn on Cluster genes to change how much branch detail its tree draws';
             genesDetailSel.style.opacity = genesOn ? '1' : '0.45';
         }
         const cellsDetailSel = document.getElementById('hmTreeDetailCells');
         if (cellsDetailSel) {
             cellsDetailSel.disabled = !cellsOn;
-            cellsDetailSel.title = cellsOn ? 'How much branch detail the cell-line tree above the grid draws' : 'Turn on Cluster cell lines to change how much branch detail its tree draws';
+            cellsDetailSel.title = cellsOn ? 'Drawing detail only, does not change the clustering: How much branch detail the cell-line tree above the grid draws' : 'Drawing detail only, does not change the clustering: Turn on Cluster cell lines to change how much branch detail its tree draws';
             cellsDetailSel.style.opacity = cellsOn ? '1' : '0.45';
         }
         // Cluster cell lines + its k select are also what makes Show median
@@ -53535,7 +53541,13 @@ ${clone.innerHTML}
         // being mutually exclusive with every other sort. hmSort itself is
         // disabled in place while this is on (_hmSyncClusterControls).
         const clusterCells = !!document.getElementById('hmClusterCells')?.checked;
-        const clusterK = parseInt(document.getElementById('hmClusterK')?.value, 10) || 0;
+        const clusterKRaw = document.getElementById('hmClusterK')?.value || '0';
+        // 'auto' resolves to a concrete number once the whole-cohort tree
+        // exists (it needs the tree to pick from); clusterK stays 0 until
+        // then, same as "Tree order only", so nothing downstream needs to
+        // know about the string case.
+        const clusterKAuto = clusterKRaw === 'auto';
+        let clusterK = clusterKAuto ? 0 : (parseInt(clusterKRaw, 10) || 0);
         // Reassigned below when "Genetic alteration" grouping has no usable
         // gene, falling back to no grouping rather than an empty band.
         let groupByMode = document.getElementById('hmGroupBy')?.value || 'none';
@@ -53689,8 +53701,15 @@ ${clone.innerHTML}
         // nothing under a different one (its key won't recur), so it is
         // dropped rather than silently carried over. Cluster groups
         // ("Cluster 1".."Cluster k") are keyed by clusterK too, since the
-        // same key under a different k is a different partition.
-        const hiddenSig = (clusterCells && groupByMode === 'none') ? `cluster|${clusterK}` : `${groupByMode}|${altInfo?.gene || ''}`;
+        // same key under a different k is a different partition. Auto's
+        // actual k isn't known yet here (it's only resolved once the tree
+        // is built, inside _hmBuildAndPaint), so it's keyed on the same
+        // inputs _hmAutoClusterK caches on instead: whenever those change,
+        // the auto-picked k could too, so a "Cluster 3" hidden under the
+        // old data can't be assumed to still mean the same thing.
+        const hiddenSig = (clusterCells && groupByMode === 'none')
+            ? (clusterKAuto ? `cluster|auto|${dataType}|${scaleMode}|${genes.join(',')}|${cohort.join(',')}` : `cluster|${clusterK}`)
+            : `${groupByMode}|${altInfo?.gene || ''}`;
         if (this._hmHiddenGroupsSig !== hiddenSig) { this._hmHiddenGroups = new Set(); this._hmHiddenGroupsSig = hiddenSig; }
 
         const groupOrderMode = document.getElementById('hmGroupOrder')?.value || 'size';
@@ -53706,7 +53725,7 @@ ${clone.innerHTML}
 
         this._hmBuildAndPaint({
             genes, missingGenes, cohort, cohortNote: cohortNote + filterNote + groupNote + annRowsNote, dataType, scaleMode, sortMode,
-            groupByMode, altInfo, groupOrderMode, showMedian, clusterGenes, clusterCells, clusterK, lineageLabel, subtypeLabel, diseaseLabel, minGroupSize,
+            groupByMode, altInfo, groupOrderMode, showMedian, clusterGenes, clusterCells, clusterK, clusterKAuto, lineageLabel, subtypeLabel, diseaseLabel, minGroupSize,
             annotationRows: annRowsResolved.rows
         });
     }
@@ -53952,6 +53971,15 @@ ${clone.innerHTML}
         return 'none';
     }
 
+    // "k=5" normally, "k=5, auto" when that count came from the auto-k
+    // suggestion rather than a manual pick: every "cell-line clusters
+    // (k=...)" phrase (the hint line, the group-by phrase, both export
+    // captions) reads through this so the auto/manual distinction can't
+    // drift out of sync between them.
+    _hmClusterKLabel(d) {
+        return d.clusterKAuto ? `k=${d.clusterK}, auto` : `k=${d.clusterK}`;
+    }
+
     // Names the active cell-line sort, for every mode, so the summary line
     // and the AI export never leave a reader guessing what order the
     // columns are actually in. Written for a user who read "Group order: By
@@ -53995,7 +54023,7 @@ ${clone.innerHTML}
         return 'sorted by score' + rowsNotUsedNudge;
     }
 
-    _hmBuildAndPaint({ genes, missingGenes, cohort, cohortNote, dataType, scaleMode, sortMode, groupByMode = 'none', altInfo = null, groupOrderMode = 'size', showMedian = false, clusterGenes = true, clusterCells = false, clusterK = 0, lineageLabel = '', subtypeLabel = '', diseaseLabel = '', minGroupSize = 1, annotationRows = [] }) {
+    _hmBuildAndPaint({ genes, missingGenes, cohort, cohortNote, dataType, scaleMode, sortMode, groupByMode = 'none', altInfo = null, groupOrderMode = 'size', showMedian = false, clusterGenes = true, clusterCells = false, clusterK = 0, clusterKAuto = false, lineageLabel = '', subtypeLabel = '', diseaseLabel = '', minGroupSize = 1, annotationRows = [] }) {
         const geIndexByCL = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
         let cohortIndex = new Map(cohort.map((cl, i) => [cl, i]));
 
@@ -54288,9 +54316,20 @@ ${clone.innerHTML}
                 clusterNote = `Clustering is limited to ${CLUSTER_CAP} cell lines (this cohort has ${cohort.length}); narrow it with the browser's filters first. Cell lines are sorted by score instead. `;
                 orderedCLs = sortByScore(cohort);
             } else {
-                const tree = this._hmClusterTree(cohort, vectorsFor(cohort), cl => clScore.get(cl));
+                const cohortVectors = vectorsFor(cohort);
+                const tree = this._hmClusterTree(cohort, cohortVectors, cl => clScore.get(cl));
                 colTree = tree.root;
                 orderedCLs = tree.order;
+                // Auto: pick the k (2..8) with the best mean silhouette,
+                // over the same tree, cached on what actually built it so a
+                // redraw that changes nothing data-related (a settings
+                // tweak, a legend hide/show) reuses it instead of
+                // recomputing. Below 4 leaves there's nothing worth cutting
+                // (same threshold the top dendrogram itself uses), so auto
+                // just falls back to tree order only, like a manual k would.
+                if (clusterKAuto && cohort.length >= 4) {
+                    clusterK = this._hmAutoClusterK(tree, cohort, cohortVectors, `${dataType}|${scaleMode}|${genes.join(',')}`);
+                }
                 if (clusterK >= 2 && cohort.length >= clusterK) {
                     const cut = this._hmCutColumnClusters(tree, clusterK);
                     const palette = this._HM_GROUP_PALETTE();
@@ -54370,7 +54409,7 @@ ${clone.innerHTML}
             rawRows, scaledRows, dataType, scaleMode, sortMode, domain, missingGenes, zAllN,
             groups, groupByMode, altInfo, groupOrderMode, showMedian, hiddenCount,
             lineageLabel, subtypeLabel, diseaseLabel, annRows, noDataCount, hideNoDataChecked, allNACellLines,
-            clusterCells, clusterK, clustersActive, colTree, hasTopDendro
+            clusterCells, clusterK, clusterKAuto: clusterKAuto && clustersActive, clustersActive, colTree, hasTopDendro
         };
         this._hmPaintAndWire(cohortNote + clusterNote);
     }
@@ -54763,6 +54802,105 @@ ${clone.innerHTML}
             .sort((a, b) => orderIndex.get(a.leaves[0]) - orderIndex.get(b.leaves[0]));
     }
 
+    // Auto k (v.88.63): picks the cluster count in 2..8 whose cut of the
+    // tree gets the best mean silhouette width, so "Auto (suggested)" means
+    // something rather than a fixed guess. Cached on `sig` (dataType, scale
+    // mode, the gene list and the cohort, joined by the caller) plus the
+    // cohort itself, so a redraw that leaves the underlying data untouched
+    // (toggling a legend entry, changing font size, adding an annotation
+    // row) reuses the previous answer instead of recomputing it.
+    _hmAutoClusterK(tree, keys, vectors, sig) {
+        const cacheKey = `${sig}|${keys.length}|${keys.join(',')}`;
+        if (this._hmAutoKCache && this._hmAutoKCache.key === cacheKey) return this._hmAutoKCache.k;
+        const k = this._hmSilhouetteBestK(tree, keys, vectors);
+        this._hmAutoKCache = { key: cacheKey, k };
+        return k;
+    }
+
+    // Does the actual silhouette scan. The tree's own distance matrix isn't
+    // kept around after it's built (only the merge tree is), so this
+    // recomputes correlation distances once here from the same vectors.
+    // O(n^2 * genes) for the full cohort is fine up to a few hundred lines,
+    // but a 1000+ line panel would make "Auto" visibly slow on every
+    // redraw; above 400 leaves the distance matrix (and the silhouette
+    // score) is estimated instead on a deterministic 300-leaf subsample,
+    // evenly strided over the tree's own leaf order so the sample still
+    // spans every branch of the tree rather than clumping in one region.
+    _hmSilhouetteBestK(tree, keys, vectors) {
+        const order = tree.order;
+        const n = order.length;
+        if (n < 4) return 2;
+        const SUBSAMPLE = 300;
+        let sampleLeaves;
+        if (n > 400) {
+            const seen = new Set();
+            sampleLeaves = [];
+            for (let i = 0; i < SUBSAMPLE; i++) {
+                const leaf = order[Math.min(n - 1, Math.floor(i * n / SUBSAMPLE))];
+                if (!seen.has(leaf)) { seen.add(leaf); sampleLeaves.push(leaf); }
+            }
+        } else {
+            sampleLeaves = order;
+        }
+        const keyIndex = new Map(keys.map((key, i) => [key, i]));
+        const vecOf = (leaf) => vectors[keyIndex.get(leaf)];
+        const sm = sampleLeaves.length;
+        const dist = [];
+        for (let i = 0; i < sm; i++) dist.push(new Float64Array(sm));
+        for (let i = 0; i < sm; i++) {
+            for (let j = i + 1; j < sm; j++) {
+                const d = this._hmCorrDist(vecOf(sampleLeaves[i]), vecOf(sampleLeaves[j]));
+                dist[i][j] = d; dist[j][i] = d;
+            }
+        }
+        const maxK = Math.min(8, n - 1);
+        let bestK = 2, bestScore = -Infinity;
+        for (let k = 2; k <= maxK; k++) {
+            const cut = this._hmCutColumnClusters(tree, k);
+            if (cut.length < 2) continue;
+            const clusterOf = new Map();
+            cut.forEach((c, ci) => { c.leaves.forEach(leaf => clusterOf.set(leaf, ci)); });
+            const labels = sampleLeaves.map(leaf => clusterOf.get(leaf));
+            const score = this._hmMeanSilhouette(dist, labels);
+            if (score != null && score > bestScore) { bestScore = score; bestK = k; }
+        }
+        return bestK;
+    }
+
+    // Mean silhouette width over a precomputed distance matrix and a
+    // per-point cluster label: for each point, a(i) is its mean distance to
+    // the rest of its own cluster (0 for a singleton), b(i) is the lowest
+    // mean distance to any OTHER cluster, and the point's own width is
+    // (b-a)/max(a,b). Returns null when fewer than two labels are actually
+    // present in the sample (silhouette is undefined for one cluster).
+    _hmMeanSilhouette(dist, labels) {
+        const n = labels.length;
+        const clusters = new Map();
+        labels.forEach((lab, i) => { if (!clusters.has(lab)) clusters.set(lab, []); clusters.get(lab).push(i); });
+        if (clusters.size < 2) return null;
+        let total = 0;
+        for (let i = 0; i < n; i++) {
+            const own = labels[i];
+            const ownIdx = clusters.get(own);
+            let a = 0;
+            if (ownIdx.length > 1) {
+                let s = 0;
+                for (const j of ownIdx) { if (j !== i) s += dist[i][j]; }
+                a = s / (ownIdx.length - 1);
+            }
+            let b = Infinity;
+            for (const [lab, idxs] of clusters) {
+                if (lab === own) continue;
+                let s = 0;
+                for (const j of idxs) s += dist[i][j];
+                b = Math.min(b, s / idxs.length);
+            }
+            const denom = Math.max(a, b);
+            total += (ownIdx.length > 1 && denom > 0) ? (b - a) / denom : 0;
+        }
+        return total / n;
+    }
+
     // Rectangular dendrogram layout for a gene tree: leaves at the right
     // edge (touching the labels), the deepest merge at the left edge, height
     // scaled linearly so the tallest merge spans the full width. Returns the
@@ -55046,7 +55184,7 @@ ${clone.innerHTML}
         const ANN2_STRIP_H = 14;
         const ann2Extra = d.annRows.length * ANN2_STRIP_H;
         const gridH = geneAreaH + groupExtra + ann2Extra;
-        const legendW = 260, legendH = 46;
+        const legendW = 260, legendH = 60;
 
         // `plain` skips the light-grey background fill: fine on screen (it
         // reads as the panel's own background there), but on an exported
@@ -55304,6 +55442,16 @@ ${clone.innerHTML}
                 ctx.textAlign = 'center';
                 ctx.fillText('0', barX + barW * (0 - d.domain.lo) / (d.domain.hi - d.domain.lo), barY + barH + 4);
             }
+            // Caption states exactly what the colours mean (v.88.63): the
+            // scale mode, and for raw values, the actual unit, so it never
+            // has to be inferred from the Scaling select alone.
+            ctx.textAlign = 'left';
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#9ca3af';
+            const scaleCaption = d.scaleMode === 'z' ? 'z-score per gene, vs shown lines'
+                : d.scaleMode === 'zall' ? 'z-score per gene, vs all lines'
+                : (d.dataType === 'expr' ? 'log2 TPM+1' : 'gene effect (Chronos)');
+            ctx.fillText(scaleCaption, barX, barY + barH + 4 + hmS.legendFont + 3);
         };
 
         // Group legend: name, swatch and n per group (plus every hidden
@@ -55512,7 +55660,7 @@ ${clone.innerHTML}
             // read "grouped by none" while a cluster strip and legend are
             // plainly on screen; named explicitly instead, same fix the AI
             // export context applies for the same reason.
-            const groupWord = d.clustersActive ? `cell-line clusters (k=${d.clusterK})` : this._hmGroupByLabel(d.groupByMode, d.altInfo);
+            const groupWord = d.clustersActive ? `cell-line clusters (${this._hmClusterKLabel(d)})` : this._hmGroupByLabel(d.groupByMode, d.altInfo);
             let base = `${nGenes} genes x ${nCL} cell lines, ${this._hmSortSummary(d)}`;
             // The choice (hidden or shown) is always stated, never left to be
             // inferred from a count that quietly changed.
@@ -55851,7 +55999,7 @@ ${clone.innerHTML}
             ? ((d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'Blue is low, red is high.' : 'White is low, dark green is high.')
             : 'Red is negative (dependency), blue is high (dispensable).';
         const groupWord = d.groups
-            ? `Grouped by ${d.clustersActive ? `cell-line clusters (k=${d.clusterK})` : this._hmGroupByLabel(d.groupByMode, d.altInfo)}.`
+            ? `Grouped by ${d.clustersActive ? `cell-line clusters (${this._hmClusterKLabel(d)})` : this._hmGroupByLabel(d.groupByMode, d.altInfo)}.`
             : '';
         const ann2Word = d.annRows.length ? `Annotation rows: ${d.annRows.map(r => r.attrLabel).join(', ')}.` : '';
         const sortWord = `Cell lines ${this._hmSortSummary(d)}.`;
@@ -55993,7 +56141,7 @@ ${clone.innerHTML}
         const filterParts = this._hmActiveFilterParts();
         const filterWord = filterParts.length ? `, filtered to ${filterParts.join(', ')}` : '';
         const groupWord = d.groups
-            ? `grouped by ${d.clustersActive ? `cell-line clusters (k=${d.clusterK})` : this._hmGroupByLabel(d.groupByMode, d.altInfo)}`
+            ? `grouped by ${d.clustersActive ? `cell-line clusters (${this._hmClusterKLabel(d)})` : this._hmGroupByLabel(d.groupByMode, d.altInfo)}`
             : 'not grouped';
         const ann2Word = d.annRows.length ? `, annotation rows ${d.annRows.map(r => r.attrLabel).join(', ')}` : '';
         const sortWord = this._hmSortSummary(d);
@@ -56198,7 +56346,7 @@ ${clone.innerHTML}
             showMedian: checked('hmShowMedian'),
             clusterGenes: checked('hmClusterGenes'),
             clusterCells: checked('hmClusterCells'),
-            clusterK: parseInt(val('hmClusterK'), 10) || 0,
+            clusterK: val('hmClusterK') === 'auto' ? 'auto' : (parseInt(val('hmClusterK'), 10) || 0),
             annRows: (this._hmAnnRows || []).map(r => ({ mode: r.mode, gene: r.gene || null })),
             hiddenGroups: this._hmHiddenGroups ? [...this._hmHiddenGroups] : [],
             drillCells: this._hmDrillCells ? [...this._hmDrillCells] : null,
