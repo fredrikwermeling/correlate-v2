@@ -31291,6 +31291,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 // anywhere downstream (the focal-gene carve-outs all guard
                 // on geneIndex.has() first, which this will simply miss).
                 context.gene1 = setLabel.replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'gene_set';
+
+                // Gates A/B (v.88.64): user-drawn column-range selections on
+                // the heatmap, included only when at least one has members
+                // so a heatmap that never used them ships an unchanged file.
+                const gateA = this._hmGates?.A, gateB = this._hmGates?.B;
+                if ((gateA && gateA.size) || (gateB && gateB.size)) {
+                    context.gates = {
+                        A: gateA ? Array.from(gateA) : [],
+                        B: gateB ? Array.from(gateB) : [],
+                        readMe: 'user-defined column selections made on the heatmap'
+                    };
+                }
             }
         }
         // Every source above sets `context`, except any that falls through the
@@ -40483,13 +40495,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // CLB cell-line Wiki modal. The open-button is wired inside openInspect
         // (the button is rendered dynamically per cell line); the modal-close
         // and in-modal handlers are wired once at startup below.
-        document.getElementById('clbWikiCloseBtn')?.addEventListener('click', () => {
-            document.getElementById('clbWikiModal').style.display = 'none';
-        });
+        const closeCellLineWiki = () => {
+            const m = document.getElementById('clbWikiModal');
+            if (m) {
+                m.style.display = 'none';
+                // Undo any z-index bump the heatmap's double-click-a-column
+                // gesture applied (_hmOnGridDblClick), so a later, ordinary
+                // open doesn't inherit it. 1370 is this modal's own declared
+                // z-index (see closeCellLineBrowser for the same pattern).
+                m.style.zIndex = '1370';
+            }
+        };
+        document.getElementById('clbWikiCloseBtn')?.addEventListener('click', closeCellLineWiki);
         document.getElementById('clbWikiDownloadBtn')?.addEventListener('click', () => this.downloadCellLineWiki());
         document.getElementById('clbWikiExportGenesBtn')?.addEventListener('click', () => this.exportWikiCellLineGenesCSV());
         document.getElementById('clbWikiModal')?.addEventListener('click', (e) => {
-            if (e.target.id === 'clbWikiModal') e.target.style.display = 'none';
+            if (e.target.id === 'clbWikiModal') closeCellLineWiki();
         });
         // Gene-link clicks within the Wiki body open the GE modal (same UX as detail panel)
         document.getElementById('clbWikiBody')?.addEventListener('click', (e) => {
@@ -40673,7 +40694,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('selectionInspectCSVCells')?.addEventListener('click', () => this.downloadSelectionInspectPerCellCSV());
         document.getElementById('selectionInspectCopyData')?.addEventListener('click', (e) => this._geVolcanoExportMenu(e.currentTarget, 'copydata'));
         document.getElementById('selectionInspectSettings')?.addEventListener('click', (e) => this._geVolcanoExportMenu(e.currentTarget, 'settings'));
-        const closeSelInspect = () => { document.getElementById('selectionInspectModal').style.display = 'none'; };
+        const closeSelInspect = () => {
+            const m = document.getElementById('selectionInspectModal');
+            if (m) {
+                m.style.display = 'none';
+                // Undo any z-index bump _hmInspectGate applied to stack this
+                // above an open heatmap (both share 1380, the heatmap's own
+                // z-index, so without the bump the later-opened one would
+                // simply win by DOM order rather than by which was asked
+                // for). 1380 is this modal's own declared z-index.
+                m.style.zIndex = '1380';
+            }
+        };
         document.getElementById('selectionInspectClose')?.addEventListener('click', closeSelInspect);
         document.getElementById('selectionInspectClose2')?.addEventListener('click', closeSelInspect);
         document.getElementById('selectionInspectReset')?.addEventListener('click', () => this._resetGEInspect());
@@ -52896,6 +52928,27 @@ ${clone.innerHTML}
         };
         document.getElementById('heatmapClose')?.addEventListener('click', close);
         document.getElementById('heatmapClose2')?.addEventListener('click', close);
+
+        // Gates A/B (v.88.64): arm/disarm buttons, per-gate Copy/Inspect/
+        // Clear actions. The drag itself is wired on hmGridCanvas inside
+        // _hmPaintAndWire (it needs the freshly-sized canvas each redraw);
+        // arming, Escape-to-disarm and the window-wide mouseup that commits
+        // a drag are wired once here since they don't depend on the canvas
+        // being (re)painted.
+        document.getElementById('hmGateABtn')?.addEventListener('click', () => this._hmToggleArmGate('A'));
+        document.getElementById('hmGateBBtn')?.addEventListener('click', () => this._hmToggleArmGate('B'));
+        document.getElementById('hmGateACopyBtn')?.addEventListener('click', (e) => this._hmCopyGate('A', e.currentTarget));
+        document.getElementById('hmGateBCopyBtn')?.addEventListener('click', (e) => this._hmCopyGate('B', e.currentTarget));
+        document.getElementById('hmGateAInspectBtn')?.addEventListener('click', () => this._hmInspectGate('A'));
+        document.getElementById('hmGateBInspectBtn')?.addEventListener('click', () => this._hmInspectGate('B'));
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape' || !this._hmArmedGate) return;
+            this._hmArmedGate = null;
+            this._hmGateDrag = null;
+            this._hmSyncGateUI();
+            this._hmRepaintGridOnly();
+        });
+        window.addEventListener('mouseup', () => this._hmOnGridMouseUp());
         document.getElementById('hmPreset')?.addEventListener('change', () => { this._hmSyncPresetUI(); this._hmRedraw(); });
         document.getElementById('hmDataType')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmScale')?.addEventListener('change', () => this._hmRedraw());
@@ -53141,6 +53194,15 @@ ${clone.innerHTML}
         // reopen; a fresh open (Options button, CLB button) starts from the
         // ordinary visible/selected/all resolution instead.
         this._hmCohortOverride = null;
+        // Gene silencing (click a gene label) and the two column-range gates
+        // (v.88.64): both are click-driven state that lives outside any form
+        // control, so a fresh open clears them the same way it clears the
+        // drill and the hidden groups above; _hmRestoreView layers a saved
+        // view's own values back on top, same pattern as everything else here.
+        this._hmSilencedGenes = new Set();
+        this._hmGates = { A: new Set(), B: new Set() };
+        this._hmArmedGate = null;
+        this._hmGateDrag = null;
     }
 
     // Rebuilds the preset dropdown (curated sets + the runtime "Top
@@ -53529,6 +53591,7 @@ ${clone.innerHTML}
     async _hmRedrawCore() {
         this._hmSyncDrillBackButton();
         this._hmSyncPresetUI();
+        this._hmSyncGateUI();
         const hint = document.getElementById('hmHint');
         if (!this.metadata) { if (hint) hint.textContent = 'Data is still loading.'; return; }
 
@@ -54027,6 +54090,25 @@ ${clone.innerHTML}
         const geIndexByCL = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
         let cohortIndex = new Map(cohort.map((cl, i) => [cl, i]));
 
+        // Silenced genes (v.88.64, click a gene label): dropped right here,
+        // before the matrix is even built, so every downstream consumer
+        // (rawRows, the score, the cluster tree, the CSV, the AI export)
+        // treats a silenced gene exactly as if it had never been entered.
+        // `foundGenes` keeps the full, pre-silencing list so the gene-count
+        // text and the restore line can still say what's silenced; `genes`
+        // itself is reassigned to the drawn subset for the rest of this
+        // function. Guarded against silencing every gene: a redraw (preset
+        // switch, a restored view) could otherwise leave zero rows to draw.
+        const foundGenes = genes;
+        const silencedRaw = this._hmSilencedGenes || new Set();
+        let effectiveSilenced = silencedRaw;
+        if (foundGenes.length && foundGenes.every(g => silencedRaw.has(g))) {
+            effectiveSilenced = new Set(silencedRaw);
+            effectiveSilenced.delete(foundGenes[0]);
+        }
+        const silencedGeneNames = foundGenes.filter(g => effectiveSilenced.has(g));
+        genes = foundGenes.filter(g => !effectiveSilenced.has(g));
+
         // Raw values, one Float64Array per gene, aligned to `cohort`.
         let rawRows = genes.map(gene => {
             const row = new Float64Array(cohort.length);
@@ -54409,7 +54491,8 @@ ${clone.innerHTML}
             rawRows, scaledRows, dataType, scaleMode, sortMode, domain, missingGenes, zAllN,
             groups, groupByMode, altInfo, groupOrderMode, showMedian, hiddenCount,
             lineageLabel, subtypeLabel, diseaseLabel, annRows, noDataCount, hideNoDataChecked, allNACellLines,
-            clusterCells, clusterK, clusterKAuto: clusterKAuto && clustersActive, clustersActive, colTree, hasTopDendro
+            clusterCells, clusterK, clusterKAuto: clusterKAuto && clustersActive, clustersActive, colTree, hasTopDendro,
+            foundGenes, silencedGeneNames
         };
         this._hmPaintAndWire(cohortNote + clusterNote);
     }
@@ -55183,7 +55266,17 @@ ${clone.innerHTML}
         // band that isn't drawn.
         const ANN2_STRIP_H = 14;
         const ann2Extra = d.annRows.length * ANN2_STRIP_H;
-        const gridH = geneAreaH + groupExtra + ann2Extra;
+        // Gates band (v.88.64): one more ann-style strip directly under the
+        // annotation rows, coloured per column by which of the two gates
+        // (drawn from _hmGates, click-drag on the grid) that cell line is
+        // in. Same "zero height when absent" rule as the annotation rows:
+        // it only exists once a gate actually has a member, so arming a
+        // gate but never dragging leaves the layout untouched.
+        const GATES_STRIP_H = 8;
+        const hmGates = this._hmGates || { A: new Set(), B: new Set() };
+        const hasGates = !!((hmGates.A && hmGates.A.size) || (hmGates.B && hmGates.B.size));
+        const gatesExtra = hasGates ? GATES_STRIP_H : 0;
+        const gridH = geneAreaH + groupExtra + ann2Extra + gatesExtra;
         const legendW = 260, legendH = 60;
 
         // `plain` skips the light-grey background fill: fine on screen (it
@@ -55241,6 +55334,9 @@ ${clone.innerHTML}
             d.annRows.forEach((row, i) => {
                 ctx.fillText(fitStripTitle(row.attrLabel), labelW - 6, geneAreaH + groupExtra + i * ANN2_STRIP_H + ANN2_STRIP_H / 2);
             });
+            if (hasGates) {
+                ctx.fillText('Gates', labelW - 6, geneAreaH + groupExtra + ann2Extra + GATES_STRIP_H / 2);
+            }
         };
         const paintGrid = (ctx, opts = {}) => {
             if (!opts.plain) {
@@ -55355,6 +55451,23 @@ ${clone.innerHTML}
                     }
                 });
             });
+            // Gates band: directly beneath the annotation rows, coloured
+            // per column by gate membership (keyed by cell line id, so it
+            // stays correct across a re-sort). Left transparent (no fill)
+            // for a column in neither gate, so it reads as "not gated"
+            // rather than a third colour.
+            if (hasGates) {
+                const y3 = geneAreaH + groupExtra + ann2Extra;
+                const gA = hmGates.A, gB = hmGates.B;
+                d.orderedCLs.forEach((cl, colIdx) => {
+                    const inA = gA.has(cl), inB = gB.has(cl);
+                    const color = (inA && inB) ? '#dc2626' : inA ? '#7c3aed' : inB ? '#0891b2' : null;
+                    if (color) {
+                        ctx.fillStyle = color;
+                        ctx.fillRect(colIdx * cellW, y3, cellW, GATES_STRIP_H);
+                    }
+                });
+            }
         };
         // Column (top) dendrogram: the exact transpose of the gene tree in
         // paintLabels, reusing _hmDendroLayout rather than a second geometry
@@ -55553,7 +55666,8 @@ ${clone.innerHTML}
             groupLegendLayout,
             ann2LegendW: ann2LegendLayout?.width || 0, ann2LegendH: ann2LegendLayout?.height || 0,
             ann2LegendLayout,
-            topDendroH: hasTopDendro ? TOP_DENDRO_H : 0
+            topDendroH: hasTopDendro ? TOP_DENDRO_H : 0,
+            gatesStripH: GATES_STRIP_H, hasGates
         });
 
         const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
@@ -55661,7 +55775,15 @@ ${clone.innerHTML}
             // plainly on screen; named explicitly instead, same fix the AI
             // export context applies for the same reason.
             const groupWord = d.clustersActive ? `cell-line clusters (${this._hmClusterKLabel(d)})` : this._hmGroupByLabel(d.groupByMode, d.altInfo);
-            let base = `${nGenes} genes x ${nCL} cell lines, ${this._hmSortSummary(d)}`;
+            // Silenced genes (click a gene label, v.88.64) are dropped from
+            // nGenes/orderedGenes already, so the plain count alone would
+            // silently shrink; naming both numbers here is the one place
+            // that has to, everything else (CSV, AI export, captions) just
+            // reads the reduced set as if it were the whole one.
+            const geneCountWord = d.silencedGeneNames.length
+                ? `${d.foundGenes.length} genes (${d.silencedGeneNames.length} silenced)`
+                : `${nGenes} genes`;
+            let base = `${geneCountWord} x ${nCL} cell lines, ${this._hmSortSummary(d)}`;
             // The choice (hidden or shown) is always stated, never left to be
             // inferred from a count that quietly changed.
             if (d.noDataCount > 0) {
@@ -55700,8 +55822,27 @@ ${clone.innerHTML}
         if (!gridCanvas._hmWired) {
             gridCanvas.addEventListener('mousemove', (e) => this._hmOnGridHover(e));
             gridCanvas.addEventListener('mouseleave', () => this._hmHideTooltip());
+            // Double-click a column to open that cell line's wiki (v.88.64);
+            // mousedown starts a gate drag when a gate is armed (also
+            // v.88.64), both reusing the same x -> column math _hmOnGridHover
+            // already does.
+            gridCanvas.addEventListener('dblclick', (e) => this._hmOnGridDblClick(e));
+            gridCanvas.addEventListener('mousedown', (e) => this._hmOnGridMouseDown(e));
             gridCanvas._hmWired = true;
         }
+
+        // Gene labels: click to silence (v.88.64), toggled into
+        // _hmSilencedGenes and excluded from the next redraw's matrix, the
+        // same "click a strip label" interaction group legend clicks use.
+        if (labelCanvas && !labelCanvas._hmWired) {
+            labelCanvas.addEventListener('click', (e) => this._hmOnLabelClick(e));
+            labelCanvas.addEventListener('mousemove', (e) => this._hmOnLabelHover(e));
+            labelCanvas.addEventListener('mouseleave', () => { labelCanvas.style.cursor = 'default'; });
+            labelCanvas.title = 'Click a gene to silence it (removed from the drawing and the score)';
+            labelCanvas._hmWired = true;
+        }
+
+        this._hmRenderSilencedNote(d);
     }
 
     // Hit-tests the legend at the pointer. Reads the layout fresh off
@@ -55857,6 +55998,28 @@ ${clone.innerHTML}
         const rect = gridCanvas.getBoundingClientRect();
         const x = e.clientX - rect.left, y = e.clientY - rect.top;
         const colIdx = Math.floor(x / d.cellW);
+        // A gate drag in progress (mouse down, armed gate, see
+        // _hmOnGridMouseDown) owns the pointer: extend the preview instead
+        // of showing the ordinary cell tooltip.
+        if (this._hmGateDrag) {
+            this._hmGateDrag.curCol = Math.max(0, Math.min(d.orderedCLs.length - 1, colIdx));
+            this._hmHideTooltip();
+            this._hmRepaintGridOnly();
+            return;
+        }
+        // Gates band: which of the two gates (or both) the hovered column
+        // belongs to, same "band directly under the annotation rows" offset
+        // used to draw and size it.
+        const gatesTop = d.geneAreaH + d.groupExtra + d.annRows.length * d.ann2StripH;
+        if (d.hasGates && y >= gatesTop && y < gatesTop + d.gatesStripH) {
+            if (colIdx >= 0 && colIdx < d.orderedCLs.length) {
+                const cl = d.orderedCLs[colIdx];
+                const inA = this._hmGates?.A?.has(cl), inB = this._hmGates?.B?.has(cl);
+                const label = inA && inB ? 'Gates A and B' : inA ? 'Gate A' : inB ? 'Gate B' : 'Not gated';
+                this._hmShowTooltip(e.clientX, e.clientY, `${this.getCellLineName(cl)} · ${label}`);
+            } else this._hmHideTooltip();
+            return;
+        }
         if (d.groups && y >= d.geneAreaH && y < d.geneAreaH + d.groupStripH) {
             const g = (colIdx >= 0 && colIdx < d.orderedCLs.length) ? d.groups.find(gr => colIdx >= gr.startCol && colIdx < gr.endCol) : null;
             if (g) this._hmShowTooltip(e.clientX, e.clientY, `${g.key} · ${g.count} cell line${g.count === 1 ? '' : 's'}`);
@@ -55901,6 +56064,257 @@ ${clone.innerHTML}
         this._hmShowTooltip(e.clientX, e.clientY, `${gene} · ${this.getCellLineName(cl)} · ${lineage} · ${valueText}`);
     }
 
+    // Double-click a column opens that cell line's wiki (v.88.64). Reuses
+    // the same x -> column math _hmOnGridHover uses; y doesn't matter, the
+    // gesture works from any row. Disabled while a gate is armed: the grid
+    // is in gate-paint mode then, and a double-click there is a user
+    // dragging a single-column range twice, not a request to leave the
+    // heatmap.
+    _hmOnGridDblClick(e) {
+        const d = this._hmData;
+        if (!d || this._hmArmedGate) return;
+        const gridCanvas = document.getElementById('hmGridCanvas');
+        const rect = gridCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const colIdx = Math.floor(x / d.cellW);
+        if (colIdx < 0 || colIdx >= d.orderedCLs.length) return;
+        const id = d.orderedCLs[colIdx];
+        this._hmHideTooltip();
+        this.openCellLineWiki(id);
+        // The wiki modal's default z-index (1370) sits BELOW the heatmap's
+        // (1380), so opened from here it would render behind it. Bumped the
+        // same way _hmDrillToBrowser stacks the Cell Line Browser above an
+        // open heatmap; undone on close (clbWikiCloseBtn / backdrop click)
+        // so a later, ordinary open doesn't inherit it.
+        const heatmapModal = document.getElementById('heatmapModal');
+        const heatmapZ = heatmapModal ? (parseInt(getComputedStyle(heatmapModal).zIndex, 10) || 0) : 0;
+        const wikiModal = document.getElementById('clbWikiModal');
+        if (wikiModal && heatmapZ) wikiModal.style.zIndex = String(heatmapZ + 10);
+    }
+
+    // Starts a gate drag (v.88.64): only when a gate is armed (Gate A/B
+    // button), records the starting column, and draws the first frame of
+    // the preview. The commit happens on mouseup (_hmOnGridMouseUp), wired
+    // on window so releasing outside the canvas still ends the drag.
+    _hmOnGridMouseDown(e) {
+        if (!this._hmArmedGate) return;
+        const d = this._hmData;
+        if (!d || !d.orderedCLs.length) return;
+        const gridCanvas = document.getElementById('hmGridCanvas');
+        const rect = gridCanvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const colIdx = Math.max(0, Math.min(d.orderedCLs.length - 1, Math.floor(x / d.cellW)));
+        this._hmGateDrag = { startCol: colIdx, curCol: colIdx };
+        this._hmRepaintGridOnly();
+        e.preventDefault();
+    }
+
+    // Commits a gate drag on mouseup: the column range [lo,hi] (in whatever
+    // order is currently drawn) is toggled into the armed gate as a block,
+    // keyed by cell line id so the gate survives a later re-sort. Dragging
+    // over a range that is ALREADY ENTIRELY in the gate removes it instead,
+    // the toggle behaviour the spec calls for; a mixed range (some in, some
+    // not) adds the missing ones rather than removing the ones already
+    // there, since "drag to add" is the more common gesture. A plain click
+    // (no movement) gates exactly the one column under the pointer.
+    _hmOnGridMouseUp() {
+        if (!this._hmGateDrag) return;
+        const drag = this._hmGateDrag;
+        const gateKey = this._hmArmedGate;
+        const d = this._hmData;
+        this._hmGateDrag = null;
+        if (d && gateKey && this._hmGates && d.orderedCLs.length) {
+            const lo = Math.min(drag.startCol, drag.curCol);
+            const hi = Math.max(drag.startCol, drag.curCol);
+            const cls = d.orderedCLs.slice(lo, hi + 1);
+            if (cls.length) {
+                const set = this._hmGates[gateKey];
+                const allIn = cls.every(cl => set.has(cl));
+                if (allIn) cls.forEach(cl => set.delete(cl));
+                else cls.forEach(cl => set.add(cl));
+                this._hmSyncGateUI();
+                this._hmRedraw();
+                return;
+            }
+        }
+        this._hmRepaintGridOnly();
+    }
+
+    // Repaints just the grid canvas from the already-built matrix (no
+    // rebuild), used for the gate drag preview so a mousemove doesn't pay
+    // for a full matrix rebuild on every pixel. Draws the armed gate's
+    // translucent preview rectangle over whatever column range is currently
+    // dragged, on top of the ordinary paintGrid output.
+    _hmRepaintGridOnly() {
+        const d = this._hmData, paint = this._hmPaint;
+        const gridCanvas = document.getElementById('hmGridCanvas');
+        if (!d || !paint || !gridCanvas) return;
+        const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+        const gc = gridCanvas.getContext('2d');
+        gc.setTransform(dpr, 0, 0, dpr, 0, 0);
+        gc.clearRect(0, 0, d.gridW, d.gridH);
+        paint.paintGrid(gc);
+        if (this._hmGateDrag && this._hmArmedGate) {
+            const lo = Math.min(this._hmGateDrag.startCol, this._hmGateDrag.curCol);
+            const hi = Math.max(this._hmGateDrag.startCol, this._hmGateDrag.curCol);
+            const color = this._hmArmedGate === 'A' ? 'rgba(124,58,237,0.28)' : 'rgba(8,145,178,0.28)';
+            gc.fillStyle = color;
+            gc.fillRect(lo * d.cellW, 0, (hi - lo + 1) * d.cellW, d.gridH);
+        }
+    }
+
+    // Gene label click (v.88.64): toggles the clicked row's gene into
+    // _hmSilencedGenes. y maps straight to a row (the label canvas's own
+    // coordinate space starts at the gene rows; the top-dendrogram offset
+    // is a CSS margin-top on the canvas element, not part of its internal
+    // drawing space, so no extra offset is needed here, matching how
+    // paintLabels itself places the gene text at `rowIdx * cellH`). Refuses
+    // silently when it would silence the last drawn gene.
+    _hmOnLabelClick(e) {
+        const d = this._hmData;
+        if (!d) return;
+        const labelCanvas = document.getElementById('hmLabelCanvas');
+        const rect = labelCanvas.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const rowIdx = Math.floor(y / d.cellH);
+        if (rowIdx < 0 || rowIdx >= d.orderedGenes.length) return;
+        if (d.orderedGenes.length <= 1) return;
+        const gene = d.orderedGenes[rowIdx];
+        this._hmSilencedGenes = this._hmSilencedGenes || new Set();
+        this._hmSilencedGenes.add(gene);
+        this._hmRedraw();
+    }
+
+    // Pointer cursor only over an actual gene row, same row math the click
+    // handler uses, so the cursor never promises a click will do something
+    // over the strip-title area below the gene rows.
+    _hmOnLabelHover(e) {
+        const d = this._hmData;
+        const labelCanvas = document.getElementById('hmLabelCanvas');
+        if (!d || !labelCanvas) return;
+        const rect = labelCanvas.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const rowIdx = Math.floor(y / d.cellH);
+        labelCanvas.style.cursor = (rowIdx >= 0 && rowIdx < d.orderedGenes.length) ? 'pointer' : 'default';
+    }
+
+    _hmUnsilenceGene(gene) {
+        this._hmSilencedGenes?.delete(gene);
+        this._hmRedraw();
+    }
+
+    _hmUnsilenceAll() {
+        this._hmSilencedGenes = new Set();
+        this._hmRedraw();
+    }
+
+    // Renders the "Silenced: DUSP4, MYC. Click to restore." note (v.88.64),
+    // same grey style as the hint line above it. Only exists (the div is
+    // otherwise empty and hidden) when something is actually silenced,
+    // mirroring hmScrollHint's own show-only-when-relevant text.
+    _hmRenderSilencedNote(d) {
+        const note = document.getElementById('hmSilencedNote');
+        if (!note) return;
+        const names = d?.silencedGeneNames || [];
+        if (!names.length) {
+            note.textContent = '';
+            note.style.display = 'none';
+            return;
+        }
+        const jsQuote = (s) => String(s).replace(/'/g, "\\'");
+        const links = names.map(g =>
+            `<a href="#" onclick="event.preventDefault();app._hmUnsilenceGene('${jsQuote(g)}')" style="color:#6b7280; text-decoration:underline;">${this.esc(g)}</a>`
+        ).join(', ');
+        note.innerHTML = `Silenced: ${links}. <a href="#" onclick="event.preventDefault();app._hmUnsilenceAll()" style="color:#6b7280; text-decoration:underline;">Restore all</a>`;
+        note.style.display = '';
+    }
+
+    // Gate arm/disarm, the per-gate action buttons and the count chips
+    // (v.88.64). Called after every redraw (_hmRedrawCore) and right after
+    // any gate mutation, so the footer never disagrees with _hmGates.
+    _hmSyncGateUI() {
+        const gates = this._hmGates || { A: new Set(), B: new Set() };
+        const armed = this._hmArmedGate;
+        const GATE_COLORS = { A: '#7c3aed', B: '#0891b2' };
+        ['A', 'B'].forEach(key => {
+            const btn = document.getElementById(`hmGate${key}Btn`);
+            if (btn) {
+                const isArmed = armed === key;
+                btn.style.background = isArmed ? GATE_COLORS[key] : '';
+                btn.style.borderColor = isArmed ? GATE_COLORS[key] : '';
+                btn.style.color = isArmed ? '#fff' : '';
+                btn.textContent = isArmed ? `Gate ${key} (drag the grid, Esc to stop)` : `Gate ${key}`;
+            }
+            const size = gates[key]?.size || 0;
+            const chip = document.getElementById(`hmGate${key}Chip`);
+            if (chip) {
+                chip.style.visibility = size ? 'visible' : 'hidden';
+                chip.innerHTML = size
+                    ? `<span style="color:${GATE_COLORS[key]};">${key}: ${size}</span> <a href="#" onclick="event.preventDefault();app._hmClearGate('${key}')" style="color:${GATE_COLORS[key]};" title="Clear gate ${key}">x</a>`
+                    : '';
+            }
+            const copyBtn = document.getElementById(`hmGate${key}CopyBtn`);
+            if (copyBtn) copyBtn.style.visibility = size ? 'visible' : 'hidden';
+            const inspectBtn = document.getElementById(`hmGate${key}InspectBtn`);
+            if (inspectBtn) inspectBtn.style.visibility = size ? 'visible' : 'hidden';
+        });
+        const gridCanvas = document.getElementById('hmGridCanvas');
+        if (gridCanvas) gridCanvas.style.cursor = armed ? 'crosshair' : 'default';
+    }
+
+    // Arms/disarms a gate: only one at a time (arming B while A is armed
+    // switches, it doesn't stack), clicking the already-armed button again
+    // (or Escape, wired in setupHeatmapModal) disarms.
+    _hmToggleArmGate(key) {
+        this._hmGates = this._hmGates || { A: new Set(), B: new Set() };
+        this._hmArmedGate = (this._hmArmedGate === key) ? null : key;
+        this._hmGateDrag = null;
+        this._hmSyncGateUI();
+    }
+
+    _hmClearGate(key) {
+        this._hmGates = this._hmGates || { A: new Set(), B: new Set() };
+        this._hmGates[key] = new Set();
+        this._hmSyncGateUI();
+        this._hmRedraw();
+    }
+
+    // Copies a gate's cell line names, one per line, sorted for a stable
+    // paste. Flashes "Copied!" on the button that triggered it, same
+    // pattern hmCopyGenesBtn uses.
+    async _hmCopyGate(key, btn) {
+        const set = this._hmGates?.[key];
+        if (!set || !set.size) return;
+        const names = Array.from(set).map(cl => this.getCellLineName(cl)).sort((a, b) => a.localeCompare(b));
+        try {
+            await navigator.clipboard.writeText(names.join('\n'));
+            if (btn) {
+                const t = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = t; }, 1200);
+            }
+        } catch (e) { /* clipboard unavailable, silently no-op like other copy buttons */ }
+    }
+
+    // Opens the Cell Line Browser's selection-inspect (inspectSelectionGE,
+    // the same modal the CLB's own "Inspect" button opens) scoped to
+    // exactly a gate's cell lines: sets the CLB tick set the way
+    // _hmDrillToBrowser does, then runs the normal inspect path, then bumps
+    // selectionInspectModal above the heatmap the same way the wiki
+    // double-click bumps clbWikiModal (both share the heatmap's own z-index,
+    // 1380, so without the bump the later-opened one wins by DOM order, not
+    // by which was actually asked for).
+    _hmInspectGate(key) {
+        const set = this._hmGates?.[key];
+        if (!set || !set.size) return;
+        this._clbSelectedCellLines = new Set(set);
+        this.inspectSelectionGE();
+        const heatmapModal = document.getElementById('heatmapModal');
+        const heatmapZ = heatmapModal ? (parseInt(getComputedStyle(heatmapModal).zIndex, 10) || 0) : 0;
+        const selModal = document.getElementById('selectionInspectModal');
+        if (selModal && heatmapZ) selModal.style.zIndex = String(heatmapZ + 10);
+    }
+
     _hmTooltipEl() {
         let el = document.getElementById('hmTooltip');
         if (!el) {
@@ -55913,7 +56327,11 @@ ${clone.innerHTML}
     }
     _hmShowTooltip(x, y, text) {
         const el = this._hmTooltipEl();
-        el.textContent = text;
+        // Every grid tooltip carries the same gesture hint (v.88.64), same
+        // spot as the scatter dot tooltip's own "Shift-click to open its
+        // Wiki" suffix: double-click works on any row of a column, not just
+        // the one under the pointer, so it belongs on all of them alike.
+        el.textContent = `${text}  ·  Double-click: open wiki`;
         el.style.display = 'block';
         el.style.left = Math.max(4, Math.min(x + 14, window.innerWidth - el.offsetWidth - 8)) + 'px';
         el.style.top = Math.max(4, Math.min(y + 14, window.innerHeight - el.offsetHeight - 8)) + 'px';
@@ -55937,6 +56355,11 @@ ${clone.innerHTML}
         if (ann2LegendCanvas) ann2LegendCanvas.style.marginTop = '0';
         const labelCanvas = document.getElementById('hmLabelCanvas');
         if (labelCanvas) labelCanvas.style.marginTop = '0';
+        // Nothing is drawn, so the "Silenced: ..." restore line (which
+        // names genes off the last successful d.silencedGeneNames) would
+        // otherwise go stale, naming genes from a picture no longer on
+        // screen.
+        this._hmRenderSilencedNote(null);
         this._hmData = null;
         this._hmPaint = null;
     }
@@ -56351,6 +56774,14 @@ ${clone.innerHTML}
             hiddenGroups: this._hmHiddenGroups ? [...this._hmHiddenGroups] : [],
             drillCells: this._hmDrillCells ? [...this._hmDrillCells] : null,
             drillLabel: this._hmDrillLabel || null,
+            // Silenced genes and the two gates (v.88.64) are click-driven
+            // state living outside any form control, same family as
+            // hiddenGroups/drillCells above; kept as plain id arrays so an
+            // old file without them just restores to "nothing silenced, no
+            // gates" via the || [] fallbacks in _hmRestoreView.
+            silencedGenes: this._hmSilencedGenes ? [...this._hmSilencedGenes] : [],
+            gateA: this._hmGates?.A ? [...this._hmGates.A] : [],
+            gateB: this._hmGates?.B ? [...this._hmGates.B] : [],
             settings: Object.assign({}, this._HM_SETTINGS_DEFAULTS(), this._hmSettings || {})
         };
     }
@@ -56456,6 +56887,18 @@ ${clone.innerHTML}
             ? { groupByMode: rGroupByMode, lineageValue: state.lineage || '', drillCells: null }
             : null;
         this._hmDrillLabel = state.drillLabel || null;
+
+        // Silenced genes and the two gates (v.88.64): same "outside a form
+        // control, set after the open-reset" rule as annRows/hiddenGroups/
+        // drillCells above. No armed gate on restore, no in-progress drag:
+        // both are transient interaction state, not part of the saved view.
+        this._hmSilencedGenes = new Set(Array.isArray(state.silencedGenes) ? state.silencedGenes : []);
+        this._hmGates = {
+            A: new Set(Array.isArray(state.gateA) ? state.gateA : []),
+            B: new Set(Array.isArray(state.gateB) ? state.gateB : [])
+        };
+        this._hmArmedGate = null;
+        this._hmGateDrag = null;
 
         this._hmSettings = this._hmMergeSettings(state.settings);
         this._hmSaveSettingsToStorage();

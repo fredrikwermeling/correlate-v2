@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.64 (2026-08-18)</strong></p>
+                <ul>
+                    <li><b>The heatmap became hands-on.</b> Double-click a column to open that cell line's wiki. Click a gene name to silence it, removing it from the drawing and the score, with one click to restore. And two gates, A and B: arm a gate, drag across columns to collect cell lines, then copy them, clear them, or open the browser's inspect on exactly that set; gates survive re-sorting because they hold the lines, not the positions.</li>
+                </ul>
                 <p><strong>v.88.63 (2026-08-18)</strong></p>
                 <ul>
                     <li><b>Clustered by default, with a suggested cluster count.</b> The heatmap opens with the cell lines clustered and coloured into an automatically suggested number of clusters (pick your own under Clustering), lineage colours underneath, and the colours scaled against all cell lines by default so a filtered view still says where the lines sit among all cancers. The tree-detail selects say they only change the drawing, and a ? beside Scaling explains exactly how the colours are computed, per gene, never across the gene set, with the legend stating the scale in use.</li>
@@ -6920,7 +6924,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.63</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.64</a>
         </span>
     </div>
 
@@ -8893,6 +8897,10 @@
                     <button type="button" id="hmDrillBackBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; visibility:hidden;" title="Undo the double-click drill-down, restoring the grouping and cell lines shown before it">Show all</button>
                     <button type="button" id="hmDrillToBrowserBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; margin-left:6px; visibility:hidden;" title="Mark exactly these cell lines as ticked in the Cell Line Browser, so they can be filtered, sorted and exported there">Tick these lines in the browser</button>
                 </div>
+                <!-- Only exists when a gene is silenced (click a gene label); see
+                     _hmRenderSilencedNote. No reserved space when empty, same as
+                     hmScrollHint just below the grid. -->
+                <div id="hmSilencedNote" style="display:none; font-size:10px; color:#9ca3af; margin-bottom:4px;"></div>
                 <div style="display:flex; align-items:flex-start; width:100%;">
                     <canvas id="hmLabelCanvas" style="flex:none; cursor:default;"></canvas>
                     <div id="hmGridScroll" style="flex:1 1 auto; min-width:0; overflow-x:auto; overflow-y:hidden;"><canvas id="hmDendroTopCanvas" style="display:block; cursor:default;"></canvas><canvas id="hmGridCanvas" style="display:block; cursor:default;"></canvas></div>
@@ -8911,6 +8919,26 @@
                 <button id="hmCopyGenesBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Copy the genes shown, one per line, in the order they are drawn">Copy genes</button>
                 <button id="hmExportAIBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Package this heatmap for a language model: the gene set, the matrix, the cohort and the grouping, plus a picture of what's on screen">Export for AI</button>
                 <button id="hmSaveViewBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Download this exact heatmap as a small .json file; drop it on the app later to reopen it">Save view</button>
+                <!-- Gates A/B (v.88.64): arm one, then drag horizontally across
+                     the grid to collect cell lines into it by column range,
+                     keyed by cell line id so a re-sort doesn't lose them. The
+                     Copy/Inspect buttons and the count chip reserve their
+                     space (visibility:hidden) rather than appearing and
+                     shoving neighbours, only becoming visible once the gate
+                     has a member; see _hmSyncGateUI. -->
+                <span class="clb-sep"></span>
+                <span style="display:inline-flex; align-items:center; gap:4px;">
+                    <button type="button" id="hmGateABtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Arm gate A: click-drag across the grid to select cell lines into it by column range. Click again, or Escape, to disarm.">Gate A</button>
+                    <span id="hmGateAChip" style="font-size:10px; visibility:hidden; white-space:nowrap;"></span>
+                    <button type="button" id="hmGateACopyBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 6px; visibility:hidden;" title="Copy gate A's cell line names, one per line">Copy A</button>
+                    <button type="button" id="hmGateAInspectBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 6px; visibility:hidden;" title="Open the Cell Line Browser's selection-inspect on gate A's cell lines">Inspect A</button>
+                </span>
+                <span style="display:inline-flex; align-items:center; gap:4px;">
+                    <button type="button" id="hmGateBBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Arm gate B: click-drag across the grid to select cell lines into it by column range. Click again, or Escape, to disarm.">Gate B</button>
+                    <span id="hmGateBChip" style="font-size:10px; visibility:hidden; white-space:nowrap;"></span>
+                    <button type="button" id="hmGateBCopyBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 6px; visibility:hidden;" title="Copy gate B's cell line names, one per line">Copy B</button>
+                    <button type="button" id="hmGateBInspectBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 6px; visibility:hidden;" title="Open the Cell Line Browser's selection-inspect on gate B's cell lines">Inspect B</button>
+                </span>
                 <span style="flex:1 1 auto;"></span>
                 <button id="heatmapClose2" class="btn btn-secondary btn-sm">Close</button>
             </div>
@@ -9900,6 +9928,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_63"></script>
+    <script src="app.js?v=v88_64"></script>
 </body>
 </html>
