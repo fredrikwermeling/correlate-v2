@@ -52896,9 +52896,6 @@ ${clone.innerHTML}
         };
         document.getElementById('heatmapClose')?.addEventListener('click', close);
         document.getElementById('heatmapClose2')?.addEventListener('click', close);
-        document.getElementById('heatmapModal')?.addEventListener('click', (e) => {
-            if (e.target.id === 'heatmapModal') close();
-        });
         document.getElementById('hmPreset')?.addEventListener('change', () => { this._hmSyncPresetUI(); this._hmRedraw(); });
         document.getElementById('hmDataType')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmScale')?.addEventListener('change', () => this._hmRedraw());
@@ -52930,7 +52927,10 @@ ${clone.innerHTML}
             this._hmSyncClusterControls();
             this._hmRedraw();
         });
-        document.getElementById('hmClusterK')?.addEventListener('change', () => this._hmRedraw());
+        document.getElementById('hmClusterK')?.addEventListener('change', () => {
+            this._hmSyncClusterControls();
+            this._hmRedraw();
+        });
         // Fires on blur/focus-loss, not on every keystroke, so a half-typed
         // gene list doesn't repaint mid-edit; Redraw stays useful for that.
         document.getElementById('hmGenes')?.addEventListener('change', () => this._hmRedraw());
@@ -53035,7 +53035,17 @@ ${clone.innerHTML}
         document.getElementById('hmAnnRowAddBtn')?.addEventListener('click', () => {
             if ((this._hmAnnRows || []).length >= 4) return;
             this._hmAnnRows.push({ mode: 'hotspot', gene: null });
+            const newIdx = this._hmAnnRows.length - 1;
             this._hmRenderAnnRowsBlock();
+            // New row starts in 'hotspot' mode with no gene: put focus on its
+            // gene box so the user is looking straight at the picker instead
+            // of a row that otherwise draws nothing (the widget opens its
+            // dropdown on focus, see _setupMutFilterWidget). Deferred: this
+            // click is still bubbling up to document, where that same
+            // widget's own outside-click listener would see this button as
+            // an "outside" click and immediately close the dropdown a
+            // synchronous focus() just opened.
+            setTimeout(() => document.getElementById(`hmAnnRow${newIdx}Hotspot`)?.focus(), 0);
             this._hmRedraw();
         });
         this._hmSyncGroupControls();
@@ -53174,10 +53184,16 @@ ${clone.innerHTML}
         }
         const orderSel = document.getElementById('hmGroupOrder');
         if (orderSel) { orderSel.disabled = mode === 'none'; orderSel.style.opacity = mode === 'none' ? '0.45' : '1'; }
+        // Show median labels GROUPS, and a cut cluster tree (Cluster cell
+        // lines on, k >= 2) makes groups just as much as a Group by pick
+        // does; only disabled when there is truly nothing to label.
+        const clustersEligible = !!document.getElementById('hmClusterCells')?.checked
+            && (parseInt(document.getElementById('hmClusterK')?.value, 10) || 0) >= 2;
+        const noGroups = mode === 'none' && !clustersEligible;
         const medianCb = document.getElementById('hmShowMedian');
-        if (medianCb) medianCb.disabled = mode === 'none';
+        if (medianCb) medianCb.disabled = noGroups;
         const medianWrap = document.getElementById('hmShowMedianWrap');
-        if (medianWrap) medianWrap.style.opacity = mode === 'none' ? '0.45' : '1';
+        if (medianWrap) medianWrap.style.opacity = noGroups ? '0.45' : '1';
         // Group size only means something once there are groups; disabled
         // (not hidden) so the row beside it never shifts.
         const minGroupInput = document.getElementById('hmMinGroupSize');
@@ -53232,6 +53248,11 @@ ${clone.innerHTML}
             cellsDetailSel.title = cellsOn ? 'How much branch detail the cell-line tree above the grid draws' : 'Turn on Cluster cell lines to change how much branch detail its tree draws';
             cellsDetailSel.style.opacity = cellsOn ? '1' : '0.45';
         }
+        // Cluster cell lines + its k select are also what makes Show median
+        // eligible when Group by is none; re-sync so toggling either updates
+        // the median checkbox immediately instead of waiting for a Group by
+        // change.
+        this._hmSyncGroupControls();
     }
 
     // Options for the "group by alteration" gene box: every gene with
@@ -53384,15 +53405,24 @@ ${clone.innerHTML}
             // not hidden) rather than removed, so the arrow pair never shifts.
             const orderTitle = 'Row order is sort order: with the annotation-rows sort, Row 1 forms the outermost blocks';
             const isFirst = i === 0, isLast = i === rows.length - 1;
-            return `<div class="hm-ann-row" data-idx="${i}" style="display:flex; align-items:center; gap:6px;">
-                <span class="clb-group-label" style="flex:0 0 auto; width:38px;">Row ${i + 1}</span>
-                <select id="hmAnnRow${i}Type" style="width:150px;">
-                    ${TYPE_OPTIONS.map(([v, label]) => `<option value="${v}"${row.mode === v ? ' selected' : ''}>${label}</option>`).join('')}
-                </select>
-                <span style="display:inline-block; width:130px; vertical-align:top;">${slots}</span>
-                <button type="button" class="btn btn-outline btn-sm hm-ann-row-up" data-idx="${i}" style="font-size:10px; padding:0 6px;"${isFirst ? ' disabled' : ''} title="${orderTitle}">&uarr;</button>
-                <button type="button" class="btn btn-outline btn-sm hm-ann-row-down" data-idx="${i}" style="font-size:10px; padding:0 6px;"${isLast ? ' disabled' : ''} title="${orderTitle}">&darr;</button>
-                <button type="button" class="btn btn-outline btn-sm hm-ann-row-remove" data-idx="${i}" style="font-size:10px; padding:0 6px;" title="Remove this row">&times;</button>
+            // A row that needs a gene (hotspot/fusion/cn) but doesn't have
+            // one yet draws nothing (_hmResolveAnnotationRows drops it), and
+            // that used to be silent. Note it inline, gone the instant a
+            // gene is picked (toggled in the KINDS onChange below, not by a
+            // full rebuild, since typing/picking must not blow away focus).
+            const needsNote = !disabled && !row.gene;
+            return `<div class="hm-ann-row-outer" data-idx="${i}">
+                <div class="hm-ann-row" data-idx="${i}" style="display:flex; align-items:center; gap:6px;">
+                    <span class="clb-group-label" style="flex:0 0 auto; width:38px;">Row ${i + 1}</span>
+                    <select id="hmAnnRow${i}Type" style="width:150px;">
+                        ${TYPE_OPTIONS.map(([v, label]) => `<option value="${v}"${row.mode === v ? ' selected' : ''}>${label}</option>`).join('')}
+                    </select>
+                    <span style="display:inline-block; width:130px; vertical-align:top;">${slots}</span>
+                    <button type="button" class="btn btn-outline btn-sm hm-ann-row-up" data-idx="${i}" style="font-size:10px; padding:0 6px;"${isFirst ? ' disabled' : ''} title="${orderTitle}">&uarr;</button>
+                    <button type="button" class="btn btn-outline btn-sm hm-ann-row-down" data-idx="${i}" style="font-size:10px; padding:0 6px;"${isLast ? ' disabled' : ''} title="${orderTitle}">&darr;</button>
+                    <button type="button" class="btn btn-outline btn-sm hm-ann-row-remove" data-idx="${i}" style="font-size:10px; padding:0 6px;" title="Remove this row">&times;</button>
+                </div>
+                <div id="hmAnnRow${i}Note" style="font-size:10px; color:#9ca3af; margin:2px 0 0 44px;${needsNote ? '' : ' display:none;'}">Row ${i + 1} draws once a gene is picked.</div>
             </div>`;
         }).join('');
 
@@ -53442,6 +53472,10 @@ ${clone.innerHTML}
                 const onChange = () => {
                     const input = document.getElementById(id);
                     this._hmAnnRows[i].gene = (input?.value || '').trim().toUpperCase() || null;
+                    // Toggled here rather than a full re-render, which would
+                    // blow away the input's focus/open dropdown mid-pick.
+                    const noteEl = document.getElementById(`hmAnnRow${i}Note`);
+                    if (noteEl) noteEl.style.display = this._hmAnnRows[i].gene ? 'none' : '';
                     this._hmRedraw();
                 };
                 this._setupMutFilterWidget(kind, id, `${id}Dropdown`, onChange, () => new Set(this._hmData?.cohort || []));

@@ -2625,6 +2625,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.62 (2026-08-18)</strong></p>
+                <ul>
+                    <li><b>Heatmap fixes.</b> The clustering controls sit together on their own toolbar row. Show median works whenever there are groups to label, including coloured clusters, instead of being tied to the Group by choice. Clicking outside the heatmap no longer closes it. And adding an annotation row now opens the gene picker and says the row draws once a gene is picked, instead of silently showing nothing.</li>
+                </ul>
                 <p><strong>v.88.61 (2026-08-16)</strong></p>
                 <ul>
                     <li><b>Dendrograms fit their content.</b> Trees with fewer than a handful of leaves are not drawn at all (a two-gene bracket says nothing), the tree band above the grid never grows taller than the grid itself, and the coarseness setting self-limits on small trees so Very coarse and Minimal never reduce a small group to bare stems.</li>
@@ -6912,7 +6916,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.61</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.62</a>
         </span>
     </div>
 
@@ -8743,6 +8747,11 @@
                                 <option value="zall">Z-score, vs all lines</option>
                                 <option value="raw">Raw values</option>
                             </select>
+                        </div>
+                    </div>
+                    <div class="clb-row clb-row-alt">
+                        <span class="clb-row-label">Clustering</span>
+                        <div class="clb-row-items">
                             <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the gene rows by how alike their profiles are, regardless of how cell lines are sorted, and draw the tree that produced the order">
                                 <input type="checkbox" id="hmClusterGenes" checked style="margin:0;"> Cluster genes
                             </label>
@@ -9885,6 +9894,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_61"></script>
+    <script src="app.js?v=v88_62"></script>
 </body>
 </html>
