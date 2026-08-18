@@ -1,6 +1,7 @@
 - the clsuter gene and cell lines should be on the same row. the drop down linked to the clustering is not wrorking as i want now it just seems to simplify the drawn lines, i wsa thinking that there probably exist a setting to change how hoigh resploutin is invovled in the vclustering?
 - the heatmap function from netwoork doenst work on the cell phone and perhaps not the ipda
 - in heatmap, the show median is deppending on selecting something to sort by, theis is not correct. the median is unrelated to the sortinhhg
+- in heatmap (comming from network), it shouldn´t close the heatmap if i by accident press outside the heatmap popout
 
 
 
