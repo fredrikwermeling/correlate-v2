@@ -6662,6 +6662,19 @@ class CorrelationExplorer {
             });
             document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeEnr(); });
         }
+        // Open in heatmap, from the mutation analysis results table
+        // (v.88.67). Same anchored-menu shape as Enrichr just above, shared
+        // implementation with the Cell Line Browser's gene lists (_hmOpenTopNMenu).
+        document.getElementById('mutHeatmapBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!this.mutationResults || !this.mutationTableData?.length) {
+                this.showCopyNotification('Run a mutation analysis first.');
+                return;
+            }
+            const mr = this.mutationResults;
+            const title = `Opens the heatmap on these genes, the analysis' cell lines, blocked by ${mr.hotspotGene} status`;
+            this._hmOpenTopNMenu(e.currentTarget, this.mutationTableData.length, title, (n) => this._openHeatmapFromMutationTable(n));
+        });
         // Enrichr for the network. Same shape as the mutation-analysis menu
         // above: the button opens a list of gene sets rather than guessing one.
         const netEnrBtn = document.getElementById('netEnrichrBtn');
@@ -8935,6 +8948,13 @@ class CorrelationExplorer {
                     ? this.calculateTranslocationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel)
                     : this.calculateMutationAnalysis(hotspotGene, minN, lineageFilter, subLineageFilter, additionalHotspot, additionalHotspotLevel, additionalTransGene, additionalTransLevel, mutDataSource);
 
+                // Record the actual cohort (WT + mutated, the analysis' own
+                // filters applied), so "Open in heatmap" on the results
+                // table can reuse the exact lines the analysis ran on
+                // instead of the heatmap's own default. Same idea as
+                // _resultsCellLines for the network's "Open in heatmap".
+                this._mutResultsCellLines = analysisResult.cellLines || [];
+
                 // Filter by p-value threshold
                 const significantResults = analysisResult.results.filter(r => r.p_mut < pThreshold || r.p_2 < pThreshold || r.p_2v1 < pThreshold || (r.p_fused !== undefined && r.p_fused < pThreshold));
 
@@ -9424,7 +9444,12 @@ class CorrelationExplorer {
             nWTFusion: wtFusionCellIndices?.length || 0,
             nWTExpr: this._countWithExpression(wtCellIndices),
             nMutExpr: this._countWithExpression(mutAllCellIndices),
-            nSkippedMinN
+            nSkippedMinN,
+            // The full WT + mutated cohort this analysis actually ran on
+            // (its own lineage/disease/hotspot filters, not the Cell Line
+            // Browser's), so "Open in heatmap" can carry the exact same
+            // lines rather than falling back to the heatmap's own default.
+            cellLines: [...wtCellIndices, ...mutAllCellIndices].map(i => cellLines[i])
         };
     }
 
@@ -9570,7 +9595,10 @@ class CorrelationExplorer {
             altFusions: [...altFusions.entries()].sort((a, b) => b[1] - a[1]),
             nWTExpr: this._countWithExpression(wtCellIndices),
             nMutExpr: this._countWithExpression(mutAllCellIndices),
-            nSkippedMinN
+            nSkippedMinN,
+            // Same cohort snapshot as calculateMutationAnalysis, see its
+            // return for why: not-fused + fused, no-call lines excluded.
+            cellLines: [...wtCellIndices, ...mutAllCellIndices].map(i => cellLines[i])
         };
     }
 
@@ -36633,11 +36661,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (presetSel) presetSel.value = 'custom';
         const genesBox = document.getElementById('hmGenes');
         if (genesBox) genesBox.value = genes.join('\n');
-        // The network is built on gene effect (Chronos), not expression;
-        // the user can switch to mRNA themselves from the heatmap's own
-        // control once it's open.
+        // The network can run on either basis (gene effect / Chronos, or
+        // mRNA expression, box 1's "Correlate against" toggle); carry
+        // whichever one the analysis actually used, the same flag the
+        // network's own colour-by code branches on.
         const dtSel = document.getElementById('hmDataType');
-        if (dtSel) dtSel.value = 'ge';
+        if (dtSel) dtSel.value = this.results?.basis === 'expr' ? 'expr' : 'ge';
         // Carry the analysis' own cell-line cohort into the heatmap, the
         // same override mechanism a restored "Save view" file uses (set
         // AFTER _hmOpenModal's reset above, or it's dropped, the v.88.25
@@ -36654,6 +36683,188 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 })()
             };
         }
+        this._hmRedraw();
+    }
+
+    // Shared "Open in heatmap" popup: Top 10/25/50/100 plus a typed X,
+    // offered by the mutation-analysis results table and every Cell Line
+    // Browser gene list (v.88.67). One floating menu, built once and
+    // repositioned/repopulated for whichever button opened it, the same
+    // anchored shape as the network Heatmap dropdown above, shared here
+    // instead of duplicated per caller since there can be several of these
+    // buttons on one page (four on a single Cell Line Browser card).
+    _hmTopNMenuEl() {
+        let menu = document.getElementById('hmTopNMenu');
+        if (menu) return menu;
+        menu = document.createElement('div');
+        menu.id = 'hmTopNMenu';
+        menu.style.cssText = 'display:none; position:fixed; z-index:1550; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.14); min-width:220px; padding:4px;';
+        document.body.appendChild(menu);
+        return menu;
+    }
+
+    // anchorEl: the button that opened it. total: how many ranked genes the
+    // source list actually has (its "table length"). title: one line shown
+    // atop the menu describing what a pick will do. onPick(n): called with
+    // the resolved, clamped gene count once a tier or the custom Go is hit.
+    _hmOpenTopNMenu(anchorEl, total, title, onPick) {
+        const menu = this._hmTopNMenuEl();
+        const alreadyOpenHere = menu.style.display === 'block' && menu._hmAnchor === anchorEl;
+        const closeMenu = () => {
+            menu.style.display = 'none';
+            document.removeEventListener('click', outsideClick);
+            document.removeEventListener('keydown', escClose);
+        };
+        // Clicking the same button again toggles the menu shut, same as the
+        // network Heatmap button.
+        if (alreadyOpenHere) { closeMenu(); return; }
+        menu._hmAnchor = anchorEl;
+
+        const tiers = [10, 25, 50, 100];
+        let html = `<div style="font-size:10px; color:#9ca3af; padding:3px 10px 4px;">${title}</div>`;
+        tiers.forEach((n, i) => {
+            const shown = Math.min(n, Math.max(total, 0));
+            // A tier is redundant once the table doesn't even reach the tier
+            // before it: that smaller, already-offered tier already selects
+            // every row there is, so a bigger tier would do the same thing.
+            const disabled = i === 0 ? total <= 0 : total < tiers[i - 1];
+            html += `<button class="options-menu-item" data-hm-topn="${n}" ${disabled ? 'disabled' : ''} style="${disabled ? 'opacity:0.45; cursor:not-allowed;' : ''}">Top ${n} (${shown})</button>`;
+        });
+        const maxN = Math.max(total, 1);
+        html += `<div style="display:flex; align-items:center; gap:4px; padding:5px 10px 3px; border-top:1px solid #e5e7eb; margin-top:2px;">
+            <span style="font-size:12px; color:#374151;">Top</span>
+            <input type="number" id="hmTopNCustomInput" class="form-control" min="1" max="${maxN}" value="${Math.min(25, maxN)}" style="width:56px; font-size:12px; padding:2px 4px;" ${total <= 0 ? 'disabled' : ''}>
+            <button class="btn btn-secondary btn-sm" id="hmTopNCustomGo" style="padding:2px 10px;" ${total <= 0 ? 'disabled' : ''}>Go</button>
+        </div>`;
+        menu.innerHTML = html;
+
+        const rect = anchorEl.getBoundingClientRect();
+        menu.style.left = `${Math.round(rect.left)}px`;
+        menu.style.top = `${Math.round(rect.bottom + 4)}px`;
+        menu.style.display = 'block';
+
+        menu.querySelectorAll('[data-hm-topn]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.disabled) return;
+                const n = Math.min(parseInt(btn.dataset.hmTopn, 10), total);
+                closeMenu();
+                onPick(n);
+            });
+        });
+        const runCustom = () => {
+            const input = document.getElementById('hmTopNCustomInput');
+            let n = parseInt(input?.value, 10);
+            if (!Number.isFinite(n) || n < 1) n = 1;
+            if (n > total) n = total;
+            closeMenu();
+            onPick(n);
+        };
+        document.getElementById('hmTopNCustomGo')?.addEventListener('click', runCustom);
+        document.getElementById('hmTopNCustomInput')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') runCustom();
+        });
+        document.getElementById('hmTopNCustomInput')?.addEventListener('click', (e) => e.stopPropagation());
+
+        // Same touch/click hardening as the network Heatmap menu: a short
+        // grace window after opening, plus containment checks, so the tap
+        // that opened the menu can't also be read as the outside click that
+        // closes it.
+        const openedAt = Date.now();
+        var outsideClick = (e) => {
+            if (Date.now() - openedAt < 400) return;
+            if (anchorEl.contains(e.target) || menu.contains(e.target)) return;
+            closeMenu();
+        };
+        var escClose = (e) => { if (e.key === 'Escape') closeMenu(); };
+        document.addEventListener('click', outsideClick);
+        document.addEventListener('keydown', escClose);
+    }
+
+    // "Open in heatmap" from the mutation analysis results table (v.88.67).
+    // n genes are taken from this.mutationTableData, which is the table's
+    // CURRENT display order: displayMutationResults() writes it after the
+    // p-value filter, and sortMutationTable() re-sorts that same array in
+    // place before re-rendering, so slicing it here always matches exactly
+    // what is on screen, whatever column the user last sorted by.
+    _openHeatmapFromMutationTable(n) {
+        if (!this.mutationResults || !this.mutationTableData?.length) return;
+        const mr = this.mutationResults;
+        const genes = this.mutationTableData.slice(0, n).map(r => r.gene);
+        this._hmOpenModal();
+        const presetSel = document.getElementById('hmPreset');
+        if (presetSel) presetSel.value = 'custom';
+        const genesBox = document.getElementById('hmGenes');
+        if (genesBox) genesBox.value = genes.join('\n');
+        const dtSel = document.getElementById('hmDataType');
+        if (dtSel) dtSel.value = mr.metric === 'expr' ? 'expr' : 'ge';
+        // Carry the exact WT + mutated cohort the analysis ran on (its own
+        // lineage/disease/hotspot filters; nothing to do with the Cell Line
+        // Browser's filters, so the heatmap's own 'visible' default cannot
+        // be relied on to reproduce it). Set AFTER _hmOpenModal's reset
+        // above, or it is dropped, the v.88.25 lesson.
+        if (this._mutResultsCellLines?.length) {
+            this._hmCohortOverride = {
+                cellLines: this._mutResultsCellLines.slice(),
+                note: `cohort from the mutation analysis (${this._mutResultsCellLines.length} lines)`
+            };
+        }
+        // One annotation row for the analysed alteration, so hmSort below can
+        // block the mutated/fused lines to one side instead of the split only
+        // showing up as extra colour.
+        let annMode = null;
+        if (mr.isTranslocation) {
+            // The annotation row's own fusion mode has no validation of its
+            // own (_hmResolveAnnotationRows never drops a fusion row, unlike
+            // its hotspot/CN branches), so a pair the fusion machinery
+            // cannot actually call here would silently draw an all-one-
+            // colour row instead of failing loudly. Checked here instead:
+            // the row only goes in if it would show a real split on the
+            // analysis' own cohort, the same _geFusionPasses the annotation
+            // row itself would use to colour it.
+            const cohort = this._mutResultsCellLines || [];
+            const fusedN = cohort.filter(cl => this._geFusionPasses(cl, mr.hotspotGene)).length;
+            if (fusedN > 0 && fusedN < cohort.length) annMode = 'fusion';
+        } else {
+            // Hotspot mode falls back to damaging-mutation data on its own
+            // (_hmResolveAnnotationRows) and drops itself with an honest
+            // note if the gene has neither, which also covers the
+            // "damaging" and CN amp/deletion analysis sub-types cleanly.
+            annMode = 'hotspot';
+        }
+        this._hmAnnRows = annMode ? [{ mode: annMode, gene: mr.hotspotGene }] : [];
+        this._hmRenderAnnRowsBlock();
+        const sortSel = document.getElementById('hmSort');
+        if (sortSel) sortSel.value = 'annotation';
+        // Clustering defaults on since v.88.63; off here, the point of this
+        // handoff is the mutation contrast (blocked left/right by the
+        // annotation row), not a similarity tree.
+        const clusterCb = document.getElementById('hmClusterCells');
+        if (clusterCb) clusterCb.checked = false;
+        this._hmSyncClusterControls();
+        this._hmRedraw();
+    }
+
+    // "Open in heatmap" from one of the Cell Line Browser's gene lists
+    // (v.88.67): Most Depleted/Enriched (bottom/top, ranked across the whole
+    // panel) and Uniquely Depleted/Enriched vs the filtered cohort
+    // (uniqueLow/uniqueHigh). All four are gene-effect values, there is no
+    // expression-based list on this card, so the data type is always 'ge'.
+    _openHeatmapFromClbList(listKey, n) {
+        const genes = (this._clbGeneListsFull?.[listKey] || []).slice(0, n);
+        if (!genes.length) return;
+        this._hmOpenModal();
+        const presetSel = document.getElementById('hmPreset');
+        if (presetSel) presetSel.value = 'custom';
+        const genesBox = document.getElementById('hmGenes');
+        if (genesBox) genesBox.value = genes.join('\n');
+        const dtSel = document.getElementById('hmDataType');
+        if (dtSel) dtSel.value = 'ge';
+        // No cohort override needed: _hmOpenModal's reset leaves hmCohort on
+        // its 'visible' default, which reads this._clbVisibleCellLines, the
+        // exact array this list was built against, so the browser's active
+        // filters carry across for free. No annotation row either, even for
+        // a card that belongs to one selected cell line: there is no
+        // mutated-vs-WT split to show for a dependency/z-score ranking.
         this._hmRedraw();
     }
 
@@ -40908,6 +41119,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
                 return;
             }
+            // Open in heatmap (v.88.67): same Top 10/25/50/100 + custom X
+            // menu the mutation-analysis results table uses, against the
+            // full ranked list in _clbGeneListsFull (the Enrichr lists above
+            // are already sliced to N, too short to offer Top 100 from).
+            const heatmapBtn = e.target.closest('.clb-heatmap-btn');
+            if (heatmapBtn) {
+                const listKey = heatmapBtn.dataset.list;
+                const total = (this._clbGeneListsFull?.[listKey] || []).length;
+                if (!total) { this.showCopyNotification('No genes in this list.'); return; }
+                const labels = {
+                    bottom: 'dependency, most depleted',
+                    top: 'dependency, most enriched',
+                    uniqueLow: 'z-score vs the filtered cell lines, uniquely depleted',
+                    uniqueHigh: 'z-score vs the filtered cell lines, uniquely enriched'
+                };
+                const title = `Open in heatmap: top genes by ${labels[listKey] || 'value'}`;
+                this._hmOpenTopNMenu(heatmapBtn, total, title, (n) => this._openHeatmapFromClbList(listKey, n));
+                return;
+            }
         });
 
         document.getElementById('clbExportMinimal').addEventListener('click', () => this.exportCellLineBrowserCSV('minimal'));
@@ -43416,15 +43646,25 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             bottom: bottomN.map(g => g.gene),
             top: topN.map(g => g.gene)
         };
+        // Full-length ranked arrays for "Open in heatmap" (v.88.67): the
+        // Enrichr lists above are already sliced to N (the "Top N" box), but
+        // the heatmap's Top 10/25/50/100 + custom X menu needs the whole
+        // ranked gene panel to slice from, not just what is on screen.
+        this._clbGeneListsFull = {
+            bottom: geneVals.map(g => g.gene),
+            top: [...geneVals].reverse().map(g => g.gene)
+        };
 
-        let gl = `<div class="clb-detail-section"><strong>Most Depleted (Bottom ${N})</strong> <button class="clb-enrichr-btn" data-list="bottom">Enrichr</button>`;
+        const hmBtn = (listKey) => `<button class="clb-heatmap-btn" data-list="${listKey}" title="Open the top genes from this list in the heatmap, on the browser's currently filtered cell lines">Open in heatmap</button>`;
+
+        let gl = `<div class="clb-detail-section"><strong>Most Depleted (Bottom ${N})</strong> <button class="clb-enrichr-btn" data-list="bottom">Enrichr</button> ${hmBtn('bottom')}`;
         gl += `<div style="font-size:11px;">`;
         bottomN.forEach(({ gene, val }) => {
             gl += `<div class="clb-stat-row"><span class="clb-stat-label"><a class="clb-gene-link" data-gene="${gene}" href="#">${gene}</a></span><span class="clb-stat-value">${this.formatNum(val)}</span></div>`;
         });
         gl += `</div></div>`;
 
-        gl += `<div class="clb-detail-section"><strong>Most Enriched (Top ${N})</strong> <button class="clb-enrichr-btn" data-list="top">Enrichr</button>`;
+        gl += `<div class="clb-detail-section"><strong>Most Enriched (Top ${N})</strong> <button class="clb-enrichr-btn" data-list="top">Enrichr</button> ${hmBtn('top')}`;
         gl += `<div style="font-size:11px;">`;
         topN.forEach(({ gene, val }) => {
             gl += `<div class="clb-stat-row"><span class="clb-stat-label"><a class="clb-gene-link" data-gene="${gene}" href="#">${gene}</a></span><span class="clb-stat-value">${this.formatNum(val)}</span></div>`;
@@ -43476,8 +43716,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // Store unique gene lists for Enrichr
             this._clbGeneLists.uniqueLow = extremeLow.map(g => g.gene);
             this._clbGeneLists.uniqueHigh = extremeHigh.map(g => g.gene);
+            this._clbGeneListsFull.uniqueLow = zScores.map(g => g.gene);
+            this._clbGeneListsFull.uniqueHigh = [...zScores].reverse().map(g => g.gene);
 
-            gl += `<div class="clb-detail-section"><strong>Uniquely Depleted vs ${filterLabel}</strong> <button class="clb-enrichr-btn" data-list="uniqueLow">Enrichr</button>`;
+            gl += `<div class="clb-detail-section"><strong>Uniquely Depleted vs ${filterLabel}</strong> <button class="clb-enrichr-btn" data-list="uniqueLow">Enrichr</button> ${hmBtn('uniqueLow')}`;
             gl += `<div style="font-size:10px; color:var(--gray-500); margin-bottom:3px;">Lowest z-score vs visible cell lines (n=${filteredIndices.length})</div>`;
             gl += `<div style="font-size:11px;">`;
             extremeLow.forEach(({ gene, z, val }) => {
@@ -43485,7 +43727,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             });
             gl += `</div></div>`;
 
-            gl += `<div class="clb-detail-section"><strong>Uniquely Enriched vs ${filterLabel}</strong> <button class="clb-enrichr-btn" data-list="uniqueHigh">Enrichr</button>`;
+            gl += `<div class="clb-detail-section"><strong>Uniquely Enriched vs ${filterLabel}</strong> <button class="clb-enrichr-btn" data-list="uniqueHigh">Enrichr</button> ${hmBtn('uniqueHigh')}`;
             gl += `<div style="font-size:10px; color:var(--gray-500); margin-bottom:3px;">Highest z-score vs visible cell lines (n=${filteredIndices.length})</div>`;
             gl += `<div style="font-size:11px;">`;
             extremeHigh.forEach(({ gene, z, val }) => {
