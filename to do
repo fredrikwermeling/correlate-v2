@@ -5,7 +5,7 @@
 - it should be possible to go from the heatmap to the wiki double clicking (?) oir some other way to clidck a column in the heatmap. I also asked several time for the possiblity to click a gene in the yaxis to silience it. could it be possible to select groups of cells (actviating a function fro group or gate A, and B) to select cell s in a or b and to allwo for copying the cell lines from those or to open the cell line browser inspect function absed on group A and B.
 - when I uploaded the export for AI file to chategpt, it asked what to do woth it. make sure any LLM understnad what to do. It seesm like chatGPT doesnt undertand to open the j.son.gz file
 - bu deafult cluster also by celll ine. and also, for the number of treas/cluster to color, suggest what is best.
-
+- when i add a scoed row in heat map, it dosent appear.
 
 
 
