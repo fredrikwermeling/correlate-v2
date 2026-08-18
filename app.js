@@ -6671,9 +6671,14 @@ class CorrelationExplorer {
                 netEnrMenu.style.display = 'none';
                 netEnrBtn.setAttribute('aria-expanded', 'false');
             };
+            // Same touch hardening as the Heatmap menu below: containment
+            // check plus a grace window, because one phone tap can reach the
+            // document closer through events stopPropagation never sees.
+            let netEnrOpenedAt = 0;
             netEnrBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const willOpen = netEnrMenu.style.display !== 'block';
+                if (willOpen) netEnrOpenedAt = Date.now();
                 netEnrMenu.style.display = willOpen ? 'block' : 'none';
                 netEnrBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
             });
@@ -6684,7 +6689,9 @@ class CorrelationExplorer {
                 });
             });
             document.addEventListener('click', (e) => {
-                if (!netEnrMenu.contains(e.target) && e.target !== netEnrBtn) closeNetEnr();
+                if (Date.now() - netEnrOpenedAt < 400) return;
+                if (netEnrBtn.contains(e.target) || netEnrMenu.contains(e.target)) return;
+                closeNetEnr();
             });
             document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNetEnr(); });
         }
@@ -6698,10 +6705,17 @@ class CorrelationExplorer {
                 netHmMenu.style.display = 'none';
                 netHmBtn.setAttribute('aria-expanded', 'false');
             };
+            // On a phone one tap can reach the document closer through events
+            // stopPropagation on the button's click never sees (reported: the
+            // menu flashed for a fraction of a second and closed). Two-part
+            // hardening: the closer ignores anything inside the button or the
+            // menu by containment, and a short grace window after opening
+            // swallows whatever the opening tap still delivers.
+            let netHmOpenedAt = 0;
             netHmBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const willOpen = netHmMenu.style.display !== 'block';
-                if (willOpen) this._netSyncHeatmapMenu();
+                if (willOpen) { this._netSyncHeatmapMenu(); netHmOpenedAt = Date.now(); }
                 netHmMenu.style.display = willOpen ? 'block' : 'none';
                 netHmBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
             });
@@ -6713,7 +6727,9 @@ class CorrelationExplorer {
                 });
             });
             document.addEventListener('click', (e) => {
-                if (!netHmMenu.contains(e.target) && e.target !== netHmBtn) closeNetHm();
+                if (Date.now() - netHmOpenedAt < 400) return;
+                if (netHmBtn.contains(e.target) || netHmMenu.contains(e.target)) return;
+                closeNetHm();
             });
             document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNetHm(); });
         }
@@ -7129,6 +7145,18 @@ class CorrelationExplorer {
             // Reset textarea content from any previous open.
             const ta = document.getElementById('aiQuestion');
             if (ta) ta.value = '';
+            // Format choice defaults to plain .json each time the dialog is
+            // reopened; exportFullAIAnalysis overrides this automatically by
+            // file size unless the user touches a radio (_aiFormatManual).
+            this._aiFormatManual = false;
+            const plainRadio = document.getElementById('aiFormatPlain');
+            if (plainRadio) plainRadio.checked = true;
+            const gzRadio = document.getElementById('aiFormatGz');
+            if (gzRadio) gzRadio.checked = false;
+            const plainSizeEl = document.getElementById('aiFormatPlainSize');
+            if (plainSizeEl) plainSizeEl.textContent = '';
+            const gzSizeEl = document.getElementById('aiFormatGzSize');
+            if (gzSizeEl) gzSizeEl.textContent = '';
             dialog.style.display = 'flex';
 
             const cls = this._getAICellLines(source);
@@ -7167,6 +7195,20 @@ class CorrelationExplorer {
         });
         document.getElementById('aiAnalysisDialog')?.addEventListener('click', (e) => {
             if (e.target.id === 'aiAnalysisDialog') e.target.style.display = 'none';
+        });
+
+        // Once the user picks a format explicitly, exportFullAIAnalysis stops
+        // overriding it by size; left alone, the size-based default applies.
+        document.getElementById('aiFormatPlain')?.addEventListener('change', () => { this._aiFormatManual = true; });
+        document.getElementById('aiFormatGz')?.addEventListener('change', () => { this._aiFormatManual = true; });
+
+        // Copyable instruction line for whatever chat assistant the file
+        // gets uploaded to.
+        document.getElementById('aiCopyInstructionBtn')?.addEventListener('click', () => {
+            const text = document.getElementById('aiInstructionText')?.textContent || '';
+            navigator.clipboard?.writeText(text).then(() => {
+                this.showCopyNotification?.('Instruction copied');
+            });
         });
 
         // Wire all eight source entry points to the same dialog.
@@ -11886,6 +11928,28 @@ class CorrelationExplorer {
             wire(head, body, { open: false });
         });
 
+        // Network -> Heatmap: reported unreachable on a phone because the
+        // sweep just below folds "Export" (and everything after it) into
+        // whichever heading precedes it in the same box, here "View
+        // controls" -- a panel nobody opens on a phone. Hoist the button AND
+        // its menu (one element, so the menu's position:relative anchor
+        // moves with it and there is nothing to keep in sync) out to a small
+        // always-visible bar right above the network canvas, before that
+        // sweep can claim it. Guarded so a re-run (MutationObserver) does
+        // not move an already-hoisted button again.
+        const netHmWrap = scope.querySelector('#networkHeatmapWrap');
+        const netCanvasWrap = scope.querySelector('#networkWrap');
+        if (netHmWrap && netCanvasWrap) {
+            let phoneBar = scope.querySelector('#networkHeatmapPhoneBar');
+            if (!phoneBar) {
+                phoneBar = document.createElement('div');
+                phoneBar.id = 'networkHeatmapPhoneBar';
+                phoneBar.style.cssText = 'display:flex; margin-bottom:8px;';
+                netCanvasWrap.parentElement.insertBefore(phoneBar, netCanvasWrap);
+            }
+            if (netHmWrap.parentElement !== phoneBar) phoneBar.appendChild(netHmWrap);
+        }
+
         scope.querySelectorAll('.panel-heading').forEach(head => {
             const box = head.parentElement;
             if (!box) return;
@@ -12240,6 +12304,10 @@ class CorrelationExplorer {
         this.removeMode = false;
         this.selectMode = false;
         this.selectedNodes.clear();
+        // The removed-genes banner (#removedNodesList) is state-driven, not
+        // auto-hiding: clearing hiddenNodes above did not touch its DOM, so
+        // without this it kept showing the PREVIOUS run's removed genes.
+        this.updateRemovedNodesList();
 
         // Reset physics state for new network
         this.physicsEnabled = true;
@@ -33139,12 +33207,38 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         const jsonStr = JSON.stringify(exportData);
         const compressed = pako.gzip(jsonStr);
+        const uncompressedBytes = new Blob([jsonStr]).size;
 
-        const blob = new Blob([compressed], { type: 'application/gzip' });
+        // Format choice: ChatGPT (and others) cannot open a .json.gz
+        // attachment, so plain JSON is offered and defaults on for anything
+        // under 8 MB uncompressed; past that, compressed is the sane default
+        // and plain stays selectable. The Custom export for AI dialog has no
+        // format radios of its own, so it keeps the original always-gzip
+        // behavior.
+        let useCompressed = true;
+        if (!custom) {
+            const EIGHT_MB = 8 * 1024 * 1024;
+            const manualFormat = this._aiFormatManual
+                ? (document.getElementById('aiFormatGz')?.checked ? 'gz' : 'plain')
+                : null;
+            const autoFormat = uncompressedBytes < EIGHT_MB ? 'plain' : 'gz';
+            useCompressed = (manualFormat || autoFormat) === 'gz';
+            // Sizes are only known now; state them on the format labels.
+            const plainSizeEl = document.getElementById('aiFormatPlainSize');
+            if (plainSizeEl) plainSizeEl.textContent = ` (~${(uncompressedBytes / (1024 * 1024)).toFixed(1)} MB)`;
+            const gzSizeEl = document.getElementById('aiFormatGzSize');
+            if (gzSizeEl) gzSizeEl.textContent = ` (~${(compressed.length / (1024 * 1024)).toFixed(1)} MB)`;
+        }
+
+        const label = analysisGene || context.gene1 || 'analysis';
+        const blob = useCompressed
+            ? new Blob([compressed], { type: 'application/gzip' })
+            : new Blob([jsonStr], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        const label = analysisGene || context.gene1 || 'analysis';
-        a.download = `correlate_export_${source}_${label}_${n}cl.json.gz`;
+        a.download = useCompressed
+            ? `correlate_export_${source}_${label}_${n}cl.json.gz`
+            : `correlate_export_${source}_${label}_${n}cl.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -33159,11 +33253,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.body.removeChild(ia);
         }
 
-        const sizeMB = (compressed.length / (1024 * 1024)).toFixed(1);
+        const sizeMB = ((useCompressed ? compressed.length : uncompressedBytes) / (1024 * 1024)).toFixed(1);
         const infoParts = [`${n} cell lines`, `${Object.keys(geMatrix).length} GE genes`];
         if (exprMatrix) infoParts.push(`${Object.keys(exprMatrix).length} expr genes`);
         if (topCorrelates) infoParts.push(`${topCorrelates.length} correlates`);
-        infoParts.push(`${sizeMB} MB`);
+        infoParts.push(useCompressed ? `${sizeMB} MB` : `${sizeMB} MB, plain .json`);
         setStatus(`Exported: ${infoParts.join(', ')}`);
         return true;
     }

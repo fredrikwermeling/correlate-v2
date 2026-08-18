@@ -2570,6 +2570,13 @@
             #inspectModalInner .modal-header .btn-outline[onclick*="NewTab"],
             #geneEffectModalInner .modal-header .btn-outline[onclick*="NewTab"],
             #corrAnalysisModalInner .modal-header .btn-outline[onclick*="NewTab"] { display: none !important; }
+            /* Network -> Heatmap, view-only on a phone: the grid scroller
+               pans with a finger (default overflow-x:auto, nothing here sets
+               touch-action:none to block it) and the footer's Close button
+               stays a reachable 44px even though .modal-footer isn't covered
+               by the generic .modal-body/.sidebar button upsizing above. */
+            #hmGridScroll { touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
+            #heatmapModal .modal-footer .btn { min-height: 44px !important; }
         }
         /* Expression Correlates needs a mutation-analysis subgroup context, which
            the condensed popout (opened from the Cell Line Browser) doesn't have,
@@ -2625,6 +2632,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.65 (2026-08-18)</strong></p>
+                <ul>
+                    <li><b>Network cleanup, AI files any assistant can open, and the phone heatmap button.</b> Running a new network clears the previous run's removed-genes banner. Export for AI offers a plain .json (chat assistants often cannot open .json.gz), picking the best default by size, with a copyable instruction line for the assistant. On phones the network's Heatmap button now sits above the graph instead of hidden inside the collapsed View controls panel, and its menu no longer flashes closed on a tap; real-device check still pending.</li>
+                </ul>
                 <p><strong>v.88.64 (2026-08-18)</strong></p>
                 <ul>
                     <li><b>The heatmap became hands-on.</b> Double-click a column to open that cell line's wiki. Click a gene name to silence it, removing it from the drawing and the score, with one click to restore. And two gates, A and B: arm a gate, drag across columns to collect cell lines, then copy them, clear them, or open the browser's inspect on exactly that set; gates survive re-sorting because they hold the lines, not the positions.</li>
@@ -6924,7 +6935,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.64</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.65</a>
         </span>
     </div>
 
@@ -7534,7 +7545,7 @@
                                 <button class="btn btn-secondary mobile-hide" onclick="app.copyNetworkToClipboard()" title="Copy the network as an image to the clipboard, legend included, ready to paste into an email or slide">Copy network</button>
                                 <button class="btn btn-secondary" id="downloadNetworkSVG" style="display:none;">SVG</button>
                                 <button class="btn btn-secondary" id="networkAnalyzeWithAI" title="Package this network as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
-                                <span style="position:relative; display:inline-flex; flex:1;">
+                                <span id="networkHeatmapWrap" style="position:relative; display:inline-flex; flex:1;">
                                     <button class="btn btn-secondary" id="networkHeatmapBtn" aria-haspopup="true" aria-expanded="false" style="flex:1;" title="Draw the network's genes as a gene set heatmap">Heatmap &#9662;</button>
                                     <div id="networkHeatmapMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1500; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.14); min-width:230px; padding:4px;">
                                         <div style="font-size:10px; color:#9ca3af; padding:3px 10px 4px;">Which genes to draw?</div>
@@ -8915,10 +8926,10 @@
                 <button id="hmSettingsBtn" class="btn btn-outline btn-sm" style="font-size:11px; font-weight:700;" title="Font sizes and cell dimensions for the heatmap and its exports">Settings</button>
                 <button id="hmExportImageBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px;" title="Choose format, print size and resolution">Export image...</button>
                 <button id="hmCopyBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px;" title="Copy the heatmap as an image to the clipboard, ready to paste into an email or slide">Copy</button>
-                <button id="hmCsvBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="The gene x cell line matrix as data, values as currently shown (z-scored or raw)">.csv</button>
-                <button id="hmCopyGenesBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Copy the genes shown, one per line, in the order they are drawn">Copy genes</button>
-                <button id="hmExportAIBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Package this heatmap for a language model: the gene set, the matrix, the cohort and the grouping, plus a picture of what's on screen">Export for AI</button>
-                <button id="hmSaveViewBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Download this exact heatmap as a small .json file; drop it on the app later to reopen it">Save view</button>
+                <button id="hmCsvBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px;" title="The gene x cell line matrix as data, values as currently shown (z-scored or raw)">.csv</button>
+                <button id="hmCopyGenesBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px;" title="Copy the genes shown, one per line, in the order they are drawn">Copy genes</button>
+                <button id="hmExportAIBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px;" title="Package this heatmap for a language model: the gene set, the matrix, the cohort and the grouping, plus a picture of what's on screen">Export for AI</button>
+                <button id="hmSaveViewBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px;" title="Download this exact heatmap as a small .json file; drop it on the app later to reopen it">Save view</button>
                 <!-- Gates A/B (v.88.64): arm one, then drag horizontally across
                      the grid to collect cell lines into it by column range,
                      keyed by cell line id so a re-sort doesn't lose them. The
@@ -9914,20 +9925,43 @@
 
           <!-- LLM upload suggestion. Claude.ai is the natural fit because the
                aiInstructions in the export are tuned for its analysis style;
-               other LLMs that accept .json.gz attachments work too. -->
+               other LLMs that accept file attachments work too. -->
           <div style="margin-top:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #5d9239; border-radius:0 4px 4px 0; font-size:11px; line-height:1.5;">
             <div style="font-weight:600; color:#4c782e; margin-bottom:3px;">After download:</div>
-            Upload the <code>.json.gz</code> to any language model that accepts file attachments. The embedded <code>aiInstructions</code> were written and tested against Claude, so that is where the wording fits best, but the file is plain JSON and works with other assistants too. The model will open with a one-line description of what you exported, restate your question, then run the analysis.
+            Upload the file to any language model that accepts file attachments. The embedded <code>aiInstructions</code> were written and tested against Claude, so that is where the wording fits best, but the file is JSON (plain or gzipped, your choice below) and works with other assistants too. The model will open with a one-line description of what you exported, restate your question, then run the analysis.
+          </div>
+
+          <!-- Format choice: some chat assistants (ChatGPT among them) cannot
+               open a .json.gz attachment, so plain JSON is offered and is the
+               default whenever the export is small enough for that to be
+               practical; a large export defaults to compressed instead. The
+               size on each label fills in once an export has actually run. -->
+          <div style="margin-top:10px; padding:8px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:4px; font-size:11px;">
+            <div style="font-weight:600; color:#374151; margin-bottom:5px;">File format</div>
+            <label style="display:block; margin-bottom:4px; cursor:pointer;">
+              <input type="radio" name="aiExportFormat" id="aiFormatPlain" value="plain" checked style="margin-right:5px; vertical-align:middle;">Plain .json (best for chat assistants)<span id="aiFormatPlainSize" style="color:#6b7280;"></span>
+            </label>
+            <label style="display:block; cursor:pointer;">
+              <input type="radio" name="aiExportFormat" id="aiFormatGz" value="gz" style="margin-right:5px; vertical-align:middle;">Compressed (.json.gz, smallest)<span id="aiFormatGzSize" style="color:#6b7280;"></span>
+            </label>
           </div>
 
           <div style="display:flex; gap:8px; align-items:center; margin-top:12px;">
             <button class="btn btn-success btn-sm" id="aiExportBtn">Export</button>
             <span id="aiExportStatus" style="font-size:10px; color:#6b7280;"></span>
           </div>
+
+          <!-- Copyable instruction to paste straight into the chat assistant
+               alongside the upload, so the user does not have to explain the
+               file format themselves. -->
+          <div style="margin-top:10px; padding:8px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:4px; font-size:11px; display:flex; gap:8px; align-items:flex-start;">
+            <span id="aiInstructionText" style="flex:1; color:#374151; line-height:1.4;">Instruction for your AI assistant: This file is JSON (if the name ends in .gz, it is gzip-compressed, decompress it first). Start by reading the readMe fields; every section explains itself.</span>
+            <button class="btn btn-outline btn-sm" id="aiCopyInstructionBtn" style="font-size:10px; white-space:nowrap; flex:none;" title="Copy this instruction to the clipboard">Copy</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <script src="app.js?v=v88_64"></script>
+    <script src="app.js?v=v88_65"></script>
 </body>
 </html>
