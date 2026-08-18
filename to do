@@ -1,16 +1,20 @@
-- the clsuter gene and cell lines should be on the same row. the drop down linked to the clustering is not wrorking as i want now it just seems to simplify the drawn lines, i wsa thinking that there probably exist a setting to change how hoigh resploutin is invovled in the vclustering?
-- the heatmap function from netwoork doenst work on the cell phone and perhaps not the ipda
-- in heatmap, the show median is deppending on selecting something to sort by, theis is not correct. the median is unrelated to the sortinhhg
-- in heatmap (comming from network), it shouldn´t close the heatmap if i by accident press outside the heatmap popout
-- it should be possible to go from the heatmap to the wiki double clicking (?) oir some other way to clidck a column in the heatmap. I also asked several time for the possiblity to click a gene in the yaxis to silience it. could it be possible to select groups of cells (actviating a function fro group or gate A, and B) to select cell s in a or b and to allwo for copying the cell lines from those or to open the cell line browser inspect function absed on group A and B.
-- when I uploaded the export for AI file to chategpt, it asked what to do woth it. make sure any LLM understnad what to do. It seesm like chatGPT doesnt undertand to open the j.son.gz file
-- bu deafult cluster also by celll ine. and also, for the number of treas/cluster to color, suggest what is best.
-- when i add a scoed row in heat map, it dosent appear.
-- in network, when i change the settings and press run again, the graph should reset. now tgere are lingering settings from "remove" staed above the network lignering from previous setting
-- the color of the heatmap is a bit unclear. are they normalized to each gene or the full gene set? the differnts between the raw value and the z value is abit uncölear.
+== SHIPPED v.88.62-70 (2026-08-18) ==
 
+All ten items from the 2026-08-18 batch shipped, plus the mid-batch
+additions: clustering row + auto cluster count + clustered/zall/median
+defaults (later revised per request: lineage/disease blocks, score
+inside, TP53 row), median freed from grouping, backdrop-safe heatmap,
+visible new annotation rows + CN rows fixed, wiki double-click, gene
+silencing, gates A/B, plain-.json AI export with assistant
+instructions, network rerun reset, phone heatmap button (confirmed
+working on device), mRNA networks open mRNA heatmaps, open-in-heatmap
+from mutation analysis + browser gene lists with filters carried,
+CRISPR orange/purple vs mRNA blue/red, dendrograms fitting small
+views, and the sort redesign (annotation rows ARE the sort). History
+in git log v.88.62-v.88.70.
 
-
+Phone items still open below (A: rank-control location, B: finger-sized
+network nodes) are unchanged.
 
 == PHONE, still open (2026-08-13, app at v.87.98) ==
 
