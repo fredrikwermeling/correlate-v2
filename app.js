@@ -36829,9 +36829,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 note: `cohort from the mutation analysis (${this._mutResultsCellLines.length} lines)`
             };
         }
-        // One annotation row for the analysed alteration, so hmSort below can
-        // block the mutated/fused lines to one side instead of the split only
-        // showing up as extra colour.
+        // One annotation row for the analysed alteration, toggled on so the
+        // sort below blocks the mutated/fused lines to one side instead of
+        // the split only showing up as extra colour.
         let annMode = null;
         if (mr.isTranslocation) {
             // The annotation row's own fusion mode has no validation of its
@@ -36852,10 +36852,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // "damaging" and CN amp/deletion analysis sub-types cleanly.
             annMode = 'hotspot';
         }
-        this._hmAnnRows = annMode ? [{ mode: annMode, gene: mr.hotspotGene }] : [];
+        this._hmAnnRows = annMode ? [{ mode: annMode, gene: mr.hotspotGene, sortOn: true }] : [];
         this._hmRenderAnnRowsBlock();
-        const sortSel = document.getElementById('hmSort');
-        if (sortSel) sortSel.value = 'annotation';
+        // hmThenBy stays on its 'score' default: the point of this handoff
+        // is the blocked mutated/fused split, with score ordering within it.
         // Clustering defaults on since v.88.63; off here, the point of this
         // handoff is the mutation contrast (blocked left/right by the
         // annotation row), not a similarity tree.
@@ -53476,7 +53476,7 @@ ${clone.innerHTML}
         document.getElementById('hmPreset')?.addEventListener('change', () => { this._hmSyncPresetUI(); this._hmRedraw(); });
         document.getElementById('hmDataType')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmScale')?.addEventListener('change', () => this._hmRedraw());
-        document.getElementById('hmSort')?.addEventListener('change', () => this._hmRedraw());
+        document.getElementById('hmThenBy')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmClusterCells')?.addEventListener('change', (e) => {
             // Turning clustering on with no lineage row already set auto-adds
             // one, so the colour strip under the grid immediately answers "do
@@ -53721,7 +53721,7 @@ ${clone.innerHTML}
         // and swaps hmGroupBy to 'disease' when the cohort about to be drawn
         // already sits in a single lineage.
         set('hmScale', 'zall');
-        set('hmSort', 'score');
+        set('hmThenBy', 'score');
         const clusterCb = document.getElementById('hmClusterCells');
         if (clusterCb) clusterCb.checked = false;
         set('hmClusterK', 'auto');
@@ -53736,7 +53736,10 @@ ${clone.innerHTML}
         // default annotation, and works whether or not clustering is later
         // turned on (which drops the lineage grouping and, per the
         // cluster-checkbox handler below, adds a lineage row of its own
-        // alongside this one so the colours aren't lost).
+        // alongside this one so the colours aren't lost). No sortOn: a fresh
+        // open still sorts by plain score, same as before this row existed;
+        // the lineage grouping above (or disease, in the single-lineage
+        // case) already carries the block structure a toggled row would add.
         this._hmAnnRows = [{ mode: 'hotspot', gene: 'TP53' }];
         [['hmHotspotFilter', 'hmHotspotLevel', '1+2'], ['hmFusionFilter', 'hmFusionLevel', '1+2'], ['hmCnFilter', 'hmCnLevel', 'altered']]
             .forEach(([inputId, levelId, def]) => {
@@ -53835,23 +53838,36 @@ ${clone.innerHTML}
 
     // Cluster cell lines and its cluster-count select disable each other's
     // neighbours in place, same present-but-disabled pattern as the rest of
-    // this toolbar. hmSort is meaningless once the checkbox picks the column
-    // order instead; hmClusterK is meaningless both when the checkbox is off
-    // (nothing to cut) and when Group by is active (groups already partition
-    // the columns, so there is no single tree left to cut). Note: hmGroupOrder
-    // needs no separate handling here, mode === 'none' already disables it
-    // above, and clustering across the whole cohort only ever runs when Group
-    // by is none.
+    // this toolbar. The annotation-row sort toggles and hmThenBy are
+    // meaningless once the checkbox picks the column order instead
+    // (re-applied here on every clustering change so a change that does NOT
+    // also re-render the annotation-rows block, e.g. switching clustering
+    // off with no lineage row to add, still catches up; _hmRenderAnnRowsBlock
+    // reads the same checkbox live on every render of its own); hmClusterK
+    // is meaningless both when the checkbox is off (nothing to cut) and when
+    // Group by is active (groups already partition the columns, so there is
+    // no single tree left to cut). Note: hmGroupOrder needs no separate
+    // handling here, mode === 'none' already disables it above, and
+    // clustering across the whole cohort only ever runs when Group by is
+    // none.
     _hmSyncClusterControls() {
         const groupMode = document.getElementById('hmGroupBy')?.value || 'none';
         const cellsOn = !!document.getElementById('hmClusterCells')?.checked;
         const genesOn = !!document.getElementById('hmClusterGenes')?.checked;
-        const sortSel = document.getElementById('hmSort');
-        if (sortSel) {
-            sortSel.disabled = cellsOn;
-            sortSel.title = cellsOn ? 'Column order comes from the clustering tree while Cluster cell lines is on' : '';
-            sortSel.style.opacity = cellsOn ? '0.45' : '1';
+        const thenBySel = document.getElementById('hmThenBy');
+        if (thenBySel) {
+            thenBySel.disabled = cellsOn;
+            thenBySel.title = cellsOn ? 'Column order comes from the clustering tree while Cluster cell lines is on' : '';
+            thenBySel.style.opacity = cellsOn ? '0.45' : '1';
         }
+        const sortToggleTitle = cellsOn
+            ? 'Column order comes from the clustering tree while Cluster cell lines is on'
+            : 'Sort the columns by this row; rows sort top-down, Row 1 outermost';
+        document.querySelectorAll('.hm-ann-row-sort').forEach(btn => {
+            btn.disabled = cellsOn;
+            btn.style.opacity = cellsOn ? '0.45' : '1';
+            btn.title = sortToggleTitle;
+        });
         const kSel = document.getElementById('hmClusterK');
         if (kSel) {
             const groupActive = groupMode !== 'none';
@@ -53988,7 +54004,9 @@ ${clone.innerHTML}
 
     // Renders the "Annotation rows" block from this._hmAnnRows (up to 4
     // rows: { mode: 'lineage'|'subtype'|'disease'|'hotspot'|'fusion'|'cn',
-    // gene }). Rebuilds the
+    // gene, sortOn }). sortOn (v.88.70) drives the "annotation rows" column
+    // sort: toggled rows order the columns, top-down, Row 1 outermost; see
+    // the sort toggle button below and _hmAnnRowRankMap. Rebuilds the
     // block's DOM from scratch on every call (structural changes only: add,
     // remove, type change), so element ids stay stable per position
     // (hmAnnRow0Type, hmAnnRow0Hotspot, ...) and the searchable gene widgets
@@ -54010,7 +54028,26 @@ ${clone.innerHTML}
             ['cn', 'e.g. MYC', 'Colour this row by this gene\'s curated amplification / deletion status']
         ];
         const cap = (k) => k.charAt(0).toUpperCase() + k.slice(1);
+        // The sort toggle is read live off the Cluster cell lines checkbox
+        // (not synced separately), so a restore or reopen that lands here
+        // with clustering already on renders the toggle disabled from the
+        // first paint rather than waiting for a later sync call to catch up
+        // (_hmSyncClusterControls still re-applies this on every clustering
+        // change that does NOT itself re-render this block, e.g. switching
+        // it off with no lineage row to add).
+        const clusterOn = !!document.getElementById('hmClusterCells')?.checked;
+        const sortToggleTitle = clusterOn
+            ? 'Column order comes from the clustering tree while Cluster cell lines is on'
+            : 'Sort the columns by this row; rows sort top-down, Row 1 outermost';
+        // Precedence badge = this row's position among the TOGGLED rows, in
+        // row order (row order is exactly the sort order, Row 1 outermost),
+        // counted as the map below walks the rows top-down.
+        let sortPrecedence = 0;
         wrap.innerHTML = rows.map((row, i) => {
+            if (row.sortOn) sortPrecedence++;
+            const sortBadge = row.sortOn
+                ? `<span style="position:absolute; top:-5px; right:-5px; background:#111827; color:#fff; border-radius:7px; min-width:13px; height:13px; line-height:13px; font-size:9px; text-align:center; padding:0 2px; pointer-events:none;">${sortPrecedence}</span>` : '';
+            const sortBtn = `<button type="button" class="btn btn-outline btn-sm hm-ann-row-sort" data-idx="${i}" style="font-size:10px; padding:0 6px; position:relative; ${row.sortOn ? 'background:#2563eb; border-color:#2563eb; color:#fff;' : ''} opacity:${clusterOn ? '0.45' : '1'};"${clusterOn ? ' disabled' : ''} title="${this.esc(sortToggleTitle)}">&#8597;${sortBadge}</button>`;
             // Lineage, subtype and disease need no gene; the box shown for
             // them is disabled and cleared rather than hidden outright, the
             // same present-but-disabled pattern used everywhere else in
@@ -54046,6 +54083,7 @@ ${clone.innerHTML}
                         ${TYPE_OPTIONS.map(([v, label]) => `<option value="${v}"${row.mode === v ? ' selected' : ''}>${label}</option>`).join('')}
                     </select>
                     <span style="display:inline-block; width:130px; vertical-align:top;">${slots}</span>
+                    ${sortBtn}
                     <button type="button" class="btn btn-outline btn-sm hm-ann-row-up" data-idx="${i}" style="font-size:10px; padding:0 6px;"${isFirst ? ' disabled' : ''} title="${orderTitle}">&uarr;</button>
                     <button type="button" class="btn btn-outline btn-sm hm-ann-row-down" data-idx="${i}" style="font-size:10px; padding:0 6px;"${isLast ? ' disabled' : ''} title="${orderTitle}">&darr;</button>
                     <button type="button" class="btn btn-outline btn-sm hm-ann-row-remove" data-idx="${i}" style="font-size:10px; padding:0 6px;" title="Remove this row">&times;</button>
@@ -54060,7 +54098,7 @@ ${clone.innerHTML}
             addBtn.disabled = atLimit;
             addBtn.title = atLimit ? 'Up to 4 annotation rows' : 'Add another annotation row';
         }
-        // "Sort: Annotation rows" only has an effect worth knowing about once
+        // The sort-arrow toggles only have an effect worth knowing about once
         // rows exist to block by; present but hidden below that.
         const sortNote = document.getElementById('hmAnnRowsSortNote');
         if (sortNote) sortNote.style.display = rows.length ? '' : 'none';
@@ -54070,6 +54108,11 @@ ${clone.innerHTML}
             typeSel?.addEventListener('change', () => {
                 this._hmAnnRows[i].mode = typeSel.value;
                 if (CATEGORICAL_MODES.has(typeSel.value)) this._hmAnnRows[i].gene = null;
+                this._hmRenderAnnRowsBlock();
+                this._hmRedraw();
+            });
+            wrap.querySelector(`.hm-ann-row-sort[data-idx="${i}"]`)?.addEventListener('click', () => {
+                this._hmAnnRows[i].sortOn = !this._hmAnnRows[i].sortOn;
                 this._hmRenderAnnRowsBlock();
                 this._hmRedraw();
             });
@@ -54158,11 +54201,12 @@ ${clone.innerHTML}
         const dataType = document.getElementById('hmDataType')?.value || 'expr';
         const scaleMode = document.getElementById('hmScale')?.value || 'z';
         const cohortMode = document.getElementById('hmCohort')?.value || 'visible';
-        const sortMode = document.getElementById('hmSort')?.value || 'score';
-        // Cluster cell lines is a checkbox, not a Sort option, so it can be
+        const thenBy = document.getElementById('hmThenBy')?.value === 'name' ? 'name' : 'score';
+        // Cluster cell lines is a checkbox, not a sort control, so it can be
         // live-combined with Group by (cluster within each group) instead of
-        // being mutually exclusive with every other sort. hmSort itself is
-        // disabled in place while this is on (_hmSyncClusterControls).
+        // being mutually exclusive with every other sort. The annotation-row
+        // sort toggles and hmThenBy are disabled in place while this is on
+        // (_hmSyncClusterControls).
         const clusterCells = !!document.getElementById('hmClusterCells')?.checked;
         const clusterKRaw = document.getElementById('hmClusterK')?.value || '0';
         // 'auto' resolves to a concrete number once the whole-cohort tree
@@ -54345,9 +54389,14 @@ ${clone.innerHTML}
         // empty band.
         const annRowsResolved = this._hmResolveAnnotationRows();
         const annRowsNote = annRowsResolved.note || '';
+        // The sort is now the annotation rows themselves: whichever ones are
+        // toggled on, in row order (Row 1 outermost), with hmThenBy as the
+        // terminal comparator inside the innermost blocks (or the whole
+        // order, with zero rows toggled).
+        const sortSpec = { rows: annRowsResolved.rows.filter(r => r.sortOn), thenBy };
 
         this._hmBuildAndPaint({
-            genes, missingGenes, cohort, cohortNote: cohortNote + filterNote + groupNote + annRowsNote, dataType, scaleMode, sortMode,
+            genes, missingGenes, cohort, cohortNote: cohortNote + filterNote + groupNote + annRowsNote, dataType, scaleMode, sortSpec,
             groupByMode, altInfo, groupOrderMode, showMedian, clusterGenes, clusterCells, clusterK, clusterKAuto, lineageLabel, subtypeLabel, diseaseLabel, minGroupSize,
             annotationRows: annRowsResolved.rows
         });
@@ -54510,7 +54559,12 @@ ${clone.innerHTML}
         let note = '';
         for (const row of rows) {
             if (resolved.length >= 4) break;
-            if (row.mode === 'lineage' || row.mode === 'subtype' || row.mode === 'disease') { resolved.push({ mode: row.mode, gene: null }); continue; }
+            // sortOn carries through to the resolved row unchanged: it drives
+            // the "annotation rows" sort (_hmRedrawCore builds sortSpec from
+            // the toggled subset of exactly these resolved rows, in this same
+            // order), independent of whether the row ends up drawn.
+            const sortOn = !!row.sortOn;
+            if (row.mode === 'lineage' || row.mode === 'subtype' || row.mode === 'disease') { resolved.push({ mode: row.mode, gene: null, sortOn }); continue; }
             let raw = (row.gene || '').trim().toUpperCase();
             if (!raw) continue;
             if (row.mode === 'hotspot') {
@@ -54518,7 +54572,7 @@ ${clone.innerHTML}
                     note += `${raw} has no hotspot or damaging mutation data, that annotation row is not drawn. `;
                     continue;
                 }
-                resolved.push({ mode: 'hotspot', gene: raw });
+                resolved.push({ mode: 'hotspot', gene: raw, sortOn });
             } else if (row.mode === 'fusion') {
                 // The fusion gene slot is the same searchable widget the
                 // fusion filter uses, whose picks can carry the legacy
@@ -54526,7 +54580,7 @@ ${clone.innerHTML}
                 // (mirrors the cn fix below, which is the one actually
                 // reported broken), so a decorated pick still resolves.
                 raw = this._stripFusionFilterDecoration(row.gene).trim().toUpperCase();
-                resolved.push({ mode: 'fusion', gene: raw });
+                resolved.push({ mode: 'fusion', gene: raw, sortOn });
             } else {
                 // The cn gene slot is the CN filter widget, whose picks are
                 // the DECORATED panel key ("MYC_amp"/"MYC_del", see
@@ -54542,7 +54596,7 @@ ${clone.innerHTML}
                     note += `${raw} has no curated or measured copy-number data, that annotation row is not drawn. `;
                     continue;
                 }
-                resolved.push({ mode: 'cn', gene: raw });
+                resolved.push({ mode: 'cn', gene: raw, sortOn });
             }
         }
         return { rows: resolved, note };
@@ -54617,50 +54671,42 @@ ${clone.innerHTML}
         return d.clusterKAuto ? `k=${d.clusterK}, auto` : `k=${d.clusterK}`;
     }
 
-    // Names the active cell-line sort, for every mode, so the summary line
-    // and the AI export never leave a reader guessing what order the
-    // columns are actually in. Written for a user who read "Group order: By
-    // score" and assumed the cells were score-sorted while "Sort cell
-    // lines: Lineage" was in fact active, which in a single-lineage view
-    // produced what looked like a random order.
+    // Names the active cell-line sort, so the summary line and the AI export
+    // never leave a reader guessing what order the columns are actually in.
+    // Written for a user who read "Group order: By score" and assumed the
+    // cells were score-sorted while a toggled row was in fact blocking them,
+    // which in a single-block view produced what looked like a random order.
     _hmSortSummary(d) {
-        // Cluster cell lines overrides whatever hmSort holds (it's disabled
-        // in place while this is on), so it's checked first, independent of
-        // sortMode entirely, and covers all three shapes: clustering inside
-        // each group, tree order only, and a tree cut into k clusters.
+        // Cluster cell lines overrides the annotation-row sort entirely
+        // (its toggles and hmThenBy are disabled in place while this is on),
+        // so it's checked first, and covers all three shapes: clustering
+        // inside each group, tree order only, and a tree cut into k clusters.
         if (d.clusterCells) {
             if (d.groupByMode !== 'none') return 'columns clustered within each group (tree per group above the grid)';
             if (d.clustersActive) return `columns clustered, cut into ${d.clusterK} clusters`;
             return 'columns clustered';
         }
-        const sortMode = d.sortMode;
-        // Rows can be added under any sort without switching it (v.88.57):
-        // when they're sitting there unused by score/lineage/name, say so
-        // rather than leaving the mismatch to be noticed by chance. Clustering
-        // is already ruled out above, so reaching here means it's off.
-        const rowsNotUsedNudge = (d.annRows.length && sortMode !== 'annotation')
-            ? ' (annotation rows shown but not sorted on; pick Sort: Annotation rows to block by them)' : '';
-        if (sortMode === 'name') return 'sorted by name' + rowsNotUsedNudge;
-        if (sortMode === 'lineage') {
-            const lineages = new Set(d.orderedCLs.map(cl => this.getCellLineLineage(cl) || 'Not recorded'));
-            // A single-lineage view (the lineage gate narrowed to one, or
-            // the cohort just happens to be one lineage) has nothing left
-            // for a lineage sort to order: the degenerate case explains
-            // itself rather than leaving what looks like a random order
-            // unexplained.
-            return 'sorted by lineage' + (lineages.size <= 1
-                ? ' (all shown lines share one lineage, so this sort has nothing to order; pick Score)' : '') + rowsNotUsedNudge;
-        }
-        if (sortMode === 'annotation') {
-            if (d.annRows.length) {
-                return `sorted by annotation rows (${d.annRows.map(r => r.attrLabel).join(', then ')}), altered first, score within blocks`;
-            }
-            return 'sorted by score (the annotation rows sort needs at least one row; none are set, so this fell back to score)';
-        }
-        return 'sorted by score' + rowsNotUsedNudge;
+        const toggledRows = d.sortSpec?.rows || [];
+        const thenByWord = d.sortSpec?.thenBy === 'name' ? 'name' : 'score';
+        // Rows can be drawn without being toggled on (v.88.57's point, kept
+        // under the new toggle model): when at least one is sitting there
+        // unused by the sort, say so rather than leaving the mismatch to be
+        // noticed by chance.
+        const rowsNotUsedNudge = (d.annRows.length && !toggledRows.length)
+            ? ' (toggle the sort arrows on a row to block by it)' : '';
+        if (!toggledRows.length) return `sorted by ${thenByWord}` + rowsNotUsedNudge;
+        // Column order is lexicographic over the toggled rows, top-down (Row
+        // 1 outermost): named in that same order, categorical rows (no
+        // altered/not-altered axis) noted as ordered by block size.
+        const CATEGORICAL = new Set(['lineage', 'subtype', 'disease']);
+        const rowWords = toggledRows.map(row => {
+            const label = this._hmAnnRowLabel(row.mode, row.gene);
+            return CATEGORICAL.has(row.mode) ? `${label} (by size)` : label;
+        });
+        return `sorted by ${rowWords.join(', then ')}, ${thenByWord} within blocks`;
     }
 
-    _hmBuildAndPaint({ genes, missingGenes, cohort, cohortNote, dataType, scaleMode, sortMode, groupByMode = 'none', altInfo = null, groupOrderMode = 'size', showMedian = false, clusterGenes = true, clusterCells = false, clusterK = 0, clusterKAuto = false, lineageLabel = '', subtypeLabel = '', diseaseLabel = '', minGroupSize = 1, annotationRows = [] }) {
+    _hmBuildAndPaint({ genes, missingGenes, cohort, cohortNote, dataType, scaleMode, sortSpec = { rows: [], thenBy: 'score' }, groupByMode = 'none', altInfo = null, groupOrderMode = 'size', showMedian = false, clusterGenes = true, clusterCells = false, clusterK = 0, clusterKAuto = false, lineageLabel = '', subtypeLabel = '', diseaseLabel = '', minGroupSize = 1, annotationRows = [] }) {
         const geIndexByCL = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
         let cohortIndex = new Map(cohort.map((cl, i) => [cl, i]));
 
@@ -54791,49 +54837,49 @@ ${clone.innerHTML}
             return v;
         });
 
-        // Orders one list of cell lines per `sortMode`. Used both for the
+        // Name comparator for hmThenBy's 'name' option, the same one the old
+        // standalone Name sort used.
+        const nameCompare = (a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+        const thenCompare = sortSpec.thenBy === 'name' ? nameCompare : scoreCompare;
+
+        // Orders one list of cell lines per `sortSpec`. Used both for the
         // whole cohort (no grouping) and for each group's slice in turn
         // (grouping on), so clustering, when chosen, runs within a group
         // rather than across the whole set.
         const orderList = (list, allowCluster) => {
-            // Cluster cell lines overrides hmSort entirely (the select is
-            // disabled in place while it's on): this is the "cluster within
-            // each group" path used when Group by is also active. The
-            // ungrouped, whole-cohort case builds its own tree further down
-            // instead of calling this, since it also needs the tree itself
-            // for the top dendrogram, not just the leaf order.
+            // Cluster cell lines overrides the annotation-row sort entirely
+            // (the toggles and hmThenBy are disabled in place while it's on):
+            // this is the "cluster within each group" path used when Group
+            // by is also active. The ungrouped, whole-cohort case builds its
+            // own tree further down instead of calling this, since it also
+            // needs the tree itself for the top dendrogram, not just the
+            // leaf order.
             if (clusterCells) {
                 if (!allowCluster) return sortByScore(list);
                 return this._hmClusterOrder(list, vectorsFor(list), cl => clScore.get(cl));
             }
-            if (sortMode === 'lineage') {
-                return list.slice().sort((a, b) => {
-                    const la = this.getCellLineLineage(a) || '', lb = this.getCellLineLineage(b) || '';
-                    if (la !== lb) return la.localeCompare(lb);
-                    const sa = this.getCellLineSublineage(a) || '', sb = this.getCellLineSublineage(b) || '';
-                    if (sa !== sb) return sa.localeCompare(sb);
-                    return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
-                });
-            }
-            if (sortMode === 'name') {
-                return list.slice().sort((a, b) => this.getCellLineName(a).localeCompare(this.getCellLineName(b)));
-            }
-            // Blocks columns by the annotation rows in order (row 1
-            // outermost): altered/highest first within each row, lexico-
-            // graphic across rows, then the score sort as the final
-            // tie-break so expression ordering survives within every block.
-            // Falls through to score (below) when there are zero annotation
-            // rows, same as choosing Score directly.
-            if (sortMode === 'annotation' && annotationRows.length) {
-                return list.slice().sort((a, b) => {
-                    for (const row of annotationRows) {
-                        const c = this._hmAnnRowSortCompare(row, a, b);
-                        if (c !== 0) return c;
-                    }
-                    return scoreCompare(a, b);
-                });
-            }
-            return sortByScore(list);
+            // Zero rows toggled: hmThenBy alone is the whole sort, same as
+            // it always was for a bare Score/Name pick.
+            if (!sortSpec.rows.length) return list.slice().sort(thenCompare);
+            // Blocks columns by the toggled annotation rows in row order
+            // (Row 1 outermost): altered/highest first for an alteration
+            // row, biggest category first for a lineage/subtype/disease row
+            // (_hmAnnRowRankMap), lexicographic across rows, then hmThenBy as
+            // the final tie-break inside the innermost blocks. One rank map
+            // per row, built once here rather than inside the comparator, so
+            // an O(n log n) sort doesn't redo an O(cohort) category count on
+            // every pairwise compare.
+            const rankers = sortSpec.rows.map(row => ({
+                valueFor: this._hmAnnRowValueFor(row.mode, row.gene),
+                rankMap: this._hmAnnRowRankMap(row.mode, row.gene, cohort)
+            }));
+            return list.slice().sort((a, b) => {
+                for (const { valueFor, rankMap } of rankers) {
+                    const ra = rankMap.get(valueFor(a)) ?? 0, rb = rankMap.get(valueFor(b)) ?? 0;
+                    if (ra !== rb) return ra - rb;
+                }
+                return thenCompare(a, b);
+            });
         };
 
         // Mean/median of the shown genes over one list of cell lines: the
@@ -55062,7 +55108,7 @@ ${clone.innerHTML}
 
         this._hmData = {
             genes, orderedGenes, geneTree, cohort, orderedCLs, geneIndexInResult, cohortIndex,
-            rawRows, scaledRows, dataType, scaleMode, sortMode, domain, missingGenes, zAllN,
+            rawRows, scaledRows, dataType, scaleMode, sortSpec, domain, missingGenes, zAllN,
             groups, groupByMode, altInfo, groupOrderMode, showMedian, hiddenCount,
             lineageLabel, subtypeLabel, diseaseLabel, annRows, noDataCount, hideNoDataChecked, allNACellLines,
             clusterCells, clusterK, clusterKAuto: clusterKAuto && clustersActive, clustersActive, colTree, hasTopDendro,
@@ -55092,30 +55138,43 @@ ${clone.innerHTML}
         };
     }
 
-    // Numeric "how altered" rank for one row's category, highest = most
-    // altered = sorts first (leftmost) under the "annotation rows" sort.
-    // Lineage, subtype and disease have no altered/not-altered axis, so
-    // they aren't ranked here; the sort compares their category name
-    // alphabetically instead.
-    _hmAnnRowRank(mode, category) {
-        const RANKS = {
-            hotspot: { 'Wild-type': 0, 'One copy': 1, 'Both copies': 2 },
-            fusion: { 'No fusion': 0, 'Fused': 1 },
-            cn: { 'No event': 0, 'Del': 1, 'Deep del': 2, 'Amp': 3, 'Deep amp': 4 }
+    // Category -> priority map (0 = sorts first / leftmost) for one toggled
+    // annotation row under the "annotation rows" sort, built once per row per
+    // redraw and reused for every pairwise compare rather than recomputed
+    // per pair. Alteration rows (hotspot/fusion/cn) rank altered-first, the
+    // exact waterfall order their own strip legend already draws in
+    // (_hmBuildAnnotation2's fixed `order` for those modes). Lineage,
+    // subtype and disease have no altered/not-altered axis, so they rank by
+    // category size within `cohort` (the whole drawn cohort, not just
+    // whatever slice is being sorted, so every group's blocks agree on which
+    // category counts as "biggest"), ties A-Z: the same size-first order
+    // _hmBuildAnnotation2 computes for its own legend/colour assignment.
+    _hmAnnRowRankMap(mode, gene, cohort) {
+        const ALTERED_FIRST = {
+            hotspot: ['Both copies', 'One copy', 'Wild-type'],
+            fusion: ['Fused', 'No fusion'],
+            cn: ['Deep amp', 'Amp', 'Deep del', 'Del', 'No event']
         };
-        return RANKS[mode]?.[category] ?? 0;
+        const rankMap = new Map();
+        if (ALTERED_FIRST[mode]) {
+            ALTERED_FIRST[mode].forEach((label, i) => rankMap.set(label, i));
+            return rankMap;
+        }
+        const valueFor = this._hmAnnRowValueFor(mode, gene);
+        const counts = new Map();
+        for (const cl of cohort) { const v = valueFor(cl); counts.set(v, (counts.get(v) || 0) + 1); }
+        const order = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b));
+        order.forEach((label, i) => rankMap.set(label, i));
+        return rankMap;
     }
 
-    // Comparator for one annotation row under the "annotation rows" sort:
-    // altered/highest first for hotspot, fusion and CN rows; alphabetical
-    // by category name for a lineage, subtype or disease row (there's no
-    // "altered" axis to rank). Uses the exact same category function
-    // _hmBuildAnnotation2 uses to colour the strip, so sort order and strip
-    // colour can never disagree.
-    _hmAnnRowSortCompare(row, a, b) {
-        const valueFor = this._hmAnnRowValueFor(row.mode, row.gene);
-        if (row.mode === 'lineage' || row.mode === 'subtype' || row.mode === 'disease') return valueFor(a).localeCompare(valueFor(b));
-        return this._hmAnnRowRank(row.mode, valueFor(b)) - this._hmAnnRowRank(row.mode, valueFor(a));
+    // One annotation row's display label ("Lineage", "TP53 mutation", "MYC
+    // CN", ...): shared by the strip painter (_hmBuildAnnotation2's
+    // attrLabel) and the sort summary (_hmSortSummary), so a row's name in
+    // the summary text and on its own strip can never drift apart.
+    _hmAnnRowLabel(mode, gene) {
+        return mode === 'lineage' ? 'Lineage' : mode === 'subtype' ? 'Subtype' : mode === 'disease' ? 'Disease'
+            : mode === 'hotspot' ? `${gene} mutation` : mode === 'fusion' ? `${gene} fusion` : `${gene} CN`;
     }
 
     // Qualitative palette for the group annotation strip: distinct at a
@@ -55188,8 +55247,7 @@ ${clone.innerHTML}
             'Del': '#93c5fd', 'Deep del': '#1e40af',
             'No fusion': '#f3f4f6', 'Fused': '#dc2626'
         };
-        const attrLabel = mode === 'lineage' ? 'Lineage' : mode === 'subtype' ? 'Subtype' : mode === 'disease' ? 'Disease'
-            : mode === 'hotspot' ? `${gene} mutation` : mode === 'fusion' ? `${gene} fusion` : `${gene} CN`;
+        const attrLabel = this._hmAnnRowLabel(mode, gene);
         const valueFor = this._hmAnnRowValueFor(mode, gene);
         const values = orderedCLs.map(valueFor);
         const counts = new Map();
@@ -57374,7 +57432,7 @@ ${clone.innerHTML}
             cn: val('hmCnFilter'),
             cnLevel: val('hmCnLevel') || 'altered',
             hideNoData: checked('hmHideNoData'),
-            sort: val('hmSort') || 'score',
+            thenBy: val('hmThenBy') === 'name' ? 'name' : 'score',
             groupBy: val('hmGroupBy') || 'none',
             groupGene: val('hmGroupGene'),
             groupOrder: val('hmGroupOrder') || 'size',
@@ -57383,7 +57441,10 @@ ${clone.innerHTML}
             clusterGenes: checked('hmClusterGenes'),
             clusterCells: checked('hmClusterCells'),
             clusterK: val('hmClusterK') === 'auto' ? 'auto' : (parseInt(val('hmClusterK'), 10) || 0),
-            annRows: (this._hmAnnRows || []).map(r => ({ mode: r.mode, gene: r.gene || null })),
+            // v.88.70: rows now carry their own sortOn (replacing the retired
+            // hmSort select, migrated on read by _hmRestoreView for a file
+            // saved before this version).
+            annRows: (this._hmAnnRows || []).map(r => ({ mode: r.mode, gene: r.gene || null, sortOn: !!r.sortOn })),
             hiddenGroups: this._hmHiddenGroups ? [...this._hmHiddenGroups] : [],
             drillCells: this._hmDrillCells ? [...this._hmDrillCells] : null,
             drillLabel: this._hmDrillLabel || null,
@@ -57447,7 +57508,9 @@ ${clone.innerHTML}
         });
 
         setChecked('hmHideNoData', state.hideNoData);
-        set('hmSort', state.sort);
+        // hmThenBy itself is set further down, after the old hmSort ->
+        // toggle/then-by migration below (that migration can add or toggle
+        // an annotation row, which has to land in this._hmAnnRows first).
         setChecked('hmClusterGenes', state.clusterGenes);
         setChecked('hmClusterCells', state.clusterCells);
         set('hmClusterK', state.clusterK != null ? String(state.clusterK) : '0');
@@ -57482,7 +57545,41 @@ ${clone.innerHTML}
         this._hmSyncClusterControls();
 
         // State living outside form controls: set after the open-reset.
-        this._hmAnnRows = Array.isArray(state.annRows) ? state.annRows.map(r => ({ mode: r.mode, gene: r.gene || null })) : [];
+        this._hmAnnRows = Array.isArray(state.annRows) ? state.annRows.map(r => ({ mode: r.mode, gene: r.gene || null, sortOn: !!r.sortOn })) : [];
+        // v.88.70 retired hmSort/state.sort in favour of each row's own
+        // sortOn plus hmThenBy/state.thenBy. A file saved before v.88.70 has
+        // no thenBy field at all, only the old sort string; migrated here so
+        // reopening one never silently changes what it draws:
+        //   sort:'score'|'name'  -> thenBy the same, no rows toggled (the
+        //                           mapping above already leaves sortOn
+        //                           false on every row, since old rows never
+        //                           had that field)
+        //   sort:'lineage'       -> thenBy 'score', a lineage row toggled on
+        //                           (added if none of the restored rows are
+        //                           one; the old sort's subtype secondary is
+        //                           just the lineage row's own by-size
+        //                           category order now, nothing else to add)
+        //   sort:'annotation'    -> thenBy 'score', every restored row
+        //                           toggled on (that sort used all of them)
+        // A new-format file (state.thenBy present) needs none of this: its
+        // rows already carry their own real sortOn, mapped above.
+        let thenBy = state.thenBy === 'name' ? 'name' : 'score';
+        if (state.thenBy == null && typeof state.sort === 'string') {
+            if (state.sort === 'name') {
+                thenBy = 'name';
+            } else if (state.sort === 'lineage') {
+                thenBy = 'score';
+                const lineageRows = this._hmAnnRows.filter(r => r.mode === 'lineage');
+                if (lineageRows.length) lineageRows.forEach(r => { r.sortOn = true; });
+                else this._hmAnnRows.push({ mode: 'lineage', gene: null, sortOn: true });
+            } else if (state.sort === 'annotation') {
+                thenBy = 'score';
+                this._hmAnnRows.forEach(r => { r.sortOn = true; });
+            } else {
+                thenBy = 'score';
+            }
+        }
+        set('hmThenBy', thenBy);
         this._hmRenderAnnRowsBlock();
         this._hmHiddenGroups = new Set(Array.isArray(state.hiddenGroups) ? state.hiddenGroups : []);
         // Pre-set the signature the next redraw would otherwise compute
