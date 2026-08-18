@@ -2,7 +2,7 @@
 - the heatmap function from netwoork doenst work on the cell phone and perhaps not the ipda
 - in heatmap, the show median is deppending on selecting something to sort by, theis is not correct. the median is unrelated to the sortinhhg
 - in heatmap (comming from network), it shouldn´t close the heatmap if i by accident press outside the heatmap popout
-
+- it should be possible to go from the heatmap to the wiki double clicking (?) oir some other way to clidck a column in the heatmap. I also asked several time for the possiblity to click a gene in the yaxis to silience it.
 
 
 
