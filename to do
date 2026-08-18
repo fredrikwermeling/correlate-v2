@@ -6,7 +6,7 @@
 - when I uploaded the export for AI file to chategpt, it asked what to do woth it. make sure any LLM understnad what to do. It seesm like chatGPT doesnt undertand to open the j.son.gz file
 - bu deafult cluster also by celll ine. and also, for the number of treas/cluster to color, suggest what is best.
 - when i add a scoed row in heat map, it dosent appear.
-
+- in network, when i change the settings and press run again, the graph should reset. now tgere are lingering settings from "remove" staed above the network lignering from previous setting
 
 
 == PHONE, still open (2026-08-13, app at v.87.98) ==
