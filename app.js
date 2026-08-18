@@ -11995,6 +11995,19 @@ class CorrelationExplorer {
         };
         setLabel('showGeneEffect', expr ? 'Show expression in label' : 'Show gene effect (GE) in label');
         setLabel('colorByGeneEffect', expr ? 'Color by expression' : 'Color by GE');
+
+        // Signed vs Absolute only makes sense for gene effect, which is
+        // centered on zero; expression (log2 TPM+1) is never negative and
+        // always uses one sequential scale (updateNetworkColors), so that
+        // choice is moot in mRNA mode. Disabled rather than relabeled: there
+        // is no "mRNA" equivalent of "signed vs absolute" to name it with.
+        document.querySelectorAll('input[name="colorGEType"]').forEach(radio => {
+            radio.disabled = expr;
+            const label = radio.parentElement;
+            if (!label) return;
+            label.style.opacity = expr ? '0.5' : '';
+            label.title = expr ? 'Not used for mRNA: expression coloring always uses one scale.' : '';
+        });
     }
 
     displayNetwork() {
@@ -13342,6 +13355,36 @@ class CorrelationExplorer {
         return vis.length ? vis : all;
     }
 
+    // Robust bounds for expression-mode node coloring: the 2nd-98th
+    // percentile of the values actually shown, so one very high (or very
+    // low) outlier gene does not compress everyone else onto one shade.
+    // meanEffect in expression mode is log2(TPM+1), always >= 0, with no
+    // natural zero-centered range the way gene effect has, so the coloring
+    // has to be scaled to whatever the shown genes actually span.
+    _networkExprBounds(values) {
+        const v = (values || []).filter(x => x !== undefined && !isNaN(x)).slice().sort((a, b) => a - b);
+        if (!v.length) return { lo: 0, hi: 1 };
+        const pct = (p) => {
+            const idx = p * (v.length - 1);
+            const lo = Math.floor(idx), hi = Math.ceil(idx);
+            return lo === hi ? v[lo] : v[lo] + (v[hi] - v[lo]) * (idx - lo);
+        };
+        let lo = pct(0.02), hi = pct(0.98);
+        if (hi <= lo) { lo = v[0]; hi = v[v.length - 1]; } // small sample: percentiles collapsed, fall back to the extremes
+        if (hi <= lo) hi = lo + 1; // every shown gene has the same value
+        return { lo, hi };
+    }
+
+    // Expression-mode node color: sequential white -> dark green, the same
+    // ramp the heatmap uses for raw expression (_hmSequentialGreen),
+    // normalised to the bounds above. A gene with no expression value gets
+    // the same neutral grey gene-effect mode uses for a missing value.
+    _networkExprColor(value, bounds) {
+        if (value === undefined || isNaN(value)) return '#cccccc';
+        const t = Math.max(0, Math.min(1, (value - bounds.lo) / (bounds.hi - bounds.lo)));
+        return this._hmSequentialGreen(t);
+    }
+
     updateEdgeLegend(edgeWidthBase, cutoff) {
         const legendEl = document.getElementById('legendEdgeThickness');
         if (!legendEl) return;
@@ -14484,7 +14527,27 @@ Results:
             const gradientHeight = 18;
             const gradY = legendY + 18;
 
-            if (colorGEType === 'signed') {
+            if (this.results?.basis === 'expr') {
+                // Sequential white -> dark green, matching the live legend
+                // and the heatmap's raw-expression look, on the same robust
+                // (2nd-98th percentile) bounds used to color the nodes.
+                const bounds = this._networkExprBounds(effectValues);
+
+                const gradient = ctx.createLinearGradient(legendX, 0, legendX + gradientWidth, 0);
+                gradient.addColorStop(0, 'rgb(255,255,255)');
+                gradient.addColorStop(1, 'rgb(6,78,44)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(legendX, gradY, gradientWidth, gradientHeight);
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(legendX, gradY, gradientWidth, gradientHeight);
+
+                ctx.fillStyle = '#333';
+                ctx.font = smallFont;
+                ctx.fillText(bounds.lo.toFixed(2), legendX, gradY + gradientHeight + 16);
+                ctx.fillText('mRNA expression (log2 TPM+1)', legendX, gradY - 4);
+                ctx.fillText(bounds.hi.toFixed(2), legendX + gradientWidth - 25, gradY + gradientHeight + 16);
+            } else if (colorGEType === 'signed') {
                 // effectValues can be empty (an all-NaN or empty cluster set),
                 // and Math.min of nothing is Infinity, which then printed as
                 // "Infinity" on the legend.
@@ -14728,6 +14791,10 @@ Results:
         <stop offset="50%" style="stop-color:#fdae61;stop-opacity:1" />
         <stop offset="100%" style="stop-color:#f5f5f5;stop-opacity:1" />
     </linearGradient>
+    <linearGradient id="exprGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" style="stop-color:rgb(255,255,255);stop-opacity:1" />
+        <stop offset="100%" style="stop-color:rgb(6,78,44);stop-opacity:1" />
+    </linearGradient>
 </defs>
 <style>
   .node-label { font-family: Arial, sans-serif; font-size: 14px; fill: #333; }
@@ -14853,7 +14920,16 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
             const gradientHeight = 18;
             const gradY = legendY + 18;
 
-            if (colorGEType === 'signed') {
+            if (this.results?.basis === 'expr') {
+                // Sequential white -> dark green, on the same robust
+                // (2nd-98th percentile) bounds used to color the nodes.
+                const bounds = this._networkExprBounds(effectValues);
+
+                svg += `  <rect x="${legendX}" y="${gradY}" width="${gradientWidth}" height="${gradientHeight}" fill="url(#exprGradient)" stroke="#999"/>\n`;
+                svg += `  <text x="${legendX}" y="${gradY + gradientHeight + 16}" class="legend-small">${bounds.lo.toFixed(2)}</text>\n`;
+                svg += `  <text x="${legendX}" y="${gradY - 4}" class="legend-small">mRNA expression (log2 TPM+1)</text>\n`;
+                svg += `  <text x="${legendX + gradientWidth - 25}" y="${gradY + gradientHeight + 16}" class="legend-small">${bounds.hi.toFixed(2)}</text>\n`;
+            } else if (colorGEType === 'signed') {
                 // effectValues can be empty (an all-NaN or empty cluster set),
                 // and Math.min of nothing is Infinity, which then printed as
                 // "Infinity" on the legend.
@@ -15036,11 +15112,15 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
             const baseName = this._decorateNodeLabel(node.isSynonym ? `${node.id}*` : node.id);
             let label = baseName;
 
+            // "GE" for gene effect basis, "Expr" for expression basis: this
+            // text is drawn directly on the node, so a stale "GE" prefix
+            // when the analysis was run on mRNA is visible on every node.
+            const blPrefix = this.results?.basis === 'expr' ? 'Expr' : 'GE';
             if (showGE && cluster) {
                 if (showSD && cluster.sdEffect) {
-                    label = `${baseName}\n(GE:${cluster.meanEffect}±${cluster.sdEffect})`;
+                    label = `${baseName}\n(${blPrefix}:${cluster.meanEffect}±${cluster.sdEffect})`;
                 } else {
-                    label = `${baseName}\n(GE:${cluster.meanEffect})`;
+                    label = `${baseName}\n(${blPrefix}:${cluster.meanEffect})`;
                 }
             }
 
@@ -15083,12 +15163,14 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
             const baseName = this._decorateNodeLabel(node.isSynonym ? `${node.id}*` : node.id);
             let label = baseName;
 
-            // Add gene effect if checked
+            // Add gene effect if checked. "GE" for gene effect basis, "Expr"
+            // for expression basis, since this text is drawn on the node.
+            const blPrefix = this.results?.basis === 'expr' ? 'Expr' : 'GE';
             if (showGE && cluster) {
                 if (showSD && cluster.sdEffect) {
-                    label = `${baseName}\n(GE:${cluster.meanEffect}±${cluster.sdEffect})`;
+                    label = `${baseName}\n(${blPrefix}:${cluster.meanEffect}±${cluster.sdEffect})`;
                 } else {
-                    label = `${baseName}\n(GE:${cluster.meanEffect})`;
+                    label = `${baseName}\n(${blPrefix}:${cluster.meanEffect})`;
                 }
             }
 
@@ -15152,7 +15234,32 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
             });
             const effectValues = visibleEffects.length > 0 ? visibleEffects : this.results.clusters.map(c => c.meanEffect).filter(v => !isNaN(v));
 
-            if (colorGEType === 'signed') {
+            if (this.results?.basis === 'expr') {
+                // Expression values (log2 TPM+1) are never negative, so the
+                // signed gene-effect ramp (centred at 0) pushed all of them
+                // onto one half of the scale while the legend still spanned
+                // the full signed range. Sequential white -> dark green
+                // instead, matching the heatmap's raw-expression look,
+                // normalised to the robust range of the genes actually shown.
+                const bounds = this._networkExprBounds(effectValues);
+
+                this.networkData.nodes.forEach(node => {
+                    const effect = effectMap.get(node.id);
+                    updates.push({
+                        id: node.id,
+                        color: { background: this._networkExprColor(effect, bounds), border: '#000000' }
+                    });
+                });
+
+                if (colorLegend) colorLegend.innerHTML = `
+                    <div class="legend-item">mRNA expression (log2 TPM+1)</div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span style="font-size: 10px;">${bounds.lo.toFixed(2)}</span>
+                        <div style="width: 80px; height: 12px; background: linear-gradient(to right, rgb(255,255,255), rgb(6,78,44)); border-radius: 2px; border: 1px solid #d1d5db;"></div>
+                        <span style="font-size: 10px;">${bounds.hi.toFixed(2)}</span>
+                    </div>
+                `;
+            } else if (colorGEType === 'signed') {
                 // effectValues can be empty (an all-NaN or empty cluster set),
                 // and Math.min of nothing is Infinity, which then printed as
                 // "Infinity" on the legend.
@@ -16752,7 +16859,27 @@ Results:
             const gradientHeight = 18;
             const gradY = legendY + 18;
 
-            if (colorGEType === 'signed') {
+            if (this.results?.basis === 'expr') {
+                // Sequential white -> dark green, matching the live legend
+                // and the heatmap's raw-expression look, on the same robust
+                // (2nd-98th percentile) bounds used to color the nodes.
+                const bounds = this._networkExprBounds(effectValues);
+
+                const gradient = ctx.createLinearGradient(legendX, 0, legendX + gradientWidth, 0);
+                gradient.addColorStop(0, 'rgb(255,255,255)');
+                gradient.addColorStop(1, 'rgb(6,78,44)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(legendX, gradY, gradientWidth, gradientHeight);
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(legendX, gradY, gradientWidth, gradientHeight);
+
+                ctx.fillStyle = '#333';
+                ctx.font = smallFont;
+                ctx.fillText(bounds.lo.toFixed(2), legendX, gradY + gradientHeight + 16);
+                ctx.fillText('mRNA expression (log2 TPM+1)', legendX, gradY - 4);
+                ctx.fillText(bounds.hi.toFixed(2), legendX + gradientWidth - 25, gradY + gradientHeight + 16);
+            } else if (colorGEType === 'signed') {
                 // effectValues can be empty (an all-NaN or empty cluster set),
                 // and Math.min of nothing is Infinity, which then printed as
                 // "Infinity" on the legend.
@@ -16939,6 +17066,10 @@ Results:
         <stop offset="50%" style="stop-color:#fdae61;stop-opacity:1" />
         <stop offset="100%" style="stop-color:#f5f5f5;stop-opacity:1" />
     </linearGradient>
+    <linearGradient id="exprGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" style="stop-color:rgb(255,255,255);stop-opacity:1" />
+        <stop offset="100%" style="stop-color:rgb(6,78,44);stop-opacity:1" />
+    </linearGradient>
 </defs>
 <style>
   .node-label { font-family: Arial, sans-serif; font-size: 14px; fill: #333; }
@@ -17057,7 +17188,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const gradientHeight = 18;
             const gradY = legendY + 18;
 
-            if (colorGEType === 'signed') {
+            if (this.results?.basis === 'expr') {
+                // Sequential white -> dark green, on the same robust
+                // (2nd-98th percentile) bounds used to color the nodes.
+                const bounds = this._networkExprBounds(effectValues);
+
+                svg += `  <rect x="${legendX}" y="${gradY}" width="${gradientWidth}" height="${gradientHeight}" fill="url(#exprGradient)" stroke="#999"/>\n`;
+                svg += `  <text x="${legendX}" y="${gradY + gradientHeight + 16}" class="legend-small">${bounds.lo.toFixed(2)}</text>\n`;
+                svg += `  <text x="${legendX}" y="${gradY - 4}" class="legend-small">mRNA expression (log2 TPM+1)</text>\n`;
+                svg += `  <text x="${legendX + gradientWidth - 25}" y="${gradY + gradientHeight + 16}" class="legend-small">${bounds.hi.toFixed(2)}</text>\n`;
+            } else if (colorGEType === 'signed') {
                 // effectValues can be empty (an all-NaN or empty cluster set),
                 // and Math.min of nothing is Infinity, which then printed as
                 // "Infinity" on the legend.

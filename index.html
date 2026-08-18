@@ -2632,6 +2632,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.66 (2026-08-18)</strong></p>
+                <ul>
+                    <li><b>Colouring the network by expression now looks like expression.</b> mRNA values were being pushed through the signed gene-effect colour ramp centred at zero, so every node landed on one half, flat colours under a wide-looking legend still labelled gene effect. Expression mode now uses the same white-to-green scale as the heatmap's raw expression, fitted to the shown values, the legend says mRNA expression (log2 TPM+1) with real bounds, node labels read Expr instead of GE, and the signed/absolute choice greys out where it has no meaning. Gene-effect colouring is unchanged.</li>
+                </ul>
                 <p><strong>v.88.65 (2026-08-18)</strong></p>
                 <ul>
                     <li><b>Network cleanup, AI files any assistant can open, and the phone heatmap button.</b> Running a new network clears the previous run's removed-genes banner. Export for AI offers a plain .json (chat assistants often cannot open .json.gz), picking the best default by size, with a copyable instruction line for the assistant. On phones the network's Heatmap button now sits above the graph instead of hidden inside the collapsed View controls panel, and its menu no longer flashes closed on a tap; real-device check still pending.</li>
@@ -6935,7 +6939,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.65</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.66</a>
         </span>
     </div>
 
@@ -9962,6 +9966,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_65"></script>
+    <script src="app.js?v=v88_66"></script>
 </body>
 </html>
