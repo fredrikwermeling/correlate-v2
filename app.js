@@ -14582,11 +14582,13 @@ Results:
                 const minEffect = effectValues.length ? Math.min(...effectValues) : 0;
                 const maxEffect = effectValues.length ? Math.max(...effectValues) : 0;
 
-                // Red (negative) to White (0) to Blue (positive)
+                // Orange (negative) to White (0) to Purple (positive), gene
+                // effect's own palette since v.88.68 (never the red/blue used
+                // for expression or the LFC-stats legend below).
                 const gradient = ctx.createLinearGradient(legendX, 0, legendX + gradientWidth, 0);
-                gradient.addColorStop(0, '#b2182b');
+                gradient.addColorStop(0, '#e66101');
                 gradient.addColorStop(0.5, '#f7f7f7');
-                gradient.addColorStop(1, '#2166ac');
+                gradient.addColorStop(1, '#5e3c99');
                 ctx.fillStyle = gradient;
                 ctx.fillRect(legendX, gradY, gradientWidth, gradientHeight);
                 ctx.strokeStyle = '#999';
@@ -14656,7 +14658,10 @@ Results:
                 const minLfc = Math.min(...lfcValues);
                 const maxLfc = Math.max(...lfcValues);
 
-                // Draw gradient - Red (negative) to White (0) to Blue (positive)
+                // Draw gradient - Red (negative) to White (0) to Blue (positive).
+                // This is the generic "Colour by stats" LFC feature (any
+                // user-pasted differential data), not gene effect, so it keeps
+                // the old red/blue pair unchanged (v.88.68).
                 const gradient = ctx.createLinearGradient(legendX, 0, legendX + gradientWidth, 0);
                 gradient.addColorStop(0, '#b2182b');
                 gradient.addColorStop(0.5, '#f7f7f7');
@@ -14808,6 +14813,11 @@ Results:
         <stop offset="0%" style="stop-color:#b2182b;stop-opacity:1" />
         <stop offset="50%" style="stop-color:#f7f7f7;stop-opacity:1" />
         <stop offset="100%" style="stop-color:#2166ac;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="signedGradientGE" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" style="stop-color:#e66101;stop-opacity:1" />
+        <stop offset="50%" style="stop-color:#f7f7f7;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#5e3c99;stop-opacity:1" />
     </linearGradient>
     <linearGradient id="absGradient" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" style="stop-color:#f5f5f5;stop-opacity:1" />
@@ -14964,7 +14974,7 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
                 const minEffect = effectValues.length ? Math.min(...effectValues) : 0;
                 const maxEffect = effectValues.length ? Math.max(...effectValues) : 0;
 
-                svg += `  <rect x="${legendX}" y="${gradY}" width="${gradientWidth}" height="${gradientHeight}" fill="url(#signedGradient)" stroke="#999"/>\n`;
+                svg += `  <rect x="${legendX}" y="${gradY}" width="${gradientWidth}" height="${gradientHeight}" fill="url(#signedGradientGE)" stroke="#999"/>\n`;
                 svg += `  <text x="${legendX}" y="${gradY + gradientHeight + 16}" class="legend-small">${minEffect.toFixed(2)}</text>\n`;
                 svg += `  <text x="${legendX}" y="${gradY - 4}" class="legend-small">Gene Effect (+/−)</text>\n`;
                 svg += `  <text x="${legendX + gradientWidth - 25}" y="${gradY + gradientHeight + 16}" class="legend-small">${maxEffect.toFixed(2)}</text>\n`;
@@ -15300,9 +15310,11 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
                     let bgColor = '#cccccc';
 
                     if (effect !== undefined && !isNaN(effect)) {
-                        // Red (negative) to White (0) to Blue (positive)
+                        // Orange (negative, dependency) to White (0) to Purple
+                        // (positive, dispensable): gene effect's own palette
+                        // since v.88.68, never the red/blue used for expression.
                         const normalized = (effect + maxAbs) / (2 * maxAbs);
-                        bgColor = this.interpolateColor('#b2182b', '#f7f7f7', '#2166ac', normalized);
+                        bgColor = this.interpolateColor('#e66101', '#f7f7f7', '#5e3c99', normalized);
                     }
 
                     updates.push({
@@ -15315,7 +15327,7 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
                     <div class="legend-item">Gene Effect</div>
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <span style="font-size: 10px;">${minEffect.toFixed(2)}</span>
-                        <div style="width: 80px; height: 12px; background: linear-gradient(to right, #b2182b, #f7f7f7, #2166ac); border-radius: 2px;"></div>
+                        <div style="width: 80px; height: 12px; background: linear-gradient(to right, #e66101, #f7f7f7, #5e3c99); border-radius: 2px;"></div>
                         <span style="font-size: 10px;">${maxEffect.toFixed(2)}</span>
                     </div>
                 `;
@@ -16914,11 +16926,13 @@ Results:
                 const minEffect = effectValues.length ? Math.min(...effectValues) : 0;
                 const maxEffect = effectValues.length ? Math.max(...effectValues) : 0;
 
-                // Red (negative) to White (0) to Blue (positive)
+                // Orange (negative, dependency) to White (0) to Purple
+                // (positive, dispensable): gene effect's own palette since
+                // v.88.68 (never the red/blue used for expression or LFC-stats).
                 const gradient = ctx.createLinearGradient(legendX, 0, legendX + gradientWidth, 0);
-                gradient.addColorStop(0, '#b2182b');
+                gradient.addColorStop(0, '#e66101');
                 gradient.addColorStop(0.5, '#f7f7f7');
-                gradient.addColorStop(1, '#2166ac');
+                gradient.addColorStop(1, '#5e3c99');
                 ctx.fillStyle = gradient;
                 ctx.fillRect(legendX, gradY, gradientWidth, gradientHeight);
                 ctx.strokeStyle = '#999';
@@ -16987,6 +17001,8 @@ Results:
                 const minLfc = Math.min(...lfcValues);
                 const maxLfc = Math.max(...lfcValues);
 
+                // Generic "Colour by stats" LFC feature, not gene effect;
+                // keeps the old red/blue pair unchanged (v.88.68).
                 const gradient = ctx.createLinearGradient(legendX, 0, legendX + gradientWidth, 0);
                 gradient.addColorStop(0, '#b2182b');
                 gradient.addColorStop(0.5, '#f7f7f7');
@@ -17083,6 +17099,11 @@ Results:
         <stop offset="0%" style="stop-color:#b2182b;stop-opacity:1" />
         <stop offset="50%" style="stop-color:#f7f7f7;stop-opacity:1" />
         <stop offset="100%" style="stop-color:#2166ac;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="signedGradientGE" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" style="stop-color:#e66101;stop-opacity:1" />
+        <stop offset="50%" style="stop-color:#f7f7f7;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#5e3c99;stop-opacity:1" />
     </linearGradient>
     <linearGradient id="absGradient" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" style="stop-color:#f5f5f5;stop-opacity:1" />
@@ -17232,7 +17253,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const minEffect = effectValues.length ? Math.min(...effectValues) : 0;
                 const maxEffect = effectValues.length ? Math.max(...effectValues) : 0;
 
-                svg += `  <rect x="${legendX}" y="${gradY}" width="${gradientWidth}" height="${gradientHeight}" fill="url(#signedGradient)" stroke="#999"/>\n`;
+                svg += `  <rect x="${legendX}" y="${gradY}" width="${gradientWidth}" height="${gradientHeight}" fill="url(#signedGradientGE)" stroke="#999"/>\n`;
                 svg += `  <text x="${legendX}" y="${gradY + gradientHeight + 16}" class="legend-small">${minEffect.toFixed(2)}</text>\n`;
                 svg += `  <text x="${legendX}" y="${gradY - 4}" class="legend-small">Gene Effect (+/−)</text>\n`;
                 svg += `  <text x="${legendX + gradientWidth - 25}" y="${gradY + gradientHeight + 16}" class="legend-small">${maxEffect.toFixed(2)}</text>\n`;
@@ -31500,7 +31521,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 description = `Gene set heatmap: ${setLabel} (${d.genes.length} genes) across ${d.orderedCLs.length} cell lines (${cohortWord}${d.lineageLabel ? `, ${d.lineageLabel} only` : ''}), ${sortSummary}, ${measure}, ${scaling}${groupedAtAll ? `, grouped by ${groupWord}` : ''}.`;
                 const colourWord = d.dataType === 'expr'
                     ? ((d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'blue is low, red is high' : 'white is low, dark green is high')
-                    : 'red is negative (dependency), blue is high (dispensable)';
+                    : 'orange is negative (dependency), purple is high (dispensable)';
                 context.plotDescribesWhat = `A heatmap: each row is one of the ${d.genes.length} genes in the "${setLabel}" set, each column is one cell line (${d.orderedCLs.length} shown, ${sortSummary}). Colour is ${measure}, ${scaling}: ${colourWord}.`
                     + (d.groups ? ` A coloured band beneath the grid marks the ${visibleGroups.length} group${visibleGroups.length === 1 ? '' : 's'} the columns are split into by ${groupWord}${hiddenGroupKeys.length ? `; ${hiddenGroupKeys.length} more group${hiddenGroupKeys.length === 1 ? '' : 's'} (${hiddenGroupKeys.join(', ')}) were hidden by the user and are not in this file` : ''}.` : '')
                     + (d.annRows.length ? ` ${d.annRows.length} more coloured band${d.annRows.length === 1 ? '' : 's'} beneath that mark each column's ${d.annRows.map(r => r.attrLabel).join(', ')} respectively.` : '')
@@ -48300,6 +48321,10 @@ ${clone.innerHTML}
         const el = document.getElementById(`ge${side}Volcano`);
         if (!el || typeof Plotly === 'undefined') return;
         if (!allRows || !allRows.length) { el.innerHTML = ''; return; }
+        // Gene effect gets its own palette (v.88.68): orange for a negative
+        // delta, purple for positive, so it never reuses the red/blue this
+        // same function draws for the expression volcano on the other side.
+        const isGE = measure === 'CRISPR gene effect';
         // Without a test there is no y axis to speak of, so the plot falls back
         // to |Δ|, which still separates the genes worth looking at.
         const yOf = (r) => anyQ
@@ -48319,7 +48344,7 @@ ${clone.innerHTML}
         // strongest hits all move the same way, so take the best few in each
         // direction and stagger them.
         // Searched genes: their own trace, in amber so it reads as "you asked
-        // for this one" rather than as another point on the red/blue scale,
+        // for this one" rather than as another point on the diverging scale,
         // and always labelled whatever the cutoffs are set to.
         const found = { x: [], y: [], t: [] };
         const foundLab = [];
@@ -48340,7 +48365,7 @@ ${clone.innerHTML}
             { x: bg.x, y: bg.y, text: bg.t, type: 'scattergl', mode: 'markers', name: 'below cutoff',
               hoverinfo: 'text', marker: { size: 4, color: '#d1d5db', opacity: 0.55 } },
             { x: hi.x, y: hi.y, text: hi.t, type: 'scattergl', mode: 'markers', name: 'shown in table',
-              hoverinfo: 'text', marker: { size: 6, color: hi.x.map(v => v < 0 ? '#dc2626' : '#2563eb'), opacity: 0.85 } }
+              hoverinfo: 'text', marker: { size: 6, color: hi.x.map(v => isGE ? (v < 0 ? '#e66101' : '#5e3c99') : (v < 0 ? '#dc2626' : '#2563eb')), opacity: 0.85 } }
         ];
         if (found.x.length) {
             traces.push({ x: found.x, y: found.y, text: found.t, type: 'scattergl', mode: 'markers',
@@ -52226,12 +52251,12 @@ ${clone.innerHTML}
         const axLabels = this._clbUmapData.axisLabels || ['UMAP 1', 'UMAP 2'];
         const methodLabel = this._clbUmapData.method === 'pca' ? 'PCA' : 'UMAP';
         const typeLabel = colorType === 'ge' ? 'Gene Effect' : 'Expression';
-        // Gene effect: DepMap convention puts the dependency direction
-        // (negative, at vMin) on red and the dispensable direction
-        // (positive, at vMax) on blue, so the scale is reversed relative to
-        // expression, where high (at vMax) stays red.
+        // Gene effect has its own palette since v.88.68 (orange = dependency
+        // at vMin, purple = dispensable at vMax), so it never uses the same
+        // colours as expression for the opposite meaning. Expression keeps
+        // the universal blue -> white -> red, red = high (at vMax).
         const geColorscale = colorType === 'ge'
-            ? [[0, '#b2182b'], [0.5, '#f7f7f7'], [1, '#2166ac']]
+            ? [[0, '#e66101'], [0.5, '#f7f7f7'], [1, '#5e3c99']]
             : [[0, '#2166ac'], [0.5, '#f7f7f7'], [1, '#b2182b']];
 
         const trace = {
@@ -52478,6 +52503,12 @@ ${clone.innerHTML}
         const plotEl = document.getElementById(plotDivId);
         if (!plotEl?.layout) { body.innerHTML = '<div style="color:#6b7280;">No plot to configure.</div>'; panel.style.display = 'block'; return; }
 
+        // Gene effect has its own diverging palette since v.88.68 (orange
+        // negative, purple positive); expression keeps the old red/blue. The
+        // Box Color Scheme swatch below has to match whichever _tsColorScheme
+        // will actually paint for the box traces currently shown.
+        const tsIsExpr = this.currentGeneEffect?.dataType === 'expr' || this._geDataType === 'expr';
+
         const layout = plotEl.layout;
 
         // Detect if title/labels are annotation-based (scatter) or layout-based (gene effect)
@@ -52678,7 +52709,7 @@ ${clone.innerHTML}
                 <button onclick="app._tsColorScheme('essential')" class="ts-color-btn" title="By what the mean says: red where the group needs the gene to survive (mean below -0.5), green where knocking it out helps (mean above 0), grey in between. The box outline is dark when that group differs from the rest at p &lt; 0.05." style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:linear-gradient(90deg,#dc2626 33%,#9ca3af 33%,#9ca3af 66%,#22c55e 66%);">Essential</button>
                 <button onclick="app._tsColorScheme('bw')" class="ts-color-btn" title="One grey for every box, for a figure that has to print in black and white." style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#e5e7eb;">B&W</button>
                 <button onclick="app._tsColorScheme('blue')" class="ts-color-btn" title="One colour, darker the more essential the group, so the ordering is visible without a legend." style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:linear-gradient(90deg,#1e40af,#93c5fd);">Blue</button>
-                <button onclick="app._tsColorScheme('redblue')" class="ts-color-btn" title="Diverging around the middle of the range: red at one end, blue at the other. Good when both directions matter." style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:linear-gradient(90deg,#dc2626,#f5f5f5 50%,#2563eb);">Red-Blue</button>
+                <button onclick="app._tsColorScheme('redblue')" class="ts-color-btn" title="Diverging around the middle of the range: ${tsIsExpr ? 'red at one end, blue at the other' : 'orange at one end, purple at the other'}. Good when both directions matter." style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:linear-gradient(90deg,${tsIsExpr ? '#dc2626,#f5f5f5 50%,#2563eb' : '#e66101,#f7f7f7 50%,#5e3c99'});">${tsIsExpr ? 'Red-Blue' : 'Orange-Purple'}</button>
                 <button onclick="app._tsColorScheme('viridis')" class="ts-color-btn" title="Viridis, a colour scale that stays readable in greyscale and to colour-blind readers." style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:linear-gradient(90deg,#440154,#31688e,#35b779,#fde725);">Viridis</button>
                 <button onclick="app._tsColorScheme('steelblue')" class="ts-color-btn" title="One colour for every box, so nothing in the colouring competes with the data." style="font-size:10px;padding:3px 8px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#4682b4;color:white;">Uniform</button>
             </div>
@@ -52774,6 +52805,11 @@ ${clone.innerHTML}
     _tsColorScheme(scheme) {
         const plotEl = document.getElementById(this._textSettingsPlotId);
         if (!plotEl?.data) return;
+        // This box-color panel is shared by gene-effect and expression box
+        // plots (same currentGEStats table, whichever the modal is currently
+        // showing). 'redblue' has to know which, so gene effect can get its
+        // own orange/purple palette (v.88.68) while expression keeps red/blue.
+        const isExpr = this.currentGeneEffect?.dataType === 'expr' || this._geDataType === 'expr';
 
         // Get stats for mean-based schemes
         const stats = this.currentGEStats || [];
@@ -52812,11 +52848,23 @@ ${clone.innerHTML}
                     break;
                 }
                 case 'redblue': {
-                    // Red for negative, blue for positive, white at zero
                     const frac = (mean + range) / (2 * range); // 0=most negative, 1=most positive
-                    const r = Math.round(220 * (1 - frac));
-                    const b = Math.round(220 * frac);
-                    const g = Math.round(80 * (1 - Math.abs(frac - 0.5) * 2));
+                    let r, g, b;
+                    if (isExpr) {
+                        // Red for negative, blue for positive, white at zero
+                        r = Math.round(220 * (1 - frac));
+                        b = Math.round(220 * frac);
+                        g = Math.round(80 * (1 - Math.abs(frac - 0.5) * 2));
+                    } else {
+                        // Gene effect's own palette (v.88.68): orange for
+                        // negative (dependency), purple for positive
+                        // (dispensable), white at zero. Same PuOr endpoints
+                        // as the heatmap/network/UMAP/volcano, ColorBrewer
+                        // orange #e66101 / purple #5e3c99.
+                        const lerp = (a, bb, f) => Math.round(a + (bb - a) * f);
+                        if (frac < 0.5) { const f = frac * 2; r = lerp(230, 247, f); g = lerp(97, 247, f); b = lerp(1, 247, f); }
+                        else { const f = (frac - 0.5) * 2; r = lerp(247, 94, f); g = lerp(247, 60, f); b = lerp(247, 153, f); }
+                    }
                     mc = `rgba(${r},${g},${b},0.6)`;
                     fc = `rgba(${r},${g},${b},0.2)`;
                     lc = '#374151';
@@ -55572,21 +55620,34 @@ ${clone.innerHTML}
             const span = (domain.hi - domain.lo) || 1;
             return this._hmSequentialGreen(Math.max(0, Math.min(1, (v - domain.lo) / span)));
         }
-        // Gene effect (raw and both z modes): the DepMap convention puts the
-        // dependency direction (negative) on red and the dispensable
-        // direction (positive) on blue, so the normalized position is
-        // negated here rather than duplicating the diverging ramp with a
-        // mirrored copy.
+        // Gene effect (raw and both z modes): gene effect has its own palette
+        // (orange = dependency, purple = dispensable, v.88.68) rather than
+        // expression's blue/red, so the two data types never disagree on what
+        // a colour means. The normalized position is negated here rather
+        // than duplicating the diverging ramp with a mirrored copy.
         const pos = (scaleMode === 'z' || scaleMode === 'zall') ? v / 2.5 : v / (domain.hi || 1);
-        return this._hmDivergingColor(Math.max(-1, Math.min(1, -pos)));
+        return this._hmDivergingColorGE(Math.max(-1, Math.min(1, -pos)));
     }
 
     // t in [-1,1]: -1 blue (#2166ac), 0 white, 1 red (#b2182b). ColorBrewer RdBu.
+    // Expression only, since v.88.68 (gene effect has its own ramp, below).
     _hmDivergingColor(t) {
         const lerp = (a, b, f) => Math.round(a + (b - a) * f);
         if (t < 0) { const f = 1 + t; return `rgb(${lerp(33, 255, f)},${lerp(102, 255, f)},${lerp(172, 255, f)})`; }
         const f = 1 - t;
         return `rgb(${lerp(178, 255, f)},${lerp(24, 255, f)},${lerp(43, 255, f)})`;
+    }
+
+    // t in [-1,1]: -1 purple (#5e3c99), 0 white, 1 orange (#e66101). ColorBrewer
+    // PuOr, colourblind-safe. Gene effect only (v.88.68): orange marks the
+    // negative/dependency direction, purple the positive/dispensable one, so
+    // the same red/blue pair used for expression never means the opposite
+    // number here. Same ramp math as _hmDivergingColor, different endpoints.
+    _hmDivergingColorGE(t) {
+        const lerp = (a, b, f) => Math.round(a + (b - a) * f);
+        if (t < 0) { const f = 1 + t; return `rgb(${lerp(94, 255, f)},${lerp(60, 255, f)},${lerp(153, 255, f)})`; }
+        const f = 1 - t;
+        return `rgb(${lerp(230, 255, f)},${lerp(97, 255, f)},${lerp(1, 255, f)})`;
     }
 
     // t in [0,1]: 0 white, 1 dark green.
@@ -56244,7 +56305,7 @@ ${clone.innerHTML}
             const dataWord = d.dataType === 'expr' ? 'mRNA expression' : 'CRISPR gene effect';
             const colourWord = d.dataType === 'expr'
                 ? ((d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'Blue is low, red is high.' : 'White is low, dark green is high.')
-                : 'Red is negative (dependency), blue is high (dispensable).';
+                : 'Orange is negative (dependency), purple is high (dispensable).';
             // Cluster groups keep groupByMode 'none' (clustering only runs
             // when Group by is none), so the plain groupByMode label would
             // read "grouped by none" while a cluster strip and legend are
@@ -56896,7 +56957,7 @@ ${clone.innerHTML}
             : 'Raw values.';
         const colourWord = d.dataType === 'expr'
             ? ((d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'Blue is low, red is high.' : 'White is low, dark green is high.')
-            : 'Red is negative (dependency), blue is high (dispensable).';
+            : 'Orange is negative (dependency), purple is high (dispensable).';
         const groupWord = d.groups
             ? `Grouped by ${d.clustersActive ? `cell-line clusters (${this._hmClusterKLabel(d)})` : this._hmGroupByLabel(d.groupByMode, d.altInfo)}.`
             : '';
@@ -57032,7 +57093,7 @@ ${clone.innerHTML}
             : 'raw values';
         const colourWord = d.dataType === 'expr'
             ? ((d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'blue is low, red is high' : 'white is low, dark green is high')
-            : 'red is negative (dependency), blue is high (dispensable)';
+            : 'orange is negative (dependency), purple is high (dispensable)';
         const cohortMode = document.getElementById('hmCohort')?.value || 'visible';
         const cohortWord = { visible: 'cell lines the browser is filtered to', selected: 'ticked cell lines', all: 'all cell lines' }[cohortMode] || cohortMode;
         const lineageWord = d.lineageLabel ? `${d.lineageLabel} only` : 'all lineages';

@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.68 (2026-08-18)</strong></p>
+                <ul>
+                    <li><b>CRISPR and mRNA no longer share colours.</b> Gene-effect views now run orange (negative, dependency) to purple (dispensable), a colourblind-safe pair, while mRNA keeps the universal blue-to-red with red high. The same two colours meant opposite numeric directions across the two data types, which read as a bug; now a glance says which data type a heatmap shows. Legends and captions state the mapping as before.</li>
+                </ul>
                 <p><strong>v.88.67 (2026-08-18)</strong></p>
                 <ul>
                     <li><b>Open in heatmap, from the mutation analysis and the browser.</b> The mutation analysis results table and the Cell Line Browser's gene lists gain Open in heatmap: pick the top 10 to 100 genes or type any number, and the heatmap opens on exactly the cell lines and filters the source view was using, with the analysed mutation carried as an annotation row and the columns blocked mutated-first where it applies.</li>
@@ -6946,7 +6950,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.67</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.68</a>
         </span>
     </div>
 
@@ -9974,6 +9978,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_67"></script>
+    <script src="app.js?v=v88_68"></script>
 </body>
 </html>
