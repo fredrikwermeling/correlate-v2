@@ -1,3 +1,11 @@
+- the clsuter gene and cell lines should be on the same row. the drop down linked to the clustering is not wrorking as i want now it just seems to simplify the drawn lines, i wsa thinking that there probably exist a setting to change how hoigh resploutin is invovled in the vclustering?
+- the heatmap function from netwoork doenst work on the cell phone and perhaps not the ipda
+
+
+
+
+
+
 == PHONE, still open (2026-08-13, app at v.87.98) ==
 
 A. "Rank by most genes / strongest r" in the network, reported as still visible
