@@ -4,7 +4,7 @@
 - in heatmap (comming from network), it shouldn´t close the heatmap if i by accident press outside the heatmap popout
 - it should be possible to go from the heatmap to the wiki double clicking (?) oir some other way to clidck a column in the heatmap. I also asked several time for the possiblity to click a gene in the yaxis to silience it.
 - when I uploaded the export for AI file to chategpt, it asked what to do woth it. make sure any LLM understnad what to do. It seesm like chatGPT doesnt undertand to open the j.son.gz file
-
+- bu deafult cluster also by celll ine. and also, for the number of treas/cluster to color, suggest what is best.
 
 
 
