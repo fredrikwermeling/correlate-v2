@@ -53478,13 +53478,17 @@ ${clone.innerHTML}
         document.getElementById('hmScale')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmSort')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmClusterCells')?.addEventListener('change', (e) => {
-            // Turning clustering on with no annotation row set yet auto-adds
-            // a lineage row, so the colour strip under the grid immediately
-            // answers "do the clusters follow lineage?". Only on the off->on
+            // Turning clustering on with no lineage row already set auto-adds
+            // one, so the colour strip under the grid immediately answers "do
+            // the clusters follow lineage?". Clustering also drops the
+            // lineage GROUPING (below), so this is the only place that
+            // colour survives; it joins alongside whatever other annotation
+            // rows are already there (e.g. the TP53 hotspot default) rather
+            // than requiring the list to be empty. Only on the off->on
             // transition: if the user removes it while clustering stays on,
-            // _hmAnnRows is empty again but this handler doesn't re-fire, so
-            // it stays removed until they uncheck and recheck.
-            if (e.target.checked && (this._hmAnnRows || []).length === 0) {
+            // this handler doesn't re-fire, so it stays removed until they
+            // uncheck and recheck.
+            if (e.target.checked && !(this._hmAnnRows || []).some(r => r.mode === 'lineage')) {
                 (this._hmAnnRows || (this._hmAnnRows = [])).push({ mode: 'lineage', gene: null });
                 this._hmRenderAnnRowsBlock();
             }
@@ -53650,6 +53654,34 @@ ${clone.innerHTML}
         // button and the Cell Line Browser button) share this function,
         // so both reset the same way.
         this._hmResetControls();
+        // Lineage-block grouping is the default (above), but it draws one
+        // uninformative block when the cohort about to be drawn already sits
+        // in a single lineage (e.g. the Cell Line Browser filtered to Skin);
+        // default to disease grouping instead in that case, so the blocks
+        // stay informative. Mirrors _hmRedrawCore's own 'visible' cohort
+        // resolution (_clbVisibleCellLines, falling back to every cell line,
+        // deferring to a cohort override already set by a handoff), but only
+        // needs the distinct-lineage count, so it is a single pass over the
+        // cohort with an early exit rather than the full cohort pipeline
+        // (alteration filters, lineage/subtype/disease gates, drill-down)
+        // _hmRedrawCore itself runs. Handoffs that set their own hmGroupBy
+        // AFTER this (none currently do) or a cohort override AFTER this
+        // (network, mutation analysis) simply run this check against the
+        // 'visible' cohort instead of their own, same as any other control
+        // this reset touches; _hmRestoreView overwrites hmGroupBy outright.
+        if (this.metadata) {
+            const dynCohort = this._hmCohortOverride ? this._hmCohortOverride.cellLines
+                : ((this._clbVisibleCellLines?.length) ? this._clbVisibleCellLines : this.metadata.cellLines);
+            const dynLineages = new Set();
+            for (const cl of dynCohort) {
+                dynLineages.add(this.getCellLineLineage(cl) || 'Not recorded');
+                if (dynLineages.size > 1) break;
+            }
+            if (dynLineages.size === 1) {
+                const groupSel = document.getElementById('hmGroupBy');
+                if (groupSel) groupSel.value = 'disease';
+            }
+        }
         // Tree detail lives in this._hmSettings (persisted across opens,
         // like the font/cell-size settings), not among the controls
         // _hmResetControls reverts to their fixed defaults, so the two
@@ -53681,27 +53713,31 @@ ${clone.innerHTML}
         set('hmLineage', '');
         set('hmSubtype', '');
         set('hmDisease', '');
-        // v.88.63: a fresh open clusters the cell lines straight away, at
-        // an automatically suggested resolution, scaled against the whole
-        // panel (not just the shown lines) so a filtered view still says
-        // where its lines sit among all cancers; the lineage row underneath
-        // immediately answers "do the clusters follow lineage?". Set
-        // directly here rather than toggling the checkbox and relying on
-        // its change handler (which does the same three things on a manual
-        // off->on flip) since that handler never fires for a value assigned
-        // straight to .checked.
+        // v.88.69: a fresh open groups by lineage (score-sorted inside each
+        // block) rather than clustering straight away; clustering (with its
+        // auto-suggested k, scaled against the whole panel via zall) stays
+        // one click away on the checkbox instead of being the default. The
+        // dynamic lineage check in _hmOpenModal runs right after this reset
+        // and swaps hmGroupBy to 'disease' when the cohort about to be drawn
+        // already sits in a single lineage.
         set('hmScale', 'zall');
         set('hmSort', 'score');
         const clusterCb = document.getElementById('hmClusterCells');
-        if (clusterCb) clusterCb.checked = true;
+        if (clusterCb) clusterCb.checked = false;
         set('hmClusterK', 'auto');
-        set('hmGroupBy', 'none');
+        set('hmGroupBy', 'lineage');
         set('hmGroupGene', '');
         set('hmGroupOrder', 'size');
         const medianCb = document.getElementById('hmShowMedian');
-        if (medianCb) medianCb.checked = false;
+        if (medianCb) medianCb.checked = true;
         set('hmMinGroupSize', '1');
-        this._hmAnnRows = [{ mode: 'lineage', gene: null }];
+        // A lineage row here would just duplicate the group strip above the
+        // grid (grouping is by lineage by default); TP53 is the more useful
+        // default annotation, and works whether or not clustering is later
+        // turned on (which drops the lineage grouping and, per the
+        // cluster-checkbox handler below, adds a lineage row of its own
+        // alongside this one so the colours aren't lost).
+        this._hmAnnRows = [{ mode: 'hotspot', gene: 'TP53' }];
         [['hmHotspotFilter', 'hmHotspotLevel', '1+2'], ['hmFusionFilter', 'hmFusionLevel', '1+2'], ['hmCnFilter', 'hmCnLevel', 'altered']]
             .forEach(([inputId, levelId, def]) => {
                 set(inputId, '');
@@ -54475,7 +54511,7 @@ ${clone.innerHTML}
         for (const row of rows) {
             if (resolved.length >= 4) break;
             if (row.mode === 'lineage' || row.mode === 'subtype' || row.mode === 'disease') { resolved.push({ mode: row.mode, gene: null }); continue; }
-            const raw = (row.gene || '').trim().toUpperCase();
+            let raw = (row.gene || '').trim().toUpperCase();
             if (!raw) continue;
             if (row.mode === 'hotspot') {
                 if (!(this.mutations?.geneData?.[raw] || this.damagingMutations?.geneData?.[raw])) {
@@ -54484,8 +54520,22 @@ ${clone.innerHTML}
                 }
                 resolved.push({ mode: 'hotspot', gene: raw });
             } else if (row.mode === 'fusion') {
+                // The fusion gene slot is the same searchable widget the
+                // fusion filter uses, whose picks can carry the legacy
+                // "★ NAME (n=N)" decoration; stripped defensively here too
+                // (mirrors the cn fix below, which is the one actually
+                // reported broken), so a decorated pick still resolves.
+                raw = this._stripFusionFilterDecoration(row.gene).trim().toUpperCase();
                 resolved.push({ mode: 'fusion', gene: raw });
             } else {
+                // The cn gene slot is the CN filter widget, whose picks are
+                // the DECORATED panel key ("MYC_amp"/"MYC_del", see
+                // _stripCnFilterDecoration and the .replace(/_(amp|del)$/...)
+                // pattern every other consumer of that widget applies).
+                // Undecorated here before the panel/index lookup: without
+                // this, "MYC_AMP" matches no curated gene or CN-matrix
+                // entry and the row is silently dropped, the reported bug.
+                raw = this._stripCnFilterDecoration(row.gene).replace(/_(amp|del)$/i, '').trim().toUpperCase();
                 const inCuratedPanel = (this.clinicalCn?.amplificationPanel || []).some(e => (e.gene || '').toUpperCase() === raw)
                     || (this.clinicalCn?.deletionPanel || []).some(e => (e.gene || '').toUpperCase() === raw);
                 if (!inCuratedPanel && !(this.cnLoaded && this.cnGeneIndex?.has(raw))) {
@@ -55008,7 +55058,7 @@ ${clone.innerHTML}
         // One built strip per annotation row, in order; a row only fails to
         // build when there are no columns to draw (orderedCLs empty), since
         // annotationRows was already filtered to resolvable mode/gene pairs.
-        const annRows = annotationRows.map(r => this._hmBuildAnnotation2(r.mode, r.gene, orderedCLs)).filter(Boolean);
+        const annRows = annotationRows.map(r => this._hmBuildAnnotation2(r.mode, r.gene, orderedCLs, clScore, showMedian)).filter(Boolean);
 
         this._hmData = {
             genes, orderedGenes, geneTree, cohort, orderedCLs, geneIndexInResult, cohortIndex,
@@ -55124,7 +55174,13 @@ ${clone.innerHTML}
     // the whole panel), same as the primary group band. Also returns
     // `values` (the raw category per column, pre-colour), which the tooltip
     // uses to name what's hovered.
-    _hmBuildAnnotation2(mode, gene, orderedCLs) {
+    // Each legend entry also carries n (how many shown lines are in that
+    // category) always, and, when Show median is on, that category's median
+    // score, the SAME per-line score (mean of the shown genes) the group
+    // labels use; clScore (cell line -> score) is threaded in from
+    // _hmBuildAndPaint, where it already exists, rather than recomputed
+    // here. NaN-safe: a category whose lines all lack a score shows n only.
+    _hmBuildAnnotation2(mode, gene, orderedCLs, clScore, showMedian) {
         if (mode === 'none' || !orderedCLs.length) return null;
         const FIXED_COLORS = {
             'Wild-type': '#f3f4f6', 'One copy': '#3b82f6', 'Both copies': '#1e40af',
@@ -55136,11 +55192,11 @@ ${clone.innerHTML}
             : mode === 'hotspot' ? `${gene} mutation` : mode === 'fusion' ? `${gene} fusion` : `${gene} CN`;
         const valueFor = this._hmAnnRowValueFor(mode, gene);
         const values = orderedCLs.map(valueFor);
+        const counts = new Map();
+        for (const v of values) counts.set(v, (counts.get(v) || 0) + 1);
         const catColor = new Map();
         let order;
         if (mode === 'lineage' || mode === 'subtype' || mode === 'disease') {
-            const counts = new Map();
-            for (const v of values) counts.set(v, (counts.get(v) || 0) + 1);
             order = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b));
             const palette = this._HM_GROUP_PALETTE();
             order.forEach((label, i) => catColor.set(label, palette[i % palette.length]));
@@ -55151,8 +55207,28 @@ ${clone.innerHTML}
             order.forEach(label => catColor.set(label, FIXED_COLORS[label]));
         }
         const present = new Set(values);
-        const legend = order.filter(label => present.has(label))
-            .map(label => ({ label: `${attrLabel}: ${label}`, color: catColor.get(label) }));
+        // Median of clScore over just this category's lines, same sorted-
+        // array median the group labels use (medianScoreOf in
+        // _hmBuildAndPaint); NaN when clScore has nothing usable for any
+        // line in the category.
+        const medianFor = (label) => {
+            const scores = [];
+            for (let i = 0; i < values.length; i++) {
+                if (values[i] !== label) continue;
+                const v = clScore?.get(orderedCLs[i]);
+                if (v != null && !Number.isNaN(v)) scores.push(v);
+            }
+            if (!scores.length) return NaN;
+            scores.sort((a, b) => a - b);
+            const mid = Math.floor(scores.length / 2);
+            return scores.length % 2 ? scores[mid] : (scores[mid - 1] + scores[mid]) / 2;
+        };
+        const legend = order.filter(label => present.has(label)).map(label => {
+            const n = counts.get(label) || 0;
+            const med = showMedian ? medianFor(label) : NaN;
+            const suffix = Number.isNaN(med) ? `n=${n}` : `n=${n}, median ${med.toFixed(2)}`;
+            return { label: `${attrLabel}: ${label} (${suffix})`, color: catColor.get(label) };
+        });
         return { mode, gene, attrLabel, colors: values.map(v => catColor.get(v) || '#e5e7eb'), legend, values };
     }
 

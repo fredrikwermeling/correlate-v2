@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.69 (2026-08-18)</strong></p>
+                <ul>
+                    <li><b>Heatmap default view, take two.</b> A fresh heatmap now opens grouped by lineage with the columns score-sorted inside each block, or grouped by disease when the view is already narrowed to a single lineage, with a TP53 hotspot annotation row ready and medians shown by default. Copy-number annotation rows now draw (the gene picker's decorated values were never stripped, so the rows were silently dropped). The annotation-row legends under the grid now state each category's n, and its median score when Show median is on. Clustering is one click away as before, with the suggested cluster count intact, and turning it on still brings the lineage colours along as a row.</li>
+                </ul>
                 <p><strong>v.88.68 (2026-08-18)</strong></p>
                 <ul>
                     <li><b>CRISPR and mRNA no longer share colours.</b> Gene-effect views now run orange (negative, dependency) to purple (dispensable), a colourblind-safe pair, while mRNA keeps the universal blue-to-red with red high. The same two colours meant opposite numeric directions across the two data types, which read as a bug; now a glance says which data type a heatmap shows. Legends and captions state the mapping as before.</li>
@@ -6950,7 +6954,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.68</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.69</a>
         </span>
     </div>
 
@@ -8799,7 +8803,7 @@
                                 <option value="minimal">Minimal</option>
                             </select>
                             <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the columns by similarity, one tree over all shown lines; pick a Group by afterwards to cluster within groups instead">
-                                <input type="checkbox" id="hmClusterCells" checked style="margin:0;"> Cluster cell lines
+                                <input type="checkbox" id="hmClusterCells" style="margin:0;"> Cluster cell lines
                             </label>
                             <select id="hmClusterK" style="width:150px;" title="How many clusters to cut the tree into; Tree order only draws the dendrogram without colouring clusters">
                                 <option value="auto" selected>Auto (suggested)</option>
@@ -8876,8 +8880,8 @@
                                 <option value="annotation" title="Blocks the columns by Row 1, then Row 2 within, and so on; mutated / fused / altered lines come first, categories run A-Z, and within the innermost blocks the columns are score-sorted.">Annotation rows (Row 1 first)</option>
                             </select>
                             <select id="hmGroupBy" style="width:150px;" title="Blocks cell lines by lineage, subtype, disease or a gene's mutation status, sorting within each block, and draws a colour strip under the grid">
-                                <option value="none" selected>No grouping</option>
-                                <option value="lineage">Lineage</option>
+                                <option value="none">No grouping</option>
+                                <option value="lineage" selected>Lineage</option>
                                 <option value="subtype">Subtype</option>
                                 <option value="disease">Disease</option>
                                 <option value="alteration" title="Splits into three groups by copies mutated: wild-type, one copy, both copies">Genetic alteration</option>
@@ -8897,7 +8901,7 @@
                                 <button type="button" onclick="app.adjustNumber('hmMinGroupSize', 1)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
                             </span>
                             <label style="display:flex; align-items:center; gap:3px; font-size:10px; color:#6b7280; cursor:pointer;" id="hmShowMedianWrap" title="Show each group's median score (of the genes shown) beside its count">
-                                <input type="checkbox" id="hmShowMedian" disabled style="margin:0;"> Show median
+                                <input type="checkbox" id="hmShowMedian" checked disabled style="margin:0;"> Show median
                             </label>
                             <button id="hmRedrawBtn" class="btn btn-success btn-sm">Redraw</button>
                         </div>
@@ -9978,6 +9982,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_68"></script>
+    <script src="app.js?v=v88_69"></script>
 </body>
 </html>
