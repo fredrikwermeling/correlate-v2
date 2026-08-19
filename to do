@@ -4,6 +4,8 @@ in heatmap, the tree for genes should not by deafult select colors, but should a
 the genetic alteration in in cell line browser inspect should allow for showing all genetic alterations, sorting based on how strong difference, but also to click to only look at hotspot or fusion.
 cell line browser inspect should also have the linage and genetic alteration comaprisons (hidden but openable by clicking) 
 I see that gates can appear under heatmap when comming from cell line browser inspect open in heatmap. in that case the gate should be indicated by the annotation row, allwoing for modifying it. 
+inheatmap, if i hover over the linage, subtype or disease indicator on the row just below the heatmap, it states eg 7 cell lines of type x. and if i double click it opens the wiki for one of them. it swould make more sense if the cell line browser is opened with those cell lines. 
+
 
 updat the reference and how it works texts
 
