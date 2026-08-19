@@ -2635,6 +2635,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.80 (2026-08-19)</strong></p>
+                <ul>
+                    <li><b>Blocks and sorting are now two separate choices.</b> Every annotation row has its own &#9638; blocks toggle beside its sort arrows. One row at a time can be the blocks, wherever it sits in the list, and the colour strip, its labels, the legend, Min n and the drill all follow that row; its arrows then set the order of the blocks. Every other row's arrows sort inside the blocks, top row first. Before this, the topmost row with its arrows on quietly became the blocks, which meant sorting by a row and blocking by it could not be asked for separately.</li>
+                    <li><b>The gates are an annotation row.</b> The thin gates band is gone; as soon as a gate holds a cell line, a Gates row joins the list, with its own label, legend, tooltip, sort arrows and blocks toggle, so the columns can be blocked or sorted by gate A, gate B, both or none. Its &times; clears both gates, and the row leaves with them. Painting the gates is unchanged: arm Gate A or Gate B and drag across the grid.</li>
+                    <li><b>Double-click a lineage, subtype or disease band</b> to open the Cell Line Browser holding exactly that category's cell lines from the heatmap. The heatmap stays open behind it. Double-clicking anywhere else on a column still opens that cell line's wiki.</li>
+                    <li><b>Cluster cell lines no longer adds a lineage row you did not ask for.</b> It adds the Cell-line clusters row and nothing else.</li>
+                    <li><b>Older saved views still open.</b> A view saved under any earlier heatmap version reproduces its old drawing: its grouping becomes the blocks row (reusing an existing row of that kind rather than adding a duplicate) and its sort becomes the sort arrows.</li>
+                    <li><b>The help texts caught up.</b> The Cell Line Browser help now describes the annotation-row ordering, all six sorts, the four Inspect comparison groups and Send to another view; How Correlate Works introduces the Methods button; Reference Data lists the full gene-level copy-number matrix with its hybrid provenance, the retroelement signal source and the interferon score definition.</li>
+                </ul>
                 <p><strong>v.88.79 (2026-08-19)</strong></p>
                 <ul>
                     <li><b>No more saying it twice.</b> When a row's sort arrows make it the block strip, that row no longer also draws its own colour band and second legend entry beneath the grid: the strip and its legend carry it alone. The same applies to the clusters row while the cluster groups are the strip.</li>
@@ -6956,6 +6965,7 @@
                         <li>OmicsGlobalSignatures.csv <span style="color:#999;">(WGD, ploidy, CIN, aneuploidy)</span></li>
                         <li>Model.csv <span style="color:#999;">(cell-line metadata)</span></li>
                         <li>PRISM Repurposing Secondary <span style="color:#999;">(drug response, curated panel of ~90 compounds)</span></li>
+                        <li>OmicsCNGeneWGS.csv / OmicsCNGene.csv <span style="color:#999;">(full gene-level copy number, all genes; WGS-derived calls first, with the 24Q4 gene matrix filling in lines never WGS'd)</span></li>
                     </ul>
                     <p style="margin: 12px 0 0 0; font-weight:600; color:#374151;">Pathway / complex memberships</p>
                     <ul style="margin: 4px 0 0 0; padding-left: 18px;">
@@ -6970,6 +6980,8 @@
                         <li>Lehmann TNBC subtypes <span style="color:#999;">(Lehmann <em>JCI</em> 2011 + 2016 update; BL1/BL2/IM/M/MSL/LAR for ~22 TNBC lines)</span></li>
                         <li>Focal CN events <span style="color:#999;">(curated panel of ~32 amps + ~14 extended TSG deletions; from <code>OmicsCNGeneWGS.csv</code>)</span></li>
                         <li>HLA copy number <span style="color:#999;">(extracted from <code>OmicsCNGeneWGS.csv</code>; B2M-normalized to control for HLA-C mapping bias)</span></li>
+                        <li>Retroelement signal <span style="color:#999;">(RNA output of 750 full-length LINE-1 / HERV-K / SVA elements outside genes, quantified from the public CCLE RNA sequencing files; 669 lines have data)</span></li>
+                        <li>Interferon score <span style="color:#999;">(computed in-app: mean z-score of 34 interferon-stimulated genes from the expression matrix)</span></li>
                         <li>STR profiles <span style="color:#999;">(Cellosaurus reference panels)</span></li>
                         <li>Published fusion calls <span style="color:#999;">(<a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cellosaurus</a>; fills in cell lines with no RNA-seq, and recurrent driver fusions the caller did not report)</span></li>
                         <li>Problematic cell lines <span style="color:#999;">(<a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cellosaurus</a>; contaminated / misidentified / misclassified flags, 56 lines in this panel)</span></li>
@@ -6995,7 +7007,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.79</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.80</a>
         </span>
     </div>
 
@@ -8995,7 +9007,7 @@
                                 <option value="score" selected>Score (mean of shown genes)</option>
                                 <option value="name">Name (A-Z)</option>
                             </select>
-                            <span id="hmAnnRowsSortNote" style="display:none; font-size:10px; color:#9ca3af;">Toggle a row's &#8597; arrows to sort by it; the top toggled row blocks first, the next sorts within those blocks. Add the Cell-line clusters row (Clustering, above) to cluster within blocks.</span>
+                            <span id="hmAnnRowsSortNote" style="display:none; font-size:10px; color:#9ca3af;">&#9638; makes that row the blocks, one row at a time; its &#8597; arrows then set the order of the blocks. Any other row's arrows sort inside the blocks, top row first. Add the Cell-line clusters row (Clustering, above) to cluster within blocks.</span>
                         </div>
                     </div>
                 </div>
@@ -9209,6 +9221,7 @@
                         Two tools cover the main uses: <strong>Gene set analysis</strong> to discover and present the connections within a gene set and extend it into wider networks,
                         and the <strong>Cell Line Browser</strong> to identify cell lines with the features a project needs.
                         Outside tools are integrated for further analysis: any gene list can be sent to <strong>Enrichr</strong> for pathway enrichment, and every view has an <strong>Export for AI</strong> that packages its data and settings into one file an AI assistant can analyse.
+                        Every view also carries a <strong>Methods</strong> button beside its export buttons: it writes out how the picture on screen was made, as one paragraph ready for a materials and methods section and as a longer plain-language walk-through, both read from the view exactly as it stands.
                     </p>
                 </div>
 
@@ -9401,7 +9414,7 @@
             <li><b>Quick filters</b>: curated cell-line collections to include or exclude, among them the two provenance sets below.</li>
             <li><b>Interferon score</b> (<i>Sort: Interferon score</i>, and the interferon-high / interferon-low quick filters): the average of 34 interferon-stimulated genes, each expressed as how far the line sits from the panel average for that gene. 0 is typical, above +0.5 is called interferon-high here and below &minus;0.5 interferon-low. It measures the cell's own interferon signalling, which shapes how visible a line is to the immune system, and is the readout for viral mimicry. A cell line has no immune infiltrate, so it says nothing about the interferon environment of a tumor. Lines with no expression data are unscored and sort to the end. The score also appears on each cell line's own card.</li>
             <li><b>Retroelement signal</b> (<i>Sort: Retroelement signal</i>, and the retroelement-high quick filter): RNA output of 750 full-length LINE-1, HERV-K and SVA elements outside genes, in counts per million, measured from the public CCLE sequencing files. The panel median is about 40 CPM; the top tenth, about 80 CPM and up, counts as retroelement-high. Lines with a higher signal depend measurably more on ADAR1, beyond what the interferon score predicts. 669 of 1,208 lines have public data; the rest are unscored and sort to the end. The score also appears on each cell line's card and wiki.</li>
-            <li><b>Heatmap</b>: draws a gene set across the cell lines the filters leave showing. Open it from the <b>Heatmap</b> button in this header, or from Options / Other / Gene set heatmap. Pick a preset (the interferon sets) or paste your own genes, choose mRNA or gene effect, and order the lines by score, lineage, name, or by clustering similar profiles together. Saves as an image, to the clipboard, or as a .csv.</li>
+            <li><b>Heatmap</b>: draws a gene set across the cell lines the filters leave showing. Open it from the <b>Heatmap</b> button in this header, or from Options / Other / Gene set heatmap. Pick a preset or paste your own genes, and choose mRNA or gene effect. The column order is carried by the annotation rows under the grid: mark one row as the blocks and the colour strip, legend and Min n follow it, turn on other rows' sort arrows to order the lines within each block, and the score (the mean of the shown genes) settles ties. Rows can show hotspot mutations, fusions, copy number, lineage, subtype, disease, one gene's expression or gene effect, cell-line clustering, or the gates. Saves as an image, to the clipboard, as a .csv or as a reopenable view file, and its Methods button writes out exactly how the picture was made.</li>
           </ul>
 
           <p style="margin-top:14px;"><strong>&#9888; Warning marks</strong>: a triangle beside a cell line's name means <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cellosaurus</a> records a problem with it. 56 of the 1,208 lines are flagged. Hover the mark for the full explanation, or open the line to see it with a link to the source.</p>
@@ -9415,7 +9428,8 @@
           </ul>
           <p style="margin-top:14px;"><strong>Selecting cell lines</strong>: tick lines (or <b>Select Visible</b>) to build a set for Inspect / Export. <b>Show only my N</b> collapses the list to just your ticked lines and carries the count; it is greyed out until something is ticked, and turns off on Deselect All / Reset. The list fills <b>column by column</b> (down the first column in sort order, then the next).</p>
 
-          <p style="margin-top:10px;"><strong>Inspect selected vs rest</strong>: compares your selection with the cell lines it is measured against, <b>CRISPR gene effect on the left, mRNA expression on the right</b>. Both columns rank by the size of the difference in either direction, so genes higher and lower in your selection appear together. Each gene carries a Welch's t-test adjusted across all genes tested (Benjamini-Hochberg), shown as <b>q</b> and filterable. You can compare against <b>all other cell lines</b> or only those <b>sharing a lineage</b> with your selection, which takes tissue of origin out of the comparison. The two measures cover different cell lines, so each states its own group sizes.</p>
+          <p style="margin-top:10px;"><strong>Inspect selected vs rest</strong>: compares your selection with the cell lines it is measured against, <b>CRISPR gene effect on the left, mRNA expression on the right</b>. Both columns rank by the size of the difference in either direction, so genes higher and lower in your selection appear together. Each gene carries a Welch's t-test adjusted across all genes tested (Benjamini-Hochberg), shown as <b>q</b> and filterable. The comparison group is yours to choose: <b>all other cell lines</b>, only those <b>sharing a lineage</b> with your selection (taking tissue of origin out of the comparison), a <b>group picked from the tissue table</b>, or a <b>pasted list</b> of names. The two measures cover different cell lines, so each states its own group sizes. Either ranked gene list can be opened in the heatmap (top 10 to 100, or any number), carried over with the inspected cell lines.</p>
+          <p style="margin-top:10px;"><strong>Send to another view</strong>: carries the listed cell lines, or just the ticked ones, into the correlation scatter, the gene effect charts or the heatmap, either marking them there or narrowing the view to them, and can set them as the cohort for the mutation and gene set analyses. Each target row explains itself in the popout.</p>
           <p style="margin-top:10px;"><strong>Detail card</strong>: clicking a line opens a card that now leads with a plain-language <b>executive summary</b> (cancer type, patient origin, and standout molecular features), the same overview shown when you hover a cell-line dot on any plot.</p>
           <p style="margin-top:14px;"><strong>Hotspot variants</strong>: when DepMap's inferred-subtype pipeline calls a specific codon (KRAS p.G12D, BRAF p.V600E, EGFR p.L858R, JAK2 p.V617F, EGFR exon-19 del), the variant is appended in green next to the gene name in the Hotspot Mutations list. Generic group calls like KRAS p.G12 (any G12 not specifically D or C) are also shown when no specific call is available. Source: <code>OmicsInferredMolecularSubtypes.csv</code>.</p>
 
@@ -9458,12 +9472,13 @@
             <li><span style="color:#db2777; font-weight:700; font-style:italic;">&#9792;</span> pink, italic: Female by expression only (annotation unknown).</li>
             <li><span style="color:#9ca3af; font-weight:700;">?</span> gray: Unknown in both axes.</li>
           </ul>
-          <p><strong>Sort options</strong>, four in all. The arrow beside the picker reverses the order; for a gene or compound sort it waits until you have entered one.</p>
+          <p><strong>Sort options</strong>, six in all. The arrow beside the picker reverses the order; for a gene or compound sort it waits until you have entered one.</p>
           <ul style="margin:4px 0 10px 20px;">
             <li><b>Name</b>: alphabetical.</li>
             <li><b>GE for gene(s)</b>: type one or more genes; lines are ordered by CRISPR gene effect (Chronos), most essential first. Several genes are averaged, which ranks lines by combined essentiality.</li>
             <li><b>Expression of gene(s)</b>: type one or more genes; lines are ordered by log&#8322;(TPM+1), highest first. Several genes are averaged, so a panel like <code>ASCL1, NEUROD1, CHGA, SYP</code> finds the strongest combined signature.</li>
             <li><b>Drug response (PRISM AUC)</b>: type a compound; the picker lists PRISM Repurposing compounds ranked by how many of the visible lines they kill. Ordered by area under the curve, most sensitive first, so a lower AUC means more killing.</li>
+            <li><b>Interferon score</b> and <b>Retroelement signal</b>: the two scores described above, highest first; the retroelement sort adds a picker for which measurement to use (total signal, LINE-1, HERV-K, SVA, or active elements). Unscored lines sort to the end.</li>
           </ul>
           <p style="color:#6b7280;"><b>Gene-sort input:</b> comma, semicolon, newline or whitespace can separate multiple symbols.</p>
           <p style="color:#6b7280; margin-bottom:0;"><b>Data sources:</b> DepMap 26Q1 for every measurement. Cell-line identity warnings and the published fusion calls come from <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cellosaurus</a>; the curated fusion and subtype panels draw on COSMIC, OncoKB, WHO and NCCN. All filters and sorts use the data currently loaded in the browser; changing tissue / subtype filters narrows the visible set that subsequent sorts operate on.</p>
@@ -10082,6 +10097,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_79"></script>
+    <script src="app.js?v=v88_80"></script>
 </body>
 </html>
