@@ -58465,7 +58465,13 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let n = e.target; n && n !== document.body; n = n.parentElement) {
                 if (n.nodeType !== 1) break;
                 const cs = getComputedStyle(n);
-                const xScrolls = (cs.overflowX === 'auto' || cs.overflowX === 'scroll') && n.scrollWidth > n.clientWidth;
+                // A sideways scroll CONTAINER is enough, whether or not its
+                // content currently overflows: a heatmap narrower than
+                // #hmGridScroll leaves the empty space to its right belonging
+                // to that same x-only scroller, and the wheel dies there just
+                // the same (reported again after v.88.71, which required real
+                // sideways overflow before rerouting).
+                const xScrolls = (cs.overflowX === 'auto' || cs.overflowX === 'scroll');
                 const yScrolls = (cs.overflowY === 'auto' || cs.overflowY === 'scroll') && n.scrollHeight > n.clientHeight;
                 if (yScrolls) return false;          // vertical scrolling works natively here
                 if (xScrolls) return !n.closest('.vis-network');
