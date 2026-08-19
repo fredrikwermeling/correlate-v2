@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.84 (2026-08-19)</strong></p>
+                <ul>
+                    <li><b>Export for AI understands gates.</b> Exporting the inspect while it compares two gates now ships BOTH gates' cell lines in full, states which line belongs to which gate, and carries the gates' provenance: where they were drawn (the named scatter axes or the heatmap), each rectangle's bounds, a warning when two gates really amount to a one-dimensional split, and a note when the two groups are very unequal. A reader can now re-split or recompute the contrast from the file alone; before, only gate A's lines were included.</li>
+                </ul>
                 <p><strong>v.88.83 (2026-08-19)</strong></p>
                 <ul>
                     <li><b>Methods knows which build it is in.</b> The Methods texts now name the app from the page itself and cite the address they are generated at, so the standard and CoExpress builds write their own name and URL instead of this one's, and a build without a version badge simply leaves the version out.</li>
@@ -7024,7 +7028,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.83</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.84</a>
         </span>
     </div>
 
@@ -10085,6 +10089,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_83"></script>
+    <script src="app.js?v=v88_84"></script>
 </body>
 </html>
