@@ -57931,7 +57931,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const overCanvasOrImg = /^(CANVAS|IMG)$/.test(e.target.tagName || '')
             && !e.target.closest('.vis-network')
             && Math.abs(e.deltaY) >= Math.abs(e.deltaX);
-        if (e.target.closest?.('.js-plotly-plot') || overCanvasOrImg) {
+        // A mostly-vertical wheel whose nearest scroll container can only
+        // scroll sideways gets latched there by macOS and dies (reported:
+        // the empty space right of the heatmap grid, which is still the
+        // x-only #hmGridScroll). Reroute those the same way as canvases:
+        // walk to the first ancestor that is a scroll container on either
+        // axis, and if it cannot take a vertical scroll, hand the wheel on.
+        const inXOnlyScroller = (() => {
+            if (Math.abs(e.deltaY) < Math.abs(e.deltaX)) return false;
+            for (let n = e.target; n && n !== document.body; n = n.parentElement) {
+                if (n.nodeType !== 1) break;
+                const cs = getComputedStyle(n);
+                const xScrolls = (cs.overflowX === 'auto' || cs.overflowX === 'scroll') && n.scrollWidth > n.clientWidth;
+                const yScrolls = (cs.overflowY === 'auto' || cs.overflowY === 'scroll') && n.scrollHeight > n.clientHeight;
+                if (yScrolls) return false;          // vertical scrolling works natively here
+                if (xScrolls) return !n.closest('.vis-network');
+            }
+            return false;
+        })();
+        if (e.target.closest?.('.js-plotly-plot') || overCanvasOrImg || inXOnlyScroller) {
             // Walk out from the chart first: the nearest scrollable ancestor is
             // what the user means, and it is not always the dialog's main
             // scroller (a chart can sit inside its own scrolling panel).
