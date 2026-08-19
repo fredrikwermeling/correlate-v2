@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.74 (2026-08-19)</strong></p>
+                <ul>
+                    <li><b>Send to the heatmap.</b> The Cell Line Browser's "Send to another view" now includes the heatmap: Highlight marks the sent cell lines as gate A above the columns, ready for gate inspect; Only these draws the heatmap on just them, with a note saying where the cohort came from. Clear all of these covers both.</li>
+                </ul>
                 <p><strong>v.88.73 (2026-08-19)</strong></p>
                 <ul>
                     <li><b>Gates grew up.</b> With both heatmap gates filled, Inspect A vs B opens the browser's inspect comparing the two gates directly, volcano first, with collapsible panels comparing where the gates come from (lineage, subtype, disease) and their genetic alteration percentages, the same statistics the scatter's gate comparison uses. The inspect's own gene lists gained Open in heatmap with the top-N menu, and gate controls are hidden on phones where dragging cannot work.</li>
@@ -6970,7 +6974,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.73</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.74</a>
         </span>
     </div>
 
@@ -10006,6 +10010,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_73"></script>
+    <script src="app.js?v=v88_74"></script>
 </body>
 </html>

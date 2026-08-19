@@ -48964,6 +48964,10 @@ ${clone.innerHTML}
                     : 'Opens ready for a gene; the setting applies as soon as you pick one.',
                   b('ge-hl', 'Highlight', 'Mark these cell lines in red on the gene-effect charts', true)
                 + b('ge-only', 'Only these', 'Narrow the gene-effect charts to these cell lines'))}
+            ${row('Heatmap',
+                  'Opens on a starter gene set; switch it to any preset or your own genes there.',
+                  b('hm-hl', 'Highlight', 'Mark these cell lines above the heatmap columns, leaving the rest in place', true)
+                + b('hm-only', 'Only these', 'Draw the heatmap on just these cell lines'))}
             ${row('Mutation analysis',
                   'Splits these cell lines into altered and wild-type for a gene you pick.',
                   b('cohort-mutation', 'Only these', 'Use these cell lines as the cohort and open the mutation analysis'))}
@@ -49066,6 +49070,29 @@ ${clone.innerHTML}
             say(act === 'cohort-mutation'
                 ? `Mutation analysis will run inside these ${n} cell lines. Pick a gene and Run.`
                 : `Gene set analysis will run across these ${n} cell lines. Enter your genes and Run.`);
+        } else if (act === 'hm-hl' || act === 'hm-only') {
+            // The heatmap resets every control on open, so the send works by
+            // opening it and layering the state on AFTER _hmOpenModal (the
+            // v.88.25 lesson), the same contract the network and inspect
+            // handoffs follow. It always opens drawing (first preset), so
+            // the sent lines are visible immediately.
+            this.closeCellLineBrowser?.();
+            this._hmOpenModal();
+            if (act === 'hm-only') {
+                this._hmCohortOverride = {
+                    cellLines: cls.slice(),
+                    note: `cohort sent from the cell line browser (${n} lines)`
+                };
+                say(`The heatmap now draws only these ${n} cell lines.`);
+            } else {
+                // Gate A is the heatmap's own marked-columns mechanism: a
+                // band above the columns plus the copy/inspect buttons it
+                // unlocks, so the marked set can be compared against the
+                // rest right there.
+                this._hmGates = { A: new Set(cls), B: new Set() };
+                say(`${n} cell lines marked as gate A above the heatmap.`);
+            }
+            this._hmRedraw();
         } else if (act === 'ge-hl') {
             this._geSelectionHighlight = new Set(cls);
             this._openGeneEffectView();
@@ -49088,6 +49115,14 @@ ${clone.innerHTML}
             ['customCLFilterCount', 'customCLFilterCountGE'].forEach(id => {
                 const c = document.getElementById(id); if (c) c.textContent = '';
             });
+            // The heatmap's two send targets: the sent cohort and gate A
+            // (gate B is only ever set by hand on the heatmap itself, so it
+            // is left alone). Usually moot, since the heatmap resets both on
+            // its next open anyway; only a heatmap already open underneath
+            // needs the redraw.
+            this._hmCohortOverride = null;
+            if (this._hmGates?.A?.size) this._hmGates.A = new Set();
+            if (document.getElementById('heatmapModal')?.style.display === 'flex') this._hmRedraw();
             this.updateInspectPlot?.();
             this._rerenderCurrentGEView?.();
             say('Custom cell-line lists cleared everywhere.');
