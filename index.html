@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.83 (2026-08-19)</strong></p>
+                <ul>
+                    <li><b>Methods knows which build it is in.</b> The Methods texts now name the app from the page itself and cite the address they are generated at, so the standard and CoExpress builds write their own name and URL instead of this one's, and a build without a version badge simply leaves the version out.</li>
+                </ul>
                 <p><strong>v.88.82 (2026-08-19)</strong></p>
                 <ul>
                     <li><b>One comparison view everywhere.</b> Compare on the scatter's gates now opens the same comparison the Cell Line Browser and the heatmap gates open, instead of the small tabbed panel that used to appear under the plot. That means the volcano, both ranked gene tables (gene effect and expression, with q-values), the collapsible "where the cell lines come from" panel and the full alteration panel with its chips, all reading gate A against gate B.</li>
@@ -7020,7 +7024,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.82</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.83</a>
         </span>
     </div>
 
@@ -10081,6 +10085,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_82"></script>
+    <script src="app.js?v=v88_83"></script>
 </body>
 </html>

@@ -57964,12 +57964,24 @@ ${clone.innerHTML}
     // describes.
 
     _methodsMeta() {
+        // Build-aware on purpose: app.js is copied VERBATIM into the V1 and
+        // CoExpress builds (see scripts/build_v1.py), so nothing here may
+        // hardcode the V2 name or address. The <title> is what each build
+        // script renames (Correlate V2 / Correlate / CoExpress), the badge
+        // is stripped from the derived builds (then no version is quoted),
+        // and the URL is wherever the app is actually being served from,
+        // so correlate.cmm.se cites itself rather than the beta site.
+        const served = /^https?:$/.test(location.protocol)
+            && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+        const url = served
+            ? location.origin + location.pathname.replace(/index\.html$/, '')
+            : 'https://fredrikwermeling.github.io/correlate-v2/';
         return {
-            app: 'Correlate V2',
+            app: (document.title || 'Correlate').trim(),
             // Exports read the badge, established convention: one literal in
             // index.html is the version everything quotes.
-            version: document.getElementById('versionBadge')?.textContent?.trim() || 'unknown',
-            url: 'https://fredrikwermeling.github.io/correlate-v2/',
+            version: document.getElementById('versionBadge')?.textContent?.trim() || '',
+            url,
             date: new Date().toISOString().slice(0, 10),
             release: `DepMap ${DEPMAP_VERSION}`
         };
@@ -57994,7 +58006,7 @@ ${clone.innerHTML}
     // Last sentence of the condensed paragraph: what produced it.
     _methodsCitation() {
         const m = this._methodsMeta();
-        return `Analyses were carried out in ${m.app} ${m.version} (${m.url}) on ${m.date}; please acknowledge DepMap (Broad Institute) if you use this data.`;
+        return `Analyses were carried out in ${m.app}${m.version ? ' ' + m.version : ''} (${m.url}) on ${m.date}; please acknowledge DepMap (Broad Institute) if you use this data.`;
     }
 
     // Opening block of the long section: the same facts, laid out rather than
@@ -58009,7 +58021,7 @@ ${clone.innerHTML}
         return [
             title.toUpperCase(),
             '',
-            `${m.app}, version ${m.version}`,
+            m.version ? `${m.app}, version ${m.version}` : m.app,
             m.url,
             `Written ${m.date}.`,
             `Data source: ${m.release} public release, DepMap (Broad Institute, https://depmap.org/). ${meaning} Please acknowledge DepMap if you use this data.`
