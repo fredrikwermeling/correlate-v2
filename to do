@@ -2,7 +2,7 @@ The annotations row function is not working as expected in heatmap. go over it a
 In heatmap, if i suggest to sort by eg tp53 hotspot, it shows to lines for tp53 hotspot, i dont want this. each extra line below the the heatmap should only be present 1 time, and the same is for the linked legend below, that now appears 2x for the same thing if i press to sort by that row,.
 in heatmap, the tree for genes should not by deafult select colors, but should ahve the tree order dropdown like the cell line version  
 the genetic alteration in in cell line browser inspect should allow for showing all genetic alterations, sorting based on how strong difference, but also to click to only look at hotspot or fusion.
-
+cell line browser inspect should also have the linage and genetic alteration comaprisons (hidden but openable by clicking) 
 
 updat the reference and how it works texts
 
