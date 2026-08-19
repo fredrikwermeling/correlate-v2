@@ -53977,6 +53977,7 @@ ${clone.innerHTML}
             this._hmSyncClusterControls();
             this._hmRedraw();
         });
+        document.getElementById('hmGeneClusterK')?.addEventListener('change', () => this._hmRedraw());
         // Fires on blur/focus-loss, not on every keystroke, so a half-typed
         // gene list doesn't repaint mid-edit; Redraw stays useful for that.
         document.getElementById('hmGenes')?.addEventListener('change', () => this._hmRedraw());
@@ -54150,6 +54151,7 @@ ${clone.innerHTML}
         const clusterCb = document.getElementById('hmClusterCells');
         if (clusterCb) clusterCb.checked = false;
         set('hmClusterK', 'auto');
+        set('hmGeneClusterK', '0');
         const medianCb = document.getElementById('hmShowMedian');
         if (medianCb) medianCb.checked = true;
         set('hmMinGroupSize', '1');
@@ -55342,24 +55344,31 @@ ${clone.innerHTML}
             const tree = this._hmClusterTree(genes, scaledRows);
             orderedGenes = tree.order;
             geneTree = tree.root;
-            // Colour the gene tree's branches by subtree (v.88.77): the tree
-            // is cut with the same machinery the column tree uses, at the
-            // silhouette-picked k, and each cut subtree's branches take one
-            // colour from the group palette, top to bottom. Below 6 genes a
-            // cut says nothing a 2-3 branch tree doesn't already show, so
-            // the tree stays plain grey there. Display only: row order and
-            // the grid are untouched. Cached like the column tree's auto-k,
+            // Colour the gene tree's branches by subtree (v.88.77, opt-in
+            // via the hmGeneClusterK select since v.88.79: "Tree order
+            // only", the default, keeps the tree plain gray). The tree is
+            // cut with the same machinery the column tree uses, either at
+            // the silhouette-picked k (Auto, needs 6+ genes to say anything
+            // a 2-3 branch tree doesn't) or at the picked group count, and
+            // each cut subtree's branches take one colour from the group
+            // palette, top to bottom. Display only: row order and the grid
+            // are untouched. The auto k is cached like the column tree's,
             // in its own slot so the two caches never evict each other.
-            if (genes.length >= 6) {
+            const geneKRaw = document.getElementById('hmGeneClusterK')?.value || '0';
+            let geneK = 0;
+            if (geneKRaw === 'auto' && genes.length >= 6) {
                 const sig = `genes|${dataType}|${scaleMode}|${genes.join(',')}|${cohort.length}`;
-                let k;
                 if (this._hmGeneAutoKCache?.key === sig) {
-                    k = this._hmGeneAutoKCache.k;
+                    geneK = this._hmGeneAutoKCache.k;
                 } else {
-                    k = this._hmSilhouetteBestK({ root: geneTree, order: orderedGenes }, genes, scaledRows);
-                    this._hmGeneAutoKCache = { key: sig, k };
+                    geneK = this._hmSilhouetteBestK({ root: geneTree, order: orderedGenes }, genes, scaledRows);
+                    this._hmGeneAutoKCache = { key: sig, k: geneK };
                 }
-                const parts = this._hmCutColumnClusters({ root: geneTree, order: orderedGenes }, k);
+            } else if (geneKRaw !== 'auto' && geneKRaw !== '0') {
+                geneK = parseInt(geneKRaw, 10) || 0;
+            }
+            if (geneK >= 2) {
+                const parts = this._hmCutColumnClusters({ root: geneTree, order: orderedGenes }, geneK);
                 if (parts.length >= 2) {
                     const palette = this._HM_GROUP_PALETTE();
                     geneClusterColorOf = new Map(parts.map((p, i) => [p.node, palette[i % palette.length]]));
@@ -55694,7 +55703,17 @@ ${clone.innerHTML}
         // clusters row also draws nothing unless the tree was actually cut
         // into clusters this redraw (tree order alone has no colours to show).
         const clusterColorByKey = new Map((groups || []).map(g => [g.key, g.color]));
-        const annRows = annotationRows.map(r => this._hmBuildAnnotation2(r.mode, r.gene, orderedCLs, clScore, showMedian, { clusterAssign, clusterColorByKey })).filter(Boolean);
+        // The outermost toggled row IS the group strip: its blocks, labels
+        // and legend already say exactly what its own band would repeat
+        // directly beneath, so that one row draws no second band and no
+        // second legend (user feedback: the same thing showed twice). Same
+        // rule for the clusters row while the cluster groups are the strip.
+        const bandRows = annotationRows.filter(r => {
+            if (groupSpec?.kind === 'row' && r.idx === groupSpec.rowIdx) return false;
+            if (groupSpec?.kind === 'cluster' && r.mode === 'cluster' && clustersActive) return false;
+            return true;
+        });
+        const annRows = bandRows.map(r => this._hmBuildAnnotation2(r.mode, r.gene, orderedCLs, clScore, showMedian, { clusterAssign, clusterColorByKey })).filter(Boolean);
 
         // What the ordering actually did, in the same shape the summary line
         // and the exports read it back in, so the words can never drift from
@@ -58166,6 +58185,7 @@ ${clone.innerHTML}
             clusterGenes: checked('hmClusterGenes'),
             clusterCells: checked('hmClusterCells'),
             clusterK: val('hmClusterK') === 'auto' ? 'auto' : (parseInt(val('hmClusterK'), 10) || 0),
+            geneClusterK: val('hmGeneClusterK') === 'auto' ? 'auto' : (parseInt(val('hmGeneClusterK'), 10) || 0),
             // v.88.70: rows carry their own sort state (replacing the retired
             // hmSort select); v.88.72 widened that from a boolean sortOn to a
             // three-state sortDir (null | 'desc' | 'asc'); v.88.76 made the
@@ -58242,6 +58262,10 @@ ${clone.innerHTML}
         setChecked('hmClusterGenes', state.clusterGenes);
         setChecked('hmClusterCells', state.clusterCells);
         set('hmClusterK', state.clusterK != null ? String(state.clusterK) : '0');
+        // Older files predate the gene-tree colour select; they drew plain
+        // gray trees (or the brief always-auto v.88.77/78), so absent means
+        // Tree order only rather than inheriting whatever is on screen.
+        set('hmGeneClusterK', state.geneClusterK != null ? String(state.geneClusterK) : '0');
         set('hmMinGroupSize', state.minN != null ? String(state.minN) : '1');
         setChecked('hmShowMedian', state.showMedian);
 

@@ -2635,6 +2635,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.79 (2026-08-19)</strong></p>
+                <ul>
+                    <li><b>No more saying it twice.</b> When a row's sort arrows make it the block strip, that row no longer also draws its own colour band and second legend entry beneath the grid: the strip and its legend carry it alone. The same applies to the clusters row while the cluster groups are the strip.</li>
+                    <li><b>The gene tree's colours are a choice.</b> A new select beside Cluster genes (Tree order only / Auto / 2-12 groups) controls whether the gene tree's branches are coloured by subtree, and a fresh heatmap opens with the tree plain, matching how the cell-line side works.</li>
+                </ul>
                 <p><strong>v.88.78 (2026-08-19)</strong></p>
                 <ul>
                     <li><b>Every view can explain itself.</b> A new <b>Methods</b> button sits beside the export buttons of the scatter, the gene effect view, expression correlates, correlation by group, the mutation analysis, the network and its two tables, the heatmap, the Cell Line Browser, selection inspect, gate comparison and the UMAP / PCA plot. It writes out how what is on screen was made, in two forms: one paragraph in materials-and-methods voice, ready to paste into a manuscript, and a longer plain-language walk-through of the cohort, the settings, the statistics and what the numbers do and do not say. Both are read from the view as it stands right now, so changing a filter and asking again gives different text; each has its own Copy, and Download .txt saves both.</li>
@@ -6990,7 +6995,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.78</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.79</a>
         </span>
     </div>
 
@@ -8879,6 +8884,21 @@
                             <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the gene rows by how alike their profiles are, regardless of how cell lines are sorted, and draw the tree that produced the order">
                                 <input type="checkbox" id="hmClusterGenes" checked style="margin:0;"> Cluster genes
                             </label>
+                            <select id="hmGeneClusterK" style="width:150px;" title="Colour the gene tree's branches by subtree: how many groups to cut it into. Tree order only keeps the tree plain gray. Display only, the row order never changes.">
+                                <option value="0" selected>Tree order only</option>
+                                <option value="auto">Auto (suggested)</option>
+                                <option value="2">2 groups</option>
+                                <option value="3">3 groups</option>
+                                <option value="4">4 groups</option>
+                                <option value="5">5 groups</option>
+                                <option value="6">6 groups</option>
+                                <option value="7">7 groups</option>
+                                <option value="8">8 groups</option>
+                                <option value="9">9 groups</option>
+                                <option value="10">10 groups</option>
+                                <option value="11">11 groups</option>
+                                <option value="12">12 groups</option>
+                            </select>
                             <select id="hmTreeDetailGenes" style="width:110px;" title="Drawing detail only, does not change the clustering: How much branch detail the gene tree on the left draws">
                                 <option value="full" selected>Full</option>
                                 <option value="medium">Medium</option>
@@ -10062,6 +10082,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_78"></script>
+    <script src="app.js?v=v88_79"></script>
 </body>
 </html>
