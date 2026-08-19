@@ -11556,6 +11556,13 @@ class CorrelationExplorer {
             geneList: geneList,
             mode: mode,
             cutoff: cutoff,
+            // The other two accept-test thresholds, and whether the second
+            // pass ran. Kept with the results so anything describing them
+            // later (the Methods text) reads what this run actually used
+            // rather than whatever the sliders happen to say now.
+            minN: minN,
+            minSlope: minSlope,
+            expandNetwork: !!expandNetwork,
             nCellLines: cellLineIndices.length,
             isFiltered: isFiltered
         };
@@ -58396,11 +58403,1106 @@ ${clone.innerHTML}
 
         await this._hmRedraw();
     }
+
+    // ===== Methods ==========================================================
+    // Every view that can export an image or a .csv can also write out how it
+    // was made, in two registers: one paragraph in materials-and-methods
+    // voice, and one longer walk-through in plain language.
+    //
+    // The one rule this section lives by: every sentence is read from LIVE
+    // state or states what the computing function actually does. Nothing is
+    // remembered from an earlier run, nothing is inferred, and an absence is
+    // written out ("no lineage filter was applied") rather than left for a
+    // reader to notice as a missing sentence. Where a describer already
+    // exists on screen (_hmSortSummary, _hmCohortPhrase, _mutStatsBlurbText,
+    // _getNetworkFilterText, _clbFilterBits) it is reused rather than
+    // re-derived, so the Methods text cannot disagree with the view it
+    // describes.
+
+    _methodsMeta() {
+        return {
+            app: 'Correlate V2',
+            // Exports read the badge, established convention: one literal in
+            // index.html is the version everything quotes.
+            version: document.getElementById('versionBadge')?.textContent?.trim() || 'unknown',
+            url: 'https://fredrikwermeling.github.io/correlate-v2/',
+            date: new Date().toISOString().slice(0, 10),
+            release: `DepMap ${DEPMAP_VERSION}`
+        };
+    }
+
+    // How a measure is named wherever it is named. `kind` is the app's own
+    // internal word for it ('ge', 'expr', 'both'), so a caller can hand
+    // through whatever the view already holds.
+    _methodsMeasureWords(kind) {
+        if (kind === 'expr') return 'mRNA expression (log2(TPM+1))';
+        if (kind === 'both') return 'CRISPR gene effect (Chronos) and mRNA expression (log2(TPM+1))';
+        return 'CRISPR gene effect (Chronos)';
+    }
+
+    // First sentence of the condensed paragraph, and the data-source line of
+    // the long section: where the numbers come from.
+    _methodsDataSentence(kind) {
+        const m = this._methodsMeta();
+        return `Data were taken from the ${m.release} public release of the Cancer Dependency Map (DepMap, Broad Institute, https://depmap.org/): ${this._methodsMeasureWords(kind)}.`;
+    }
+
+    // Last sentence of the condensed paragraph: what produced it.
+    _methodsCitation() {
+        const m = this._methodsMeta();
+        return `Analyses were carried out in ${m.app} ${m.version} (${m.url}) on ${m.date}; please acknowledge DepMap (Broad Institute) if you use this data.`;
+    }
+
+    // Opening block of the long section: the same facts, laid out rather than
+    // packed into a sentence, plus what the two measures mean.
+    _methodsHeaderBlock(title, kind) {
+        const m = this._methodsMeta();
+        const meaning = kind === 'expr'
+            ? 'mRNA expression is log2(TPM+1): higher means more of that transcript.'
+            : kind === 'both'
+                ? 'CRISPR gene effect is the Chronos score: 0 means knocking the gene out did nothing to growth, and the more negative the number, the more the cell line needs that gene. mRNA expression is log2(TPM+1): higher means more of that transcript.'
+                : 'CRISPR gene effect is the Chronos score: 0 means knocking the gene out did nothing to growth, and the more negative the number, the more the cell line needs that gene.';
+        return [
+            title.toUpperCase(),
+            '',
+            `${m.app}, version ${m.version}`,
+            m.url,
+            `Written ${m.date}.`,
+            `Data source: ${m.release} public release, DepMap (Broad Institute, https://depmap.org/). ${meaning} Please acknowledge DepMap if you use this data.`
+        ].join('\n');
+    }
+
+    _mNum(n) {
+        const v = Number(n);
+        return Number.isFinite(v) ? v.toLocaleString() : 'not available';
+    }
+
+    _mFix(v, dp = 3) {
+        const n = Number(v);
+        return Number.isFinite(n) ? n.toFixed(dp) : 'not available';
+    }
+
+    // p in a form that survives a plain text file (formatPValue uses Unicode
+    // superscripts, which do not paste well into a manuscript).
+    _mP(p) {
+        const n = Number(p);
+        if (!Number.isFinite(n)) return 'not available';
+        if (n === 0) return '< 1e-300';
+        return n < 0.001 ? n.toExponential(2) : n.toFixed(3);
+    }
+
+    // "a, b and c", or a stated absence. Used everywhere a list of filters,
+    // gates or exclusions has to be reported whether or not it is empty.
+    _mListOr(parts, noneText) {
+        const list = (parts || []).filter(Boolean);
+        if (!list.length) return noneText;
+        if (list.length === 1) return list[0];
+        return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
+    }
+
+    _mSentences(parts) {
+        return (parts || []).filter(Boolean).join(' ');
+    }
+
+    // Blank line between blocks, exactly one: a block built by appending
+    // optional lines often ends with its own newline, and two in a row read
+    // as a missing paragraph.
+    _mBlocks(parts) {
+        return (parts || []).filter(Boolean).map(s => String(s).replace(/\s+$/, '')).join('\n\n');
+    }
+
+    // The views that carry a Methods button, and the name each one goes by in
+    // the dialog title and the downloaded file.
+    _METHODS_VIEWS() {
+        return {
+            scatter:        { title: 'Correlation scatter', stem: 'scatter' },
+            ge:             { title: 'Gene effect view', stem: 'gene_effect' },
+            exprCorrelates: { title: 'Expression correlates', stem: 'expression_correlates' },
+            corrAnalysis:   { title: 'Correlation by group', stem: 'correlation_by_group' },
+            mutation:       { title: 'Mutation analysis', stem: 'mutation_analysis' },
+            network:        { title: 'Gene set analysis, network', stem: 'network' },
+            correlations:   { title: 'Gene set analysis, correlation table', stem: 'correlations' },
+            clusters:       { title: 'Gene set analysis, clusters', stem: 'clusters' },
+            heatmap:        { title: 'Gene set heatmap', stem: 'heatmap' },
+            clb:            { title: 'Cell Line Browser', stem: 'cell_line_browser' },
+            selection:      { title: 'Selection inspect', stem: 'selection_inspect' },
+            gates:          { title: 'Gate comparison', stem: 'gate_comparison' },
+            umap:           { title: 'UMAP / PCA', stem: 'umap_pca' }
+        };
+    }
+
+    // A view that has not been run yet gets an honest answer rather than an
+    // invented one.
+    _methodsNotReady(title, what) {
+        const line = `Nothing has been drawn in this view yet, so there is nothing to describe. ${what}`;
+        return { title, condensed: line, long: `${this._methodsHeaderBlock(title, 'ge')}\n\n${line}` };
+    }
+
+    _methodsFor(viewKey) {
+        const known = this._METHODS_VIEWS()[viewKey];
+        const title = known ? known.title : 'This view';
+        try {
+            switch (viewKey) {
+                case 'scatter': return this._methodsScatter();
+                case 'ge': return this._methodsGeneEffect();
+                case 'exprCorrelates': return this._methodsExprCorrelates();
+                case 'corrAnalysis': return this._methodsCorrAnalysis();
+                case 'mutation': return this._methodsMutation();
+                case 'network':
+                case 'correlations':
+                case 'clusters': return this._methodsGeneSetAnalysis(viewKey);
+                case 'heatmap': return this._methodsHeatmap();
+                case 'clb': return this._methodsCellLineBrowser();
+                case 'selection': return this._methodsSelectionInspect();
+                case 'gates': return this._methodsGateComparison();
+                case 'umap': return this._methodsUmap();
+                default: return this._methodsNotReady(title, 'No description has been written for this view.');
+            }
+        } catch (err) {
+            console.error('Methods text could not be built', err);
+            const line = 'The description could not be built from the current state of this view. Nothing is claimed here rather than risk claiming something wrong.';
+            return { title, condensed: line, long: `${this._methodsHeaderBlock(title, 'ge')}\n\n${line}` };
+        }
+    }
+
+    openMethods(viewKey) {
+        const built = this._methodsFor(viewKey);
+        this._methodsCurrent = { key: viewKey, ...built };
+        const label = document.getElementById('methodsViewLabel');
+        if (label) label.textContent = built.title;
+        const cond = document.getElementById('methodsCondensed');
+        if (cond) cond.textContent = built.condensed;
+        const long = document.getElementById('methodsLong');
+        if (long) long.textContent = built.long;
+        const modal = document.getElementById('methodsModal');
+        if (modal) modal.style.display = 'flex';
+    }
+
+    closeMethods() {
+        const modal = document.getElementById('methodsModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    // Same "Copied!" feedback the other copy buttons give (see _hmCopyGate),
+    // rather than a second convention for the same gesture.
+    async _methodsCopy(which, btn) {
+        const cur = this._methodsCurrent;
+        if (!cur) return;
+        const text = which === 'long' ? cur.long : cur.condensed;
+        try {
+            await navigator.clipboard.writeText(text);
+            if (btn) {
+                const t = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = t; }, 1200);
+            }
+        } catch (e) { /* clipboard unavailable, silently no-op like the other copy buttons */ }
+    }
+
+    // Both sections in one file, named the way every other export is named
+    // (see csvName), with a _methods stem and a .txt extension.
+    _methodsDownload() {
+        const cur = this._methodsCurrent;
+        if (!cur) return;
+        const view = this._METHODS_VIEWS()[cur.key];
+        const stem = `${view ? view.stem : (cur.key || 'view')}_methods`;
+        const name = csvName(stem).replace(/\.csv$/, '.txt');
+        const text = [
+            'CONDENSED',
+            '',
+            cur.condensed,
+            '',
+            '',
+            'IN DETAIL',
+            '',
+            cur.long,
+            ''
+        ].join('\n');
+        this.downloadFile(text, name, 'text/plain');
+    }
+
+    // ----- Correlation scatter ---------------------------------------------
+
+    // The scatter's own filter chain, worded. Reads the same controls
+    // _applyScatterFilters reads, in the same order, so the two cannot
+    // disagree about what narrowed the plot.
+    _methodsScatterFilterBits() {
+        const v = (id) => document.getElementById(id)?.value || '';
+        const bits = [];
+        if (v('scatterCancerFilter')) bits.push(`tissue ${v('scatterCancerFilter')}`);
+        if (v('scatterSubtypeFilter')) bits.push(`subtype ${v('scatterSubtypeFilter')}`);
+        if (v('scatterOncotreeFilter')) bits.push(`disease ${v('scatterOncotreeFilter')}`);
+        for (const f of (this._activeOncoprintFilters || [])) bits.push(`${f.gene} ${this._gridStateWord(f.state)} (from the analysis panel)`);
+        for (const f of (this._scatterGridActive || [])) bits.push(`${f.gene} ${this._gridStateWord(f.state)} (picked on this plot)`);
+        const mg = v('mutationFilterGene');
+        if (mg) {
+            const lvl = v('mutationFilterLevel') || '1+2';
+            bits.push(`${mg} ${lvl === '0' ? 'hotspot wild-type' : lvl === '1' ? 'hotspot mutated, one copy' : lvl === '2' ? 'hotspot mutated, both copies' : 'hotspot mutated'}`);
+        }
+        const fg = v('translocationFilterGene');
+        if (fg) bits.push(`${fg} ${(v('translocationFilterLevel') || '1+2') === '0' ? 'not fused' : 'fused'}`);
+        const cg = v('scatterCnFilter');
+        if (cg) bits.push(`${cg} copy number ${v('scatterCnLevel') === 'wt' ? 'unaltered' : 'altered'}`);
+        // Gates and a pasted list share one mechanism (_customCellLineFilter),
+        // so only one of them can be in force; say which.
+        if (this._gateFilter) {
+            bits.push(`restricted to the ${this._mNum(this._gateFilter.n)} cell lines inside gate ${this._gateFilter.gate}, a region drawn by hand on the ${this._gateFilter.genes} plot`);
+        } else if (this._customCellLineFilter?.size) {
+            bits.push(`restricted to a pasted list of ${this._mNum(this._customCellLineFilter.size)} cell lines`);
+        }
+        return bits;
+    }
+
+    _methodsScatter() {
+        const title = 'Correlation scatter';
+        const ci = this.currentInspect;
+        if (!ci) return this._methodsNotReady(title, 'Open a gene pair from the correlation table, or from Inspect, to draw the plot first.');
+
+        const typeWord = (t) => t === 'expr' ? 'mRNA expression' : t === 'growth' ? 'growth rate' : t === 'geneset' ? 'gene set score' : 'CRISPR gene effect';
+        const xLabel = `${ci.gene1} ${typeWord(ci.xType)}`;
+        const yLabel = `${ci.gene2} ${typeWord(ci.yType)}`;
+        const kind = (ci.xType === 'expr' && ci.yType === 'expr') ? 'expr'
+            : (ci.xType === 'expr' || ci.yType === 'expr') ? 'both' : 'ge';
+
+        const all = ci.data || [];
+        const pts = ci.filteredData || all;
+        const st = this.pearsonWithSlope(pts.map(p => p.x), pts.map(p => p.y));
+        const bits = this._methodsScatterFilterBits();
+        const filterWord = bits.length
+            ? `after restricting the panel to ${this._mListOr(bits, '')}`
+            : 'with no tissue, subtype, disease, alteration or cell-line-list restriction applied';
+
+        // Highlights and labels mark points, they never remove them.
+        const searchTerms = (document.getElementById('scatterCellSearch')?.value || '')
+            .split(/[\n,;\t]+/).map(s => s.trim()).filter(Boolean);
+        const clicked = this.clickedCells?.size || 0;
+        const colorBy = document.getElementById('colorByCategory')?.value || '';
+        const overlayHot = document.getElementById('hotspotGene')?.value || '';
+        const overlayFus = document.getElementById('translocationGene')?.value || '';
+        const tissueOpen = document.getElementById('byTissueContainer')?.style.display !== 'none'
+            && !!document.getElementById('byTissueContainer');
+
+        const condensed = this._mSentences([
+            this._methodsDataSentence(kind),
+            `${xLabel} was plotted against ${yLabel} across the ${this._mNum(pts.length)} cell lines with a value for both, ${filterWord}.`,
+            `The association was quantified as a Pearson correlation coefficient with an ordinary least squares slope of y on x, computed over pairwise complete observations, giving r = ${this._mFix(st.correlation)}, slope = ${this._mFix(st.slope)} and p = ${this._mP(st.pValue)} (two sided t test on n minus 2 degrees of freedom, not corrected for multiple testing).`,
+            this._methodsCitation()
+        ]);
+
+        const long = this._mBlocks([
+            this._methodsHeaderBlock(title, kind),
+            'WHAT THE PLOT SHOWS\n'
+            + `Each point is one cell line. The horizontal axis is ${xLabel}, the vertical axis is ${yLabel}. `
+            + `Only cell lines with a value on both axes can be drawn, which is why ${this._mNum(pts.length)} points are shown out of ${this._mNum(all.length)} that have both values in the whole panel.`
+            + (this.currentInspect?.sparseNote ? ` The view also carries this note about coverage: ${this.currentInspect.sparseNote}` : ''),
+            'WHICH CELL LINES\n'
+            + (bits.length
+                ? `The plot was narrowed to: ${bits.map(b => `\n   - ${b}`).join('')}\n`
+                : 'No tissue, subtype or disease filter was applied, no alteration filter was applied, no gate was used as a filter and no cell-line list was pasted in. Every cell line with data on both axes is on the plot.'),
+            'THE NUMBERS ON THE PLOT\n'
+            + `   n = ${this._mNum(pts.length)}, the cell lines actually drawn.\n`
+            + `   r = ${this._mFix(st.correlation)}, the Pearson correlation between the two axes. It runs from -1 to +1; 0 means no straight-line relationship.\n`
+            + `   p = ${this._mP(st.pValue)}, how often a correlation this far from zero would come up by chance if there were no relationship. It is a plain two sided test on the correlation and is NOT corrected for the fact that the gene pair may have been picked out of a genome-wide scan, so treat a small p as a starting point, not a result.\n`
+            + `   slope = ${this._mFix(st.slope)}, the least squares fit of y on x. It carries the units of the two axes, so it is not comparable between plots with different measures.`,
+            'MARKS THAT DO NOT CHANGE THE NUMBERS\n'
+            + (searchTerms.length
+                ? `${searchTerms.length} search term${searchTerms.length === 1 ? ' was' : 's were'} typed into the cell-line search box, and matching points are drawn in orange on top of the same data. `
+                : 'No cell-line search was active, so no points are picked out in orange. ')
+            + (clicked ? `${clicked} point${clicked === 1 ? ' carries' : 's carry'} a name label because ${clicked === 1 ? 'it was' : 'they were'} clicked on screen. ` : 'No points were clicked, so no names are drawn beside them. ')
+            + (colorBy ? `Points are coloured by ${colorBy}. ` : 'Points are not coloured by any category. ')
+            + (overlayHot ? `Points are split by ${overlayHot} hotspot mutation status as an overlay. ` : '')
+            + (overlayFus ? `Points are split by ${overlayFus} fusion status as an overlay. ` : '')
+            + 'Highlighting, labelling and colouring are drawn on top of the same points; none of them add or remove a cell line, so none of them change n, r, p or the slope.',
+            tissueOpen
+                ? 'THE BY-TISSUE CHART\n'
+                + 'The By Tissue chart in this popout repeats the same correlation within each tissue that has at least 3 cell lines on the plot, using the same Pearson coefficient. Its p-value is a different test from the one above: a Fisher z test comparing that tissue\'s correlation with the correlation across all the other cell lines on the plot. A tissue with only a handful of lines can reach r = 1 by chance, which is why the z values are clamped just short of 1.'
+                : null,
+            'WHAT THIS DOES NOT SAY\n'
+            + 'A correlation across a panel of cell lines is not a statement about any one cell line, and it is not evidence of a direct mechanism. Where the panel spans several tissues, a correlation can be produced by differences between tissues rather than by anything happening within a tissue; the By Tissue chart in this popout is the way to check that.'
+        ]);
+
+        return { title, condensed, long };
+    }
+
+    // ----- Gene effect view -------------------------------------------------
+
+    _methodsGeneEffect() {
+        const title = 'Gene effect view';
+        const gene = (this.geneEffectViewMode === 'mutation' && this.currentGeneEffectGene)
+            ? this.currentGeneEffectGene
+            : (this.currentGeneEffect?.gene || this.currentGeneEffectGene || '');
+        if (!gene) return this._methodsNotReady(title, 'Open a gene in the gene effect view first.');
+
+        const mr = this.mutationResults;
+        const isMutMode = this.geneEffectViewMode === 'mutation';
+        const dataType = isMutMode ? (mr?.metric === 'expr' ? 'expr' : 'ge') : (this._geDataType || 'ge');
+        const measure = this._methodsMeasureWords(dataType);
+        const v = (id) => document.getElementById(id)?.value || '';
+
+        const cohortBits = [];
+        if (v('geTissueFilter')) cohortBits.push(`tissue ${v('geTissueFilter')}`);
+        if (v('geSubtypeFilter')) cohortBits.push(`subtype ${v('geSubtypeFilter')}`);
+        if (v('geOncotreeFilter') && v('geOncotreeFilter') !== '__mr_multi__') cohortBits.push(`disease ${v('geOncotreeFilter')}`);
+        else if (v('geOncotreeFilter') === '__mr_multi__' && mr?.oncotreeFilterMulti?.length) cohortBits.push(`diseases ${mr.oncotreeFilterMulti.join(' + ')}`);
+        if (v('geHotspotFilter')) cohortBits.push(`${v('geHotspotFilter')} hotspot level ${v('geHotspotLevel') || '1+2'}`);
+        if (v('geFusionFilter')) cohortBits.push(`${v('geFusionFilter')} fusion level ${v('geFusionLevel') || '1+2'}`);
+        if (v('geCnFilter')) cohortBits.push(`${v('geCnFilter')} copy number ${v('geCnLevel') || 'altered'}`);
+        if (this._customCellLineFilterGE?.size) cohortBits.push(`a hand-picked list of ${this._mNum(this._customCellLineFilterGE.size)} cell lines`);
+
+        const minGroup = parseInt(document.getElementById('geMinGroupSize')?.value) || 1;
+        const pFilterOn = !!document.getElementById('gePvalueFilter')?.checked;
+        const stats = isMutMode ? [] : (this.currentGEStats || []);
+        // Mutation-inspect mode fills currentGeneEffectData (one point per
+        // plotted cell line); the tissue / genetic-change views fill
+        // currentGeneEffect.data. Reading the wrong one reported 0 cell lines
+        // under a plot with hundreds of points on it.
+        // currentGeneEffect.data is the WHOLE panel; the two grouped views draw
+        // getGETissueFilteredData(), which is that same list after the popout's
+        // own filters. Reading the unfiltered one claimed 1,208 cell lines
+        // under a chart of three Lung rows.
+        const nPoints = isMutMode
+            ? (this.currentGeneEffectData || []).length
+            : (this.getGETissueFilteredData ? this.getGETissueFilteredData().length : (this.currentGeneEffect?.data || []).length);
+        const nPanel = (this.currentGeneEffect?.data || []).length;
+        const highlight = this._geSelectionHighlight instanceof Set ? this._geSelectionHighlight.size : 0;
+
+        // Which of the three shapes this chart currently has.
+        let shape, shapeLong;
+        if (isMutMode && mr?.hotspotGene) {
+            const word = this._aiAlterationWord(mr);
+            shape = `one row per ${word} group of ${mr.hotspotGene}`;
+            shapeLong = `Rows are the ${word} groups of ${mr.hotspotGene}: the cell lines carrying the alteration against those that do not. A cell line is in the altered group when the ${word} was called in it; every other cell line is in the reference group, which folds "called negative" together with "never called", since the two cannot be told apart here.`;
+        } else if (this._geCompareMode && this._geCompareSides?.selection?.length) {
+            const s = this._geCompareSides;
+            shape = `two chosen groups of cell lines, ${s.selLabel || 'the selection'} against ${s.cmpLabel || 'the comparison group'}`;
+            shapeLong = `This chart is a two-group contrast, not a survey of the gene. Row 1 is ${s.selLabel || 'the selection'} (${this._mNum(s.selection.length)} cell lines chosen elsewhere in the app), row 2 is ${s.cmpLabel || 'the comparison group'} (${this._mNum((s.comparison || []).length)} cell lines).`;
+        } else if (this.currentGEView === 'hotspot') {
+            const types = this._geScanTypes || {};
+            const on = Object.keys(types).filter(k => types[k]);
+            shape = 'one row per genetic change, scanned across the cohort';
+            shapeLong = `Each row is one genetic change, and the cell lines carrying it are compared against those that do not. The scan covers: ${this._mListOr(on.map(k => k === 'hotspot' ? 'hotspot mutations' : k === 'fusion' ? 'fusions' : k === 'cn' ? 'curated copy-number events' : k === 'cnAll' ? 'all copy-number amplifications (relative copy number at or above 3.0)' : k), 'nothing, no change type is switched on')}. A row is only computed when at least 1 cell line carries the change and at least 3 do not, and the test itself needs at least 3 carriers.`;
+        } else {
+            const groupKind = v('geTissueFilter')
+                ? (this._geSplitByOncotree ? `Oncotree disease within ${v('geTissueFilter')}` : `primary disease within ${v('geTissueFilter')}`)
+                : 'tissue lineage';
+            shape = `one row per ${groupKind}`;
+            shapeLong = `Each row is one ${groupKind}, holding every cell line in the cohort that belongs to it.`;
+        }
+
+        // Which test the view on screen actually ran. The three shapes each
+        // run a different comparison, and one wording for all three would be
+        // wrong for two of them.
+        const statsSentence = isMutMode
+            ? 'The reference group was compared with all altered cell lines, and separately with the both-copies group where one exists, by a two sided Welch t test (unequal variances); each comparison needs at least 3 cell lines on both sides to be run at all. A vertical line marks each group mean.'
+            : (this.currentGEView === 'hotspot')
+                ? 'Within each row, the carriers and the non-carriers were compared with a two sided Welch t test (unequal variances), and the difference reported is mean(altered) minus mean(reference).'
+                : 'Each group was compared against all the other cell lines in the cohort with a two sided Welch t test (unequal variances). Group means are reported with the population standard deviation.';
+        const noFdr = 'No correction for multiple testing was applied to these p-values.';
+
+        const condensed = this._mSentences([
+            this._methodsDataSentence(dataType),
+            `${gene} ${measure} was summarised across the ${this._mNum(nPoints)} cell lines with a value for that gene ${cohortBits.length ? `after restricting the panel to ${this._mListOr(cohortBits, '')}` : 'in the whole panel, with no tissue, subtype, disease, alteration or cell-line-list restriction applied'}, as ${shape}.`,
+            // The minimum group size and the p filter belong to the grouped
+            // views; the mutation-inspect plot has neither control.
+            isMutMode ? null : (minGroup > 1 ? `Groups with fewer than ${minGroup} cell lines were not shown.` : 'No minimum group size was applied.'),
+            statsSentence,
+            noFdr,
+            isMutMode ? null : (pFilterOn ? 'Only rows with p below 0.05 are displayed.' : 'Every row is displayed, whatever its p-value.'),
+            this._methodsCitation()
+        ]);
+
+        const long = this._mBlocks([
+            this._methodsHeaderBlock(title, dataType),
+            `WHAT THE CHART SHOWS\nThe gene is ${gene}, and the value on the horizontal axis is its ${measure}. ${shapeLong} `
+            + (isMutMode
+                ? 'Every cell line is drawn as its own point, spread out vertically so overlapping points stay visible, with a vertical line at each group mean.'
+                : 'Each row is drawn as a box with the individual cell lines beside it, so the spread within a group is visible and not only its average.'),
+            'WHICH CELL LINES\n'
+            + (cohortBits.length
+                ? `The cohort was narrowed to: ${cohortBits.map(b => `\n   - ${b}`).join('')}\n`
+                : 'No tissue, subtype or disease filter was applied, no alteration filter was applied and no cell-line list was pasted in. ')
+            + `${this._mNum(nPoints)} cell lines have a value for ${gene} and are in the cohort the chart is built from`
+            + (!isMutMode && nPanel && nPanel !== nPoints ? `, out of ${this._mNum(nPanel)} with a value in the whole panel` : '')
+            + (stats.length ? `, split into ${this._mNum(stats.length)} row${stats.length === 1 ? '' : 's'}` : '')
+            + '. '
+            + (isMutMode ? '' : (minGroup > 1 ? `Groups holding fewer than ${minGroup} cell lines were dropped.` : 'No minimum group size was set, so even a group of one is drawn.'))
+            + (highlight ? ` ${this._mNum(highlight)} cell line${highlight === 1 ? ' is' : 's are'} marked in red because ${highlight === 1 ? 'it was' : 'they were'} sent here from elsewhere in the app; this is a marker only and does not change any group or any number.` : ''),
+            isMutMode
+                ? `THE NUMBERS ON THE CHART\n   n beside each group is the cell lines in it with a value.\n   ${statsSentence}\n   ${noFdr}`
+                : `THE NUMBERS IN THE TABLE\n   N is the cell lines in that row with a value.\n   Mean is their average ${dataType === 'expr' ? 'expression' : 'gene effect'}, and SD is the spread around it.\n   ${statsSentence}\n   ${noFdr} With this many rows, judge a row on the size of the difference and on whether it makes sense, not on p alone.\n   ${pFilterOn ? 'The p < 0.05 tick box is on, so rows above 0.05 are hidden from the table.' : 'The p < 0.05 tick box is off, so every row is listed.'}`,
+            'WHAT THIS DOES NOT SAY\n'
+            + (dataType === 'expr'
+                ? 'A difference in expression between groups says nothing on its own about whether the cell lines depend on the gene.'
+                : 'A gene effect difference between groups is an association across a panel of cell lines. It does not establish that the grouping variable causes the dependency, and a group that is small or dominated by one tissue can carry a difference that is really about tissue.')
+        ]);
+
+        return { title, condensed, long };
+    }
+
+    // ----- Expression correlates -------------------------------------------
+
+    _methodsExprCorrelates() {
+        const title = 'Expression correlates';
+        const ctx = this._exprCorrelateContext || {};
+        const rows = Array.isArray(this.expressionCorrelateResults) ? this.expressionCorrelateResults : null;
+        if (!rows || !rows.length) return this._methodsNotReady(title, 'Press Run in the Expression Correlates panel first.');
+
+        const target = ctx.targetGene || this.currentGeneEffectGene || 'the target gene';
+        // The subgroup as the panel itself names it (_mutSubgroupLabels is what
+        // the status line under the Run button uses), not the raw code '1+2'.
+        const nSub = (ctx.subgroupIndices || []).length;
+        const subLabels = this._mutSubgroupLabels(this.mutationResults);
+        const subName = subLabels?.[ctx.subgroup] || ctx.subgroup || 'the cohort';
+        const subgroupWord = ctx.subgroup === 'all'
+            ? `the whole cohort${nSub ? ` (${this._mNum(nSub)} cell lines)` : ''}`
+            : `the ${ctx.hotspotGene ? `${ctx.hotspotGene} ` : ''}${subName} cell lines${nSub ? ` (${this._mNum(nSub)} of them)` : ''}`;
+        const scatterGene = this._currentExprScatterGene || null;
+
+        const condensed = this._mSentences([
+            this._methodsDataSentence('both'),
+            `Within ${subgroupWord}, the mRNA expression of every gene in the expression matrix was correlated against ${target} CRISPR gene effect using Pearson correlation over pairwise complete observations.`,
+            'A gene was tested only where at least 10 cell lines had both values, and a two sided p was taken from a t test on n minus 2 degrees of freedom; no correction for multiple testing was applied.',
+            `Genes with |r| below 0.2 were discarded and the rest were ranked by |r|, with the list capped at the strongest 500; ${this._mNum(rows.length)} gene${rows.length === 1 ? ' is' : 's are'} listed${rows.length >= 500 ? ', so more genes cleared the cutoff than are shown' : ''}.`,
+            scatterGene ? `The scatter plot shows ${scatterGene} expression against ${target} gene effect for the same cell lines.` : null,
+            this._methodsCitation()
+        ]);
+
+        const long = this._mBlocks([
+            this._methodsHeaderBlock(title, 'both'),
+            `WHAT THIS LIST IS\nOne row per gene. For each gene, its mRNA expression across the cell lines is compared with how much those same cell lines depend on ${target}, and the row reports how closely the two track each other. It is a search for expression patterns that go with a dependency, run inside one subgroup rather than across the whole panel.`,
+            `WHICH CELL LINES\nThe search was run within ${subgroupWord}. The subgroup is built from the mutation analysis that opened this panel, carrying its tissue, subtype, disease and additional-alteration filters${ctx.inspectTissueFilter ? `, further narrowed to ${ctx.inspectTissueFilter} in this popout` : ''}, and then keeping only the cell lines that have expression data and a gene effect value for ${target}. The panel refuses to run below 10 cell lines.`,
+            'HOW EACH ROW WAS COMPUTED\n'
+            + `   r is the Pearson correlation between that gene's expression and ${target} gene effect. A cell line counts only where both values exist.\n`
+            + '   Slope is the least squares fit of gene effect on expression.\n'
+            + '   N is that gene\'s own count of cell lines with both values, which can be lower than the subgroup size when expression is missing for some lines.\n'
+            + '   p is two sided, from a t test on N minus 2 degrees of freedom. There is NO q-value here: thousands of genes were tested and no multiple-testing correction was applied, so a small p on its own is not a finding.',
+            'WHAT WAS LEFT OUT\n'
+            + '   Genes with fewer than 10 usable cell lines were skipped entirely.\n'
+            + '   Genes with |r| below 0.2 were discarded.\n'
+            + `   The remainder were sorted by |r| and cut at 500. ${this._mNum(rows.length)} row${rows.length === 1 ? ' is' : 's are'} listed${rows.length >= 500 ? ', which is the cap, so genes that cleared the 0.2 cutoff but ranked below 500 are missing from the list and every one of them is weaker than every row shown' : ''}.\n`
+            + '   A gene missing from the list is therefore usually a gene whose correlation was too WEAK to keep, which is the opposite of untested.',
+            scatterGene
+                ? `THE SCATTER PLOT\nEach point is one cell line. The horizontal axis is ${target} gene effect, the vertical axis is ${scatterGene} expression. Points are coloured by the cell line's genotype for the stratifying gene. The r, slope and n printed on the plot are recomputed on the points that belong to the subgroup, not on any background points shown for context, and no p is printed there.`
+                : null,
+            `WHAT THIS DOES NOT SAY\nA correlation between one gene's expression and another gene's dependency does not show that the first controls the second. Within a small subgroup, one or two unusual cell lines can carry a large r on their own.`
+        ]);
+
+        return { title, condensed, long };
+    }
+
+    // ----- Correlation by group (correlation analysis modal) ----------------
+
+    _methodsCorrAnalysis() {
+        const title = 'Correlation by group';
+        const d = this._corrAnalysisData;
+        if (!d) return this._methodsNotReady(title, 'Open a gene pair in the correlation analysis view first.');
+
+        const view = this._caView || 'tissue';
+        const shown = this.getCATissueFilteredData ? this.getCATissueFilteredData() : (d.data || []);
+        const overall = shown.length >= 3
+            ? this.pearsonWithSlope(shown.map(p => p.x), shown.map(p => p.y))
+            : { correlation: NaN, slope: NaN, pValue: NaN };
+        const filterText = this._getCAFilterDescription ? this._getCAFilterDescription() : '';
+
+        const viewSentence = view === 'tissue'
+            ? 'The correlation was then recomputed within each tissue with at least 3 cell lines, and each tissue was compared against all the other cell lines in the view by a Fisher z test on the two correlation coefficients.'
+            : 'The correlation was then recomputed separately in the wild-type and the mutated cell lines for the chosen gene, and the two coefficients were compared by a Fisher z test.';
+
+        const condensed = this._mSentences([
+            this._methodsDataSentence('ge'),
+            `${d.gene1} and ${d.gene2} CRISPR gene effect were compared across ${this._mNum(shown.length)} cell lines with a value for both${filterText ? `, restricted to ${filterText}` : ', with no tissue, subtype, disease or alteration restriction applied'}, giving an overall Pearson r of ${this._mFix(overall.correlation)} and a slope of ${this._mFix(overall.slope)}.`,
+            viewSentence,
+            'No correction for multiple testing was applied to the group p-values.',
+            this._methodsCitation()
+        ]);
+
+        const long = this._mBlocks([
+            this._methodsHeaderBlock(title, 'ge'),
+            `WHAT THIS VIEW SHOWS\nThe question is whether the relationship between ${d.gene1} and ${d.gene2} holds everywhere, or only in some cell lines. Both axes are CRISPR gene effect; this view has no expression option. The summary at the top is the correlation over every cell line currently in the view, and the chart below breaks that same correlation down group by group.`,
+            'WHICH CELL LINES\n'
+            + (filterText
+                ? `The view is restricted to: ${filterText}. `
+                : 'No tissue, subtype, disease, hotspot, fusion or copy-number filter is set, so every cell line with a value for both genes is included. ')
+            + `${this._mNum(shown.length)} cell lines are in the view out of ${this._mNum((d.data || []).length)} with a value for both genes in the whole panel.`,
+            view === 'tissue'
+                ? 'HOW EACH ROW WAS COMPUTED\n'
+                  + '   Cell lines are grouped by tissue lineage. A tissue needs at least 3 cell lines to get a row at all.\n'
+                  + '   r is the Pearson correlation within that tissue.\n'
+                  + '   The p-value is NOT the usual test of whether r differs from zero. It is a Fisher z test asking whether this tissue\'s correlation differs from the correlation across all the other cell lines in the view. A tissue can therefore have a strong r and a large p, meaning it is strong but no different from everywhere else.\n'
+                  + '   With only 3 points a correlation is exactly 1 or -1 by construction, so the z transform is clamped just short of 1 to keep the test finite. Read small groups with that in mind.\n'
+                  + '   No correction for multiple testing is applied across tissues.'
+                : 'HOW EACH ROW WAS COMPUTED\n'
+                  + '   Cell lines are split by the chosen gene into wild-type and mutated, and the correlation between the two genes is computed separately in each.\n'
+                  + '   The p-value is a Fisher z test comparing those two correlations with each other, so it asks whether the relationship differs between the two genotypes rather than whether either one is non-zero.\n'
+                  + '   No correction for multiple testing is applied.',
+            'WHAT THIS DOES NOT SAY\nA correlation that holds in one tissue and not another can reflect how many cell lines each tissue has as much as any biology: a small group carries a wide, unstable correlation. The overall correlation across a mixed panel can also be produced by differences between tissues rather than within them, which is exactly what this view exists to check.'
+        ]);
+
+        return { title, condensed, long };
+    }
+
+    // ----- Mutation analysis ------------------------------------------------
+
+    _methodsMutation() {
+        const title = 'Mutation analysis';
+        const mr = this.mutationResults;
+        if (!mr?.hotspotGene) return this._methodsNotReady(title, 'Run a mutation, fusion or copy-number analysis first.');
+
+        const L = this._mutAxisLabels(mr);
+        const word = this._aiAlterationWord(mr);
+        const measure = mr.metric === 'expr' ? 'expr' : 'ge';
+        const measureWords = this._methodsMeasureWords(measure);
+        const nMut = mr.nMut, nWT = mr.nWT;
+
+        const stratRule = mr.isTranslocation
+            ? 'A cell line is in the altered group when the named fusion was called in it, from the curated fusion calls. Cell lines with no RNA-seq are held out of BOTH groups rather than counted as negative.'
+            : mr.isDamaging
+                ? (mr.cnMode === 'amp'
+                    ? 'A cell line is in the altered group when it is called amplified for this gene on the curated actionable copy-number panel.'
+                    : mr.cnMode === 'del'
+                        ? 'A cell line is in the altered group when it carries a deep deletion of this gene on the curated actionable copy-number panel.'
+                        : 'A cell line is in the altered group by the integrated functional-loss call, which DepMap builds from copy number, mutation and expression together. This is not a point-mutation test: a gene can put every line in the altered group with no damaging coding mutation anywhere in the release, because deletion alone can drive the call.')
+                : 'A cell line is in the altered group when it carries a recurrent activating mutation at a known hotspot in this gene, whether on one copy or both.';
+
+        const cohortBits = [];
+        if (mr.lineageFilter) cohortBits.push(`tissue ${mr.lineageFilter}`);
+        if (mr.subLineageFilter) cohortBits.push(`subtype ${mr.subLineageFilter}`);
+        if (mr.oncotreeFilterMulti?.length) cohortBits.push(`diseases ${mr.oncotreeFilterMulti.join(' + ')}`);
+        else if (mr.oncotreeFilter) cohortBits.push(`disease ${mr.oncotreeFilter}`);
+        if (mr.excludedTissues?.size) cohortBits.push(`${mr.excludedTissues.size} tissue${mr.excludedTissues.size === 1 ? '' : 's'} excluded (${[...mr.excludedTissues].join(', ')})`);
+        if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') cohortBits.push(`${mr.additionalHotspot} hotspot level ${mr.additionalHotspotLevel}`);
+        if (mr.additionalTransGene && mr.additionalTransLevel !== 'all') cohortBits.push(`${mr.additionalTransGene} fusion level ${mr.additionalTransLevel}`);
+        for (const f of (this._activeOncoprintFilters || [])) cohortBits.push(`${f.gene} ${this._gridStateWord(f.state)}`);
+        if (this._analysisCellLineSubset?.size) cohortBits.push(`a cell-line subset of ${this._mNum(this._analysisCellLineSubset.size)} lines carried over from another view${this._analysisSubsetLabel ? ` (${this._analysisSubsetLabel})` : ''}`);
+        if (this._customCellLineFilter?.size) cohortBits.push(`a pasted list of ${this._mNum(this._customCellLineFilter.size)} cell lines`);
+
+        const nAll = (mr.allResults || []).length;
+        const nSig = (mr.significantResults || []).length;
+        const pFilterOn = !!document.getElementById('mutPvalueFilter')?.checked;
+
+        const condensed = this._mSentences([
+            this._methodsDataSentence(measure),
+            `Cell lines were split by ${mr.hotspotGene} ${word} status into ${this._mNum(nMut)} altered and ${this._mNum(nWT)} ${L.ref === 'WT' ? 'wild-type' : L.ref.toLowerCase()} lines${cohortBits.length ? `, after restricting the panel to ${this._mListOr(cohortBits, '')}` : ', with no tissue, subtype, disease or additional alteration restriction applied'}.`,
+            `For every gene in the ${measure === 'expr' ? 'expression' : 'gene effect'} matrix, the two groups were compared by a two sided Welch t test (unequal variances), and the difference reported is mean(altered) minus mean(${L.ref === 'WT' ? 'wild-type' : L.ref.toLowerCase()}).`,
+            `A gene was tested only where the reference group had at least ${this._mNum(mr.minN)} cell lines with a value and the altered group had at least 3; ${this._mNum(nAll)} gene${nAll === 1 ? ' was' : 's were'} tested.`,
+            `Genes reaching p below ${mr.pThreshold} in at least one of the comparisons were retained, giving ${this._mNum(nSig)} gene${nSig === 1 ? '' : 's'}.`,
+            'No correction for multiple testing was applied.',
+            this._methodsCitation()
+        ]);
+
+        const long = this._mBlocks([
+            this._methodsHeaderBlock(title, measure),
+            `WHAT THIS TABLE IS\nOne row per gene, ranked by how differently the cell lines with a ${mr.hotspotGene} ${word} behave from the ones without it. The measure being compared is ${measureWords}. This is a table, not a chart; the exported image is a picture of the table.`,
+            `HOW THE TWO GROUPS WERE BUILT\n${stratRule}\nThe reference group is every cell line that is not in the altered group. That folds "called negative" together with "never called", and the two cannot be told apart here. Where calling is incomplete for a gene, the reference group is therefore slightly contaminated, which pushes a difference DOWNWARD rather than inventing one.\nGroup sizes: ${this._mNum(nMut)} altered, ${this._mNum(nWT)} ${L.ref === 'WT' ? 'wild-type' : L.ref.toLowerCase()}`
+                + (mr.nNoCall ? `, and ${this._mNum(mr.nNoCall)} cell line${mr.nNoCall === 1 ? '' : 's'} held out of both groups for having no call at all.` : '.'),
+            'WHICH CELL LINES\n'
+            + (cohortBits.length
+                ? `The panel was narrowed before splitting: ${cohortBits.map(b => `\n   - ${b}`).join('')}\n`
+                : 'No tissue, subtype or disease filter was applied, no tissue was excluded, no additional hotspot or fusion filter was applied and no cell-line list was pasted in. The split was made across the whole screened panel.'),
+            'HOW EACH ROW WAS COMPUTED\n'
+            + `   ${this._mutStatsBlurbText(mr, mr.metric)}\n`
+            + `   A gene needs at least ${this._mNum(mr.minN)} cell lines with a value on the reference side and at least 3 on the altered side, otherwise it is skipped entirely.\n`
+            + '   Where the same gene also has fusion data, a second comparison of fused against not fused is computed alongside, and for hotspot analyses the two-copy group is also compared with wild-type and with the one-copy group.\n'
+            + `   A gene enters the table when ANY of those comparisons falls below the p threshold, currently ${mr.pThreshold}.\n`
+            + `   ${pFilterOn ? 'The p < 0.05 tick box above the table is on, so the visible rows are narrowed further to those whose main comparison is below 0.05.' : 'The p < 0.05 tick box above the table is off, so every retained row is listed.'}`,
+            `MULTIPLE TESTING\nThere is no q-value and no false discovery rate here. ${this._mNum(nAll)} genes were tested with no correction, so at a threshold of ${mr.pThreshold} a number of rows are expected by chance alone. Judge a hit on the size of the difference, on the group sizes behind it, and on whether its pathway partners move the same way, not on p by itself.`,
+            'WHAT THIS DOES NOT SAY\nCell lines carrying an alteration often differ from the rest in tissue as well, so a difference found across the whole panel can be about lineage rather than about the alteration. Running the same analysis inside one tissue is the way to separate the two.'
+        ]);
+
+        return { title, condensed, long };
+    }
+
+    // ----- Gene set analysis: network, correlation table, clusters ----------
+
+    _methodsGeneSetAnalysis(viewKey) {
+        const views = this._METHODS_VIEWS();
+        const title = views[viewKey]?.title || 'Gene set analysis';
+        const r = this.results;
+        if (!r) return this._methodsNotReady(title, 'Enter a gene list and press Run analysis first.');
+
+        const basis = r.basis || this._runBasis || 'ge';
+        const basisWords = basis === 'expr' ? 'mRNA expression (log2(TPM+1))' : 'CRISPR gene effect (Chronos)';
+        const nCL = r.nCellLines;
+        const inputGenes = (r.geneList || []).length;
+        const nPairs = (r.correlations || []).length;
+        const clusterRows = r.clusters || [];
+        const clusterIds = [...new Set(clusterRows.map(c => c.cluster))].filter(c => c !== '-' && c !== 0 && c !== undefined);
+        const unclustered = clusterRows.filter(c => c.cluster === '-' || c.cluster === 0).length;
+        const filterText = (this._getNetworkFilterText() || '').replace(/^Filters:\s*/, '').replace(/\s+/g, ' ').trim();
+        const modeWord = r.mode === 'design'
+            ? `every gene in the ${basis === 'expr' ? 'expression' : 'gene effect'} matrix was correlated against the input genes`
+            : 'only pairs among the input genes were correlated';
+
+        const nodes = this.networkData?.nodes?.length ?? null;
+        const edges = this.networkData?.edges?.length ?? null;
+
+        const condensed = this._mSentences([
+            this._methodsDataSentence(basis),
+            `Starting from ${this._mNum(inputGenes)} input gene${inputGenes === 1 ? '' : 's'}, ${modeWord} across ${this._mNum(nCL)} cell lines${filterText ? ` (${filterText})` : ' (the whole panel, with no tissue, disease or alteration restriction)'}, using Pearson correlation over pairwise complete observations with an ordinary least squares slope.`,
+            `A pair was kept when it had at least ${this._mNum(r.minN)} cell lines with values for both genes, |r| of at least ${r.cutoff}, and |slope| of at least ${r.minSlope}; ${this._mNum(nPairs)} pair${nPairs === 1 ? '' : 's'} met all three.`,
+            r.expandNetwork ? 'A second pass then correlated the discovered genes with each other under the same thresholds.' : null,
+            `Genes were grouped into clusters as the connected components of the graph whose edges are those pairs, giving ${this._mNum(clusterIds.length)} cluster${clusterIds.length === 1 ? '' : 's'}.`,
+            'No p-values and no false discovery rate were computed for these pairs.',
+            (viewKey === 'network' && nodes != null) ? `The network drawn from this run has ${this._mNum(nodes)} nodes and ${this._mNum(edges)} edges.` : null,
+            this._methodsCitation()
+        ]);
+
+        const whatIsIt = viewKey === 'network'
+            ? `WHAT THE PICTURE SHOWS\nEach circle is a gene. A line joins two genes whose ${basis === 'expr' ? 'expression' : 'gene-effect'} profiles across the cell lines track each other closely enough to clear the cutoff. Blue lines are positive correlations, red lines negative ones, and a thicker line means a stronger correlation: the width is scaled from the cutoff upward, so the thinnest lines drawn are the ones that only just qualified. Where a gene sits on the canvas is decided by a force layout, which pushes connected genes together and unconnected ones apart; the distance between two circles is not a measurement, only the lines between them are.`
+            : viewKey === 'clusters'
+                ? 'WHAT THIS TABLE SHOWS\nOne row per gene that ended up in the network, with the cluster it joined and its average gene effect across the cell lines. A cluster is a connected group: genes are in the same cluster when a chain of correlations above the cutoff links them, so two genes in one cluster need not be directly correlated with each other.'
+                : 'WHAT THIS TABLE SHOWS\nOne row per gene pair that cleared the cutoff, with the correlation, the slope of the fit, the number of cell lines behind it, and the cluster the pair belongs to.';
+
+        const long = this._mBlocks([
+            this._methodsHeaderBlock(title, basis),
+            whatIsIt,
+            `WHAT WAS CORRELATED\nThe values correlated are ${basisWords}, one profile per gene across the cell lines. ${basis === 'expr' ? 'This asks which genes are switched on together.' : 'This asks which genes the same cell lines depend on. It is NOT expression.'}`,
+            'WHICH CELL LINES\n'
+            + (filterText
+                ? `Every correlation was computed across the ${this._mNum(nCL)} cell lines left by these filters: ${filterText}.`
+                : `Every correlation was computed across all ${this._mNum(nCL)} cell lines in the cohort. No tissue, subtype, disease or alteration filter was applied and no tissue was excluded.`)
+            + ' Typing in genes associated with one disease does not restrict the cohort to that disease, so a correlation here can be driven by differences between tissues rather than by anything within a disease of interest.',
+            'WHICH PAIRS WERE KEPT\n'
+            + `   ${r.mode === 'design' ? `The input genes were used as seeds and correlated against every gene in the matrix. In the tables, a * beside a gene means it came from that search rather than from the list that was typed in.` : 'Only pairs among the genes that were typed in were tested.'}\n`
+            + `   Minimum cell lines with a value for both genes: ${this._mNum(r.minN)}.\n`
+            + `   Minimum |r|: ${r.cutoff}. Negative correlations count the same as positive ones.\n`
+            + `   Minimum |slope|: ${r.minSlope}. This drops pairs that track each other tightly but barely move.\n`
+            + `   ${this._mNum(nPairs)} pair${nPairs === 1 ? '' : 's'} cleared all three.\n`
+            + (r.expandNetwork ? '   A second pass then correlated the newly discovered genes with each other under the same three thresholds.\n' : '')
+            + `   Pairs that fell just short are kept separately (the "below cutoff" tick box shows them). They are not in the network and have no cluster.`,
+            'HOW THE CLUSTERS WERE MADE\n'
+            + '   The kept pairs are treated as the edges of a graph, and a cluster is a connected component of that graph: two genes are in the same cluster when some chain of above-cutoff correlations links them.\n'
+            + '   This is NOT hierarchical clustering. There is no dendrogram, no linkage rule and no distance matrix, and no number of clusters was chosen: the count falls out of where the cutoff was set.\n'
+            + `   ${this._mNum(clusterIds.length)} cluster${clusterIds.length === 1 ? '' : 's'} formed`
+            + (unclustered ? `, and ${this._mNum(unclustered)} gene${unclustered === 1 ? '' : 's'} joined none of them (filed under "-", which is a leftover bucket and not a cluster: nothing correlated with them above the cutoff).` : ', and every gene in the network joined one.'),
+            'STATISTICS, AND WHAT IS ABSENT\n'
+            + '   r is Pearson, computed on cell lines that have a value for both genes; there is no imputation of missing values.\n'
+            + '   NO p-value is computed for these pairs, and no false discovery rate or other multiple-testing correction is applied anywhere in this analysis. The correlation cutoff is a display threshold chosen by hand, not a significance test, and it should not be described as one.\n'
+            + '   The slope is a least squares fit of the second gene on the first and carries the units of the measure.',
+            viewKey === 'network' && nodes != null
+                ? `THE NETWORK AS DRAWN\n   ${this._mNum(nodes)} nodes and ${this._mNum(edges)} edges.\n   Node size, font size, edge width and spread are display settings and carry no data.\n   ${document.getElementById('showUncorrelatedGenes')?.checked ? 'Input genes with no surviving correlation are shown as well, placed apart from the network; they have no edges by definition.' : 'Input genes with no surviving correlation are not drawn.'}\n   ${(this._netHighlightText || '').trim() ? `Genes ringed on the picture: ${this._netHighlightText.trim()}${this._netHighlightNote ? ` (${this._netHighlightNote})` : ''}.` : 'No genes are ringed or highlighted on the picture.'}\n   A * after a gene name on a node means a synonym or ortholog was used to find it in the data.`
+                : null,
+            'WHAT THIS DOES NOT SAY\nA correlation between two genes across a panel of cell lines does not show that one acts on the other, and genes in the same cluster are not necessarily a complex or a pathway. Where the cohort spans several tissues, both the correlations and the clusters can be shaped by differences between tissues.'
+        ]);
+
+        return { title, condensed, long };
+    }
+
+    // ----- Gene set heatmap -------------------------------------------------
+
+    _methodsHeatmap() {
+        const title = 'Gene set heatmap';
+        const d = this._hmData;
+        if (!d) return this._methodsNotReady(title, 'Choose a gene set in the heatmap and press Redraw first.');
+
+        const presetKey = document.getElementById('hmPreset')?.value;
+        const setLabel = (presetKey === 'custom' || !presetKey)
+            ? 'a custom gene list'
+            : `the "${this._GENE_SET_LIBRARY()[presetKey]?.label || presetKey}" gene set`;
+        const measure = d.dataType === 'expr' ? 'expr' : 'ge';
+        const measureWords = this._methodsMeasureWords(measure);
+
+        const scaleSentence = d.scaleMode === 'z'
+            ? 'Values were z-scored per gene, with the mean and standard deviation taken across only the cell lines shown.'
+            : d.scaleMode === 'zall'
+                ? `Values were z-scored per gene, with the mean and standard deviation taken across all ${this._mNum(d.zAllN)} cell lines that have a value in the full matrix rather than only the ones shown, so a value of +2 means high against the whole panel.`
+                : 'Values were left on their original scale and were not z-scored.';
+        const colourWord = d.dataType === 'expr'
+            ? ((d.scaleMode === 'z' || d.scaleMode === 'zall') ? 'blue is low and red is high' : 'white is low and dark green is high')
+            : 'orange is negative, meaning the cell line depends on the gene, and purple is high, meaning it does not';
+
+        // The ordering hierarchy, row by row, as the annotation rows carry it.
+        const rows = this._hmAnnRows || [];
+        const info = this._hmSortChainInfo();
+        const kindWord = (mode) => {
+            const k = this._hmAnnRowKind(mode);
+            return k === 'continuous' ? 'a value row' : k === 'cluster' ? 'the clustering row' : k === 'meta' ? 'a category row' : 'an alteration row';
+        };
+        const dirWord = (row) => {
+            if (!row.sortDir) return '';
+            const k = this._hmAnnRowKind(row.mode);
+            if (k === 'continuous') return row.sortDir === 'asc' ? ', lowest first' : ', highest first';
+            if (k === 'meta') return row.sortDir === 'asc' ? ', smallest block first' : ', biggest block first';
+            if (k === 'cluster') return '';
+            return row.sortDir === 'asc' ? ', wild-type first' : ', altered first';
+        };
+        const rowLines = rows.map((row, i) => {
+            const label = this._hmAnnRowLabel(row.mode, row.gene);
+            const k = this._hmAnnRowKind(row.mode);
+            let role;
+            if (!row.sortDir) role = 'colour only, its arrows are off so it does not touch the order';
+            else if (info.inert.includes(i)) role = 'colour only: a row above it already fixes the order completely';
+            else if (i === info.outermost) {
+                role = k === 'continuous' ? 'orders every column by this value, and makes no blocks'
+                    : k === 'cluster' ? 'orders the columns by the clustering tree'
+                    : 'splits the columns into blocks, the ones the coloured strip and the legend show';
+            } else {
+                role = k === 'continuous' ? 'orders within each block by this value'
+                    : k === 'cluster' ? 'clusters within each block'
+                    : 'sorts within each block';
+            }
+            return `   ${i + 1}. ${label} (${kindWord(row.mode)}): ${role}${dirWord(row)}.`;
+        });
+        const thenByWord = d.sortSpec?.thenBy === 'name' ? 'cell line name' : 'score';
+
+        const groups = d.groups || null;
+        const visibleGroups = (groups || []).filter(g => !g.hidden);
+        const hiddenGroups = (groups || []).filter(g => g.hidden);
+        const minN = parseInt(document.getElementById('hmMinGroupSize')?.value) || 1;
+        const minNApplies = !!groups && !d.clustersActive && minN > 1;
+
+        const gateA = this._hmGates?.A?.size || 0;
+        const gateB = this._hmGates?.B?.size || 0;
+        const silenced = d.silencedGeneNames || [];
+        const missing = d.missingGenes || [];
+
+        const condensed = this._mSentences([
+            this._methodsDataSentence(measure),
+            // The data sentence directly above already names the measure, so
+            // this one refers back to it instead of repeating it.
+            `These values were drawn as a heatmap of ${this._mNum(d.genes.length)} gene${d.genes.length === 1 ? '' : 's'} from ${setLabel} across ${this._mNum(d.orderedCLs.length)} cell lines.`,
+            `Cohort: ${this._hmCohortPhrase(d.orderedCLs.length)}`,
+            this._hmDrillCells ? `The view was then drilled into ${this._hmDrillLabel || 'one group'}, so only that group's cell lines are drawn.` : null,
+            scaleSentence,
+            // _hmSortSummary already names the tie-break where one applies
+            // (and correctly says nothing when a cluster row ends the chain,
+            // which leaves nothing for a tie-break to do), so do not add a
+            // second clause about it here.
+            `Columns were ${this._hmSortSummary(d)}.`,
+            d.geneTree ? `Rows were ordered by average-linkage hierarchical clustering of the genes on correlation distance (1 minus the Pearson correlation between two genes' profiles over the cell lines shown).` : 'Rows were left in the order the genes were given.',
+            // The sort summary above already states that the columns were
+            // clustered and into how many, so this only adds the method.
+            d.clustersActive ? `The cell-line clustering was average linkage on correlation distance over the genes shown${d.clusterKAuto ? ', with the number of clusters chosen as the cut between 2 and 8 giving the best mean silhouette width' : ''}.` : null,
+            hiddenGroups.length ? `${this._mNum(hiddenGroups.length)} group${hiddenGroups.length === 1 ? ' was' : 's were'} hidden and excluded from the figure (${hiddenGroups.map(g => g.key).join(', ')}).` : null,
+            silenced.length ? `${this._mNum(silenced.length)} gene${silenced.length === 1 ? ' was' : 's were'} silenced and excluded from everything shown (${silenced.join(', ')}).` : null,
+            gateA || gateB ? `Two cell-line gates were painted on the grid by hand, holding ${this._mNum(gateA)} and ${this._mNum(gateB)} cell lines; they select columns and do not alter the figure or any value in it.` : null,
+            this._methodsCitation()
+        ]);
+
+        const long = this._mBlocks([
+            this._methodsHeaderBlock(title, measure),
+            `WHAT THE PICTURE SHOWS\nEach row is one gene, each column is one cell line. The colour of a square is that gene's ${measureWords} in that cell line: ${colourWord}. A gray square means no value for that gene in that cell line.\nGenes drawn: ${this._mNum(d.genes.length)}. Cell lines drawn: ${this._mNum(d.orderedCLs.length)}.`,
+            `THE COLOUR SCALE\n${scaleSentence}`
+            + (d.scaleMode === 'z' ? '\nBecause the scale is built from the cell lines on screen, changing which cell lines are shown changes every colour: a gene that looks high here is high RELATIVE TO THESE LINES only.' : '')
+            + (d.scaleMode === 'zall' ? '\nBecause the scale is built from the whole panel, the colours stay comparable if the cohort changes.' : '')
+            + (d.scaleMode !== 'z' && d.scaleMode !== 'zall' ? '\nRaw values mean a gene that is simply high or low everywhere fills its row with one colour, which is honest but can drown out the differences between cell lines.' : ''),
+            'WHICH CELL LINES\n'
+            + `   ${this._hmCohortPhrase(d.orderedCLs.length)}\n`
+            + (this._hmDrillCells ? `   The view was then drilled into ${this._hmDrillLabel || 'one group'}, so only that group is on screen; the Back button returns to the full cohort.\n` : '')
+            + (hiddenGroups.length
+                ? `   ${this._mNum(hiddenGroups.length)} group${hiddenGroups.length === 1 ? ' was' : 's were'} hidden by clicking the legend (${hiddenGroups.map(g => g.key).join(', ')}), and ${hiddenGroups.length === 1 ? 'its' : 'their'} cell lines are not in the picture, not in the .csv and not in any of the group numbers.\n`
+                : '   No groups were hidden from the legend.\n')
+            // The minimum block size is already inside _hmCohortPhrase above
+            // whenever it bites, so only its absence needs a line of its own,
+            // and only where a minimum could have applied at all.
+            + (!minNApplies && groups && !d.clustersActive ? '   No minimum block size was applied, so even a block of one cell line is drawn.\n' : '')
+            + (d.noDataCount ? `   ${this._mNum(d.noDataCount)} cell line${d.noDataCount === 1 ? ' has' : 's have'} no value for any of these genes${d.hideNoDataChecked ? ' and were hidden.' : ' and are drawn as empty columns.'}\n` : ''),
+            'THE GENES\n'
+            + `   ${setLabel.charAt(0).toUpperCase()}${setLabel.slice(1)}, ${this._mNum(d.foundGenes.length)} gene${d.foundGenes.length === 1 ? '' : 's'} found in the data.\n`
+            + (missing.length ? `   ${this._mNum(missing.length)} requested gene${missing.length === 1 ? ' was' : 's were'} not in the matrix and could not be drawn: ${missing.join(', ')}.\n` : '   Every requested gene was found in the matrix.\n')
+            + (silenced.length ? `   ${this._mNum(silenced.length)} gene${silenced.length === 1 ? ' was' : 's were'} silenced by clicking its label and is excluded from the grid, the ordering, the score, the clustering and the .csv, exactly as if it had never been entered: ${silenced.join(', ')}.\n` : '   No genes were silenced.\n')
+            + (d.geneTree
+                ? `   The rows were reordered by clustering the genes: average-linkage hierarchical clustering on correlation distance, where the distance between two genes is 1 minus the Pearson correlation of their profiles across the cell lines shown. The tree beside the labels is that clustering${d.geneClusterColorOf ? ', with its branches coloured by subtree so groups of genes that behave alike stand out; the colouring is display only and does not change the row order' : ''}.\n`
+                : '   The rows are in the order the genes were given; they were not clustered.\n'),
+            'HOW THE COLUMNS WERE ORDERED\n'
+            + 'The order is carried entirely by the annotation rows beneath the grid, read from the top down. A row whose sort arrows are on blocks or sorts the columns; a row whose arrows are off only adds colour.\n'
+            + (rowLines.length ? rowLines.join('\n') : '   There are no annotation rows.')
+            // A cluster row ends the chain, and a tree order leaves nothing
+            // for a tie-break to decide, so claiming one there would be wrong.
+            + (d.sortPlan?.cluster
+                ? '\n   No tie-break applies: the clustering row fixes the order of every column below it.'
+                : `\n   The final tie-break, where the rows above leave two columns equal, is ${thenByWord}.`
+                  + (thenByWord === 'score' ? ' Score here is one number per cell line, the average of its values across the genes shown, on whatever scale is currently displayed, highest first.' : ''))
+            + (d.clustersActive
+                ? `\n   Cell-line clustering: average-linkage hierarchical clustering on correlation distance over the ${this._mNum(d.genes.length)} genes shown, cut into ${d.clusterK} cluster${d.clusterK === 1 ? '' : 's'}${d.clusterKAuto ? '. The number was chosen automatically: every cut from 2 to 8 was scored by mean silhouette width and the best was taken' : ''}. Cluster identity says nothing about similarity outside this exact gene set and cohort; the same cell lines clustered on a different gene set would very likely split differently.`
+                : '')
+            + (d.hasTopDendro ? '\n   The tree drawn above the grid is that same cell-line clustering.' : ''),
+            groups
+                ? `THE BLOCKS\n   The coloured strip under the grid marks ${this._mNum(visibleGroups.length)} block${visibleGroups.length === 1 ? '' : 's'}: ${visibleGroups.map(g => `${g.key} (n=${g.count})`).join(', ')}.\n   ${d.showMedian ? 'The number printed on each block is the median score of its cell lines.' : 'No per-block numbers are printed; switch on Show median to add them.'}`
+                : 'THE BLOCKS\n   No row is blocking the columns, so there is no group strip and no legend of blocks. Turn on the sort arrows of a category or alteration row to split the columns into blocks.',
+            (gateA || gateB)
+                ? `GATES\n   Gate A holds ${this._mNum(gateA)} cell line${gateA === 1 ? '' : 's'} and gate B holds ${this._mNum(gateB)}. Gates are ranges of columns painted by hand across the grid, kept by cell line identity so re-sorting does not lose them. They are a selection, not a threshold: their bounds are wherever they were dragged to, and no rule produced them. Gates do not change the picture, the ordering or any number in it.`
+                : 'GATES\n   No cell-line gates were set on the grid.',
+            'WHAT THIS DOES NOT SAY\nA heatmap shows pattern, not significance: no test was run and no p-value or false discovery rate exists anywhere in this view. Blocks that look different are not thereby shown to be different.'
+            + ((d.geneTree || d.clustersActive)
+                ? ' The clustering carries no measure of confidence, and cutting the tree in a different place would group the same data differently.'
+                : '')
+        ]);
+
+        return { title, condensed, long };
+    }
+
+    // ----- Cell Line Browser ------------------------------------------------
+
+    _methodsCellLineBrowser() {
+        const title = 'Cell Line Browser';
+        const visible = this._clbVisibleCellLines || [];
+        const ticked = this._clbSelectedCellLines?.size || 0;
+        const bits = this._clbFilterBits ? this._clbFilterBits() : [];
+        const v = (id) => document.getElementById(id)?.value || '';
+        if (v('clbSexFilter')) bits.push(`sex or origin filter ${v('clbSexFilter')}`);
+        if (v('clbSearch')) bits.push(`free-text search "${v('clbSearch')}"`);
+        if (this._customCellLineFilterCLB?.size) bits.push(`a pasted list of ${this._mNum(this._customCellLineFilterCLB.size)} cell lines`);
+        if (this._clbShowSelectedOnly) bits.push('showing only the ticked cell lines');
+
+        const sortMode = this._clbSortMode || 'name';
+        const sortWord = {
+            name: 'cell line name', ge: 'gene effect for the chosen gene', expr: 'expression of the chosen gene',
+            drug: 'drug response', ifn: 'interferon signature score', retro: 'retroelement signal'
+        }[sortMode] || sortMode;
+        const sortGene = v('clbSortGene');
+
+        const condensed = this._mSentences([
+            this._methodsDataSentence('both'),
+            bits.length
+                ? `Cell lines were selected from the panel by ${this._mListOr(bits, '')}, leaving ${this._mNum(visible.length)} cell line${visible.length === 1 ? '' : 's'}.`
+                : `No filter was applied, so all ${this._mNum(visible.length)} cell lines in the panel are listed.`,
+            ticked ? `${this._mNum(ticked)} of them were ticked by hand, and it is those that any export carries.` : 'No cell lines were ticked, so an export carries the whole listed set.',
+            `The list is ordered by ${sortWord}${sortGene ? ` (${sortGene})` : ''}, ${this._clbSortAsc ? 'ascending' : 'descending'}.`,
+            this._methodsCitation()
+        ]);
+
+        const long = this._mBlocks([
+            this._methodsHeaderBlock(title, 'both'),
+            'WHAT THIS IS\nNot a chart: a list, one row per cell line, drawn from the DepMap model annotations with the alterations, signatures and measured values the app holds for each line. The picture exported from here is a picture of that list.',
+            'HOW THE LIST WAS ARRIVED AT\n'
+            + (bits.length
+                ? `The panel was filtered by: ${bits.map(b => `\n   - ${b}`).join('')}\n   ${this._mNum(visible.length)} cell line${visible.length === 1 ? '' : 's'} came through.`
+                : `No tissue, subtype, disease, sex, hotspot, fusion, copy-number or quick filter was applied, nothing was searched for and no cell-line list was pasted in. All ${this._mNum(visible.length)} cell lines are listed.`),
+            'WHAT AN EXPORT CARRIES\n'
+            + (ticked
+                ? `   ${this._mNum(ticked)} cell line${ticked === 1 ? ' is' : 's are'} ticked. Where a ticked set exists, the exports send those lines rather than the whole list.`
+                : '   No cell lines are ticked, so the exports send every line the filters leave showing.')
+            + `\n   The list is sorted by ${sortWord}${sortGene ? ` for ${sortGene}` : ''}, ${this._clbSortAsc ? 'lowest first' : 'highest first'}. Sorting changes the order of the rows only, never which cell lines are in the list.`,
+            'WHAT THIS DOES NOT SAY\nA filter tells you which cell lines carry a call, not which ones were tested for it. For alterations where calling is incomplete, a cell line that does not appear may be one that was never called rather than one that is negative. Ticking lines by hand leaves no record of the rule behind the choice; if there is one, state it yourself.'
+        ]);
+
+        return { title, condensed, long };
+    }
+
+    // ----- Selection inspect ------------------------------------------------
+
+    _methodsSelectionInspect() {
+        const title = 'Selection inspect';
+        const res = this._geInspectResults;
+        const sides = this._geInspectSides;
+        if (!res || !sides) return this._methodsNotReady(title, 'Tick cell lines in the Cell Line Browser and press Inspect selected vs rest first.');
+
+        const isGateMode = this._geInspectMode === 'gateAB';
+        const nSel = (sides.selection || []).length;
+        const nCmp = (sides.comparison || []).length;
+        const selLabel = sides.selLabel || `${nSel} selected`;
+        const cmpLabel = sides.cmpLabel || 'all other cell lines';
+        const geRows = (res.rows || []).length;
+        const exprRows = (res.exprRows || []).length;
+        const canTest = isGateMode ? (nSel >= 3 && nCmp >= 3) : nSel >= 3;
+
+        const num = (id, dflt) => {
+            const el = document.getElementById(id);
+            const n = el ? parseFloat(el.value) : NaN;
+            return Number.isFinite(n) ? n : dflt;
+        };
+        const leftDelta = num('geLeftDeltaCutoff', 0.3), leftQ = num('geLeftQCutoff', 0.05), leftN = num('geLeftN', 200);
+        const rightDelta = num('geRightDeltaCutoff', 1.0), rightQ = num('geRightQCutoff', 0.05), rightN = num('geRightN', 200);
+
+        const scopeWord = isGateMode
+            ? 'the two gates drawn on the plot'
+            : ({ all: 'every other cell line in the panel', lineage: 'only the cell lines sharing a lineage with the selection', group: 'the tissue, subtype and disease groups ticked as the comparison', custom: 'a pasted list of comparison cell lines' })[this._geInspectScope] || 'the chosen comparison group';
+
+        const selectionRule = isGateMode
+            ? 'Both sides are cell-line gates drawn by hand, so their membership is whatever was painted, not a threshold or a rule.'
+            : (this._clbFilterBits && this._clbFilterBits().length
+                ? `The Cell Line Browser was filtered to: ${this._clbFilterBits().join('; ')}. The selection was drawn from that, though lines may also have been ticked or unticked by hand on top of it.`
+                : 'No filter was active in the Cell Line Browser, so these lines were picked by hand. Nothing in this view records what they have in common.');
+
+        const condensed = this._mSentences([
+            this._methodsDataSentence(exprRows ? 'both' : 'ge'),
+            `${selLabel} (n = ${this._mNum(nSel)}) was compared with ${cmpLabel} (n = ${this._mNum(nCmp)}), gene by gene.`,
+            canTest
+                ? `Each gene was tested with a two sided Welch t test (unequal variances) and p-values were adjusted across all tested genes by the Benjamini-Hochberg procedure to give q-values (${this._mNum(geRows)} genes for gene effect${exprRows ? `, ${this._mNum(exprRows)} for expression` : ''}).`
+                : 'Fewer than 3 cell lines were available on a side, so no test was run and neither p-values nor q-values exist; only the difference in means is reported.',
+            `A gene was included where at least ${isGateMode ? 3 : Math.min(3, nSel)} cell lines on the selection side and at least 3 on the comparison side had a value.`,
+            `The tables show genes with |difference| of at least ${leftDelta} and q of at most ${leftQ} for gene effect${exprRows ? `, and |difference| of at least ${rightDelta} and q of at most ${rightQ} for expression` : ''}, capped at the strongest ${this._mNum(leftN)}${exprRows && rightN !== leftN ? ` and ${this._mNum(rightN)}` : ''} genes.`,
+            this._methodsCitation()
+        ]);
+
+        const long = this._mBlocks([
+            this._methodsHeaderBlock(title, exprRows ? 'both' : 'ge'),
+            `WHAT THIS COMPARES\nTwo sets of cell lines, gene by gene, on ${exprRows ? 'two measures side by side: CRISPR gene effect on the left and mRNA expression on the right' : 'CRISPR gene effect'}.\n   Side A: ${selLabel}, ${this._mNum(nSel)} cell lines.\n   Side B: ${cmpLabel}, ${this._mNum(nCmp)} cell lines, which is ${scopeWord}.\nThe difference reported for a gene is mean(side A) minus mean(side B).`,
+            `HOW THE SIDES WERE CHOSEN\n${selectionRule}`,
+            canTest
+                ? 'HOW EACH GENE WAS TESTED\n'
+                  + '   A two sided Welch t test (unequal variances) on that gene\'s values in the two sides.\n'
+                  + `   A gene needs at least ${isGateMode ? 3 : Math.min(3, nSel)} cell lines with a value on side A and at least 3 on side B, otherwise it is not tested at all.\n`
+                  + `   q is the Benjamini-Hochberg adjusted p across every gene tested (${this._mNum(geRows)} for gene effect${exprRows ? `, ${this._mNum(exprRows)} for expression` : ''}). q is the number to read here, not p.\n`
+                  + '   Missing values are simply left out; nothing is imputed.'
+                : 'HOW EACH GENE WAS TESTED\n   It was not. With fewer than 3 cell lines on a side there is nothing to test, so the tables carry the difference in means only, and the q cutoff is switched off.',
+            'WHAT THE VOLCANO PLOT SHOWS\n'
+            + `   Horizontal axis: the difference in means, side A minus side B.\n`
+            + `   Vertical axis: ${canTest ? 'minus log10 of q, so higher is more confident' : 'the size of the difference, since no q exists to plot'}.\n`
+            + '   Gray points fall below the cutoffs and are not in the table; coloured points are the ones the table lists; amber points are matches for whatever is typed in the search box. The strongest few in each direction carry a label.',
+            'WHAT THE TABLE SHOWS, AND WHAT IT LEAVES OUT\n'
+            + `   Gene effect side: genes with |difference| of at least ${leftDelta}${canTest ? ` and q of at most ${leftQ}` : ''}, strongest first, capped at ${this._mNum(leftN)} rows.\n`
+            + (exprRows ? `   Expression side: genes with |difference| of at least ${rightDelta}${canTest ? ` and q of at most ${rightQ}` : ''}, capped at ${this._mNum(rightN)} rows.\n` : '   Expression data is not loaded, so there is no expression side.\n')
+            + '   A gene missing from the table was still tested; it simply did not clear the cutoffs or fell outside the cap.',
+            'WHAT THIS DOES NOT SAY\n'
+            + 'The comparison side is present in this view only as a column of means; it cannot be split by lineage or anything else from here. A difference found between two sets of cell lines that also differ in tissue can be about tissue rather than about whatever the sets were chosen for. Choosing a same-lineage comparison group is the way to test that.'
+        ]);
+
+        return { title, condensed, long };
+    }
+
+    // ----- Gate comparison (on the scatter) ---------------------------------
+
+    _methodsGateComparison() {
+        const title = 'Gate comparison';
+        const gA = this._gateA || [], gB = this._gateB || [];
+        if (!gA.length || !gB.length) return this._methodsNotReady(title, 'Draw gate A and gate B on the scatter and press Compare first.');
+        // The two gates can exist before Compare has finished. Without the
+        // results there is no gene comparison to describe, and reporting the
+        // empty tables as "0 genes tested" would be a plain untruth.
+        if (!this._gateCompareResults) return this._methodsNotReady(title, 'Both gates are drawn, but the comparison has not finished. Press Compare and wait for it to complete.');
+
+        const ci = this.currentInspect || {};
+        const gr = this._gateCompareResults;
+        const shapeWords = (s, name) => {
+            if (!s) return `Gate ${name} has no recorded bounds.`;
+            if (s.path) return `Gate ${name} was drawn as a freehand shape, so it has no simple range.`;
+            return `Gate ${name} covers x from ${this._mFix(Math.min(s.x0, s.x1), 2)} to ${this._mFix(Math.max(s.x0, s.x1), 2)} and y from ${this._mFix(Math.min(s.y0, s.y1), 2)} to ${this._mFix(Math.max(s.y0, s.y1), 2)}.`;
+        };
+        const typeWord = (t) => t === 'expr' ? 'mRNA expression' : t === 'growth' ? 'growth rate' : t === 'geneset' ? 'gene set score' : 'CRISPR gene effect';
+        const nDiffGE = gr?.diffGE?.length || 0;
+        const nDiffExpr = gr?.diffExpr?.length || 0;
+        const nMut = gr?.mutStats?.length || 0;
+
+        const condensed = this._mSentences([
+            this._methodsDataSentence(nDiffExpr ? 'both' : 'ge'),
+            `Two groups of cell lines were selected by drawing regions by hand on a scatter of ${ci.gene1 || 'gene 1'} ${typeWord(ci.xType)} against ${ci.gene2 || 'gene 2'} ${typeWord(ci.yType)}: gate A with ${this._mNum(gA.length)} cell lines and gate B with ${this._mNum(gB.length)}.`,
+            `Every gene in the gene effect matrix was compared between the two gates by a two sided Welch t test, using genes with at least 2 cell lines with a value on each side; ${this._mNum(nDiffGE)} gene${nDiffGE === 1 ? ' was' : 's were'} tested.`,
+            nDiffExpr ? `The same comparison was run on mRNA expression for ${this._mNum(nDiffExpr)} genes.` : null,
+            'No correction for multiple testing was applied to any of these p-values.',
+            `The composition of the two gates was also tabulated by tissue, primary disease and Oncotree disease, and the share of cell lines carrying each of ${this._mNum(nMut)} alterations was compared between them.`,
+            this._methodsCitation()
+        ]);
+
+        const long = this._mBlocks([
+            this._methodsHeaderBlock(title, nDiffExpr ? 'both' : 'ge'),
+            `WHAT THIS COMPARES\nTwo groups of cell lines picked out by hand on the scatter. Gate A holds ${this._mNum(gA.length)} cell lines, gate B holds ${this._mNum(gB.length)}. The plot they were drawn on has ${ci.gene1 || 'gene 1'} ${typeWord(ci.xType)} across and ${ci.gene2 || 'gene 2'} ${typeWord(ci.yType)} up.`,
+            `HOW THE GATES WERE DEFINED\n   ${shapeWords(this._gateAShape, 'A')}\n   ${shapeWords(this._gateBShape, 'B')}\n   These bounds are wherever the regions were dragged to. They are not a percentile, not a standard-deviation multiple and not any other rule, so they should not be presented as a principled threshold.\n   Cell lines whose values fall between the two gates were on the plot but are in neither group, so this comparison is between two ends of a range and not a gradient across it.`
+            + ((gA.length && gB.length && (Math.max(gA.length, gB.length) / Math.min(gA.length, gB.length)) >= 3)
+                ? `\n   The two gates are very unequal (${this._mNum(gA.length)} against ${this._mNum(gB.length)}). A percentage from the smaller gate moves by whole cell lines at a time, so read the p beside a row rather than the percentage on its own.`
+                : '')
+            // A rectangle that constrains only one axis is a one-dimensional
+            // cut, and calling it a joint condition on both genes invents a
+            // criterion nobody applied.
+            + (() => {
+                const a = this._gateAShape, b = this._gateBShape;
+                if (!a || !b || a.path || b.path) return '';
+                const same = (p, q, r, s) => Math.abs(Math.min(p, q) - Math.min(r, s)) < 1e-6 && Math.abs(Math.max(p, q) - Math.max(r, s)) < 1e-6;
+                const sameY = same(a.y0, a.y1, b.y0, b.y1), sameX = same(a.x0, a.x1, b.x0, b.x1);
+                if (sameY && !sameX) return `\n   Both gates span the same range on the vertical axis, so ${ci.gene2 || 'the second gene'} does not separate them: this is a one-dimensional split on ${ci.gene1 || 'the first gene'} alone and should be described that way, not as a joint condition on both genes.`;
+                if (sameX && !sameY) return `\n   Both gates span the same range on the horizontal axis, so ${ci.gene1 || 'the first gene'} does not separate them: this is a one-dimensional split on ${ci.gene2 || 'the second gene'} alone and should be described that way, not as a joint condition on both genes.`;
+                return '';
+            })(),
+            'HOW THE GENE COMPARISONS WERE COMPUTED\n'
+            + `   Every gene in the gene effect matrix was compared between the two gates by a two sided Welch t test (unequal variances), keeping genes with at least 2 cell lines with a value in each gate. ${this._mNum(nDiffGE)} gene${nDiffGE === 1 ? '' : 's'} qualified.\n`
+            + (nDiffExpr ? `   The same test was run on mRNA expression for ${this._mNum(nDiffExpr)} genes.\n` : '   Expression data is not loaded, so no expression comparison was run.\n')
+            + '   The difference reported is mean(gate A) minus mean(gate B).\n'
+            + '   NO false discovery rate or other multiple-testing correction is applied. Across this many genes, small p-values are expected by chance, so read effect size alongside p.',
+            'HOW THE COMPOSITION TABLES WERE COMPUTED\n'
+            + '   The tissue, primary disease and Oncotree disease tables simply count how many cell lines in each gate belong to each category and turn that into a percentage. No test is applied to these tables at all; they are counts, sorted by the biggest gap.\n'
+            + `   The alteration table counts, for each of ${this._mNum(nMut)} genes with hotspot or damaging-mutation calls, how many cell lines in each gate carry one. Its p column is an approximation computed from the 2x2 chi-squared statistic, not an exact test and not corrected for multiple testing. Treat it as a way to rank rows rather than as a p-value to quote.`,
+            'WHAT THIS DOES NOT SAY\nThe gates were placed by eye on a plot whose axes are two chosen genes, so the two groups can differ in tissue, in growth rate and in much else besides the axes they were separated on. Anything found here needs checking against a comparison that controls for those.'
+        ]);
+
+        return { title, condensed, long };
+    }
+
+    // ----- UMAP / PCA -------------------------------------------------------
+
+    _methodsUmap() {
+        const title = 'UMAP / PCA';
+        const u = this._clbUmapData;
+        if (!u) return this._methodsNotReady(title, 'Press Run Analysis in the UMAP / PCA panel first.');
+
+        const method = u.method === 'umap' ? 'UMAP' : 'PCA';
+        const v = (id) => document.getElementById(id)?.value || '';
+        const dtRaw = v('clbUmapDataType') || 'ge';
+        const dataWord = dtRaw === 'expr' ? 'mRNA expression (log2(TPM+1))'
+            : dtRaw === 'both' ? 'CRISPR gene effect (Chronos) and mRNA expression (log2(TPM+1)) side by side'
+            : 'CRISPR gene effect (Chronos)';
+        const kind = dtRaw === 'expr' ? 'expr' : dtRaw === 'both' ? 'both' : 'ge';
+        const customList = (v('clbUmapGeneList') || '').split(/[\s,;]+/).filter(Boolean);
+        const nGenes = (u.geneNames || []).length;
+        const nCL = (u.cellLines || []).length;
+        const cohortSel = v('clbUmapTissueFilter');
+        const cohortWord = cohortSel === '__visible__'
+            ? 'the cell lines the Cell Line Browser was showing'
+            : cohortSel ? `the ${cohortSel} cell lines${v('clbUmapSubtypeFilter') ? `, subtype ${v('clbUmapSubtypeFilter')}` : ''}`
+            : 'every cell line in the panel';
+        const explained = this._clbUmapAllExplained || null;
+        const lasso = this._clbUmapSelectedPoints?.size || 0;
+        const gA = this._umapGateA?.length || (this._umapGateA?.size ?? 0);
+        const gB = this._umapGateB?.length || (this._umapGateB?.size ?? 0);
+
+        const geneRule = customList.length
+            ? `The genes were the ${this._mNum(customList.length)} typed into the gene-list box, taken in the order given, and each gene was then centred and scaled to unit variance across the cell lines.`
+            : `The genes were the 1,000 most variable in the chosen data, with the variance ranked on a subsample of at most 100 cell lines. They were NOT z-scored: the most variable genes are deliberately left on their own scale so the ones that vary most keep their weight.`;
+
+        const methodRule = method === 'PCA'
+            ? 'Principal component analysis was computed on the column-centred matrix by power iteration, taking the first 5 components.'
+            : `UMAP was run with the number of neighbours set to the cohort size divided by 3, capped at 15 and never below 5, a minimum distance of 0.3, a spread of 1.5, and ${nCL >= 30 ? 3 : 2} output dimensions. These settings are fixed in the app and are not adjustable from the panel.`;
+
+        const condensed = this._mSentences([
+            this._methodsDataSentence(kind),
+            `${dataWord} was assembled for ${this._mNum(nCL)} cell lines (${cohortWord}) across ${this._mNum(nGenes)} genes.`,
+            geneRule,
+            'Genes missing in more than 30 percent of the cell lines were dropped, and the remaining missing values were filled with that gene\'s mean across the cohort.',
+            methodRule,
+            `The plot shows ${u.axisLabels ? u.axisLabels.join(' against ') : 'two of the resulting components'}, one point per cell line, coloured by ${v('clbUmapColorBy') === 'subtissue' ? 'subtype' : 'tissue'}.`,
+            (explained && method === 'PCA') ? `The components drawn explain ${explained.slice(0, 2).map(e => `${(e * 100).toFixed(1)} percent`).join(' and ')} of the variance respectively.` : null,
+            this._methodsCitation()
+        ]);
+
+        const long = this._mBlocks([
+            this._methodsHeaderBlock(title, kind),
+            `WHAT THE PLOT SHOWS\nEach point is one cell line. The two axes are ${u.axisLabels ? u.axisLabels.join(' and ') : 'two components of the projection'}, a summary of how similar the cell lines are across many genes at once. Points close together have similar profiles; the axes themselves are not measurements of anything you can name.`,
+            `WHICH CELL LINES AND WHICH GENES\n   Cohort: ${cohortWord}, ${this._mNum(nCL)} cell lines. The panel refuses to run below 15.\n   Data: ${dataWord}.\n   ${geneRule}\n   ${this._mNum(nGenes)} gene${nGenes === 1 ? '' : 's'} survived into the matrix.\n   Genes missing in more than 30 percent of the cohort were dropped; the remaining gaps were filled with the gene's own mean, which pulls those cell lines toward the middle rather than leaving them out.`,
+            `HOW THE PROJECTION WAS COMPUTED\n   ${methodRule}\n`
+            + (method === 'PCA'
+                ? `   A principal component is a direction through the data along which the cell lines spread out most; the first explains the most, the second the next most, and so on.${explained ? `\n   Variance explained by the first components: ${explained.slice(0, 5).map((e, i) => `PC${i + 1} ${(e * 100).toFixed(1)} percent`).join(', ')}.` : ''}\n   Distances on a PCA plot are meaningful in the plotted directions, and the components can be read back to the genes that drive them (the loadings option shows this).`
+                : '   UMAP is a non-linear method: it preserves which cell lines are near each other, and it does NOT preserve distances between clusters. How far apart two groups sit on a UMAP plot is not a measure of how different they are, and the size of a cluster is not a measure of anything. Re-running UMAP will move the picture even on the same data.'),
+            'MARKS ON THE PLOT\n'
+            + `   Points are coloured by ${v('clbUmapColorBy') === 'subtissue' ? 'subtype' : 'tissue'}${v('clbUmapColorGene') ? `, or by ${v('clbUmapColorGene')} ${v('clbUmapColorGeneType') === 'expr' ? 'expression' : 'gene effect'} where that is set` : ''}.\n`
+            + (lasso ? `   ${this._mNum(lasso)} point${lasso === 1 ? ' is' : 's are'} lasso-selected. A lasso is a selection made by hand; it does not change the projection.\n` : '   No lasso selection is active.\n')
+            + ((gA || gB) ? `   Gate A holds ${this._mNum(gA)} cell lines and gate B holds ${this._mNum(gB)}. Gates are rectangles placed by hand, not thresholds.\n` : '   No gates were placed on the plot.\n'),
+            'WHAT THIS DOES NOT SAY\nA projection is a summary, not a test. Nothing here carries a p-value, and two groups that separate on the plot have not been shown to differ in any particular gene. Which genes went into the matrix decides most of what the picture looks like, so a plot built on the most variable genes and one built on a chosen gene list are answering different questions.'
+        ]);
+
+        return { title, condensed, long };
+    }
 }
 
 // Initialize app
 const app = new CorrelationExplorer();
 window.app = app;
+
+// Methods dialog furniture. The buttons that OPEN it live in each view's own
+// export group and call app.openMethods(viewKey) directly; only the dialog's
+// own three actions and its two ways of closing are wired here, once.
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('methodsModal');
+    if (!modal) return;
+    const close = () => window.app?.closeMethods();
+    document.getElementById('methodsCloseBtn')?.addEventListener('click', close);
+    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display !== 'none' && modal.style.display !== '') close();
+    });
+    document.getElementById('methodsCopyCondensed')?.addEventListener('click', (e) => window.app?._methodsCopy('condensed', e.currentTarget));
+    document.getElementById('methodsCopyLong')?.addEventListener('click', (e) => window.app?._methodsCopy('long', e.currentTarget));
+    document.getElementById('methodsDownloadBtn')?.addEventListener('click', () => window.app?._methodsDownload());
+});
 
 // Reference Data modal, opened from the nav bar. Lives outside the class
 // because the markup is rendered statically by index.html before the app
@@ -58435,6 +59537,8 @@ const MODAL_IDS = [
     'exportOptionsModal', 'infographicModal', 'changelogModal', 'inspectCorrelatesModal',
     'collectionsInfoModal', 'selectionInspectModal', 'mutCompareModal', 'enrichrModal',
     'clbWikiModal', 'clbInfoModal', 'cellLineBrowserModal', 'exportPreviewModal', 'heatmapModal',
+    // Methods opens over whichever view raised it, same as the AI dialog below.
+    'methodsModal',
     // The AI export dialog opens over whichever view raised it, so being able
     // to slide it aside and read what is underneath matters as much here as
     // anywhere else.
