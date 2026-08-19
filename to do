@@ -91,6 +91,13 @@ resize_window reports success and innerWidth stays 1420. So:
   cached script (this bit me once already this session).
 
 
+== ARCHIVE (user-reviewed 2026-08-19, app at v.88.70) ==
+
+Fredrik reviewed everything below on 2026-08-19 and judged it old and
+either already done or no longer relevant. Kept for the record, not to
+be worked on; anything down here that turns out to still matter should
+be re-reported fresh against the current app.
+
 TO DO  (pruned 2026-08-13, v.87.78)
 
 Everything above the ARCHIVE line below was gone through item by item on
