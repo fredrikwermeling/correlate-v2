@@ -1,13 +1,29 @@
-The annotations row function is not working as expected in heatmap. go over it and lets discuss how it can be organized in the best way. you can ask me questions about how i want the functionallities. 
-In heatmap, if i suggest to sort by eg tp53 hotspot, it shows to lines for tp53 hotspot, i dont want this. each extra line below the the heatmap should only be present 1 time, and the same is for the linked legend below, that now appears 2x for the same thing if i press to sort by that row,.
-in heatmap, the tree for genes should not by deafult select colors, but should ahve the tree order dropdown like the cell line version  
-the genetic alteration in in cell line browser inspect should allow for showing all genetic alterations, sorting based on how strong difference, but also to click to only look at hotspot or fusion.
-cell line browser inspect should also have the linage and genetic alteration comaprisons (hidden but openable by clicking) 
-I see that gates can appear under heatmap when comming from cell line browser inspect open in heatmap. in that case the gate should be indicated by the annotation row, allwoing for modifying it. 
-inheatmap, if i hover over the linage, subtype or disease indicator on the row just below the heatmap, it states eg 7 cell lines of type x. and if i double click it opens the wiki for one of them. it swould make more sense if the cell line browser is opened with those cell lines. 
+OPEN: the annotation-rows design discussion (Fredrik: "lets discuss how it can be
+organized in the best way"). The concrete complaints all shipped (see below);
+what remains is the open conversation after using the v.88.80 Block/Sort model.
+OPEN: UMAP gate comparison could reuse the shared inspect view (explicitly
+deferred by Fredrik 2026-08-19, only if ever wanted).
 
+== SHIPPED v.88.74-84 (2026-08-19) ==
 
-updat the reference and how it works texts
+All items from the 2026-08-19 batch shipped:
+- duplicate row/legend when sorting by a row (v.88.79), then blocks and sorting
+  made explicit per-row choices with a blocks toggle (v.88.80)
+- gene tree colours behind a Tree order dropdown like the cell-line side,
+  default plain (v.88.79; colouring itself v.88.77)
+- inspect genetic alterations: all types (hotspot/damaging/fusion/CN) ranked by
+  strength of difference with type chips (v.88.81)
+- lineage + alteration comparison panels in the plain CLB inspect, collapsed
+  until clicked (v.88.81)
+- gates shown and modifiable as an annotation row (v.88.80)
+- lineage/subtype/disease band double-click opens the CLB with those lines (v.88.80)
+- reference + how-it-works texts updated (v.88.80)
+Also that day: send-to-heatmap (v.88.74), narrow-heatmap scroll fix (v.88.75),
+annotation rows carry the whole order + ge/expr value rows (v.88.76), Methods
+button on all views (v.88.78), scatter gate comparison unified into the shared
+inspect (v.88.82), build-aware Methods branding + V1/CoExpress rebuilt and
+pushed (v.88.83), gate-aware Export for AI (v.88.84). Old saved heatmap views
+migrate automatically.
 
 
 == SHIPPED v.88.62-70 (2026-08-18) ==
