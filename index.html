@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.76 (2026-08-19)</strong></p>
+                <ul>
+                    <li><b>One ordering hierarchy.</b> The heatmap's separate Sort row is gone: the annotation rows now carry the whole column order. Toggle a row's arrows and it blocks the columns; the next toggled row sorts within those blocks, with score as the final tie-break. Cell-line clustering now appears as its own annotation row when enabled, so clustering can be placed under a lineage row to cluster within each lineage. A fresh heatmap opens sorted by plain score. Min n, Show median and Redraw live on the Cell lines row.</li>
+                </ul>
                 <p><strong>v.88.75 (2026-08-19)</strong></p>
                 <ul>
                     <li><b>Scrolling beside a narrow heatmap.</b> When the heatmap is narrower than its panel, the empty space to its right still belongs to the grid's sideways scroller and was swallowing vertical scrolls; scrolling now works across the whole panel regardless of how wide the drawn grid is.</li>
@@ -6978,7 +6982,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.75</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.76</a>
         </span>
     </div>
 
@@ -8826,7 +8830,7 @@
                                 <option value="xcoarse">Very coarse</option>
                                 <option value="minimal">Minimal</option>
                             </select>
-                            <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Order the columns by similarity, one tree over all shown lines; pick a Group by afterwards to cluster within groups instead">
+                            <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Adds a Cell-line clusters annotation row that orders the columns by similarity. Move it below another toggled row to cluster within that row's blocks instead">
                                 <input type="checkbox" id="hmClusterCells" style="margin:0;"> Cluster cell lines
                             </label>
                             <select id="hmClusterK" style="width:150px;" title="How many clusters to cut the tree into; Tree order only draws the dendrogram without colouring clusters">
@@ -8892,31 +8896,7 @@
                             <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Cell lines with no value for any gene shown are left out of the grid by default; switch off to include them, their columns are all gray">
                                 <input type="checkbox" id="hmHideNoData" checked style="margin:0;"> Hide lines without data
                             </label>
-                        </div>
-                    </div>
-                    <div class="clb-row clb-row-alt">
-                        <span class="clb-row-label">Sort</span>
-                        <div class="clb-row-items">
-                            <span style="font-size:10px; color:#6b7280; white-space:nowrap;">then by</span>
-                            <select id="hmThenBy" style="width:150px;" title="Terminal comparator inside the innermost blocks (or the whole order, when no annotation row's sort arrows are toggled on)">
-                                <option value="score" selected>Score (mean of shown genes)</option>
-                                <option value="name">Name (A-Z)</option>
-                            </select>
-                            <select id="hmGroupBy" style="width:150px;" title="Blocks cell lines by lineage, subtype, disease or a gene's mutation status, sorting within each block, and draws a colour strip under the grid">
-                                <option value="none">No grouping</option>
-                                <option value="lineage" selected>Lineage</option>
-                                <option value="subtype">Subtype</option>
-                                <option value="disease">Disease</option>
-                                <option value="alteration" title="Splits into three groups by copies mutated: wild-type, one copy, both copies">Genetic alteration</option>
-                            </select>
-                            <div id="hmGroupGeneWrap" class="filter-input-wrap" style="position:relative; width:110px;">
-                                <input type="text" id="hmGroupGene" class="form-control" disabled placeholder="e.g. BRAF" autocomplete="off" style="font-size:11px; padding:3px 6px;" title="Split cell lines into wild-type / one copy / both copies for this gene. Uses hotspot mutations, or damaging mutations if the gene has no hotspot data.">
-                                <div id="hmGroupGeneDropdown" style="display:none; position:absolute; top:100%; left:0; min-width:240px; max-height:300px; overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; box-shadow:0 6px 16px rgba(0,0,0,0.18); z-index:1450; font-size:11px;"></div>
-                            </div>
-                            <select id="hmGroupOrder" disabled style="width:120px;" title="How the groups are ordered left to right. Alteration groups always run wild-type to both copies, ignoring this.">
-                                <option value="size" selected>By size</option>
-                                <option value="score">By score</option>
-                            </select>
+                            <span class="clb-sep"></span>
                             <span style="display:inline-flex; align-items:center; gap:8px;" id="hmMinGroupSizeWrap">
                                 <span style="font-size:10px; color:#6b7280; white-space:nowrap;" title="Groups with fewer cell lines than this are left out of the heatmap entirely">Min n:</span>
                                 <button type="button" onclick="app.adjustNumber('hmMinGroupSize', -1)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
@@ -8934,7 +8914,12 @@
                         <div class="clb-row-items" style="align-items:flex-start;">
                             <div id="hmAnnRowsBlock" style="display:flex; flex-direction:column; gap:6px;"></div>
                             <button type="button" id="hmAnnRowAddBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Add another annotation row">+ Add row</button>
-                            <span id="hmAnnRowsSortNote" style="display:none; font-size:10px; color:#9ca3af;">Toggle a row's &#8597; sort arrows to block the columns by it; the top toggled row is outermost.</span>
+                            <span style="font-size:10px; color:#6b7280; white-space:nowrap;">then by</span>
+                            <select id="hmThenBy" style="width:150px;" title="The final tie-break, inside the innermost blocks, or the whole order when no row's sort arrows are on">
+                                <option value="score" selected>Score (mean of shown genes)</option>
+                                <option value="name">Name (A-Z)</option>
+                            </select>
+                            <span id="hmAnnRowsSortNote" style="display:none; font-size:10px; color:#9ca3af;">Toggle a row's &#8597; arrows to sort by it; the top toggled row blocks first, the next sorts within those blocks. Add the Cell-line clusters row (Clustering, above) to cluster within blocks.</span>
                         </div>
                     </div>
                 </div>
@@ -10014,6 +9999,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_75"></script>
+    <script src="app.js?v=v88_76"></script>
 </body>
 </html>
