@@ -22052,43 +22052,112 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (cap) cap.textContent = `Gate ${f.gate} drawn on ${f.genes}; the ${f.n} cell lines inside it are the cohort of the plot above.`;
     }
 
-    // Hotspot + damaging mutation enrichment between two gates: each gene's
-    // % carriers in A vs B, ranked by an approximate chi-squared p. Pulled
-    // out of compareGates() (v.88.73) so the heatmap gates' Inspect A vs B
-    // panel can compute the same numbers the scatter's gate comparison does,
-    // rather than a second copy of this math. gateA/gateB: arrays of
-    // {cellLineId, ...}, the shape both callers already have on hand.
-    _gateMutationEnrichment(gateA, gateB) {
-        const mutStats = [];
-        const gateMutSources = [];
-        if (this.mutations?.genes) {
-            for (const g of this.mutations.genes) gateMutSources.push({ gene: g, source: this.mutations, type: 'hotspot' });
+    // Every alteration matrix the app holds, gathered as one list of sources,
+    // so the comparison below, the panels that render it and the Methods text
+    // that describes it all read the same table instead of each naming types
+    // of their own. Two coverages: 'mutations' is the hotspot + damaging pair
+    // the scatter's gate comparison has always shown, 'all' adds the curated
+    // fusion calls and the focal copy-number panel (v.88.81), which is what
+    // the inspect panels offer.
+    _alterationSources(scope = 'mutations') {
+        const out = [];
+        if (this.mutations?.genes?.length) {
+            out.push({ type: 'hotspot', group: 'hotspot', word: 'hotspot', plural: 'hotspot mutations',
+                       src: this.mutations, key: 'mutations', genes: this.mutations.genes });
         }
-        if (this.damagingMutations?.genes) {
+        if (this.damagingMutations?.genes?.length) {
+            // A gene already carried by the hotspot panel is not listed twice.
             const hsSet = new Set(this.mutations?.genes || []);
-            for (const g of this.damagingMutations.genes) {
-                if (!hsSet.has(g)) gateMutSources.push({ gene: g, source: this.damagingMutations, type: 'damaging' });
+            out.push({ type: 'damaging', group: 'damaging', word: 'damaging', plural: 'damaging mutations',
+                       src: this.damagingMutations, key: 'mutations',
+                       genes: this.damagingMutations.genes.filter(g => !hsSet.has(g)) });
+        }
+        if (scope !== 'all') return out;
+        const fus = this._fusionAxisData;
+        if (fus?.genes?.length) {
+            out.push({ type: 'fusion', group: 'fusion', word: 'fusion', plural: 'fusion calls',
+                       src: fus, key: 'translocations', genes: fus.genes });
+        }
+        if (this.cnAmpData?.genes?.length) {
+            out.push({ type: 'amp', group: 'cn', word: 'amplification', plural: 'focal amplifications',
+                       src: this.cnAmpData, key: 'mutations', genes: this.cnAmpData.genes });
+        }
+        if (this.cnDelData?.genes?.length) {
+            out.push({ type: 'del', group: 'cn', word: 'deletion', plural: 'deep deletions',
+                       src: this.cnDelData, key: 'mutations', genes: this.cnDelData.genes });
+        }
+        return out;
+    }
+
+    // How an alteration comparison should be described, in one place, so the
+    // panel that draws the table and the Methods text that documents it can
+    // never claim different coverage, a different ranking or a different test.
+    // `scope` is whatever the caller actually computed.
+    _alterationTableWords(scope = 'mutations') {
+        const sources = this._alterationSources(scope);
+        const list = sources.map(s => s.plural);
+        const coverage = list.length > 1
+            ? `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`
+            : (list[0] || 'no alteration calls at all');
+        // The copy-number sentence only belongs here when copy-number rows are
+        // in scope; the mutation-only table has nothing that behaves that way.
+        const hasCn = sources.some(s => s.group === 'cn');
+        return {
+            coverage,
+            test: 'a chi-squared approximation on the 2x2 of carriers against non-carriers, with no correction for the number of alterations tested',
+            ranking: 'the gap in percent altered between the two sides, with the chi-squared statistic breaking ties',
+            note: 'A cell line with no call for an alteration is left out of both sides for that row, so the n beside a row can be smaller than the group'
+                + (hasCn ? ': the copy-number rows rest only on the cell lines with whole-genome sequencing' : '')
+                + '. Under three cell lines with a call on a side the row is counted but not tested.'
+        };
+    }
+
+    // Alteration enrichment between two groups of cell lines: each alteration's
+    // % carriers in A vs B with an approximate chi-squared p. Pulled out of
+    // compareGates() (v.88.73) so the heatmap gates' Inspect A vs B panel can
+    // compute the same numbers the scatter's gate comparison does, rather than
+    // a second copy of this math; widened in v.88.81 to every alteration type
+    // via opts.scope, which the inspect panels pass as 'all'. gateA/gateB:
+    // arrays of {cellLineId, ...}, the shape every caller already has on hand.
+    _gateMutationEnrichment(gateA, gateB, opts = {}) {
+        const mutStats = [];
+        const idsA = gateA.map(d => d.cellLineId);
+        const idsB = gateB.map(d => d.cellLineId);
+        for (const s of this._alterationSources(opts.scope || 'mutations')) {
+            // Copy-number calls exist only for the cell lines with whole-genome
+            // sequencing, so a line that was never sequenced is not evidence of
+            // "no event". Those lines leave both denominators for these rows,
+            // which is why n is carried per row rather than taken from the
+            // group sizes.
+            const cov = s.src?.coverage instanceof Set ? s.src.coverage : null;
+            const aIds = cov ? idsA.filter(cl => cov.has(cl)) : idsA;
+            const bIds = cov ? idsB.filter(cl => cov.has(cl)) : idsB;
+            const nA = aIds.length, nB = bIds.length;
+            // Under three cell lines on a side there is nothing a 2x2 can say.
+            // The row is still listed with its counts, but it carries no p.
+            const tested = nA >= 3 && nB >= 3;
+            for (const gene of s.genes) {
+                const mutData = s.src.geneData?.[gene]?.[s.key] || {};
+                let mutA = 0, mutB = 0;
+                for (const cl of aIds) if ((mutData[cl] || 0) > 0) mutA++;
+                for (const cl of bIds) if ((mutData[cl] || 0) > 0) mutB++;
+                if (!mutA && !mutB) continue;
+                const pctA = nA ? mutA / nA * 100 : 0;
+                const pctB = nB ? mutB / nB * 100 : 0;
+
+                // Fisher's exact test approximation (chi-squared for 2x2)
+                const a = mutA, b = mutB, c = nA - mutA, d2 = nB - mutB;
+                const n = a + b + c + d2;
+                const chi2 = n > 0 ? Math.pow(a * d2 - b * c, 2) * n / ((a + b) * (c + d2) * (a + c) * (b + d2) || 1) : 0;
+                // Approximate p-value from chi-squared (1 df)
+                const pApprox = Math.max(0, Math.min(1, Math.exp(-chi2 / 2)));
+
+                mutStats.push({ gene, mutA, mutB, nA, nB, pctA, pctB, diff: pctA - pctB,
+                                pValue: pApprox, chi2, tested,
+                                type: s.type, group: s.group, word: s.word,
+                                label: `${gene} ${s.word}` });
             }
         }
-        gateMutSources.forEach(({ gene, source, type }) => {
-            const mutData = source.geneData?.[gene]?.mutations || {};
-            const mutA = gateA.filter(d => (mutData[d.cellLineId] || 0) > 0).length;
-            const mutB = gateB.filter(d => (mutData[d.cellLineId] || 0) > 0).length;
-            const pctA = mutA / gateA.length * 100;
-            const pctB = mutB / gateB.length * 100;
-
-            // Fisher's exact test approximation (chi-squared for 2x2)
-            const a = mutA, b = mutB, c = gateA.length - mutA, d2 = gateB.length - mutB;
-            const n = a + b + c + d2;
-            const chi2 = n > 0 ? Math.pow(a * d2 - b * c, 2) * n / ((a + b) * (c + d2) * (a + c) * (b + d2) || 1) : 0;
-            // Approximate p-value from chi-squared (1 df)
-            const pValue = 2 * this.normalUpperTail(Math.sqrt(chi2));
-            const pApprox = Math.max(0, Math.min(1, Math.exp(-chi2 / 2)));
-
-            if (mutA > 0 || mutB > 0) {
-                mutStats.push({ gene, mutA, mutB, pctA, pctB, diff: pctA - pctB, pValue: pApprox, type });
-            }
-        });
         mutStats.sort((a, b) => a.pValue - b.pValue);
         return mutStats;
     }
@@ -48094,6 +48163,14 @@ ${clone.innerHTML}
                 + this._geInspectScopePanel();
         }
 
+        // The same two collapsible comparison panels Inspect A vs B carries
+        // (v.88.81): the selection against whatever comparison group is in
+        // force, not against a second gate. They are rebuilt here rather than
+        // on their own trigger, so changing the comparison group or the
+        // cutoffs recomputes them with the tables above and never leaves a
+        // panel describing the previous comparison.
+        this._mountGEInspectPanels(selected, this._geInspectSides.comparison);
+
         // Expression is loaded on demand; fill the right column once it arrives.
         if (!this.expressionLoaded) {
             document.getElementById('geRightBody').innerHTML =
@@ -48259,7 +48336,7 @@ ${clone.innerHTML}
                 + this._geCoverageWarningHtml(geCoverage);
         }
 
-        this._mountGateABPanels(aIds, bIds);
+        this._mountGEInspectPanels(aIds, bIds);
 
         if (!this.expressionLoaded) {
             document.getElementById('geRightBody').innerHTML =
@@ -48273,20 +48350,38 @@ ${clone.innerHTML}
         }
     }
 
-    // The two composition panels under Inspect A vs B (v.88.73): where the
-    // gates' cell lines come from, and their hotspot/damaging mutation
-    // rates. Both closed by default (most openings of this modal never need
-    // them) and computed once, on first open, rather than on every redraw
-    // of the tables above. Both reuse the exact stats compareGates() calls
-    // for the scatter's own Gate A/B comparison (_gateEnrichment,
-    // _gateMutationEnrichment) rather than a second implementation of that
-    // math; only the rendering here is new; a compact static table rather
-    // than compareGates()'s own sortable one, since that one is wired to a
-    // different modal's DOM ids and controls (gateCompareContent,
-    // sortGateTable) that do not exist in this modal.
-    _mountGateABPanels(aIds, bIds) {
+    // The words this modal uses for its two sides, in one place: "A"/"B" when
+    // it is showing Inspect A vs B, "sel"/"rest" when it is the ordinary
+    // selection inspect. The tables, the volcano axis titles, the Enrichr
+    // menu and the comparison panels all read this, so a label can never
+    // disagree with the numbers beside it.
+    _geInspectSideWords() {
+        const gate = this._geInspectMode === 'gateAB';
+        return {
+            sel: gate ? 'A' : 'sel',
+            cmp: gate ? 'B' : 'rest',
+            selWord: gate ? 'gate A' : 'selection',
+            cmpWord: gate ? 'gate B' : 'comparison group',
+            deltaSuffix: gate ? '(A − B)' : '(selection − comparison)'
+        };
+    }
+
+    // The two composition panels under the inspect tables (v.88.73 for the
+    // gates, every inspect mode since v.88.81): where the two groups' cell
+    // lines come from, and how their genetic alterations differ. Both closed
+    // by default (most openings of this modal never need them) and computed
+    // once, on first open, rather than on every redraw of the tables above.
+    // Both reuse the exact stats compareGates() calls for the scatter's own
+    // Gate A/B comparison (_gateEnrichment, _gateMutationEnrichment) rather
+    // than a second implementation of that math; only the rendering here is
+    // new; a compact table rather than compareGates()'s own sortable one,
+    // since that one is wired to a different modal's DOM ids and controls
+    // (gateCompareContent, sortGateTable) that do not exist in this modal.
+    _mountGEInspectPanels(aIds, bIds) {
         const body = document.getElementById('selectionInspectBody');
         if (!body) return;
+        const w = this._geInspectSideWords();
+        const sides = `${w.selWord} vs ${w.cmpWord}`;
         const section = (id, title) => `
             <div style="border:1px solid #e5e7eb; border-radius:6px; margin-bottom:10px; background:#fff;">
                 <button type="button" id="${id}Toggle" aria-expanded="false" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 10px; background:#f9fafb; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:700; color:#374151;">
@@ -48296,11 +48391,14 @@ ${clone.innerHTML}
                 <div id="${id}Body" style="display:none; padding:9px 10px; border-top:1px solid #e5e7eb;"></div>
             </div>`;
         body.insertAdjacentHTML('afterbegin',
-            section('gateABOrigin', 'Where the gates come from')
-            + section('gateABMut', 'Genetic alterations'));
+            section('gateABOrigin', `Where the cell lines come from (${sides})`)
+            + section('gateABMut', `Genetic alterations (${sides})`));
 
         const toRows = (ids) => ids.map(cellLineId => ({ cellLineId, lineage: this.getCellLineLineage(cellLineId) }));
         const gateARows = toRows(aIds), gateBRows = toRows(bIds);
+        // Each rebuild of this modal is a fresh comparison, so the alteration
+        // panel's type filter and its "show all" state start over with it.
+        this._geAltPanel = { filter: 'all', showAll: false, stats: null, rowsA: gateARows, rowsB: gateBRows };
 
         const wireToggle = (id, computeFn) => {
             const btn = document.getElementById(`${id}Toggle`);
@@ -48327,14 +48425,36 @@ ${clone.innerHTML}
             });
         };
         wireToggle('gateABOrigin', () => this._renderGateOriginPanel(gateARows, gateBRows));
-        wireToggle('gateABMut', () => this._renderGateMutationPanel(gateARows, gateBRows));
+        wireToggle('gateABMut', () => {
+            // Computed once per comparison and held, so switching a type chip
+            // or opening the full list re-renders from the same numbers rather
+            // than walking every alteration matrix again.
+            this._geAltPanel.stats = this._gateMutationEnrichment(gateARows, gateBRows, { scope: 'all' });
+            return this._renderGateMutationPanel();
+        });
     }
 
-    // "Where the gates come from": the lineage / subtype / disease ladder,
-    // reusing _gateEnrichment (the same helper compareGates() calls for the
-    // scatter's gates) so the numbers cannot drift from what that panel
-    // would report for the same two groups.
+    // Close both panels and put the alteration filter back to All, without
+    // recomputing anything. Called from the inspect's Reset button, which is
+    // about the state of the view rather than about the comparison itself.
+    _collapseGEInspectPanels() {
+        ['gateABOrigin', 'gateABMut'].forEach(id => {
+            const panel = document.getElementById(`${id}Body`);
+            const btn = document.getElementById(`${id}Toggle`);
+            const caret = document.getElementById(`${id}Caret`);
+            if (panel) panel.style.display = 'none';
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+            if (caret) caret.style.transform = '';
+        });
+        if (this._geAltPanel) { this._geAltPanel.filter = 'all'; this._geAltPanel.showAll = false; }
+    }
+
+    // "Where the cell lines come from": the lineage / subtype / disease
+    // ladder, reusing _gateEnrichment (the same helper compareGates() calls
+    // for the scatter's gates) so the numbers cannot drift from what that
+    // panel would report for the same two groups.
     _renderGateOriginPanel(gateARows, gateBRows) {
+        const w = this._geInspectSideWords();
         const compact = (rows, title, cap) => {
             if (!rows.length) return '';
             const shown = rows.slice(0, cap);
@@ -48342,15 +48462,15 @@ ${clone.innerHTML}
                 + `<table style="width:100%; border-collapse:collapse; font-size:11px;">
                     <thead><tr style="color:#6b7280;">
                         <th style="text-align:left; padding:3px 6px; border-bottom:1px solid #e5e7eb;">Category</th>
-                        <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">% in A</th>
-                        <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">% in B</th>
+                        <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">% in ${w.sel}</th>
+                        <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">% in ${w.cmp}</th>
                         <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">Direction</th>
                     </tr></thead><tbody>`;
             shown.forEach(t => {
                 const delta = t.pctA - t.pctB;
                 const dir = Math.abs(delta) < 0.5 ? '&mdash;' : (delta > 0
-                    ? `<span style="color:#2563eb;">&#9650; A (+${delta.toFixed(1)})</span>`
-                    : `<span style="color:#dc2626;">&#9660; B (${(-delta).toFixed(1)})</span>`);
+                    ? `<span style="color:#2563eb;">&#9650; ${w.sel} (+${delta.toFixed(1)})</span>`
+                    : `<span style="color:#dc2626;">&#9660; ${w.cmp} (${(-delta).toFixed(1)})</span>`);
                 html += `<tr>
                     <td style="padding:3px 6px; border-bottom:1px solid #f3f4f6;">${this.esc(t.tissue)}</td>
                     <td style="padding:3px 6px; border-bottom:1px solid #f3f4f6; text-align:center;">${t.pctA.toFixed(1)}%<span style="color:#9ca3af;"> (${t.nA})</span></td>
@@ -48368,48 +48488,122 @@ ${clone.innerHTML}
         const diseaseStats = this._gateEnrichment(gateARows, gateBRows,
             d => this.cellLineMetadata?.oncotreeSubtype?.[d.cellLineId]
                 || this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown');
-        return `<div style="font-size:10px; color:#9ca3af; margin-bottom:4px;">Same lineage / subtype / disease ladder the scatter's own gate comparison uses. Each table ranked by the biggest gap between the two gates.</div>`
+        return `<div style="font-size:10px; color:#9ca3af; margin-bottom:4px;">Same lineage / subtype / disease ladder the scatter's own gate comparison uses, here for the ${w.selWord} against the ${w.cmpWord}. Each table ranked by the biggest gap between the two sides.</div>`
             + compact(tissueStats, 'Tissue (lineage)', 12)
             + compact(subtissueStats, 'Subtype (primary disease)', 8)
             + compact(diseaseStats, 'Disease (oncotree entity)', 8);
     }
 
-    // "Genetic alterations": hotspot + damaging mutation carriers, reusing
+    // "Genetic alterations": every alteration the app holds calls for, on both
+    // sides of whatever this modal is comparing. The numbers come from
     // _gateMutationEnrichment (compareGates()'s own mutation block, factored
-    // out in v.88.73 so this panel and that one compute it exactly once).
-    _renderGateMutationPanel(gateARows, gateBRows) {
-        const mutStats = this._gateMutationEnrichment(gateARows, gateBRows);
-        if (!mutStats.length) {
-            return '<div style="color:#6b7280; font-size:11px;">No hotspot or damaging mutation data overlaps these cell lines.</div>';
+    // out in v.88.73) asked for the full 'all' coverage, so the panel and the
+    // scatter's gate comparison cannot compute the same 2x2 two ways.
+    // Ranked by the gap in percent altered, since that is the size of the
+    // difference; the chi-squared statistic only breaks ties, so a 100% vs 0%
+    // split on four cell lines does not outrank a 60-point gap on two hundred.
+    _renderGateMutationPanel() {
+        const st = this._geAltPanel;
+        const all = st?.stats || [];
+        const w = this._geInspectSideWords();
+        if (!all.length) {
+            return '<div style="color:#6b7280; font-size:11px;">No alteration calls overlap these cell lines, so there is nothing to compare here.</div>';
         }
-        const CAP = 30;
-        const shown = mutStats.slice(0, CAP);
-        let html = `<div style="font-size:10px; color:#9ca3af; margin-bottom:4px;">Hotspot and damaging mutation carriers, gate A vs gate B. Chi-squared approximation, the same test the scatter's gate comparison uses. Ranked by p.</div>`
-            + `<table style="width:100%; border-collapse:collapse; font-size:11px;">
+        // Biggest gap in percent altered first, chi-squared to break ties.
+        const ranked = [...all].sort((a, b) => (Math.abs(b.diff) - Math.abs(a.diff)) || (b.chi2 - a.chi2));
+        const CHIPS = [
+            { id: 'all', label: 'All' },
+            { id: 'hotspot', label: 'Hotspot' },
+            { id: 'damaging', label: 'Damaging' },
+            { id: 'fusion', label: 'Fusion' },
+            { id: 'cn', label: 'Copy number' }
+        ];
+        const countOf = (id) => id === 'all' ? ranked.length : ranked.filter(m => m.group === id).length;
+        const active = CHIPS.some(c => c.id === st.filter) ? st.filter : 'all';
+        const chipHtml = CHIPS.map(c => {
+            const n = countOf(c.id);
+            const on = c.id === active;
+            const dead = n === 0;
+            // A type with no rows stays where it is, greyed out and saying why,
+            // rather than vanishing and changing the shape of the row.
+            const title = dead
+                ? `No ${c.label.toLowerCase()} rows for these two groups, so there is nothing to filter to`
+                : `Show only ${c.label.toLowerCase()} rows`;
+            return `<button type="button" ${dead ? 'disabled' : `onclick="app._setGEAlterationFilter('${c.id}')"`}
+                title="${title}"
+                style="font-size:10px; padding:2px 7px; border-radius:10px; border:1px solid ${on && !dead ? '#6ba544' : '#d1d5db'};
+                       background:${dead ? '#f3f4f6' : on ? '#f0fdf4' : '#fff'}; color:${dead ? '#9ca3af' : on ? '#4c782e' : '#374151'};
+                       font-weight:${on && !dead ? '700' : '400'}; cursor:${dead ? 'not-allowed' : 'pointer'};">${c.label} (${n})</button>`;
+        }).join('');
+
+        const filtered = active === 'all' ? ranked : ranked.filter(m => m.group === active);
+        const CAP = 25;
+        const showAll = !!st.showAll;
+        const shown = showAll ? filtered : filtered.slice(0, CAP);
+        const anyUntested = filtered.some(m => !m.tested);
+
+        const words = this._alterationTableWords('all');
+        let html = `<div style="font-size:10px; color:#9ca3af; margin-bottom:5px;">`
+            + `${this.esc(words.coverage.charAt(0).toUpperCase() + words.coverage.slice(1))}, ${w.selWord} against ${w.cmpWord}. `
+            + `One row per alteration, ranked by ${words.ranking}. `
+            + `p is ${words.test}. ${words.note}`
+            + `</div>`
+            + `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px;">${chipHtml}</div>`;
+        if (!filtered.length) {
+            return html + '<div style="color:#6b7280; font-size:11px;">Nothing in this type for these two groups.</div>';
+        }
+        html += `<table style="width:100%; border-collapse:collapse; font-size:11px;">
                 <thead><tr style="color:#6b7280;">
-                    <th style="text-align:left; padding:3px 6px; border-bottom:1px solid #e5e7eb;">Gene</th>
-                    <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">Type</th>
-                    <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">% A</th>
-                    <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">% B</th>
+                    <th style="text-align:left; padding:3px 6px; border-bottom:1px solid #e5e7eb;">Alteration</th>
+                    <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">% ${w.sel}</th>
+                    <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">% ${w.cmp}</th>
                     <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">&Delta;%</th>
                     <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">p</th>
                 </tr></thead><tbody>`;
+        const BADGE = {
+            hotspot: '#b58a3c', damaging: '#a8553a', fusion: '#4f6fa8', amp: '#8a5ba8', del: '#3f7f6f'
+        };
         shown.forEach(m => {
-            const badge = m.type === 'hotspot'
-                ? '<span style="background:#b58a3c; color:#fff; padding:1px 5px; border-radius:3px; font-size:9px;">hotspot</span>'
-                : '<span style="background:#a8553a; color:#fff; padding:1px 5px; border-radius:3px; font-size:9px;">damaging</span>';
+            const badge = `<span style="background:${BADGE[m.type] || '#6b7280'}; color:#fff; padding:1px 5px; border-radius:3px; font-size:9px; margin-left:5px;">${this.esc(m.word)}</span>`;
             html += `<tr>
-                <td style="padding:3px 6px; border-bottom:1px solid #f3f4f6; font-weight:600; color:#4c782e;">${this.esc(m.gene)}</td>
-                <td style="padding:3px 6px; border-bottom:1px solid #f3f4f6; text-align:center;">${badge}</td>
-                <td style="padding:3px 6px; border-bottom:1px solid #f3f4f6; text-align:center; color:#2563eb;">${m.pctA.toFixed(1)}%</td>
-                <td style="padding:3px 6px; border-bottom:1px solid #f3f4f6; text-align:center; color:#dc2626;">${m.pctB.toFixed(1)}%</td>
+                <td style="padding:3px 6px; border-bottom:1px solid #f3f4f6;"><span style="font-weight:600; color:#4c782e;">${this.esc(m.gene)}</span>${badge}</td>
+                <td style="padding:3px 6px; border-bottom:1px solid #f3f4f6; text-align:center; color:#2563eb;">${m.pctA.toFixed(1)}%<span style="color:#9ca3af;"> (${m.mutA}/${m.nA})</span></td>
+                <td style="padding:3px 6px; border-bottom:1px solid #f3f4f6; text-align:center; color:#dc2626;">${m.pctB.toFixed(1)}%<span style="color:#9ca3af;"> (${m.mutB}/${m.nB})</span></td>
                 <td style="padding:3px 6px; border-bottom:1px solid #f3f4f6; text-align:center; font-weight:600;">${m.diff > 0 ? '+' : ''}${m.diff.toFixed(1)}</td>
-                <td style="padding:3px 6px; border-bottom:1px solid #f3f4f6; text-align:center;">${this.formatPValue(m.pValue)}</td>
+                <td style="padding:3px 6px; border-bottom:1px solid #f3f4f6; text-align:center;${m.tested ? '' : ' color:#9ca3af;'}" ${m.tested ? '' : 'title="Fewer than three cell lines with a call on a side, so this row is counted but not tested"'}>${m.tested ? this.formatPValue(m.pValue) : 'not tested'}</td>
             </tr>`;
         });
         html += '</tbody></table>';
-        if (mutStats.length > CAP) html += `<div style="font-size:10px; color:#9ca3af; margin-top:2px;">${mutStats.length - CAP} more genes not shown, top ${CAP} by p.</div>`;
+        html += `<div style="font-size:10px; color:#9ca3af; margin-top:4px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">`;
+        if (filtered.length > CAP) {
+            html += showAll
+                ? `<span>Showing all ${filtered.length.toLocaleString()} rows.</span>`
+                  + `<button type="button" onclick="app._toggleGEAlterationShowAll()" style="font-size:10px; padding:2px 7px; border:1px solid #d1d5db; border-radius:3px; background:#fff; color:#374151; cursor:pointer;">Show top ${CAP}</button>`
+                : `<span>Showing the top ${CAP} of ${filtered.length.toLocaleString()} rows by the size of the gap.</span>`
+                  + `<button type="button" onclick="app._toggleGEAlterationShowAll()" style="font-size:10px; padding:2px 7px; border:1px solid #d1d5db; border-radius:3px; background:#fff; color:#374151; cursor:pointer;">Show all (${filtered.length.toLocaleString()})</button>`;
+        } else {
+            html += `<span>All ${filtered.length.toLocaleString()} row${filtered.length === 1 ? '' : 's'} shown.</span>`;
+        }
+        if (anyUntested) html += `<span>Rows marked "not tested" have fewer than three cell lines with a call on a side.</span>`;
+        html += '</div>';
         return html;
+    }
+
+    // The type chips and the top-N expander on the alteration panel. Both only
+    // change what is drawn from the stats already computed for this comparison.
+    _setGEAlterationFilter(id) {
+        if (!this._geAltPanel?.stats) return;
+        this._geAltPanel.filter = id;
+        this._geAltPanel.showAll = false;
+        const body = document.getElementById('gateABMutBody');
+        if (body) body.innerHTML = this._renderGateMutationPanel();
+    }
+
+    _toggleGEAlterationShowAll() {
+        if (!this._geAltPanel?.stats) return;
+        this._geAltPanel.showAll = !this._geAltPanel.showAll;
+        const body = document.getElementById('gateABMutBody');
+        if (body) body.innerHTML = this._renderGateMutationPanel();
     }
 
     // Submit the genes currently displayed on the requested side of the
@@ -48450,7 +48644,7 @@ ${clone.innerHTML}
         // "selection" for the ordinary selection-vs-rest inspect, "gate A"
         // when this is Inspect A vs B (v.88.73): the word these buttons use
         // for the left-hand group throughout.
-        const selWord = this._geInspectMode === 'gateAB' ? 'gate A' : 'selection';
+        const selWord = this._geInspectSideWords().selWord;
         const opts = [];
         for (const k of [25, 50, 100, 250]) {
             if (list.length > k) opts.push({ label: `Top ${k} by |&Delta;|`, act: () => run(list.slice(0, k), `top ${k} by |Δ|, ${measure}`) });
@@ -49185,6 +49379,9 @@ ${clone.innerHTML}
         } else {
             this._renderGEInspectTables();
         }
+        // The comparison panels are part of the view's state, so Reset closes
+        // them again and puts their type filter back to All.
+        this._collapseGEInspectPanels();
         this.showCopyNotification?.('Inspect settings reset.');
     }
 
@@ -49286,7 +49483,7 @@ ${clone.innerHTML}
         const foundRight = terms.length ? exprRows.filter(matches) : [];
         // "selection - comparison" ordinarily; "A - B" for Inspect A vs B
         // (v.88.73), so the axis title names the two sides actually charted.
-        const deltaSuffix = this._geInspectMode === 'gateAB' ? '(A − B)' : '(selection − comparison)';
+        const deltaSuffix = this._geInspectSideWords().deltaSuffix;
         this._drawGEVolcano('Left', rows, cutLeft, leftCut, anyQ ? leftQ : 1, anyQ,
             'CRISPR gene effect', `Δ gene effect ${deltaSuffix}`, foundLeft);
         this._drawGEVolcano('Right', exprRows, cutRight, rightCut, anyQ ? rightQ : 1, anyQ,
@@ -49437,7 +49634,7 @@ ${clone.innerHTML}
         // "sel"/"rest" for the ordinary inspect, "A"/"B" for Inspect A vs B
         // (v.88.73): the column tags for whichever two groups this table is
         // actually showing.
-        const colTag = this._geInspectMode === 'gateAB' ? { sel: 'A', cmp: 'B' } : { sel: 'sel', cmp: 'rest' };
+        const colTag = this._geInspectSideWords();
         return `<table style="width:100%; border-collapse:collapse; font-size:11px;">
             <thead style="position:sticky; top:0;" class="sticky-head"><tr>
                 ${th('Gene', 'gene', 'left')}
@@ -59668,6 +59865,14 @@ ${clone.innerHTML}
         const leftDelta = num('geLeftDeltaCutoff', 0.3), leftQ = num('geLeftQCutoff', 0.05), leftN = num('geLeftN', 200);
         const rightDelta = num('geRightDeltaCutoff', 1.0), rightQ = num('geRightQCutoff', 0.05), rightN = num('geRightN', 200);
 
+        // The comparison panels under the tables, described from the same
+        // helper the panel itself renders from. The row count is only known
+        // once the alteration panel has been opened, so it is quoted only
+        // then rather than guessed at.
+        const altWords = this._alterationTableWords('all');
+        const altRows = this._geAltPanel?.stats ? this._geAltPanel.stats.length : null;
+        const altFilter = this._geAltPanel?.filter && this._geAltPanel.filter !== 'all' ? this._geAltPanel.filter : null;
+
         const scopeWord = isGateMode
             ? 'the two gates drawn on the plot'
             : ({ all: 'every other cell line in the panel', lineage: 'only the cell lines sharing a lineage with the selection', group: 'the tissue, subtype and disease groups ticked as the comparison', custom: 'a pasted list of comparison cell lines' })[this._geInspectScope] || 'the chosen comparison group';
@@ -59686,6 +59891,8 @@ ${clone.innerHTML}
                 : 'Fewer than 3 cell lines were available on a side, so no test was run and neither p-values nor q-values exist; only the difference in means is reported.',
             `A gene was included where at least ${isGateMode ? 3 : Math.min(3, nSel)} cell lines on the selection side and at least 3 on the comparison side had a value.`,
             `The tables show genes with |difference| of at least ${leftDelta} and q of at most ${leftQ} for gene effect${exprRows ? `, and |difference| of at least ${rightDelta} and q of at most ${rightQ} for expression` : ''}, capped at the strongest ${this._mNum(leftN)}${exprRows && rightN !== leftN ? ` and ${this._mNum(rightN)}` : ''} genes.`,
+            `Two further panels, closed until they are opened, compare the same two sides by tissue, primary disease and Oncotree disease, and across ${altWords.coverage}${altRows != null ? ` (${this._mNum(altRows)} alterations carried by at least one cell line on either side)` : ''}.`,
+            `Those alteration rows are ranked by ${altWords.ranking}, and tested with ${altWords.test}.`,
             this._methodsCitation()
         ]);
 
@@ -59708,8 +59915,17 @@ ${clone.innerHTML}
             + `   Gene effect side: genes with |difference| of at least ${leftDelta}${canTest ? ` and q of at most ${leftQ}` : ''}, strongest first, capped at ${this._mNum(leftN)} rows.\n`
             + (exprRows ? `   Expression side: genes with |difference| of at least ${rightDelta}${canTest ? ` and q of at most ${rightQ}` : ''}, capped at ${this._mNum(rightN)} rows.\n` : '   Expression data is not loaded, so there is no expression side.\n')
             + '   A gene missing from the table was still tested; it simply did not clear the cutoffs or fell outside the cap.',
+            'WHAT THE TWO PANELS ABOVE THE TABLES SHOW\n'
+            + '   Where the cell lines come from: how many of each side belong to each tissue, primary disease and Oncotree disease, as counts and percentages. No test is applied to these tables; they are counts, sorted by the biggest gap between the sides.\n'
+            + `   Genetic alterations: one row per alteration, covering ${altWords.coverage}${altRows != null ? `, ${this._mNum(altRows)} of which are carried by at least one cell line on either side` : ''}. Rows are ranked by ${altWords.ranking}, and p is ${altWords.test}. Treat it as a way to rank rows rather than as a p-value to quote.\n`
+            + `   ${altWords.note}\n`
+            + `   The table shows the top 25 rows until "Show all" is pressed, and can be narrowed to one type of alteration${altFilter ? `; it is currently narrowed to ${altFilter === 'cn' ? 'copy number' : altFilter} rows` : '; all types are showing'}.\n`
+            + '   Neither panel is part of the CSV exports, which carry the gene tables only.',
             'WHAT THIS DOES NOT SAY\n'
-            + 'The comparison side is present in this view only as a column of means; it cannot be split by lineage or anything else from here. A difference found between two sets of cell lines that also differ in tissue can be about tissue rather than about whatever the sets were chosen for. Choosing a same-lineage comparison group is the way to test that.'
+            + 'A difference found between two sets of cell lines that also differ in tissue can be about tissue rather than about whatever the sets were chosen for. The panel above says how far apart the two sides are by tissue and by alteration, but it does not adjust the gene comparison for either: nothing here is a covariate. '
+            + (isGateMode
+                ? 'The two sides here are fixed gates, so the way to test that is to redraw them within one tissue.'
+                : 'Choosing a same-lineage comparison group is the way to take tissue out of the comparison.')
         ]);
 
         return { title, condensed, long };
@@ -59737,6 +59953,11 @@ ${clone.innerHTML}
         const nDiffGE = gr?.diffGE?.length || 0;
         const nDiffExpr = gr?.diffExpr?.length || 0;
         const nMut = gr?.mutStats?.length || 0;
+        // This panel's alteration table is the mutation pair only. The wider
+        // coverage (fusions, focal copy number) belongs to the inspect panels,
+        // so this text asks the shared describer for the scope THIS view
+        // actually computed rather than for the widest one available.
+        const gateAltWords = this._alterationTableWords('mutations');
 
         const condensed = this._mSentences([
             this._methodsDataSentence(nDiffExpr ? 'both' : 'ge'),
@@ -59744,7 +59965,7 @@ ${clone.innerHTML}
             `Every gene in the gene effect matrix was compared between the two gates by a two sided Welch t test, using genes with at least 2 cell lines with a value on each side; ${this._mNum(nDiffGE)} gene${nDiffGE === 1 ? ' was' : 's were'} tested.`,
             nDiffExpr ? `The same comparison was run on mRNA expression for ${this._mNum(nDiffExpr)} genes.` : null,
             'No correction for multiple testing was applied to any of these p-values.',
-            `The composition of the two gates was also tabulated by tissue, primary disease and Oncotree disease, and the share of cell lines carrying each of ${this._mNum(nMut)} alterations was compared between them.`,
+            `The composition of the two gates was also tabulated by tissue, primary disease and Oncotree disease, and the share of cell lines carrying each of ${this._mNum(nMut)} alterations (${gateAltWords.coverage}) was compared between them with ${gateAltWords.test}.`,
             this._methodsCitation()
         ]);
 
@@ -59774,7 +59995,8 @@ ${clone.innerHTML}
             + '   NO false discovery rate or other multiple-testing correction is applied. Across this many genes, small p-values are expected by chance, so read effect size alongside p.',
             'HOW THE COMPOSITION TABLES WERE COMPUTED\n'
             + '   The tissue, primary disease and Oncotree disease tables simply count how many cell lines in each gate belong to each category and turn that into a percentage. No test is applied to these tables at all; they are counts, sorted by the biggest gap.\n'
-            + `   The alteration table counts, for each of ${this._mNum(nMut)} genes with hotspot or damaging-mutation calls, how many cell lines in each gate carry one. Its p column is an approximation computed from the 2x2 chi-squared statistic, not an exact test and not corrected for multiple testing. Treat it as a way to rank rows rather than as a p-value to quote.`,
+            + `   The alteration table counts, for each of ${this._mNum(nMut)} genes with calls among ${gateAltWords.coverage}, how many cell lines in each gate carry one, and ranks them by p. Its p column is ${gateAltWords.test}, an approximation computed from the 2x2 chi-squared statistic rather than an exact test. Treat it as a way to rank rows rather than as a p-value to quote.\n`
+            + '   Fusions and focal copy-number events are not in this table. The Inspect A vs B panel on the heatmap gates carries the wider alteration comparison.',
             'WHAT THIS DOES NOT SAY\nThe gates were placed by eye on a plot whose axes are two chosen genes, so the two groups can differ in tissue, in growth rate and in much else besides the axes they were separated on. Anything found here needs checking against a comparison that controls for those.'
         ]);
 

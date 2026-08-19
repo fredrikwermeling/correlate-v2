@@ -2635,6 +2635,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.81 (2026-08-19)</strong></p>
+                <ul>
+                    <li><b>The comparison panels are in every inspect, not just the gates.</b> Inspect selected vs rest now carries the same two collapsible panels the heatmap gates got: where the cell lines come from (tissue, subtype, disease) and how their genetic alterations differ, always comparing your selection against whatever comparison group is in force, whether that is the rest of the panel, the same lineage, a picked group or a pasted list. Both start closed, and their headers name the two sides the same way the gene tables do.</li>
+                    <li><b>The alteration panel covers everything, ranked by the size of the difference.</b> Hotspot mutations, damaging mutations, fusion calls, focal amplifications and deep deletions are all one ranked table now, ordered by the gap in percent altered rather than by p. Chips across the top narrow it to a single type, a type with nothing to show stays in place greyed out, and the table opens at the top 25 with a Show all button so a long comparison does not lock the panel.</li>
+                    <li><b>Every row says what it rests on.</b> Each side carries its carriers over its group size, copy-number rows count only the cell lines with whole-genome sequencing rather than treating unsequenced lines as event-free, and a side with fewer than three cell lines carrying a call is listed but marked not tested.</li>
+                    <li>The Methods text for the selection inspect and for the scatter's gate comparison now describe their alteration tables from the same source the tables are drawn from, so each states its own coverage.</li>
+                </ul>
                 <p><strong>v.88.80 (2026-08-19)</strong></p>
                 <ul>
                     <li><b>Blocks and sorting are now two separate choices.</b> Every annotation row has its own &#9638; blocks toggle beside its sort arrows. One row at a time can be the blocks, wherever it sits in the list, and the colour strip, its labels, the legend, Min n and the drill all follow that row; its arrows then set the order of the blocks. Every other row's arrows sort inside the blocks, top row first. Before this, the topmost row with its arrows on quietly became the blocks, which meant sorting by a row and blocking by it could not be asked for separately.</li>
@@ -7007,7 +7014,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.80</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.81</a>
         </span>
     </div>
 
@@ -10097,6 +10104,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_80"></script>
+    <script src="app.js?v=v88_81"></script>
 </body>
 </html>
