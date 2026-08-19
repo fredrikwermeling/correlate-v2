@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.73 (2026-08-19)</strong></p>
+                <ul>
+                    <li><b>Gates grew up.</b> With both heatmap gates filled, Inspect A vs B opens the browser's inspect comparing the two gates directly, volcano first, with collapsible panels comparing where the gates come from (lineage, subtype, disease) and their genetic alteration percentages, the same statistics the scatter's gate comparison uses. The inspect's own gene lists gained Open in heatmap with the top-N menu, and gate controls are hidden on phones where dragging cannot work.</li>
+                </ul>
                 <p><strong>v.88.72 (2026-08-19)</strong></p>
                 <ul>
                     <li><b>Sort direction on annotation rows.</b> The sort button on each annotation row now cycles: sort, reversed, off, with the arrow showing the direction, so wild-type-first or smallest-groups-first views are one click away.</li>
@@ -6966,7 +6970,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.72</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.73</a>
         </span>
     </div>
 
@@ -8967,20 +8971,29 @@
                      Copy/Inspect buttons and the count chip reserve their
                      space (visibility:hidden) rather than appearing and
                      shoving neighbours, only becoming visible once the gate
-                     has a member; see _hmSyncGateUI. -->
-                <span class="clb-sep"></span>
-                <span style="display:inline-flex; align-items:center; gap:4px;">
+                     has a member; see _hmSyncGateUI. Gates need a drag to
+                     paint, which does not work on touch, so the whole block
+                     (mobile-hide) is gone on a phone, CSS-only like every
+                     other mobile-hide element (see the .mobile-hide rule
+                     under the max-width:640px media query). -->
+                <span class="clb-sep mobile-hide"></span>
+                <span class="mobile-hide" style="display:inline-flex; align-items:center; gap:4px;">
                     <button type="button" id="hmGateABtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Arm gate A: click-drag across the grid to select cell lines into it by column range. Click again, or Escape, to disarm.">Gate A</button>
                     <span id="hmGateAChip" style="font-size:10px; visibility:hidden; white-space:nowrap;"></span>
                     <button type="button" id="hmGateACopyBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 6px; visibility:hidden;" title="Copy gate A's cell line names, one per line">Copy A</button>
                     <button type="button" id="hmGateAInspectBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 6px; visibility:hidden;" title="Open the Cell Line Browser's selection-inspect on gate A's cell lines">Inspect A</button>
                 </span>
-                <span style="display:inline-flex; align-items:center; gap:4px;">
+                <span class="mobile-hide" style="display:inline-flex; align-items:center; gap:4px;">
                     <button type="button" id="hmGateBBtn" class="btn btn-outline btn-sm" style="font-size:11px;" title="Arm gate B: click-drag across the grid to select cell lines into it by column range. Click again, or Escape, to disarm.">Gate B</button>
                     <span id="hmGateBChip" style="font-size:10px; visibility:hidden; white-space:nowrap;"></span>
                     <button type="button" id="hmGateBCopyBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 6px; visibility:hidden;" title="Copy gate B's cell line names, one per line">Copy B</button>
                     <button type="button" id="hmGateBInspectBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 6px; visibility:hidden;" title="Open the Cell Line Browser's selection-inspect on gate B's cell lines">Inspect B</button>
                 </span>
+                <!-- Inspect A vs B (v.88.73): reserves its space
+                     (visibility:hidden) like the per-gate buttons above,
+                     only becoming visible once BOTH gates hold a cell line;
+                     see _hmSyncGateUI. -->
+                <button type="button" id="hmInspectABBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; visibility:hidden;" title="Open the selection-inspect comparing gate A against gate B directly, volcano first">Inspect A vs B</button>
                 <span style="flex:1 1 auto;"></span>
                 <button id="heatmapClose2" class="btn btn-secondary btn-sm">Close</button>
             </div>
@@ -9993,6 +10006,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_72"></script>
+    <script src="app.js?v=v88_73"></script>
 </body>
 </html>
