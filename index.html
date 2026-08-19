@@ -2525,7 +2525,7 @@
             .modal-close,
             #clbCloseBtn, #clbWikiCloseBtn, #clbInfoCloseBtn,
             #clbCustomCLClose, #selectionInspectClose, #closeInspect,
-            #closeCorrAnalysis, #closeGeneEffect, #closeGateCompare,
+            #closeCorrAnalysis, #closeGeneEffect,
             #closeGEGateCompare, #closeInfoGraphic, #closeExprCorrelatesPanel,
             #aiAnalysisDialogClose, #enrichrCloseBtn, #exportOptionsClose {
                 min-width: 44px !important;
@@ -2635,6 +2635,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.82 (2026-08-19)</strong></p>
+                <ul>
+                    <li><b>One comparison view everywhere.</b> Compare on the scatter's gates now opens the same comparison the Cell Line Browser and the heatmap gates open, instead of the small tabbed panel that used to appear under the plot. That means the volcano, both ranked gene tables (gene effect and expression, with q-values), the collapsible "where the cell lines come from" panel and the full alteration panel with its chips, all reading gate A against gate B.</li>
+                    <li>The comparison opens on top of the scatter and closes back to it with both gates, their chips and the plot untouched, so Compare can be pressed again after moving a gate. Apply gate as filter, Clear and the gate drawing itself are unchanged.</li>
+                    <li>The retired panel's own Methods, image export and AI export are gone with it; the comparison view carries its own Methods, exports and Enrichr, and its Methods now names the plot each gate was drawn on.</li>
+                </ul>
                 <p><strong>v.88.81 (2026-08-19)</strong></p>
                 <ul>
                     <li><b>The comparison panels are in every inspect, not just the gates.</b> Inspect selected vs rest now carries the same two collapsible panels the heatmap gates got: where the cell lines come from (tissue, subtype, disease) and how their genetic alterations differ, always comparing your selection against whatever comparison group is in force, whether that is the rest of the panel, the same lineage, a picked group or a pasted list. Both start closed, and their headers name the two sides the same way the gene tables do.</li>
@@ -7014,7 +7020,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.81</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.82</a>
         </span>
     </div>
 
@@ -8116,7 +8122,7 @@
                                 <span style="font-size:11px; color:#666;">Gate:</span>
                                 <button class="btn btn-sm" id="setGateABtn" style="font-size:10px; padding:2px 6px; background:#2563eb; color:white;">Set Gate A</button>
                                 <button class="btn btn-sm" id="setGateBBtn" style="font-size:10px; padding:2px 6px; background:#dc2626; color:white;" disabled>Set Gate B</button>
-                                <button class="btn btn-success btn-sm" id="compareGatesBtn" style="font-size:10px; padding:2px 5px; display:none;">Compare</button>
+                                <button class="btn btn-success btn-sm" id="compareGatesBtn" style="font-size:10px; padding:2px 5px; display:none;" title="Compare the two gates: ranked gene tables, where their cell lines come from, and how their alterations differ. Opens the same comparison view the Cell Line Browser and the heatmap use.">Compare</button>
                                 <button class="btn btn-sm" id="gateAsFilterBtn" style="font-size:10px; padding:2px 5px; display:none; background:#7c3aed; color:white;" title="Keep only the cell lines inside a gate, the way a FACS gate carries a population forward. Every other filter still applies on top, and the gating plot is kept underneath and travels into the exported image.">Apply gate as filter</button>
                                 <button class="btn btn-outline btn-sm" id="clearGateFilterBtn" style="font-size:10px; padding:2px 5px; display:none; border-color:#7c3aed; color:#7c3aed;" title="Stop filtering on the gate and go back to the full cohort.">Clear gate filter</button>
                                 <button class="btn btn-outline btn-sm" id="clearGatesBtn" style="font-size:10px; padding:2px 5px; display:none;">Clear</button>
@@ -8150,7 +8156,6 @@
                         <div id="compareTable" style="display: none; max-height: 500px; overflow-y: auto;"></div>
                     </div>
                 </div>
-                <!-- Gate Comparison Results -->
                 <!-- The plot the gate was drawn on, kept so a filtered figure still
                      shows where its population came from. -->
                 <div id="gateFilterPanel" class="mobile-hide" style="display:none; margin-top:15px; border:1px solid #ddd6fe; border-radius:8px; overflow:hidden;">
@@ -8161,34 +8166,6 @@
                     <div style="padding:10px 12px; background:#fff; text-align:center;">
                         <img id="gateFilterImage" alt="The plot the gate was drawn on" style="max-width:100%; height:auto; border:1px solid #eee; border-radius:4px;">
                         <div id="gateFilterCaption" style="font-size:10px; color:#6b7280; margin-top:6px;"></div>
-                    </div>
-                </div>
-
-                <div id="gateComparePanel" class="mobile-hide" style="display: none; margin-top: 15px; border: 2px solid #6ba544; border-radius: 8px; overflow: hidden;">
-                    <div style="background: #6ba544; color: white; padding: 8px 15px; font-weight: 600; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
-                        <span>Gate Comparison: <span id="gateCompareTitle">Gate A vs Gate B</span></span>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size:10px;color:rgba(255,255,255,0.8);margin-right:2px;">Export:</span>
-                            <button id="exportGateReportImage" class="btn btn-sm" style="font-size: 10px; padding: 2px 8px; background: #374151; color: white;" title="Export the gate comparison, choose PNG or SVG in the popup">Export image...</button>
-                            <button id="gateAnalyzeWithAI" class="btn btn-sm" style="font-size: 10px; padding: 2px 8px; background: #374151; color: white;" title="Package both gates for a language model and ask what distinguishes them, using the omics data behind the plot rather than only what is drawn">Export for AI</button>
-                            <button class="btn btn-sm mobile-hide" onclick="app.openMethods('gates')" style="font-size: 10px; padding: 2px 8px; background: #374151; color: white;" title="Write out how this comparison was made, as a methods paragraph and as a plain walk-through">Methods</button>
-                            <button id="closeGateCompare" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
-                        </div>
-                    </div>
-                    <div style="padding: 15px;">
-                        <!-- Gate summary -->
-                        <div style="display: flex; gap: 20px; margin-bottom: 15px; font-size: 12px;">
-                            <div><span style="display: inline-block; width: 12px; height: 12px; background: #2563eb; border-radius: 2px; margin-right: 4px; vertical-align: middle;"></span><strong>Gate A:</strong> <span id="gateASummary">-</span></div>
-                            <div><span style="display: inline-block; width: 12px; height: 12px; background: #dc2626; border-radius: 2px; margin-right: 4px; vertical-align: middle;"></span><strong>Gate B:</strong> <span id="gateBSummary">-</span></div>
-                        </div>
-                        <!-- Tabs -->
-                        <div style="display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">
-                            <button class="btn btn-sm gate-tab active" data-gate-tab="tissue" style="font-size: 11px; padding: 3px 10px;">Tissue</button>
-                            <button class="btn btn-sm gate-tab" data-gate-tab="mutations" style="font-size: 11px; padding: 3px 10px;">Mutations</button>
-                            <button class="btn btn-sm gate-tab" data-gate-tab="diffge" style="font-size: 11px; padding: 3px 10px;">Δ Gene Effect</button>
-                            <button class="btn btn-sm gate-tab" data-gate-tab="expression" style="font-size: 11px; padding: 3px 10px;">Expression</button>
-                        </div>
-                        <div id="gateCompareContent" style="max-height: 400px; overflow-y: auto; overscroll-behavior: contain;"></div>
                     </div>
                 </div>
 
@@ -8518,8 +8495,8 @@
 
                 <!-- Inline placeholder retained so the GE modal still has a
                      vertical anchor; the actual dialog lives at body level
-                     below as a fixed overlay so it works for all 8 source
-                     buttons (gene effect / scatter / mutation / gates /
+                     below as a fixed overlay so it works for every source
+                     button (gene effect / scatter / mutation /
                      correlations / clusters / expression correlates). -->
                 <div id="aiAnalysisDialogAnchor" style="display:none;"></div>
 
@@ -10104,6 +10081,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_81"></script>
+    <script src="app.js?v=v88_82"></script>
 </body>
 </html>

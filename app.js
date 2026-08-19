@@ -231,7 +231,6 @@ class CorrelationExplorer {
         this._gateA = null;
         this._gateB = null;
         this._gateSelecting = null;
-        this._gateCompareResults = null;
         this._gateOverlayTraceCount = 0;
         this._userLegendPosition = null;
         this._userTitlePosition = null;
@@ -6376,24 +6375,6 @@ class CorrelationExplorer {
         document.getElementById('gateAsFilterBtn')?.addEventListener('click', (e) => this.chooseGateAsFilter(e));
         document.getElementById('clearGateFilterBtn')?.addEventListener('click', () => this.clearGateFilter());
         document.getElementById('gateFilterPanelClear')?.addEventListener('click', () => this.clearGateFilter());
-        document.getElementById('closeGateCompare')?.addEventListener('click', () => {
-            document.getElementById('gateComparePanel').style.display = 'none';
-        });
-        document.getElementById('exportGateReportImage')?.addEventListener('click', async () => {
-            const dlg = await this._showExportDialog({ format: 'png', formats: ['png', 'svg'] });
-            if (!dlg) return;
-            this.exportGateReport(dlg.format === 'svg' ? 'svg' : 'png');
-        });
-        // Gate tab switching
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('gate-tab')) {
-                document.querySelectorAll('.gate-tab').forEach(t => t.classList.remove('active'));
-                e.target.classList.add('active');
-                this._gateSortCol = null;
-                this._gateSortAsc = true;
-                this.renderGateTab(e.target.dataset.gateTab);
-            }
-        });
 
         ['scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax'].forEach(id => {
             const el = document.getElementById(id);
@@ -7127,7 +7108,6 @@ class CorrelationExplorer {
             ge: 'Gene effect, current view',
             scatter: 'Scatter inspect, gene1 vs gene2',
             mutation: 'Mutation analysis, differential GE',
-            gates: 'Gate compare, two-population scatter',
             correlations: 'Correlation analysis, input gene set',
             clusters: 'Cluster network, correlation network',
             exprCorrelates: 'Expression correlates, target gene',
@@ -7142,7 +7122,6 @@ class CorrelationExplorer {
             ge: 'the gene-effect values for the gene on screen, its per-tissue summary, and the stratification currently applied',
             scatter: 'the x and y values for both genes per cell line, the correlation statistics, and any gates you have drawn',
             mutation: 'the differential gene-effect table (altered vs reference group) with p-values, and the alteration calls that defined the groups',
-            gates: 'the membership of both gates and the differential gene-effect and expression tables between them',
             correlations: 'the correlation table for your input gene set, with r, slope and n per pair',
             clusters: 'the network edges above the cutoff, the cluster assignments, and the gene-effect values for every gene in the network',
             exprCorrelates: 'the expression-versus-gene-effect correlations for the target gene',
@@ -7224,7 +7203,7 @@ class CorrelationExplorer {
             });
         });
 
-        // Wire all eight source entry points to the same dialog.
+        // Wire every source entry point to the same dialog.
         document.getElementById('clbExportAIBtn')?.addEventListener('click', () => aiShowDialog('clb'));
         document.getElementById('geAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('ge'));
         document.getElementById('scatterAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('scatter'));
@@ -7238,21 +7217,9 @@ class CorrelationExplorer {
                     + `for example a shared pathway, complex or lineage? Say how much weight the group sizes support.`;
             }
         });
-        document.getElementById('gateAnalyzeWithAI')?.addEventListener('click', () => {
-            // Pre-fill the question this export exists to answer, so the model
-            // looks past what is plotted and into the rest of the omics data.
-            aiShowDialog('gates');
-            const q = document.getElementById('aiQuestion');
-            if (q && !q.value.trim()) {
-                q.value = 'What distinguishes the cell lines in gate A from those in gate B? '
-                    + 'Do not restrict yourself to the two genes plotted; use the mutation, copy-number, '
-                    + 'fusion, expression and dependency data in this file to find what actually separates '
-                    + 'the two groups, and say how confident each explanation is given the group sizes.';
-            }
-        });
         document.getElementById('networkAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('clusters'));
         document.getElementById('clbWikiAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('wiki'));
-        // Stash the helper so exportForAI (gates / correlations / clusters /
+        // Stash the helper so exportForAI (correlations / clusters /
         // exprCorrelates menu entries) can reach the same dialog.
         this._aiShowDialog = aiShowDialog;
 
@@ -21717,7 +21684,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this._gateA = null;
         this._gateB = null;
         this._gateSelecting = null;
-        this._gateCompareResults = null;
         this._gateAShape = null;
         this._gateBShape = null;
         this._gateAShapeIndex = null;
@@ -21735,7 +21701,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // when a genuinely different pair is opened.
         if (el('gateAsFilterBtn')) el('gateAsFilterBtn').style.display = 'none';
         if (el('gateStatus')) { el('gateStatus').textContent = 'Draw a rectangle or lasso on the plot to define gates'; el('gateStatus').style.color = '#6b7280'; }
-        if (el('gateComparePanel')) el('gateComparePanel').style.display = 'none';
 
         // Remove gate overlay traces
         this.updateGateOverlay();
@@ -21908,36 +21873,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return lineage;
     }
 
-    // A small cue that something appeared further down, with a click that
-    // takes the user there. Used when a result lands below the fold.
-    _pointToPanel(panelId, label) {
-        const panel = document.getElementById(panelId);
-        if (!panel) return;
-        const scrollTo = () => panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        const rect = panel.getBoundingClientRect();
-        // Already in view: nothing to point at.
-        if (rect.top >= 0 && rect.top < window.innerHeight * 0.9) return;
-        document.getElementById('panelPointer')?.remove();
-        const host = panel.closest('.modal') || document.body;
-        const cue = document.createElement('button');
-        cue.id = 'panelPointer';
-        cue.type = 'button';
-        cue.innerHTML = `${this.esc(label)} <span style="font-size:14px; line-height:1;">&#8595;</span>`;
-        cue.style.cssText = 'position:absolute; left:50%; transform:translateX(-50%); bottom:64px; z-index:30; display:inline-flex; align-items:center; gap:6px; background:#6ba544; color:#fff; border:none; border-radius:14px; padding:5px 14px; font-size:11px; font-weight:600; box-shadow:0 3px 10px rgba(0,0,0,0.2); cursor:pointer;';
-        cue.onclick = () => { scrollTo(); cue.remove(); };
-        if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
-        host.appendChild(cue);
-        // It is a hint, not a dialog: it goes once the user scrolls there or
-        // after a few seconds either way.
-        const done = () => { cue.remove(); window.removeEventListener('scroll', onScroll, true); };
-        const onScroll = () => {
-            const r = panel.getBoundingClientRect();
-            if (r.top < window.innerHeight * 0.9) done();
-        };
-        window.addEventListener('scroll', onScroll, true);
-        setTimeout(done, 8000);
-    }
-
     // A gate can be used two ways: compared against the other gate (the
     // existing analysis), or carried forward as a filter the way a FACS gate
     // hands a population to the next plot. This is the second: the cell lines
@@ -22055,10 +21990,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Every alteration matrix the app holds, gathered as one list of sources,
     // so the comparison below, the panels that render it and the Methods text
     // that describes it all read the same table instead of each naming types
-    // of their own. Two coverages: 'mutations' is the hotspot + damaging pair
-    // the scatter's gate comparison has always shown, 'all' adds the curated
-    // fusion calls and the focal copy-number panel (v.88.81), which is what
-    // the inspect panels offer.
+    // of their own. Two coverages: 'mutations' is the hotspot + damaging pair,
+    // 'all' adds the curated fusion calls and the focal copy-number panel
+    // (v.88.81), which is what the inspect panels offer.
     _alterationSources(scope = 'mutations') {
         const out = [];
         if (this.mutations?.genes?.length) {
@@ -22114,9 +22048,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     // Alteration enrichment between two groups of cell lines: each alteration's
     // % carriers in A vs B with an approximate chi-squared p. Pulled out of
-    // compareGates() (v.88.73) so the heatmap gates' Inspect A vs B panel can
-    // compute the same numbers the scatter's gate comparison does, rather than
-    // a second copy of this math; widened in v.88.81 to every alteration type
+    // the scatter's old inline gate panel (v.88.73) so every A vs B view
+    // computes the same numbers rather than keeping a second copy of this
+    // math; widened in v.88.81 to every alteration type
     // via opts.scope, which the inspect panels pass as 'all'. gateA/gateB:
     // arrays of {cellLineId, ...}, the shape every caller already has on hand.
     _gateMutationEnrichment(gateA, gateB, opts = {}) {
@@ -22181,656 +22115,34 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         })).sort((x, y) => Math.abs(y.pctA - y.pctB) - Math.abs(x.pctA - x.pctB));
     }
 
-    async compareGates() {
+    // The scatter's Compare (v.88.82). The two gates are handed to the shared
+    // selection inspect in gate mode, the same view the Cell Line Browser's
+    // Inspect and the heatmap's Inspect A vs B open, instead of the inline
+    // tabbed panel this used to fill. One comparison view everywhere, so the
+    // ranked tables, the volcano, the origin panel and the all-alterations
+    // panel are the same wherever two groups of cell lines are compared.
+    compareGates() {
         if (!this._gateA?.length || !this._gateB?.length) return;
+        const aIds = [...new Set(this._gateA.map(d => d.cellLineId).filter(Boolean))];
+        const bIds = [...new Set(this._gateB.map(d => d.cellLineId).filter(Boolean))];
+        if (!aIds.length || !bIds.length) return;
 
-        const gateA = this._gateA;
-        const gateB = this._gateB;
-        const gateAIds = new Set(gateA.map(d => d.cellLineId));
-        const gateBIds = new Set(gateB.map(d => d.cellLineId));
+        this.inspectGateComparison(aIds, bIds, { origin: 'scatter' });
 
-        // Summary
-        document.getElementById('gateASummary').textContent = `${gateA.length} cell lines`;
-        document.getElementById('gateBSummary').textContent = `${gateB.length} cell lines`;
+        // Stack the inspect above the scatter popout, the same bump
+        // _hmInspectGateAB applies over the heatmap: the two modals can share
+        // a z-index, and without this the one that happens to sit later in
+        // the DOM wins rather than the one actually asked for.
+        const host = document.getElementById('inspectModal');
+        const hostZ = host ? (parseInt(getComputedStyle(host).zIndex, 10) || 0) : 0;
+        const selModal = document.getElementById('selectionInspectModal');
+        if (selModal && hostZ) selModal.style.zIndex = String(Math.max(1380, hostZ + 10));
 
-        // 1. Where the two gates' cell lines come from, at all three levels
-        // of the cancer classification (the same tissue / subtype / disease
-        // ladder the cohort filters use).
-        const tissueStats = this._gateEnrichment(gateA, gateB, d => d.lineage || 'Unknown');
-        const subtissueStats = this._gateEnrichment(gateA, gateB,
-            d => this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown');
-        const diseaseStats = this._gateEnrichment(gateA, gateB,
-            d => this.cellLineMetadata?.oncotreeSubtype?.[d.cellLineId]
-                || this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown');
-
-        // 2. Mutation enrichment (hotspot + damaging mutations)
-        const mutStats = this._gateMutationEnrichment(gateA, gateB);
-
-        // 3. Differential gene effect (compare GE across all genes)
-        document.getElementById('gateStatus').textContent = 'Computing differential gene effects...';
-        const diffGE = [];
-
-        // Process in chunks to avoid blocking UI
-        const geneNames = [...this.geneIndex.keys()];
-        for (let i = 0; i < geneNames.length; i++) {
-            const gene = geneNames[i];
-            const geneIdx = this.geneIndex.get(gene);
-            const geneData = this.getGeneData(geneIdx);
-
-            const valsA = [], valsB = [];
-            for (let j = 0; j < this.nCellLines; j++) {
-                if (isNaN(geneData[j])) continue;
-                const cl = this.metadata.cellLines[j];
-                if (gateAIds.has(cl)) valsA.push(geneData[j]);
-                else if (gateBIds.has(cl)) valsB.push(geneData[j]);
-            }
-
-            if (valsA.length >= 2 && valsB.length >= 2) {
-                const meanA = valsA.reduce((a, b) => a + b, 0) / valsA.length;
-                const meanB = valsB.reduce((a, b) => a + b, 0) / valsB.length;
-                const tTest = this.welchTTest(valsA, valsB);
-                diffGE.push({
-                    gene,
-                    meanA: meanA,
-                    meanB: meanB,
-                    diff: meanA - meanB,
-                    pValue: tTest.p,
-                    nA: valsA.length,
-                    nB: valsB.length
-                });
-            }
-
-            // Yield to UI every 500 genes
-            if (i % 500 === 0 && i > 0) {
-                await new Promise(r => setTimeout(r, 0));
-            }
+        const statusEl = document.getElementById('gateStatus');
+        if (statusEl) {
+            statusEl.textContent = `Gate A: ${aIds.length}, Gate B: ${bIds.length}.`;
+            statusEl.style.color = '#5d9239';
         }
-        diffGE.sort((a, b) => a.pValue - b.pValue);
-
-        // 4. Differential expression (if expression data loaded)
-        const diffExpr = [];
-        if (this.expressionLoaded && this.expressionData && this.expressionMetadata) {
-            document.getElementById('gateStatus').textContent = 'Computing differential expression...';
-            const nExprCellLines = this.expressionMetadata.nCellLines;
-            const exprGeneNames = this.expressionMetadata.genes;
-            const exprCellLineIndex = new Map();
-            this.expressionMetadata.cellLines.forEach((cl, idx) => { exprCellLineIndex.set(cl, idx); });
-
-            for (let gi = 0; gi < exprGeneNames.length; gi++) {
-                const eValsA = [], eValsB = [];
-                for (const d of gateA) {
-                    const exprIdx = exprCellLineIndex.get(d.cellLineId);
-                    if (exprIdx !== undefined) {
-                        const val = this.expressionData[gi * nExprCellLines + exprIdx];
-                        if (!isNaN(val)) eValsA.push(val);
-                    }
-                }
-                for (const d of gateB) {
-                    const exprIdx = exprCellLineIndex.get(d.cellLineId);
-                    if (exprIdx !== undefined) {
-                        const val = this.expressionData[gi * nExprCellLines + exprIdx];
-                        if (!isNaN(val)) eValsB.push(val);
-                    }
-                }
-                if (eValsA.length >= 2 && eValsB.length >= 2) {
-                    const meanA = eValsA.reduce((a, b) => a + b, 0) / eValsA.length;
-                    const meanB = eValsB.reduce((a, b) => a + b, 0) / eValsB.length;
-                    const tTest = this.welchTTest(eValsA, eValsB);
-                    diffExpr.push({
-                        gene: exprGeneNames[gi],
-                        meanA, meanB,
-                        diff: meanA - meanB,
-                        pValue: tTest.p,
-                        nA: eValsA.length,
-                        nB: eValsB.length
-                    });
-                }
-                if (gi % 1000 === 0 && gi > 0) {
-                    await new Promise(r => setTimeout(r, 0));
-                }
-            }
-            diffExpr.sort((a, b) => a.pValue - b.pValue);
-        }
-
-        this._gateCompareResults = { tissueStats, subtissueStats, diseaseStats, mutStats, diffGE, diffExpr };
-        this._gateSortCol = null;
-        this._gateSortAsc = true;
-
-        document.getElementById('gateStatus').textContent = `Comparison complete. Gate A: ${gateA.length}, Gate B: ${gateB.length}`;
-        document.getElementById('gateStatus').style.color = '#5d9239';
-
-        // Show panel
-        document.getElementById('gateComparePanel').style.display = '';
-        document.getElementById('gateCompareTitle').textContent = `Gate A (${gateA.length}) vs Gate B (${gateB.length})`;
-        // The results land below the plot, which on a short screen is out of
-        // sight: point at them rather than leaving the button looking dead.
-        this._pointToPanel('gateComparePanel', 'Comparison ready below');
-
-        // Show first tab
-        document.querySelectorAll('.gate-tab').forEach(t => t.classList.remove('active'));
-        document.querySelector('[data-gate-tab="tissue"]').classList.add('active');
-        this.renderGateTab('tissue');
-    }
-
-    renderGateTab(tab) {
-        const r = this._gateCompareResults;
-        if (!r) return;
-        const container = document.getElementById('gateCompareContent');
-        this._currentGateTab = tab;
-
-        const sortIcon = (col) => {
-            if (this._gateSortCol !== col) return ' <span style="opacity:0.3;">↕</span>';
-            return this._gateSortAsc ? ' ▲' : ' ▼';
-        };
-        const thStyle = 'padding:5px;cursor:pointer;user-select:none;white-space:nowrap;';
-
-        if (tab === 'tissue') {
-            // Apply default sort if no sort set
-            if (!this._gateSortCol) { this._gateSortCol = 'absDelta'; this._gateSortAsc = false; }
-            const data = [...r.tissueStats];
-            this._sortGateData(data, {
-                tissue: d => d.tissue.toLowerCase(),
-                nA: d => d.nA, pctA: d => d.pctA,
-                nB: d => d.nB, pctB: d => d.pctB,
-                delta: d => d.pctA - d.pctB,
-                absDelta: d => Math.abs(d.pctA - d.pctB)
-            });
-
-            let html = `<table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
-                <colgroup><col style="width:35%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
-                <thead><tr style="background:#f3f4f6;">
-                    <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('tissue')">Tissue${sortIcon('tissue')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('nA')">Gate A${sortIcon('nA')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pctA')">%A${sortIcon('pctA')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('nB')">Gate B${sortIcon('nB')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pctB')">%B${sortIcon('pctB')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('absDelta')">|Δ%|${sortIcon('absDelta')}</th>
-                </tr></thead><tbody>`;
-            data.forEach(t => {
-                const delta = t.pctA - t.pctB;
-                const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
-                html += `<tr>
-                    <td style="padding:4px;border-bottom:1px solid #eee;">${t.tissue}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.nA}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.pctA.toFixed(1)}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.nB}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.pctB.toFixed(1)}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
-                </tr>`;
-            });
-            html += '</tbody></table>';
-
-            // Finer levels of the same classification, one table each.
-            [
-                { key: 'subtissueStats', title: 'Subtype (Primary Disease)', col: 'Subtype' },
-                { key: 'diseaseStats', title: 'Disease (Oncotree entity)', col: 'Disease' }
-            ].forEach(sec => {
-                const rows = r[sec.key];
-                if (!rows || !rows.length) return;
-                const subData = [...rows];
-                subData.sort((a, b) => Math.abs(b.pctA - b.pctB) - Math.abs(a.pctA - a.pctB));
-                html += `<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:8px;">
-                    <div style="font-size:11px;font-weight:600;margin-bottom:6px;color:#374151;">${sec.title}</div>
-                    <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
-                    <colgroup><col style="width:35%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"><col style="width:13%"></colgroup>
-                    <thead><tr style="background:#f3f4f6;">
-                        <th style="padding:5px;text-align:left;">${sec.col}</th>
-                        <th style="padding:5px;text-align:center;">Gate A</th>
-                        <th style="padding:5px;text-align:center;">%A</th>
-                        <th style="padding:5px;text-align:center;">Gate B</th>
-                        <th style="padding:5px;text-align:center;">%B</th>
-                        <th style="padding:5px;text-align:center;">|Δ%|</th>
-                    </tr></thead><tbody>`;
-                subData.forEach(t => {
-                    const delta = t.pctA - t.pctB;
-                    const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
-                    html += `<tr>
-                        <td style="padding:4px;border-bottom:1px solid #eee;">${t.tissue}</td>
-                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.nA}</td>
-                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${t.pctA.toFixed(1)}</td>
-                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.nB}</td>
-                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${t.pctB.toFixed(1)}</td>
-                        <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
-                    </tr>`;
-                });
-                html += '</tbody></table></div>';
-            });
-            container.innerHTML = html;
-
-        } else if (tab === 'mutations') {
-            if (r.mutStats.length === 0) {
-                container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">No mutation data available</div>';
-                return;
-            }
-            if (!this._gateSortCol) { this._gateSortCol = 'pValue'; this._gateSortAsc = true; }
-            const data = [...r.mutStats];
-            this._sortGateData(data, {
-                gene: d => d.gene.toLowerCase(),
-                type: d => d.type,
-                mutA: d => d.mutA, pctA: d => d.pctA,
-                mutB: d => d.mutB, pctB: d => d.pctB,
-                delta: d => d.pctA - d.pctB,
-                pValue: d => d.pValue
-            });
-
-            const pFilter = this._gatePvalueFilter || '';
-            const nHotspot = r.mutStats.filter(m => m.type === 'hotspot').length;
-            const nDamaging = r.mutStats.filter(m => m.type === 'damaging').length;
-            let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <p style="font-size:10px;color:#6b7280;margin:0;">Hotspot: ${nHotspot} genes, Damaging: ${nDamaging} genes. Chi-squared test for enrichment. Top 100 shown.</p>
-                <div style="display:flex;gap:4px;align-items:center;">
-                    <button onclick="app.enrichrGateMutations('A')" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;" title="Submit top genes enriched in Gate A to Enrichr">Enrichr A ↗</button>
-                    <button onclick="app.enrichrGateMutations('B')" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;" title="Submit top genes enriched in Gate B to Enrichr">Enrichr B ↗</button>
-                </div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
-                <input type="text" id="gateGeneSearch" placeholder="Search gene..." oninput="app.filterGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;">
-                <select id="gatePvalueFilter" onchange="app._gatePvalueFilter=this.value;app.renderGateTab(app._currentGateTab)" style="font-size:11px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;">
-                    <option value=""${pFilter === '' ? ' selected' : ''}>All p-values</option>
-                    <option value="0.05"${pFilter === '0.05' ? ' selected' : ''}>p &lt; 0.05</option>
-                    <option value="0.01"${pFilter === '0.01' ? ' selected' : ''}>p &lt; 0.01</option>
-                    <option value="0.001"${pFilter === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
-                </select>
-            </div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
-                <thead><tr style="background:#f3f4f6;">
-                    <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('gene')">Gene${sortIcon('gene')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('type')">Type${sortIcon('type')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('mutA')">Mut A${sortIcon('mutA')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pctA')">%A${sortIcon('pctA')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('mutB')">Mut B${sortIcon('mutB')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pctB')">%B${sortIcon('pctB')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('delta')">Δ%${sortIcon('delta')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pValue')">p-value${sortIcon('pValue')}</th>
-                </tr></thead><tbody>`;
-            const filteredMut = pFilter ? data.filter(m => m.pValue < parseFloat(pFilter)) : data;
-            filteredMut.slice(0, 100).forEach(m => {
-                const delta = m.pctA - m.pctB;
-                const color = Math.abs(delta) > 10 ? (delta > 0 ? '#2563eb' : '#dc2626') : '';
-                const pStr = this.formatPValue(m.pValue);
-                const typeBadge = m.type === 'hotspot'
-                    ? '<span style="background:#b58a3c;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">hotspot</span>'
-                    : '<span style="background:#a8553a;color:white;padding:1px 5px;border-radius:3px;font-size:9px;">damaging</span>';
-                html += `<tr>
-                    <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;cursor:pointer;text-decoration:underline;" onclick="event.stopPropagation();app.showGateGenePlot('${m.gene}','mutation')">${m.gene}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;">${typeBadge}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${m.mutA}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${m.pctA.toFixed(1)}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${m.mutB}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${m.pctB.toFixed(1)}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${m.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td>
-                </tr>`;
-            });
-            html += '</tbody></table>';
-            html += '<div id="gateGenePlot" style="margin-top:8px;"></div>';
-            container.innerHTML = html;
-
-        } else if (tab === 'diffge') {
-            if (!this._gateSortCol) { this._gateSortCol = 'diff'; this._gateSortAsc = true; }
-            const data = [...r.diffGE];
-            this._sortGateData(data, {
-                gene: d => d.gene.toLowerCase(),
-                meanA: d => d.meanA, meanB: d => d.meanB,
-                diff: d => d.diff,
-                pValue: d => d.pValue
-            });
-
-            const pFilterDGE = this._gatePvalueFilter || '';
-            let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <p style="font-size:10px;color:#6b7280;margin:0;">Top genes with different gene effect between gates (Welch's t-test). Click gene to plot.</p>
-                <button onclick="app.enrichrGateDiffGE()" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;margin-left:8px;" title="Submit top 100 most depleted genes (Gate A vs B) to Enrichr">Enrichr ↗</button>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
-                <input type="text" id="gateGeneSearch" placeholder="Search gene..." oninput="app.filterGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;">
-                <select id="gatePvalueFilter" onchange="app._gatePvalueFilter=this.value;app.renderGateTab(app._currentGateTab)" style="font-size:11px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;">
-                    <option value=""${pFilterDGE === '' ? ' selected' : ''}>All p-values</option>
-                    <option value="0.05"${pFilterDGE === '0.05' ? ' selected' : ''}>p &lt; 0.05</option>
-                    <option value="0.01"${pFilterDGE === '0.01' ? ' selected' : ''}>p &lt; 0.01</option>
-                    <option value="0.001"${pFilterDGE === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
-                </select>
-            </div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
-                <thead><tr style="background:#f3f4f6;">
-                    <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('gene')">Gene${sortIcon('gene')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('meanA')">Mean A${sortIcon('meanA')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('meanB')">Mean B${sortIcon('meanB')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('diff')">Δ GE${sortIcon('diff')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pValue')">p-value${sortIcon('pValue')}</th>
-                </tr></thead><tbody>`;
-            const filteredDiffGE = pFilterDGE ? data.filter(d => d.pValue < parseFloat(pFilterDGE)) : data;
-            filteredDiffGE.slice(0, 100).forEach(d => {
-                const color = d.diff > 0.2 ? '#5d9239' : d.diff < -0.2 ? '#dc2626' : '';
-                const pStr = this.formatPValue(d.pValue);
-                html += `<tr style="cursor:pointer;" onclick="app.showGateGenePlot('${d.gene}','ge')">
-                    <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${d.meanB.toFixed(3)}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${d.diff > 0 ? '+' : ''}${d.diff.toFixed(3)}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${d.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td>
-                </tr>`;
-            });
-            html += '</tbody></table>';
-            html += '<div id="gateGenePlot" style="margin-top:8px;"></div>';
-            container.innerHTML = html;
-
-        } else if (tab === 'expression') {
-            if (!r.diffExpr || r.diffExpr.length === 0) {
-                if (!this.expressionLoaded) {
-                    container.innerHTML = `<div style="padding:20px;text-align:center;">
-                        <p style="color:#6b7280;margin-bottom:12px;">Expression data must be loaded to compare gene expression between gates.</p>
-                        <button onclick="app.loadGateExpressionComparison()" style="background:#6ba544;color:white;border:none;border-radius:6px;padding:8px 20px;font-size:12px;cursor:pointer;">Load Expression Comparison</button>
-                    </div>`;
-                } else {
-                    container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">No expression comparison results. Try re-running the gate comparison.</div>';
-                }
-                return;
-            }
-            if (!this._gateSortCol) { this._gateSortCol = 'diff'; this._gateSortAsc = true; }
-            const data = [...r.diffExpr];
-            this._sortGateData(data, {
-                gene: d => d.gene.toLowerCase(),
-                meanA: d => d.meanA, meanB: d => d.meanB,
-                diff: d => d.diff,
-                pValue: d => d.pValue
-            });
-
-            const pFilterExpr = this._gatePvalueFilter || '';
-            let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <p style="font-size:10px;color:#6b7280;margin:0;">Mean expression (log2 TPM+1) comparison between gates (Welch's t-test). Click gene to plot. Top 100 shown.</p>
-                <button onclick="app.enrichrGateExpression()" style="background:#e8910c;color:white;border:none;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;margin-left:8px;" title="Submit top 100 most down-regulated genes (Gate A vs B) to Enrichr">Enrichr ↗</button>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
-                <input type="text" id="gateGeneSearch" placeholder="Search gene..." oninput="app.filterGateGeneTable(this.value)" style="width:150px;font-size:11px;padding:2px 6px;border:1px solid #ddd;border-radius:4px;">
-                <select id="gatePvalueFilter" onchange="app._gatePvalueFilter=this.value;app.renderGateTab(app._currentGateTab)" style="font-size:11px;padding:2px 4px;border:1px solid #ddd;border-radius:4px;">
-                    <option value=""${pFilterExpr === '' ? ' selected' : ''}>All p-values</option>
-                    <option value="0.05"${pFilterExpr === '0.05' ? ' selected' : ''}>p &lt; 0.05</option>
-                    <option value="0.01"${pFilterExpr === '0.01' ? ' selected' : ''}>p &lt; 0.01</option>
-                    <option value="0.001"${pFilterExpr === '0.001' ? ' selected' : ''}>p &lt; 0.001</option>
-                </select>
-            </div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;">
-                <thead><tr style="background:#f3f4f6;">
-                    <th style="${thStyle}text-align:left;" onclick="app.sortGateTable('gene')">Gene${sortIcon('gene')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('meanA')">Mean A${sortIcon('meanA')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('meanB')">Mean B${sortIcon('meanB')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('diff')">Δ Expr${sortIcon('diff')}</th>
-                    <th style="${thStyle}text-align:center;" onclick="app.sortGateTable('pValue')">p-value${sortIcon('pValue')}</th>
-                </tr></thead><tbody>`;
-            const filteredExpr = pFilterExpr ? data.filter(d => d.pValue < parseFloat(pFilterExpr)) : data;
-            filteredExpr.slice(0, 100).forEach(d => {
-                const color = d.diff > 0.5 ? '#5d9239' : d.diff < -0.5 ? '#dc2626' : '';
-                const pStr = this.formatPValue(d.pValue);
-                html += `<tr style="cursor:pointer;" onclick="app.showGateGenePlot('${d.gene}','expression')">
-                    <td style="padding:4px;border-bottom:1px solid #eee;color:#0066cc;text-decoration:underline;">${d.gene}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#2563eb;">${d.meanA.toFixed(3)}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;color:#dc2626;">${d.meanB.toFixed(3)}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;font-weight:500;${color ? `color:${color}` : ''}">${d.diff > 0 ? '+' : ''}${d.diff.toFixed(3)}</td>
-                    <td style="padding:4px;text-align:center;border-bottom:1px solid #eee;${d.pValue < 0.05 ? 'font-weight:600;' : ''}">${pStr}</td>
-                </tr>`;
-            });
-            html += '</tbody></table>';
-            html += '<div id="gateGenePlot" style="margin-top:8px;"></div>';
-            container.innerHTML = html;
-        }
-    }
-
-    _sortGateData(data, accessors) {
-        const col = this._gateSortCol;
-        const asc = this._gateSortAsc;
-        if (!col || !accessors[col]) return;
-        const fn = accessors[col];
-        data.sort((a, b) => {
-            const va = fn(a), vb = fn(b);
-            if (typeof va === 'string') return asc ? va.localeCompare(vb) : vb.localeCompare(va);
-            return asc ? va - vb : vb - va;
-        });
-    }
-
-    sortGateTable(col) {
-        if (this._gateSortCol === col) {
-            this._gateSortAsc = !this._gateSortAsc;
-        } else {
-            this._gateSortCol = col;
-            this._gateSortAsc = true;
-        }
-        this.renderGateTab(this._currentGateTab || 'tissue');
-    }
-
-    showGateGenePlot(gene, type) {
-        const plotDiv = document.getElementById('gateGenePlot');
-        if (!plotDiv) return;
-        if (!this._gateA?.length || !this._gateB?.length) return;
-
-        const gateA = this._gateA;
-        const gateB = this._gateB;
-        const fmtP = (p) => this.formatPValue(p);
-        // Chi² p-value used in the gate-compare mutation table; re-used here
-        // so the plot title matches what the user saw in the row.
-        const chi2P = (a, b, c, d) => {
-            const n = a + b + c + d;
-            if (n <= 0) return 1;
-            const chi2 = Math.pow(a * d - b * c, 2) * n / ((a + b) * (c + d) * (a + c) * (b + d) || 1);
-            return Math.max(0, Math.min(1, Math.exp(-chi2 / 2)));
-        };
-
-        if (type === 'mutation') {
-            // Stacked bar chart: % mutated vs WT in Gate A vs Gate B
-            let mutData = null;
-            if (this.mutations?.geneData?.[gene]?.mutations) {
-                mutData = this.mutations.geneData[gene].mutations;
-            } else if (this.damagingMutations?.geneData?.[gene]?.mutations) {
-                mutData = this.damagingMutations.geneData[gene].mutations;
-            }
-            if (!mutData) {
-                plotDiv.innerHTML = '<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">No mutation data for ' + gene + '</div>';
-                return;
-            }
-            const mutA = gateA.filter(d => (mutData[d.cellLineId] || 0) > 0).length;
-            const mutB = gateB.filter(d => (mutData[d.cellLineId] || 0) > 0).length;
-            const wtA = gateA.length - mutA;
-            const wtB = gateB.length - mutB;
-            const pctMutA = mutA / gateA.length * 100;
-            const pctMutB = mutB / gateB.length * 100;
-            const pctWtA = 100 - pctMutA;
-            const pctWtB = 100 - pctMutB;
-
-            const traces = [
-                {
-                    x: ['Gate A'],
-                    y: [pctMutA],
-                    name: 'Gate A Mut',
-                    type: 'bar',
-                    marker: { color: '#2563eb' },
-                    text: [`${mutA}/${gateA.length} (${pctMutA.toFixed(1)}%)`],
-                    textposition: pctMutA > 10 ? 'inside' : 'outside',
-                    textfont: { color: pctMutA > 10 ? 'white' : '#2563eb', size: 10 },
-                    hovertemplate: `Gate A Mutated: ${mutA}/${gateA.length} (${pctMutA.toFixed(1)}%)<extra></extra>`
-                },
-                {
-                    x: ['Gate A'],
-                    y: [pctWtA],
-                    name: 'Gate A WT',
-                    type: 'bar',
-                    marker: { color: 'rgba(37,99,235,0.2)' },
-                    text: [`${wtA} WT`],
-                    textposition: 'inside',
-                    textfont: { color: '#2563eb', size: 10 },
-                    hovertemplate: `Gate A WT: ${wtA}/${gateA.length} (${pctWtA.toFixed(1)}%)<extra></extra>`
-                },
-                {
-                    x: ['Gate B'],
-                    y: [pctMutB],
-                    name: 'Gate B Mut',
-                    type: 'bar',
-                    marker: { color: '#dc2626' },
-                    text: [`${mutB}/${gateB.length} (${pctMutB.toFixed(1)}%)`],
-                    textposition: pctMutB > 10 ? 'inside' : 'outside',
-                    textfont: { color: pctMutB > 10 ? 'white' : '#dc2626', size: 10 },
-                    hovertemplate: `Gate B Mutated: ${mutB}/${gateB.length} (${pctMutB.toFixed(1)}%)<extra></extra>`
-                },
-                {
-                    x: ['Gate B'],
-                    y: [pctWtB],
-                    name: 'Gate B WT',
-                    type: 'bar',
-                    marker: { color: 'rgba(220,38,38,0.2)' },
-                    text: [`${wtB} WT`],
-                    textposition: 'inside',
-                    textfont: { color: '#dc2626', size: 10 },
-                    hovertemplate: `Gate B WT: ${wtB}/${gateB.length} (${pctWtB.toFixed(1)}%)<extra></extra>`
-                }
-            ];
-            const deltaPct = pctMutA - pctMutB;
-            const pValue = chi2P(mutA, mutB, wtA, wtB);
-            const layout = {
-                title: { text: `${gene}, Mutation Frequency (Δ%=${deltaPct > 0 ? '+' : ''}${deltaPct.toFixed(1)}, p=${fmtP(pValue)})`, font: { size: 13 } },
-                barmode: 'stack',
-                yaxis: { title: '% of cell lines', range: [0, 105] },
-                width: 300,
-                height: 300,
-                margin: { t: 40, b: 60, l: 60, r: 30 },
-                showlegend: true,
-                legend: { orientation: 'h', y: -0.15, x: 0.5, xanchor: 'center', font: { size: 9 } }
-            };
-            Plotly.newPlot(plotDiv, traces, layout, { displayModeBar: false, responsive: true });
-
-        } else if (type === 'ge') {
-            // Strip plot with box for gene effect values
-            const geneIdx = this.geneIndex.get(gene.toUpperCase());
-            if (geneIdx === undefined) {
-                plotDiv.innerHTML = '<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">Gene not found: ' + gene + '</div>';
-                return;
-            }
-            const geGateAIds = new Set(gateA.map(d => d.cellLineId));
-            const geGateBIds = new Set(gateB.map(d => d.cellLineId));
-            const geGateANameMap = new Map(gateA.map(d => [d.cellLineId, d.cellLineName || d.cellLineId]));
-            const geGateBNameMap = new Map(gateB.map(d => [d.cellLineId, d.cellLineName || d.cellLineId]));
-            const geValsA = [], geNamesA = [], geValsB = [], geNamesB = [];
-            for (let j = 0; j < this.nCellLines; j++) {
-                const val = this.geneEffects[geneIdx * this.nCellLines + j];
-                if (isNaN(val)) continue;
-                const cl = this.metadata.cellLines[j];
-                if (geGateAIds.has(cl)) { geValsA.push(val); geNamesA.push(geGateANameMap.get(cl) || cl); }
-                else if (geGateBIds.has(cl)) { geValsB.push(val); geNamesB.push(geGateBNameMap.get(cl) || cl); }
-            }
-
-            const traces = [
-                {
-                    y: geValsA,
-                    x: geValsA.map(() => 'Gate A'),
-                    type: 'box',
-                    name: `Gate A (n=${geValsA.length})`,
-                    marker: { color: '#2563eb' },
-                    boxpoints: 'all',
-                    jitter: 0.4,
-                    pointpos: 0,
-                    boxmean: true,
-                    text: geNamesA,
-                    hovertemplate: '%{text}<br>GE: %{y:.3f}<extra></extra>'
-                },
-                {
-                    y: geValsB,
-                    x: geValsB.map(() => 'Gate B'),
-                    type: 'box',
-                    name: `Gate B (n=${geValsB.length})`,
-                    marker: { color: '#dc2626' },
-                    boxpoints: 'all',
-                    jitter: 0.4,
-                    pointpos: 0,
-                    boxmean: true,
-                    text: geNamesB,
-                    hovertemplate: '%{text}<br>GE: %{y:.3f}<extra></extra>'
-                }
-            ];
-            const meanA = geValsA.length ? geValsA.reduce((a, b) => a + b, 0) / geValsA.length : 0;
-            const meanB = geValsB.length ? geValsB.reduce((a, b) => a + b, 0) / geValsB.length : 0;
-            const pValue = (geValsA.length >= 2 && geValsB.length >= 2) ? this.welchTTest(geValsA, geValsB).p : NaN;
-            const layout = {
-                title: { text: `${gene}, Gene Effect (\u0394=${(meanA - meanB).toFixed(3)}, p=${fmtP(pValue)})`, font: { size: 13 } },
-                yaxis: { title: 'Gene Effect (CERES)' },
-                width: 300,
-                height: 300,
-                margin: { t: 40, b: 60, l: 60, r: 30 },
-                showlegend: false
-            };
-            Plotly.newPlot(plotDiv, traces, layout, { displayModeBar: false, responsive: true });
-
-        } else if (type === 'expression') {
-            // Strip plot with box for expression values
-            if (!this.expressionLoaded || !this.expressionData || !this.expressionMetadata) {
-                plotDiv.innerHTML = '<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">Expression data not loaded</div>';
-                return;
-            }
-            const exprGeneIdx = this.expressionGeneIndex.get(gene.toUpperCase());
-            if (exprGeneIdx === undefined) {
-                plotDiv.innerHTML = '<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">Gene not found in expression data: ' + gene + '</div>';
-                return;
-            }
-            const nExprCellLines = this.expressionMetadata.nCellLines;
-            const exprCellLineIndex = new Map();
-            this.expressionMetadata.cellLines.forEach((cl, idx) => { exprCellLineIndex.set(cl, idx); });
-
-            const exprValsA = [], exprNamesA = [], exprValsB = [], exprNamesB = [];
-            for (const d of gateA) {
-                const exprIdx = exprCellLineIndex.get(d.cellLineId);
-                if (exprIdx !== undefined) {
-                    const val = this.expressionData[exprGeneIdx * nExprCellLines + exprIdx];
-                    if (!isNaN(val)) { exprValsA.push(val); exprNamesA.push(d.cellLineName || d.cellLineId); }
-                }
-            }
-            for (const d of gateB) {
-                const exprIdx = exprCellLineIndex.get(d.cellLineId);
-                if (exprIdx !== undefined) {
-                    const val = this.expressionData[exprGeneIdx * nExprCellLines + exprIdx];
-                    if (!isNaN(val)) { exprValsB.push(val); exprNamesB.push(d.cellLineName || d.cellLineId); }
-                }
-            }
-
-            const traces = [
-                {
-                    y: exprValsA,
-                    x: exprValsA.map(() => 'Gate A'),
-                    type: 'box',
-                    name: `Gate A (n=${exprValsA.length})`,
-                    marker: { color: '#2563eb' },
-                    boxpoints: 'all',
-                    jitter: 0.4,
-                    pointpos: 0,
-                    boxmean: true,
-                    text: exprNamesA,
-                    hovertemplate: '%{text}<br>Expr: %{y:.3f}<extra></extra>'
-                },
-                {
-                    y: exprValsB,
-                    x: exprValsB.map(() => 'Gate B'),
-                    type: 'box',
-                    name: `Gate B (n=${exprValsB.length})`,
-                    marker: { color: '#dc2626' },
-                    boxpoints: 'all',
-                    jitter: 0.4,
-                    pointpos: 0,
-                    boxmean: true,
-                    text: exprNamesB,
-                    hovertemplate: '%{text}<br>Expr: %{y:.3f}<extra></extra>'
-                }
-            ];
-            const meanA = exprValsA.length ? exprValsA.reduce((a, b) => a + b, 0) / exprValsA.length : 0;
-            const meanB = exprValsB.length ? exprValsB.reduce((a, b) => a + b, 0) / exprValsB.length : 0;
-            const pValue = (exprValsA.length >= 2 && exprValsB.length >= 2) ? this.welchTTest(exprValsA, exprValsB).p : NaN;
-            const layout = {
-                title: { text: `${gene}, Expression (\u0394=${(meanA - meanB).toFixed(3)}, p=${fmtP(pValue)})`, font: { size: 13 } },
-                yaxis: { title: 'Expression (log2 TPM+1)' },
-                width: 300,
-                height: 300,
-                margin: { t: 40, b: 60, l: 60, r: 30 },
-                showlegend: false
-            };
-            Plotly.newPlot(plotDiv, traces, layout, { displayModeBar: false, responsive: true });
-        }
-
-        // Scroll the plot into view
-        plotDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     // ── GE Inspect Gate Feature ─────────────────────────────────────
@@ -23731,185 +23043,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
     }
 
-    _getGatePvalueThreshold() {
-        const v = parseFloat(this._gatePvalueFilter);
-        return Number.isFinite(v) && v > 0 ? v : 0.05;
-    }
-
     _getGEGatePvalueThreshold() {
         const v = parseFloat(this._geGatePvalueFilter);
         return Number.isFinite(v) && v > 0 ? v : 0.05;
-    }
-
-    enrichrGateDiffGE() {
-        const r = this._gateCompareResults;
-        if (!r || !r.diffGE || r.diffGE.length === 0) return;
-
-        const pThreshold = this._getGatePvalueThreshold();
-        if (pThreshold === null) return;
-
-        // Filter by p-value then sort by Δ GE ascending (most depleted in Gate A vs B)
-        const sorted = [...r.diffGE].filter(d => d.pValue < pThreshold).sort((a, b) => a.diff - b.diff);
-        const genes = sorted.slice(0, 100).map(d => d.gene);
-
-        const modal = document.getElementById('enrichrModal');
-        if (genes.length < 2) {
-            this.showCopyNotification('Need at least 2 genes for Enrichr analysis');
-            return;
-        }
-
-        const title = document.getElementById('enrichrTitle');
-        const content = document.getElementById('enrichrContent');
-        title.textContent = `Enrichr / Top 100 depleted genes (Gate A vs B)`;
-        content.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;"><div style="font-size:24px; margin-bottom:12px;">⏳</div>Submitting to Enrichr...</div>';
-        modal.style.display = 'block';
-
-        this.submitToEnrichr(genes).catch(err => {
-            content.innerHTML = `<div style="text-align:center; padding:60px; color:#ef4444;">Failed to connect to Enrichr.<br><small style="color:#888;">${err.message}</small></div>`;
-        });
-    }
-
-    enrichrGateMutations(gate = 'A') {
-        const r = this._gateCompareResults;
-        if (!r || !r.mutStats || r.mutStats.length === 0) {
-            this.showCopyNotification('No mutation comparison to send. Run the gate comparison first.');
-            return;
-        }
-
-        const pThreshold = this._getGatePvalueThreshold();
-        if (pThreshold === null) return;
-
-        // Filter by p-value, then genes more mutated in the chosen gate
-        const filtered = gate === 'A'
-            ? r.mutStats.filter(m => m.diff > 0 && m.pValue < pThreshold).sort((a, b) => b.diff - a.diff)
-            : r.mutStats.filter(m => m.diff < 0 && m.pValue < pThreshold).sort((a, b) => a.diff - b.diff);
-        const genes = filtered.slice(0, 100).map(m => m.gene);
-
-        if (genes.length < 2) {
-            this.showCopyNotification(`Need at least 2 genes enriched in Gate ${gate} for Enrichr`);
-            return;
-        }
-
-        const modal = document.getElementById('enrichrModal');
-        const title = document.getElementById('enrichrTitle');
-        const content = document.getElementById('enrichrContent');
-        title.textContent = `Enrichr / ${genes.length} mutated genes enriched in Gate ${gate} (p < ${pThreshold})`;
-        content.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;"><div style="font-size:24px; margin-bottom:12px;">⏳</div>Submitting to Enrichr...</div>';
-        modal.style.display = 'block';
-
-        this.submitToEnrichr(genes).catch(err => {
-            content.innerHTML = `<div style="text-align:center; padding:60px; color:#ef4444;">Failed to connect to Enrichr.<br><small style="color:#888;">${err.message}</small></div>`;
-        });
-    }
-
-    async loadGateExpressionComparison() {
-        const container = document.getElementById('gateCompareContent');
-        container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">Loading expression data...</div>';
-
-        try {
-            await this.loadExpressionData();
-        } catch (err) {
-            container.innerHTML = `<div style="padding:20px;text-align:center;color:#ef4444;">Failed to load expression data: ${err.message}</div>`;
-            return;
-        }
-
-        // Now compute the expression comparison
-        if (!this._gateA?.length || !this._gateB?.length || !this._gateCompareResults) {
-            container.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;">Gate data not available. Re-run gate comparison.</div>';
-            return;
-        }
-
-        container.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280;">Computing differential expression...</div>';
-        await new Promise(r => setTimeout(r, 50));
-
-        const gateA = this._gateA;
-        const gateB = this._gateB;
-        const nExprCellLines = this.expressionMetadata.nCellLines;
-        const exprGeneNames = this.expressionMetadata.genes;
-        const exprCellLineIndex = new Map();
-        this.expressionMetadata.cellLines.forEach((cl, idx) => { exprCellLineIndex.set(cl, idx); });
-
-        const diffExpr = [];
-        for (let gi = 0; gi < exprGeneNames.length; gi++) {
-            const eValsA = [], eValsB = [];
-            for (const d of gateA) {
-                const exprIdx = exprCellLineIndex.get(d.cellLineId);
-                if (exprIdx !== undefined) {
-                    const val = this.expressionData[gi * nExprCellLines + exprIdx];
-                    if (!isNaN(val)) eValsA.push(val);
-                }
-            }
-            for (const d of gateB) {
-                const exprIdx = exprCellLineIndex.get(d.cellLineId);
-                if (exprIdx !== undefined) {
-                    const val = this.expressionData[gi * nExprCellLines + exprIdx];
-                    if (!isNaN(val)) eValsB.push(val);
-                }
-            }
-            if (eValsA.length >= 2 && eValsB.length >= 2) {
-                const meanA = eValsA.reduce((a, b) => a + b, 0) / eValsA.length;
-                const meanB = eValsB.reduce((a, b) => a + b, 0) / eValsB.length;
-                const tTest = this.welchTTest(eValsA, eValsB);
-                diffExpr.push({
-                    gene: exprGeneNames[gi],
-                    meanA, meanB,
-                    diff: meanA - meanB,
-                    pValue: tTest.p,
-                    nA: eValsA.length,
-                    nB: eValsB.length
-                });
-            }
-            if (gi % 1000 === 0 && gi > 0) {
-                await new Promise(r => setTimeout(r, 0));
-            }
-        }
-        diffExpr.sort((a, b) => a.pValue - b.pValue);
-
-        this._gateCompareResults.diffExpr = diffExpr;
-        this._gateSortCol = null;
-        this._gateSortAsc = true;
-        this.renderGateTab('expression');
-    }
-
-    enrichrGateExpression() {
-        const r = this._gateCompareResults;
-        if (!r || !r.diffExpr || r.diffExpr.length === 0) return;
-
-        const pThreshold = this._getGatePvalueThreshold();
-        if (pThreshold === null) return;
-
-        // Filter by p-value then sort by Δ expression ascending (most down-regulated in Gate A vs B)
-        const sorted = [...r.diffExpr].filter(d => d.pValue < pThreshold).sort((a, b) => a.diff - b.diff);
-        const genes = sorted.slice(0, 100).map(d => d.gene);
-
-        if (genes.length < 2) {
-            this.showCopyNotification('Need at least 2 genes for Enrichr analysis');
-            return;
-        }
-
-        const modal = document.getElementById('enrichrModal');
-        const title = document.getElementById('enrichrTitle');
-        const content = document.getElementById('enrichrContent');
-        title.textContent = `Enrichr / Top 100 down-regulated genes (Gate A vs B, expression)`;
-        content.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;"><div style="font-size:24px; margin-bottom:12px;">⏳</div>Submitting to Enrichr...</div>';
-        modal.style.display = 'block';
-
-        this.submitToEnrichr(genes).catch(err => {
-            content.innerHTML = `<div style="text-align:center; padding:60px; color:#ef4444;">Failed to connect to Enrichr.<br><small style="color:#888;">${err.message}</small></div>`;
-        });
-    }
-
-    filterGateGeneTable(term) {
-        const container = document.getElementById('gateCompareContent');
-        if (!container) return;
-        const table = container.querySelector('table');
-        if (!table) return;
-        const rows = table.querySelectorAll('tbody tr');
-        const lowerTerm = term.toLowerCase();
-        rows.forEach(row => {
-            const gene = row.querySelector('td')?.textContent?.toLowerCase() || '';
-            row.style.display = gene.includes(lowerTerm) ? '' : 'none';
-        });
     }
 
     filterGEGateGeneTable(term) {
@@ -30142,7 +29278,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     _getAICellLines(source) {
         // Normalize source aliases.
         if (source === 'mutations') source = 'mutation';
-        if (source === 'gate') source = 'gates';
 
         if (source === 'wiki') {
             return this._wikiCellLineId ? [this._wikiCellLineId] : [];
@@ -30193,16 +29328,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
             return [...cls];
         }
-        if (source === 'gates') {
-            // Gate A ∪ Gate B, the comparison cohort. Stratification handled
-            // separately in cellLineGroups.
-            const cls = [];
-            const seen = new Set();
-            const push = (d) => { if (d?.cellLineId && !seen.has(d.cellLineId)) { seen.add(d.cellLineId); cls.push(d.cellLineId); } };
-            (this._gateA || []).forEach(push);
-            (this._gateB || []).forEach(push);
-            return cls;
-        }
         if (source === 'correlations' || source === 'clusters') {
             // Re-derive the main-panel filtered cohort. Same stack the
             // correlation analysis ran over: lineage / subLineage / excluded
@@ -30239,7 +29364,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (source === 'ge') {
             title = textOf('geneEffectTitle');
             genes = [context.gene];
-        } else if (source === 'scatter' || source === 'gates') {
+        } else if (source === 'scatter') {
             title = textOf('inspectTitle');
             genes = [context.gene1, context.gene2];
         } else if (source === 'mutation') {
@@ -30704,10 +29829,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
         setStatus('Collecting data...');
 
-        // Normalize source aliases (Phase 3, same exporter for all 8 sources).
+        // Normalize source aliases (Phase 3, one exporter for every source).
         let source = this._aiExportSource || 'ge';
         if (source === 'mutations') source = 'mutation';
-        if (source === 'gate') source = 'gates';
 
         let allCLs = this._getAICellLines(source);
         if (custom) {
@@ -31032,79 +30156,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         compositeScore: r.p_mut > 0 ? parseFloat((r.diff_mut * -Math.log10(r.p_mut)).toFixed(3)) : 0
                     })),
                     differentialGeneEffect_readMe: `One row per gene, comparing the ${this._aiAlterationWord(mr)} group against the rest. delta_ge is mean(altered) MINUS mean(unaltered) on gene effect, so a NEGATIVE delta_ge means the gene is more essential in the altered lines. p_value is a raw two-sided Welch t-test, not corrected for multiple testing: with this many genes tested, judge a hit on effect size and on whether its pathway partners move with it, not on p alone. compositeScore is a sort key only, defined as delta_ge x -log10(p_value), which deliberately rewards a hit for being both large and confident; it is not a statistic, has no units and no threshold, so rank with it but never quote it as a result.`
-                };
-            }
-        } else if (source === 'gates') {
-            const ci = this.currentInspect;
-            const gA = this._gateA || [];
-            const gB = this._gateB || [];
-            const gAShape = this._gateAShape || null;
-            const gBShape = this._gateBShape || null;
-            const filterParts = [];
-            const cancerF = document.getElementById('scatterCancerFilter')?.value;
-            if (cancerF) filterParts.push(`Tissue: ${cancerF}`);
-            if (this._activeOncoprintFilters) for (const f of this._activeOncoprintFilters) filterParts.push(`${f.gene} ${this._gridStateWord(f.state)}`);
-            context = {
-                type: 'gate_comparison',
-                gene1: ci?.gene1, gene2: ci?.gene2,
-                xType: ci?.xType || 'ge', yType: ci?.yType || 'ge',
-                gateA: { n: gA.length, xRange: gAShape ? [gAShape.x0, gAShape.x1] : null, yRange: gAShape ? [gAShape.y0, gAShape.y1] : null },
-                gateB: { n: gB.length, xRange: gBShape ? [gBShape.x0, gBShape.x1] : null, yRange: gBShape ? [gBShape.y0, gBShape.y1] : null },
-                filters: filterParts,
-                plotType: 'scatter_with_gates', stratification: 'gateA_vs_gateB',
-                // A gated export is the two ends of a plot, not the plot. The
-                // lines in the middle are not merely ungrouped, they are not in
-                // the file at all, and `filters: []` positively suggested
-                // otherwise. A reader called this the one fact that changed how
-                // it read everything else.
-                cohortIsGatesOnly: `This file carries ONLY the ${gA.length + gB.length} cell lines inside gate A or gate B. Cell lines whose values fall between the gates were on the plot but are absent from this file entirely, so nothing here describes them and the contrast cannot be read as a gradient across the full range. \`filters\` above lists the filters applied to the plot BEFORE gating and does not mention the gating itself.`,
-                gateProvenance: 'Gates are regions drawn by hand on the plot. The bounds below are wherever they were dragged to, not a percentile, a standard-deviation multiple or any other rule, so do not present them as a principled threshold.',
-                // A rectangle on two axes that only constrains one of them is a
-                // one-dimensional cut, and reading it as a joint condition on
-                // both genes invents a criterion nobody applied.
-                ...(() => {
-                    if (!gAShape || !gBShape || gAShape.path || gBShape.path) return {};
-                    const spanY = [Math.min(gAShape.y0, gAShape.y1), Math.max(gAShape.y0, gAShape.y1)];
-                    const spanYB = [Math.min(gBShape.y0, gBShape.y1), Math.max(gBShape.y0, gBShape.y1)];
-                    const spanX = [Math.min(gAShape.x0, gAShape.x1), Math.max(gAShape.x0, gAShape.x1)];
-                    const spanXB = [Math.min(gBShape.x0, gBShape.x1), Math.max(gBShape.x0, gBShape.x1)];
-                    const sameY = Math.abs(spanY[0] - spanYB[0]) < 1e-6 && Math.abs(spanY[1] - spanYB[1]) < 1e-6;
-                    const sameX = Math.abs(spanX[0] - spanXB[0]) < 1e-6 && Math.abs(spanX[1] - spanXB[1]) < 1e-6;
-                    if (sameY && !sameX) return { effectiveCriterion: `Both gates span the same range on the y axis (${ci?.gene2}), so y does not separate them: this is effectively a one-dimensional split on ${ci?.gene1} (x) alone. Describe it that way rather than as a joint condition on both genes.` };
-                    if (sameX && !sameY) return { effectiveCriterion: `Both gates span the same range on the x axis (${ci?.gene1}), so x does not separate them: this is effectively a one-dimensional split on ${ci?.gene2} (y) alone. Describe it that way rather than as a joint condition on both genes.` };
-                    return {};
-                })(),
-                ...(gA.length && gB.length && (Math.max(gA.length, gB.length) / Math.min(gA.length, gB.length)) >= 3
-                    ? { groupSizeImbalance: `The gates are very unequal (${gA.length} vs ${gB.length}). Raw percentages and counts in the enrichment tables therefore carry very different weight in each direction, and a percentage from the smaller gate moves by whole cell lines at a time. Read the p or q beside a row, never the percentage on its own.` }
-                    : {})
-            };
-            // Stratification, gates are the analysis axis here.
-            cellLineGroups = { gateA: gA.map(d => d.cellLineId), gateB: gB.map(d => d.cellLineId) };
-            context.plotDescribesWhat = `A scatter plot with two hand-drawn gate regions, A and B. X axis is ${ci?.gene1 || '?'} (${ci?.xType || 'ge'}), Y axis is ${ci?.gene2 || '?'} (${ci?.yType || 'ge'}). Gate A holds ${gA.length} points, gate B holds ${gB.length} points; points outside both gates are visible on the plot but not in this file.`;
-            description = `Two-population gate comparison on ${ci?.gene1} (${ci?.xType || 'ge'}) vs ${ci?.gene2} (${ci?.yType || 'ge'}).`;
-            // Source-specific extras: precomputed enrichment + diff results
-            // from the gate-compare run, if available.
-            const gr = this._gateCompareResults;
-            if (gr) {
-                extras = {
-                    tissueEnrichment: gr.tissueStats,
-                    subtissueEnrichment: gr.subtissueStats,
-                    mutationEnrichment: (_listTotals.mutationEnrichment = gr.mutStats?.length || 0,
-                                         gr.mutStats?.slice(0, 200)),
-                    differentialGeneEffect: gr.diffGE?.map(g => ({
-                        gene: g.gene,
-                        meanA: parseFloat((g.meanA ?? 0).toFixed(3)),
-                        meanB: parseFloat((g.meanB ?? 0).toFixed(3)),
-                        delta: parseFloat((g.diff ?? 0).toFixed(3)),
-                        pValue: g.pValue, nA: g.nA, nB: g.nB
-                    })),
-                    differentialExpression: gr.diffExpr?.length ? gr.diffExpr.map(g => ({
-                        gene: g.gene,
-                        meanA: parseFloat((g.meanA ?? 0).toFixed(3)),
-                        meanB: parseFloat((g.meanB ?? 0).toFixed(3)),
-                        delta: parseFloat((g.diff ?? 0).toFixed(3)),
-                        pValue: g.pValue, nA: g.nA, nB: g.nB
-                    })) : undefined
                 };
             }
         } else if (source === 'correlations' || source === 'clusters') {
@@ -32818,11 +31869,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // so a scatter export documented gate comparisons, clusters and
         // mutation enrichment at length and none of them were in it.
         const EXTRAS_DOC = {
-            differentialGeneEffect: 'Per gene, mean gene effect in group A vs group B with delta, p and both n. Gate comparison / mutation analysis.',
-            differentialExpression: 'Same shape as differentialGeneEffect, on expression instead of gene effect.',
-            tissueEnrichment: 'Which tissues are over- or under-represented in one group versus the other.',
-            subtissueEnrichment: 'As tissueEnrichment, at the finer subtype level.',
-            mutationEnrichment: 'Which mutated genes are enriched in one group versus the other.',
+            differentialGeneEffect: 'Per gene, mean gene effect in group A vs group B with delta, p and both n. Mutation analysis.',
             correlationPairs: 'Every gene pair among the input genes that reached the correlation cutoff: gene1, gene2, r, slope, n, p. See correlationPairs_readMe for scope and sorting.',
             correlationPairsBelowCutoff: 'The strongest pairs that did NOT reach the cutoff, so the gap between the last hit and the first miss is visible. The cutoff is a display threshold, not a claim of no relationship.',
             tissueStratifiedCorrelations: 'Top 20 pairs broken out by tissue; each tissue with n>=10 lines reports its own r. Flags lineage-driven artifacts, where an overall r vanishes inside every individual tissue.',
@@ -32846,7 +31893,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
 
         const exportData = {
-            _description: 'Correlate V2, Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / gate comparison / correlation / cluster / expression correlate). The `context` field tells you which view this came from. Schema 3.5 adds context.plotDescribesWhat (a plain-text statement of what the on-screen picture showed, present for every source) and context.companionImage (the filename of a picture saved alongside this file, when one could be produced).',
+            _description: 'Correlate V2, Unified Data Export (gzipped). Same shape regardless of source view (gene effect / scatter / mutation analysis / correlation / cluster / expression correlate). The `context` field tells you which view this came from. Schema 3.5 adds context.plotDescribesWhat (a plain-text statement of what the on-screen picture showed, present for every source) and context.companionImage (the filename of a picture saved alongside this file, when one could be produced).',
             schemaVersion: '3.5',
             nTotal: cellLines.length,
             dataStructure: {
@@ -32857,7 +31904,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 topCorrelates: 'Optional. Top 30 expression-vs-GE correlates of the focal gene: { gene, r (Pearson, focal-gene GE vs partner expression across the cohort), n }. Gated at n >= max(50, 0.6 * cohortSize) to drop partial-coverage genes. Polarity: positive r means high partner expression covaries with weaker focal-gene dependency (less negative GE).',
                 topCoessentials: 'Optional. Top 30 GE-vs-GE co-essentials of the focal gene: { gene, r (Pearson, focal-gene GE vs partner GE across the cohort), n }. Same n-gate as topCorrelates. Every gene named here is also present in the geneEffect matrix (added back if the variance filter dropped it), so the LLM can verify by recomputing. Polarity, and note the sign convention because it is easy to get backwards: gene effect is NEGATIVE for a dependency, so two genes both needed by the same lines move down together and their r is POSITIVE. Positive r therefore means partner and focal gene are co-essential, required by the same lines, which is the same-complex / same-pathway pattern: BRAF against MAP2K1, MAP2K2 and MAPK1 sits near r = +0.6 to +0.8. Negative r means the opposite, lines that depend on the partner do NOT depend on the focal gene, which is the buffering pattern seen between paralogues, where one covers for the other and only the line that has lost one needs the other. Neither sign is a mechanism on its own: check the pair against the geneEffect matrix, which carries every gene named here.',
                 topExpressionCorrelates: 'Optional. Top 30 expression-vs-expression correlates of the focal gene: { gene, r (Pearson, focal-gene expression vs partner expression across the cohort), n }. Same n-gate as topCorrelates. Every gene named here is in the expression matrix (the always-include set carries them through the variance filter). Polarity: positive r means partner expression is co-regulated with focal-gene expression (often shared transcriptional program / phenotype state / lineage marker); negative r means anti-correlated (often a competing program). Note: in homogeneous filtered cohorts, top hits often reflect transcriptional state / phenotype switches rather than direct mechanistic links. Suppressed when the focal gene\'s expression has near-zero variance in the cohort (SD < 0.05).',
-                cellLineGroups: 'Optional. Cell line IDs grouped by analysis stratification (WT/mut1/mut2 for mutation, gateA/gateB for gate comparison, etc.).',
+                cellLineGroups: 'Optional. Cell line IDs grouped by analysis stratification (WT/mut1/mut2 for mutation, etc.).',
                 extras: 'Optional. Source-specific precomputed analysis results. When this file carries extras, this entry is replaced by an object documenting ONLY the keys actually present, so what you read here is what is in the file. Keys ending in _readMe describe themselves.',
                 questionScope: 'Optional, present when the question names a disease or subtype. The question\'s terms resolved to actual cell lines at export time: { term, matchedLines, n, borderline, confidence, basis, alsoMatched, note }. Emitted because the disease fields are coarser than most questions: CLL is not a value `subtype` takes, its lines sit inside "Mature B-Cell Neoplasms" alongside DLBCL, Burkitt, mantle cell and myeloma. `borderline` lists same-lineage lines filed as non-cancerous or unclassified, which is where a genuine member of the group most often hides. Start from this group; do not answer a subgroup question from a coarser bucket.',
                 scanScope: 'Optional. States that topCorrelates / topCoessentials / topExpressionCorrelates are cohort-wide Pearson, and that absence from them is not evidence of absence for a subgroup. Read it before dismissing a subgroup finding on the strength of flat cohort-wide values.',
@@ -32921,7 +31968,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             _analysisInstructions: [
                 { when: 'focal', text: "Step 0 - Sanity check: Look for extras.focalGeneVarianceWarning. If present, the focal gene sits in screen noise in this cohort, top genome-wide correlations will be noise-driven. Read the warning aloud to the user, suggest stratification or a wider cohort, and treat any pattern hunting in this export as exploratory, not load-bearing." },
                 { when: 'focal', text: "Step 1 - Overview: Briefly survey the data. Summarize key groups, sample sizes, and the target gene's effect distribution. When the export includes them (gene-effect / scatter / mutation / expression-correlate views with a single focal gene), USE these precomputed scans before recomputing anything: topCoessentials (GE-vs-GE Pearson, which other genes' essentiality co-varies with the focal gene's; POSITIVE r = the two are co-essential, needed by the same lines, the same-complex / same-pathway pattern, because gene effect is negative for a dependency and partners move down together; NEGATIVE r = the buffering pattern between paralogues, where the lines needing one do not need the other) and topCorrelates (GE-vs-expression Pearson, which genes' expression predicts focal-gene dependency; positive r = high partner expression covaries with WEAKER focal-gene essentiality). Each row carries a two-sided p alongside r and n, so a scan hit can be reported as significant or not without recomputing it." },
-                { when: 'noFocal', text: "Step 1b - If there is NO single focal gene (correlation, cluster and gate-comparison views export a gene LIST or two GROUPS, not a focal gene), the focal-gene machinery is absent by design and every step below that names focalGene... does not apply. Work from the view's own precomputed results in extras and from the matrices: for a gene list, the pairwise results plus the near-misses just under the cutoff; for two groups, the differential lists. Do not read the absence of focal-gene fields as missing data, and do not substitute a coarser field for them." },
+                { when: 'noFocal', text: "Step 1b - If there is NO single focal gene (correlation, cluster and group-comparison views export a gene LIST or two GROUPS, not a focal gene), the focal-gene machinery is absent by design and every step below that names focalGene... does not apply. Work from the view's own precomputed results in extras and from the matrices: for a gene list, the pairwise results plus the near-misses just under the cutoff; for two groups, the differential lists. Do not read the absence of focal-gene fields as missing data, and do not substitute a coarser field for them." },
                 { when: 'always', text: "Step 2 - Confirm scope: If the question names a disease, subtype, or gene-defined subset narrower than the stratification groups available in `extras`, define that subset explicitly by cell line FIRST and test it as a group, using `questionScope` if present. Do not answer a subgroup question from marginal summaries computed at a coarser granularity: a question can read as specific ('is IPO5 interesting in CLL') and still not be self-contained, because the cohort it names is not a group the file defines. Skip this step only when the question's cohort is already the export's cohort. If the question is instead open-ended ('explain the variability', 'what drives X'), present the overview with 2-3 candidate angles and ask which to pursue." },
                 { when: 'scans', text: "Step 2b - Before concluding a subgroup effect is ABSENT, check whether the precomputed scans could have detected it at that scope. topCorrelates / topCoessentials / topExpressionCorrelates are cohort-wide (see `scanScope`); an effect confined to a few lines is invisible in them by construction. Recompute inside the group, and score the group against extras.groupContrastNull for its size and against focalGeneRankAmongGenes, rather than eyeballing per-line percentiles: one line at the 6th percentile is unremarkable, four lines all there is not." },
                 { when: 'always', text: "Step 2c - Do not enter the data through the raw per-line leaderboard. The lines with the most negative score for any gene are disproportionately lines whose whole screen reads sensitive, so a straight sort surfaces the same tumour-suppressor-loss lines whatever gene you ask about, across unrelated tissues, and it is easy to mistake that for a finding. Enter through the grouped summaries, and check meanGeneEffectPercentile on any line before naming it." },
@@ -33391,7 +32438,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // it.
             if (exportData.extras) {
                 const CAP_RULE = {
-                    mutationEnrichment: 'sorted by p and cut at the strongest 200',
                     selectionDifferential: 'sorted by |difference| and cut at the strongest 200',
                     selectionDifferentialExpression: 'sorted by |difference| and cut at the strongest 200',
                     correlationsBelowCutoff: 'only pairs clearing a magnitude floor were recorded at all, then sorted by |r| and cut at 300',
@@ -33466,7 +32512,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 // geneEffectHotspotPlot, and only when not in mutation mode.
                 const plotId = source === 'ge'
                     ? (this.geneEffectViewMode !== 'mutation' && this.currentGEView === 'hotspot' ? 'geneEffectHotspotPlot' : 'geneEffectPlot')
-                    : (source === 'scatter' || source === 'gates') ? 'scatterPlot'
+                    : source === 'scatter' ? 'scatterPlot'
                     : source === 'exprCorrelates' ? 'exprCorrelateScatterPlot'
                     : null;
                 const el = plotId && document.getElementById(plotId);
@@ -48189,14 +47235,18 @@ ${clone.innerHTML}
     // the volcano and ranked tables), but comparing two fixed groups instead
     // of resolving a group from ticked cell lines / CLB filters / a
     // lineage-group-custom comparison chooser, none of which mean anything
-    // once the two groups are already the gates drawn on the heatmap. A
+    // once the two groups are already the gates drawn on the plot behind it. A
     // sibling entry point rather than a branch inside inspectSelectionGE for
     // that reason; it shares that function's stat helpers (_welchFromSums,
     // _addBHQValues) and downstream rendering (_mountGEInspectUI,
     // _buildGEInspectTable, _drawGEVolcano) rather than a second copy of
     // them, gated by this._geInspectMode where the two need to say
     // different things (the sel/rest vs A/B column tags, the title).
-    inspectGateComparison(aIds, bIds) {
+    // opts.origin says which plot the gates were drawn on ('heatmap', the
+    // default, or 'scatter' since v.88.82). It only decides the words this
+    // view uses for where the gates came from; the comparison itself is the
+    // same either way.
+    inspectGateComparison(aIds, bIds, opts = {}) {
         aIds = [...new Set(aIds || [])];
         bIds = [...new Set(bIds || [])];
         if (!aIds.length || !bIds.length) {
@@ -48205,6 +47255,8 @@ ${clone.innerHTML}
         }
         this._geInspectMode = 'gateAB';
         this._geGateAB = { aIds, bIds };
+        this._geGateABOrigin = opts.origin === 'scatter' ? 'scatter' : 'heatmap';
+        const drawnOn = this._geGateABOrigin === 'scatter' ? 'the scatter plot' : 'the heatmap';
 
         const cellLines = this.metadata.cellLines;
         const clIndexOf = new Map(cellLines.map((cl, i) => [cl, i]));
@@ -48317,7 +47369,7 @@ ${clone.innerHTML}
                 this._showGEInspectHelp();
             });
         }
-        this._geVolcanoHeader = { title, sub: 'Gate A vs gate B, drawn on the heatmap.' };
+        this._geVolcanoHeader = { title, sub: `Gate A vs gate B, drawn on ${drawnOn}.` };
 
         const exprNote = this.expressionLoaded
             ? `Difference in mRNA level, log2(TPM+1). A difference of 1 is a two-fold change. Gate B holds ${bIds.length.toLocaleString()} cell lines.`
@@ -48325,13 +47377,13 @@ ${clone.innerHTML}
         this._mountGEInspectUI(exprNote);
 
         // No comparison chooser: the two groups are the gates, fixed on the
-        // heatmap behind this modal, not something to pick here. The card
+        // plot behind this modal, not something to pick here. The card
         // that would otherwise hold the all/lineage/group/custom buttons
         // says so instead.
         const scopeBox = document.getElementById('geInspectScopeBox');
         if (scopeBox) {
             scopeBox.innerHTML = `<div style="font-size:11px; color:#374151; line-height:1.5;">`
-                + `Fixed: <b>Gate A</b> (${aIds.length.toLocaleString()} cell lines) vs <b>Gate B</b> (${bIds.length.toLocaleString()} cell lines), drawn on the heatmap.`
+                + `Fixed: <b>Gate A</b> (${aIds.length.toLocaleString()} cell lines) vs <b>Gate B</b> (${bIds.length.toLocaleString()} cell lines), drawn on ${drawnOn}.`
                 + ` Redraw the gates there to change this comparison.</div>`
                 + this._geCoverageWarningHtml(geCoverage);
         }
@@ -48342,7 +47394,7 @@ ${clone.innerHTML}
             document.getElementById('geRightBody').innerHTML =
                 '<div style="padding:16px; color:#6b7280; font-size:11px;">Loading expression data…</div>';
             this.loadExpressionData?.().then(() => {
-                if (document.getElementById('selectionInspectModal')?.style.display === 'flex') this.inspectGateComparison(aIds, bIds);
+                if (document.getElementById('selectionInspectModal')?.style.display === 'flex') this.inspectGateComparison(aIds, bIds, opts);
             }).catch(() => {
                 const b = document.getElementById('geRightBody');
                 if (b) b.innerHTML = '<div style="padding:16px; color:#b45309; font-size:11px;">Expression data could not be loaded.</div>';
@@ -48371,12 +47423,11 @@ ${clone.innerHTML}
     // lines come from, and how their genetic alterations differ. Both closed
     // by default (most openings of this modal never need them) and computed
     // once, on first open, rather than on every redraw of the tables above.
-    // Both reuse the exact stats compareGates() calls for the scatter's own
-    // Gate A/B comparison (_gateEnrichment, _gateMutationEnrichment) rather
-    // than a second implementation of that math; only the rendering here is
-    // new; a compact table rather than compareGates()'s own sortable one,
-    // since that one is wired to a different modal's DOM ids and controls
-    // (gateCompareContent, sortGateTable) that do not exist in this modal.
+    // Both use the shared enrichment helpers (_gateEnrichment,
+    // _gateMutationEnrichment) rather than a second implementation of that
+    // math; the compact tables here are the only comparison tables left, the
+    // scatter's own inline gate panel having been retired into this view in
+    // v.88.82.
     _mountGEInspectPanels(aIds, bIds) {
         const body = document.getElementById('selectionInspectBody');
         if (!body) return;
@@ -48415,10 +47466,9 @@ ${clone.innerHTML}
                     computed = true;
                     // A frame to let "Computing…" actually paint before the
                     // (synchronous) stats work below blocks the thread. The
-                    // full-panel diffGE compareGates() also computes needs
-                    // chunking across 18,000 genes; these two don't, a
-                    // handful of lineages/diseases and a few hundred genes
-                    // with mutation calls.
+                    // genome-wide tables above need chunking across 18,000
+                    // genes; these two don't, a handful of lineages/diseases
+                    // and a few hundred genes with mutation calls.
                     panel.innerHTML = '<div style="color:#9ca3af; font-size:11px;">Computing…</div>';
                     requestAnimationFrame(() => { panel.innerHTML = computeFn(); });
                 }
@@ -48450,9 +47500,8 @@ ${clone.innerHTML}
     }
 
     // "Where the cell lines come from": the lineage / subtype / disease
-    // ladder, reusing _gateEnrichment (the same helper compareGates() calls
-    // for the scatter's gates) so the numbers cannot drift from what that
-    // panel would report for the same two groups.
+    // ladder, reusing _gateEnrichment so every view that compares two groups
+    // of cell lines reports the same numbers for the same two groups.
     _renderGateOriginPanel(gateARows, gateBRows) {
         const w = this._geInspectSideWords();
         const compact = (rows, title, cap) => {
@@ -48488,7 +47537,7 @@ ${clone.innerHTML}
         const diseaseStats = this._gateEnrichment(gateARows, gateBRows,
             d => this.cellLineMetadata?.oncotreeSubtype?.[d.cellLineId]
                 || this.cellLineMetadata?.primaryDisease?.[d.cellLineId] || d.lineage || 'Unknown');
-        return `<div style="font-size:10px; color:#9ca3af; margin-bottom:4px;">Same lineage / subtype / disease ladder the scatter's own gate comparison uses, here for the ${w.selWord} against the ${w.cmpWord}. Each table ranked by the biggest gap between the two sides.</div>`
+        return `<div style="font-size:10px; color:#9ca3af; margin-bottom:4px;">The lineage / subtype / disease ladder, ${w.selWord} against ${w.cmpWord}. Each table ranked by the biggest gap between the two sides.</div>`
             + compact(tissueStats, 'Tissue (lineage)', 12)
             + compact(subtissueStats, 'Subtype (primary disease)', 8)
             + compact(diseaseStats, 'Disease (oncotree entity)', 8);
@@ -48496,9 +47545,9 @@ ${clone.innerHTML}
 
     // "Genetic alterations": every alteration the app holds calls for, on both
     // sides of whatever this modal is comparing. The numbers come from
-    // _gateMutationEnrichment (compareGates()'s own mutation block, factored
-    // out in v.88.73) asked for the full 'all' coverage, so the panel and the
-    // scatter's gate comparison cannot compute the same 2x2 two ways.
+    // _gateMutationEnrichment (factored out of the scatter's old inline gate
+    // panel in v.88.73) asked for the full 'all' coverage, so no two views can
+    // compute the same 2x2 two different ways.
     // Ranked by the gap in percent altered, since that is the size of the
     // difference; the chi-squared statistic only breaks ties, so a 100% vs 0%
     // split on four cell lines does not outrank a 60-point gap on two hundred.
@@ -50108,19 +49157,6 @@ ${clone.innerHTML}
     }
 
 
-    _buildGateReportFilename(prefix) {
-        const parts = [prefix];
-        const ci = this.currentInspect;
-        if (ci) {
-            parts.push(ci.gene1 || '');
-            parts.push('vs');
-            parts.push(ci.gene2 || '');
-        }
-        const tissue = document.getElementById('scatterCancerFilter')?.value;
-        if (tissue) parts.push(tissue.replace(/[^a-zA-Z0-9]/g, '_'));
-        return parts.filter(Boolean).join('_');
-    }
-
     _buildGEGateReportFilename(prefix) {
         const parts = [prefix];
         if (this.currentGeneEffectGene) parts.push(this.currentGeneEffectGene);
@@ -50129,13 +49165,6 @@ ${clone.innerHTML}
         const tissue = document.getElementById('geTissueFilter')?.value;
         if (tissue) parts.push(tissue.replace(/[^a-zA-Z0-9]/g, '_'));
         return parts.filter(Boolean).join('_');
-    }
-
-    async exportGateReport(format = 'png') {
-        const scatterEl = document.getElementById('scatterPlot');
-        if (!scatterEl || !scatterEl.data) return;
-        this._exportContext = { type: 'scatter', format };
-        this.openExportPreview();
     }
 
     async exportGEGateReport(format = 'png') {
@@ -50166,23 +49195,16 @@ ${clone.innerHTML}
         };
     }
 
+    // Only the gene-effect gate report reaches this preview: the scatter's own
+    // gate comparison moved into the shared inspect (v.88.82), which brings its
+    // own exports.
     _getExportPlotElements() {
-        const ctx = this._exportContext;
-        if (ctx.type === 'scatter') {
-            return {
-                mainEl: document.getElementById('scatterPlot'),
-                geneEl: document.getElementById('gateGenePlot'),
-                filters: this._gatherScatterFilters(),
-                filenameBase: this._buildGateReportFilename('gate_comparison'),
-            };
-        } else {
-            return {
-                mainEl: document.getElementById('geneEffectPlot'),
-                geneEl: document.getElementById('geGateGenePlot'),
-                filters: this._gatherGEFilters(),
-                filenameBase: this._buildGEGateReportFilename('ge_gate_comparison'),
-            };
-        }
+        return {
+            mainEl: document.getElementById('geneEffectPlot'),
+            geneEl: document.getElementById('geGateGenePlot'),
+            filters: this._gatherGEFilters(),
+            filenameBase: this._buildGEGateReportFilename('ge_gate_comparison'),
+        };
     }
 
     async _renderExportPlotToImage(plotEl, width, height, settings, format, matchTopMargin) {
@@ -50369,30 +49391,6 @@ ${clone.innerHTML}
         } else {
             await this._composeGateReportImage(mainDataUrl, settings.mainW, settings.mainH, genePlotDataUrl, settings.geneW, settings.geneH, filters, filenameBase, settings.pngScale, settings.bgColor, format);
         }
-    }
-
-    _gatherScatterFilters() {
-        const lines = [];
-        const ci = this.currentInspect;
-        if (ci) {
-            lines.push(`Gene pair: ${ci.gene1} (X) vs ${ci.gene2} (Y)`);
-            if (ci.correlation != null) lines.push(`Correlation: ${ci.correlation.toFixed(3)}`);
-        }
-        const tissue = document.getElementById('scatterCancerFilter')?.value;
-        if (tissue) lines.push(`Tissue filter: ${tissue}`);
-        const subtype = document.getElementById('scatterSubtypeFilter')?.value;
-        if (subtype) lines.push(`Subtype filter: ${subtype}`);
-        const hotspotGene = document.getElementById('hotspotGene')?.value;
-        const hotspotMode = document.getElementById('hotspotMode')?.value;
-        if (hotspotGene && hotspotMode && hotspotMode !== 'none') lines.push(`Mutation filter: ${hotspotGene} (${hotspotMode})`);
-        const transGene = document.getElementById('translocationGene')?.value;
-        const transMode = document.getElementById('translocationMode')?.value;
-        if (transGene && transMode && transMode !== 'none') lines.push(`Translocation filter: ${transGene} (${transMode})`);
-        const colorBy = document.getElementById('colorByCategory')?.value;
-        if (colorBy) lines.push(`Color by: ${colorBy}`);
-        if (this._gateA) lines.push(`Gate A: ${this._gateA.length} cells`);
-        if (this._gateB) lines.push(`Gate B: ${this._gateB.length} cells`);
-        return lines;
     }
 
     _gatherGEFilters() {
@@ -59072,7 +58070,6 @@ ${clone.innerHTML}
             heatmap:        { title: 'Gene set heatmap', stem: 'heatmap' },
             clb:            { title: 'Cell Line Browser', stem: 'cell_line_browser' },
             selection:      { title: 'Selection inspect', stem: 'selection_inspect' },
-            gates:          { title: 'Gate comparison', stem: 'gate_comparison' },
             umap:           { title: 'UMAP / PCA', stem: 'umap_pca' }
         };
     }
@@ -59100,7 +58097,6 @@ ${clone.innerHTML}
                 case 'heatmap': return this._methodsHeatmap();
                 case 'clb': return this._methodsCellLineBrowser();
                 case 'selection': return this._methodsSelectionInspect();
-                case 'gates': return this._methodsGateComparison();
                 case 'umap': return this._methodsUmap();
                 default: return this._methodsNotReady(title, 'No description has been written for this view.');
             }
@@ -59873,12 +58869,13 @@ ${clone.innerHTML}
         const altRows = this._geAltPanel?.stats ? this._geAltPanel.stats.length : null;
         const altFilter = this._geAltPanel?.filter && this._geAltPanel.filter !== 'all' ? this._geAltPanel.filter : null;
 
+        const gateDrawnOn = this._geGateABOrigin === 'scatter' ? 'the scatter plot' : 'the heatmap';
         const scopeWord = isGateMode
-            ? 'the two gates drawn on the plot'
+            ? `the two gates drawn by hand on ${gateDrawnOn}`
             : ({ all: 'every other cell line in the panel', lineage: 'only the cell lines sharing a lineage with the selection', group: 'the tissue, subtype and disease groups ticked as the comparison', custom: 'a pasted list of comparison cell lines' })[this._geInspectScope] || 'the chosen comparison group';
 
         const selectionRule = isGateMode
-            ? 'Both sides are cell-line gates drawn by hand, so their membership is whatever was painted, not a threshold or a rule.'
+            ? `Both sides are cell-line gates drawn by hand on ${gateDrawnOn}, so their membership is whatever was painted, not a threshold or a rule.`
             : (this._clbFilterBits && this._clbFilterBits().length
                 ? `The Cell Line Browser was filtered to: ${this._clbFilterBits().join('; ')}. The selection was drawn from that, though lines may also have been ticked or unticked by hand on top of it.`
                 : 'No filter was active in the Cell Line Browser, so these lines were picked by hand. Nothing in this view records what they have in common.');
@@ -59926,78 +58923,6 @@ ${clone.innerHTML}
             + (isGateMode
                 ? 'The two sides here are fixed gates, so the way to test that is to redraw them within one tissue.'
                 : 'Choosing a same-lineage comparison group is the way to take tissue out of the comparison.')
-        ]);
-
-        return { title, condensed, long };
-    }
-
-    // ----- Gate comparison (on the scatter) ---------------------------------
-
-    _methodsGateComparison() {
-        const title = 'Gate comparison';
-        const gA = this._gateA || [], gB = this._gateB || [];
-        if (!gA.length || !gB.length) return this._methodsNotReady(title, 'Draw gate A and gate B on the scatter and press Compare first.');
-        // The two gates can exist before Compare has finished. Without the
-        // results there is no gene comparison to describe, and reporting the
-        // empty tables as "0 genes tested" would be a plain untruth.
-        if (!this._gateCompareResults) return this._methodsNotReady(title, 'Both gates are drawn, but the comparison has not finished. Press Compare and wait for it to complete.');
-
-        const ci = this.currentInspect || {};
-        const gr = this._gateCompareResults;
-        const shapeWords = (s, name) => {
-            if (!s) return `Gate ${name} has no recorded bounds.`;
-            if (s.path) return `Gate ${name} was drawn as a freehand shape, so it has no simple range.`;
-            return `Gate ${name} covers x from ${this._mFix(Math.min(s.x0, s.x1), 2)} to ${this._mFix(Math.max(s.x0, s.x1), 2)} and y from ${this._mFix(Math.min(s.y0, s.y1), 2)} to ${this._mFix(Math.max(s.y0, s.y1), 2)}.`;
-        };
-        const typeWord = (t) => t === 'expr' ? 'mRNA expression' : t === 'growth' ? 'growth rate' : t === 'geneset' ? 'gene set score' : 'CRISPR gene effect';
-        const nDiffGE = gr?.diffGE?.length || 0;
-        const nDiffExpr = gr?.diffExpr?.length || 0;
-        const nMut = gr?.mutStats?.length || 0;
-        // This panel's alteration table is the mutation pair only. The wider
-        // coverage (fusions, focal copy number) belongs to the inspect panels,
-        // so this text asks the shared describer for the scope THIS view
-        // actually computed rather than for the widest one available.
-        const gateAltWords = this._alterationTableWords('mutations');
-
-        const condensed = this._mSentences([
-            this._methodsDataSentence(nDiffExpr ? 'both' : 'ge'),
-            `Two groups of cell lines were selected by drawing regions by hand on a scatter of ${ci.gene1 || 'gene 1'} ${typeWord(ci.xType)} against ${ci.gene2 || 'gene 2'} ${typeWord(ci.yType)}: gate A with ${this._mNum(gA.length)} cell lines and gate B with ${this._mNum(gB.length)}.`,
-            `Every gene in the gene effect matrix was compared between the two gates by a two sided Welch t test, using genes with at least 2 cell lines with a value on each side; ${this._mNum(nDiffGE)} gene${nDiffGE === 1 ? ' was' : 's were'} tested.`,
-            nDiffExpr ? `The same comparison was run on mRNA expression for ${this._mNum(nDiffExpr)} genes.` : null,
-            'No correction for multiple testing was applied to any of these p-values.',
-            `The composition of the two gates was also tabulated by tissue, primary disease and Oncotree disease, and the share of cell lines carrying each of ${this._mNum(nMut)} alterations (${gateAltWords.coverage}) was compared between them with ${gateAltWords.test}.`,
-            this._methodsCitation()
-        ]);
-
-        const long = this._mBlocks([
-            this._methodsHeaderBlock(title, nDiffExpr ? 'both' : 'ge'),
-            `WHAT THIS COMPARES\nTwo groups of cell lines picked out by hand on the scatter. Gate A holds ${this._mNum(gA.length)} cell lines, gate B holds ${this._mNum(gB.length)}. The plot they were drawn on has ${ci.gene1 || 'gene 1'} ${typeWord(ci.xType)} across and ${ci.gene2 || 'gene 2'} ${typeWord(ci.yType)} up.`,
-            `HOW THE GATES WERE DEFINED\n   ${shapeWords(this._gateAShape, 'A')}\n   ${shapeWords(this._gateBShape, 'B')}\n   These bounds are wherever the regions were dragged to. They are not a percentile, not a standard-deviation multiple and not any other rule, so they should not be presented as a principled threshold.\n   Cell lines whose values fall between the two gates were on the plot but are in neither group, so this comparison is between two ends of a range and not a gradient across it.`
-            + ((gA.length && gB.length && (Math.max(gA.length, gB.length) / Math.min(gA.length, gB.length)) >= 3)
-                ? `\n   The two gates are very unequal (${this._mNum(gA.length)} against ${this._mNum(gB.length)}). A percentage from the smaller gate moves by whole cell lines at a time, so read the p beside a row rather than the percentage on its own.`
-                : '')
-            // A rectangle that constrains only one axis is a one-dimensional
-            // cut, and calling it a joint condition on both genes invents a
-            // criterion nobody applied.
-            + (() => {
-                const a = this._gateAShape, b = this._gateBShape;
-                if (!a || !b || a.path || b.path) return '';
-                const same = (p, q, r, s) => Math.abs(Math.min(p, q) - Math.min(r, s)) < 1e-6 && Math.abs(Math.max(p, q) - Math.max(r, s)) < 1e-6;
-                const sameY = same(a.y0, a.y1, b.y0, b.y1), sameX = same(a.x0, a.x1, b.x0, b.x1);
-                if (sameY && !sameX) return `\n   Both gates span the same range on the vertical axis, so ${ci.gene2 || 'the second gene'} does not separate them: this is a one-dimensional split on ${ci.gene1 || 'the first gene'} alone and should be described that way, not as a joint condition on both genes.`;
-                if (sameX && !sameY) return `\n   Both gates span the same range on the horizontal axis, so ${ci.gene1 || 'the first gene'} does not separate them: this is a one-dimensional split on ${ci.gene2 || 'the second gene'} alone and should be described that way, not as a joint condition on both genes.`;
-                return '';
-            })(),
-            'HOW THE GENE COMPARISONS WERE COMPUTED\n'
-            + `   Every gene in the gene effect matrix was compared between the two gates by a two sided Welch t test (unequal variances), keeping genes with at least 2 cell lines with a value in each gate. ${this._mNum(nDiffGE)} gene${nDiffGE === 1 ? '' : 's'} qualified.\n`
-            + (nDiffExpr ? `   The same test was run on mRNA expression for ${this._mNum(nDiffExpr)} genes.\n` : '   Expression data is not loaded, so no expression comparison was run.\n')
-            + '   The difference reported is mean(gate A) minus mean(gate B).\n'
-            + '   NO false discovery rate or other multiple-testing correction is applied. Across this many genes, small p-values are expected by chance, so read effect size alongside p.',
-            'HOW THE COMPOSITION TABLES WERE COMPUTED\n'
-            + '   The tissue, primary disease and Oncotree disease tables simply count how many cell lines in each gate belong to each category and turn that into a percentage. No test is applied to these tables at all; they are counts, sorted by the biggest gap.\n'
-            + `   The alteration table counts, for each of ${this._mNum(nMut)} genes with calls among ${gateAltWords.coverage}, how many cell lines in each gate carry one, and ranks them by p. Its p column is ${gateAltWords.test}, an approximation computed from the 2x2 chi-squared statistic rather than an exact test. Treat it as a way to rank rows rather than as a p-value to quote.\n`
-            + '   Fusions and focal copy-number events are not in this table. The Inspect A vs B panel on the heatmap gates carries the wider alteration comparison.',
-            'WHAT THIS DOES NOT SAY\nThe gates were placed by eye on a plot whose axes are two chosen genes, so the two groups can differ in tissue, in growth rate and in much else besides the axes they were separated on. Anything found here needs checking against a comparison that controls for those.'
         ]);
 
         return { title, condensed, long };
