@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.77 (2026-08-19)</strong></p>
+                <ul>
+                    <li><b>The gene tree shows its groups.</b> The dendrogram beside the gene labels is now coloured by subtree: the tree is cut where its own structure suggests, and each group of co-behaving genes gets one colour, with the branches above the cut staying gray. Display only, the row order is unchanged.</li>
+                </ul>
                 <p><strong>v.88.76 (2026-08-19)</strong></p>
                 <ul>
                     <li><b>One ordering hierarchy.</b> The heatmap's separate Sort row is gone: the annotation rows now carry the whole column order. Toggle a row's arrows and it blocks the columns; the next toggled row sorts within those blocks, with score as the final tie-break. Cell-line clustering now appears as its own annotation row when enabled, so clustering can be placed under a lineage row to cluster within each lineage. A fresh heatmap opens sorted by plain score. Min n, Show median and Redraw live on the Cell lines row.</li>
@@ -6982,7 +6986,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.76</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.77</a>
         </span>
     </div>
 
@@ -9999,6 +10003,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_76"></script>
+    <script src="app.js?v=v88_77"></script>
 </body>
 </html>

@@ -31534,7 +31534,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 context.plotDescribesWhat = `A heatmap: each row is one of the ${d.genes.length} genes in the "${setLabel}" set, each column is one cell line (${d.orderedCLs.length} shown, ${sortSummary}). Colour is ${measure}, ${scaling}: ${colourWord}.`
                     + (d.groups ? ` A coloured band beneath the grid marks the ${visibleGroups.length} group${visibleGroups.length === 1 ? '' : 's'} the columns are split into by ${groupWord}${hiddenGroupKeys.length ? `; ${hiddenGroupKeys.length} more group${hiddenGroupKeys.length === 1 ? '' : 's'} (${hiddenGroupKeys.join(', ')}) were hidden by the user and are not in this file` : ''}.` : '')
                     + (d.annRows.length ? ` ${d.annRows.length} more coloured band${d.annRows.length === 1 ? '' : 's'} beneath that mark each column's ${d.annRows.map(r => r.attrLabel).join(', ')} respectively.` : '')
-                    + (d.geneTree ? ' A small tree to the left of the gene labels shows how the rows were clustered.' : '')
+                    + (d.geneTree ? ` A small tree to the left of the gene labels shows how the rows were clustered${d.geneClusterColorOf ? ', its branches coloured by subtree so groups of co-behaving genes stand out' : ''}.` : '')
                     + (d.hasTopDendro ? ' A matching tree above the grid shows how the COLUMNS (cell lines) were clustered.' : '');
 
                 // The matrix itself, exactly as drawn: rows and columns in
@@ -55330,10 +55330,34 @@ ${clone.innerHTML}
         // how the cell-line columns are sorted: genes that behave alike sit
         // together whether the columns are by score, name or their own
         // cluster, which is the point of defaulting it on.
+        let geneClusterColorOf = null;
         if (clusterGenes && genes.length >= 2) {
             const tree = this._hmClusterTree(genes, scaledRows);
             orderedGenes = tree.order;
             geneTree = tree.root;
+            // Colour the gene tree's branches by subtree (v.88.77): the tree
+            // is cut with the same machinery the column tree uses, at the
+            // silhouette-picked k, and each cut subtree's branches take one
+            // colour from the group palette, top to bottom. Below 6 genes a
+            // cut says nothing a 2-3 branch tree doesn't already show, so
+            // the tree stays plain grey there. Display only: row order and
+            // the grid are untouched. Cached like the column tree's auto-k,
+            // in its own slot so the two caches never evict each other.
+            if (genes.length >= 6) {
+                const sig = `genes|${dataType}|${scaleMode}|${genes.join(',')}|${cohort.length}`;
+                let k;
+                if (this._hmGeneAutoKCache?.key === sig) {
+                    k = this._hmGeneAutoKCache.k;
+                } else {
+                    k = this._hmSilhouetteBestK({ root: geneTree, order: orderedGenes }, genes, scaledRows);
+                    this._hmGeneAutoKCache = { key: sig, k };
+                }
+                const parts = this._hmCutColumnClusters({ root: geneTree, order: orderedGenes }, k);
+                if (parts.length >= 2) {
+                    const palette = this._HM_GROUP_PALETTE();
+                    geneClusterColorOf = new Map(parts.map((p, i) => [p.node, palette[i % palette.length]]));
+                }
+            }
         }
 
         // One per-cell-line vector (its value for every shown gene, in the
@@ -55676,7 +55700,7 @@ ${clone.innerHTML}
         };
 
         this._hmData = {
-            genes, orderedGenes, geneTree, cohort, orderedCLs, geneIndexInResult, cohortIndex,
+            genes, orderedGenes, geneTree, geneClusterColorOf, cohort, orderedCLs, geneIndexInResult, cohortIndex,
             rawRows, scaledRows, dataType, scaleMode, sortSpec, sortPlan, domain, missingGenes, zAllN,
             groups, groupSpec, showMedian, hiddenCount,
             lineageLabel, subtypeLabel, diseaseLabel, annRows, noDataCount, hideNoDataChecked, allNACellLines,
@@ -56624,12 +56648,24 @@ ${clone.innerHTML}
                 // order and gene labels are untouched either way, only how
                 // finely the merges themselves are drawn.
                 const minLeaves = this._hmEffectiveMinLeaves(hmS.treeDetailGenes, nGenes);
-                const segments = this._hmDendroLayout(d.geneTree, leafRowIndex, cellH, dendroW, undefined, minLeaves);
-                ctx.strokeStyle = '#9ca3af';
+                // Branch colouring by cut subtree (v.88.77): same
+                // colour-threading and batched per-colour stroking the
+                // column dendrogram uses; segments above the cut stay grey.
+                const geneColorFor = d.geneClusterColorOf ? (node => d.geneClusterColorOf.get(node)) : undefined;
+                const segments = this._hmDendroLayout(d.geneTree, leafRowIndex, cellH, dendroW, geneColorFor, minLeaves);
+                const byColor = new Map();
+                for (const s of segments) {
+                    const c = s.color || '#9ca3af';
+                    if (!byColor.has(c)) byColor.set(c, []);
+                    byColor.get(c).push(s);
+                }
                 ctx.lineWidth = 1;
-                ctx.beginPath();
-                for (const s of segments) { ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); }
-                ctx.stroke();
+                for (const [color, segs] of byColor) {
+                    ctx.strokeStyle = color;
+                    ctx.beginPath();
+                    for (const s of segs) { ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); }
+                    ctx.stroke();
+                }
             }
             ctx.font = `${hmS.geneFont}px Arial`;
             ctx.textAlign = 'right';
