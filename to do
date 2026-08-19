@@ -1,4 +1,5 @@
 The annotations row function is not working as expected in heatmap. go over it and lets discuss how it can be organized in the best way. you can ask me questions about how i want the functionallities. 
+In heatmap, if i suggest to sort by eg tp53 hotspot, it shows to lines for tp53 hotspot, i dont want this. 
 in heatmap, the tree for genes should not by deafult select colors, but should ahve the tree order dropdown like the cell line version  
 
 updat the reference and how it works texts
