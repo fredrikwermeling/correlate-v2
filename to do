@@ -3,6 +3,7 @@ In heatmap, if i suggest to sort by eg tp53 hotspot, it shows to lines for tp53 
 in heatmap, the tree for genes should not by deafult select colors, but should ahve the tree order dropdown like the cell line version  
 the genetic alteration in in cell line browser inspect should allow for showing all genetic alterations, sorting based on how strong difference, but also to click to only look at hotspot or fusion.
 cell line browser inspect should also have the linage and genetic alteration comaprisons (hidden but openable by clicking) 
+I see that gates can appear under heatmap when comming from cell line browser inspect open in heatmap. in that case the gate should be indicated by the annotation row, allwoing for modifying it. 
 
 updat the reference and how it works texts
 
