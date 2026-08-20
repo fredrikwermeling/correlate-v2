@@ -2635,6 +2635,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.88 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>Export for AI always offers a picture of the view.</b> The dialog has a new "Also save an image of the view" choice, on by default, and the companion PNG now also covers the views that never produced one: the selection / gate inspect (volcanoes, tables and panels as on screen), the Cell Line Browser list and the cell line wiki. Charts inside those panels are rendered by Plotly itself before the screenshot, so they come out crisp and in place.</li>
+                    <li><b>Alignment.</b> The "Where the cell lines come from" panel's three tables (tissue / subtype / disease) now share one column layout, so % in A, % in B and Direction line up down the whole panel instead of drifting per table.</li>
+                </ul>
                 <p><strong>v.88.87 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>The condensed Methods paragraph now reads like a Materials and Methods section.</b> Every view's short paragraph was rewritten in paper register: data source, cohort, method with its thresholds and tests, software. Result numbers (r values, pair and cluster counts, rows listed), on-screen display state (tick boxes, list caps reached) and reader instructions moved out; they stay in the long section and on screen, where they always were. The date and the DepMap acknowledgment also live in the long section's header rather than in the paragraph meant for pasting into a manuscript.</li>
@@ -7041,7 +7046,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.87</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.88</a>
         </span>
     </div>
 
@@ -10084,6 +10089,11 @@
             <label style="display:block; cursor:pointer;">
               <input type="radio" name="aiExportFormat" id="aiFormatGz" value="gz" style="margin-right:5px; vertical-align:middle;">Compressed (.json.gz, smallest)<span id="aiFormatGzSize" style="color:#6b7280;"></span>
             </label>
+            <!-- The companion image ships beside the data file so the reading
+                 assistant can see the same picture the user was looking at. -->
+            <label style="display:block; margin-top:8px; padding-top:8px; border-top:1px solid #e5e7eb; cursor:pointer;">
+              <input type="checkbox" id="aiIncludeImage" checked style="margin-right:5px; vertical-align:middle;">Also save an image of the view (PNG, downloaded beside the file)
+            </label>
           </div>
 
           <div style="display:flex; gap:8px; align-items:center; margin-top:12px;">
@@ -10102,6 +10112,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_87"></script>
+    <script src="app.js?v=v88_88"></script>
 </body>
 </html>

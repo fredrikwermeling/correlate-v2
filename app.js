@@ -28768,6 +28768,48 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return this.screenshotPopoutWith(elOrId, fileStem, dlg, metaExtra);
     }
 
+    // One DOM element to a PNG data URL, with every Plotly chart inside it
+    // swapped for its own crisp render in the clone: html2canvas mis-scales
+    // Plotly's stacked SVGs (see screenshotPopoutWith), and the AI export's
+    // companion images of the inspect / browser / wiki panels hit the same
+    // bug through html2canvas directly.
+    async _domToPngUrl(root, scale = 2) {
+        if (!root || typeof html2canvas === 'undefined') return null;
+        const livePlots = [...root.querySelectorAll('.js-plotly-plot')];
+        const plotPngs = [];
+        for (const gd of livePlots) {
+            let img = null;
+            try {
+                const pw = gd.offsetWidth || 600, ph = gd.offsetHeight || 400;
+                if (gd.data && typeof Plotly !== 'undefined') {
+                    const url = await Plotly.toImage(gd, { format: 'png', width: pw, height: ph, scale });
+                    img = new Image();
+                    await new Promise(res => { img.onload = res; img.onerror = () => { img = null; res(); }; img.src = url; });
+                }
+            } catch (e) { img = null; }
+            plotPngs.push({ w: gd.offsetWidth, h: gd.offsetHeight, img });
+        }
+        const rootId = root.id;
+        const canvas = await html2canvas(root, {
+            scale, backgroundColor: '#ffffff', useCORS: true, logging: false,
+            onclone: (doc) => {
+                const scopeEl = (rootId && doc.getElementById(rootId)) || doc.body;
+                scopeEl.querySelectorAll('.js-plotly-plot').forEach((el, i) => {
+                    const p = plotPngs[i];
+                    if (!p?.img) return;
+                    const im = doc.createElement('img');
+                    im.src = p.img.src;
+                    im.style.cssText = `width:${p.w}px;height:${p.h}px;display:block;`;
+                    el.innerHTML = '';
+                    el.style.width = p.w + 'px';
+                    el.style.height = p.h + 'px';
+                    el.appendChild(im);
+                });
+            }
+        });
+        return canvas.toDataURL('image/png');
+    }
+
     async screenshotPopoutWith(elOrId, fileStem, dlg, metaExtra = {}) {
         const root = (typeof elOrId === 'string') ? document.getElementById(elOrId) : elOrId;
         if (!root || !dlg) return;
@@ -32724,13 +32766,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const _label = analysisGene || context.gene1 || 'analysis';
         const _stem = `correlate_export_${source}_${_label}_${n}cl`;
         let _pngUrl = null;
+        // The dialog offers the image and defaults it on; the custom dialog
+        // has no checkbox and keeps its own rule below.
+        const wantCompanionImage = custom ? true : (document.getElementById('aiIncludeImage')?.checked !== false);
         try {
             // A custom export whose request replaced the cohort describes
             // nothing on screen: its context says so, and a screenshot of
             // the open view would be a picture of the very results the file
             // just dropped for not describing this cohort.
-            if (exportData.context?.type === 'custom_export') {
-                // no companion image, deliberately
+            if (!wantCompanionImage || exportData.context?.type === 'custom_export') {
+                // no companion image, by choice or deliberately
             } else if (source === 'correlations' || source === 'clusters') {
                 // The network is a vis-network canvas, not a Plotly chart:
                 // reuse the same composition path "Copy network" / "Export
@@ -32753,6 +32798,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     const canvas = await window.html2canvas(el, { scale: 2, backgroundColor: '#ffffff', logging: false });
                     _pngUrl = this._trimCanvasWhitespace(canvas).toDataURL('image/png');
                 }
+            } else if (source === 'selection') {
+                // The inspect modal: volcanoes, tables and panels, whatever
+                // mode it is in (selection vs rest, or gate A vs gate B). The
+                // gate export shipped no picture at all before v.88.88.
+                const el = document.getElementById('selectionInspectInner');
+                if (el && el.offsetParent !== null) _pngUrl = await this._domToPngUrl(el);
+            } else if (source === 'clb') {
+                const el = document.getElementById('clbModalCard');
+                if (el && el.offsetParent !== null) _pngUrl = await this._domToPngUrl(el);
+            } else if (source === 'wiki') {
+                const el = document.getElementById('clbWikiBody');
+                if (el && el.offsetParent !== null) _pngUrl = await this._domToPngUrl(el);
             } else if (source === 'heatmap') {
                 // Also not a Plotly chart: the same composed canvas Export
                 // image / Copy use (labels + dendrogram, grid + group strip,
@@ -32779,9 +32836,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     });
                 }
             }
-            // wiki, clb and a question-less exprCorrelates table have no
-            // chart at all: plotId/canvas stays null above and this is
-            // skipped without error, exactly as intended.
+            // A question-less exprCorrelates table has no chart: plotId stays
+            // null above and this is skipped without error. Every other
+            // source produces a picture of what was on screen.
             if (_pngUrl && exportData.context) {
                 exportData.context.companionImage = `${_stem}.png`;
                 exportData.context.companionImageNote = 'The chart the user was looking at when this file was made, saved beside it under the same name. If it was provided, read it: it shows the grouping and the axis this file describes. If it was not, rely on context.plotDescribesWhat.';
@@ -47790,8 +47847,13 @@ ${clone.innerHTML}
         const compact = (rows, title, cap) => {
             if (!rows.length) return '';
             const shown = rows.slice(0, cap);
+            // table-layout:fixed with one shared colgroup: the three stacked
+            // tables (tissue / subtype / disease) otherwise each auto-size
+            // their columns to their own longest label, so the same headers
+            // land at three different x positions down the panel.
             let html = `<div style="font-size:10px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.03em; margin:8px 0 4px;">${title}</div>`
-                + `<table style="width:100%; border-collapse:collapse; font-size:11px;">
+                + `<table style="width:100%; border-collapse:collapse; font-size:11px; table-layout:fixed;">
+                    <colgroup><col style="width:40%"><col style="width:18%"><col style="width:18%"><col style="width:24%"></colgroup>
                     <thead><tr style="color:#6b7280;">
                         <th style="text-align:left; padding:3px 6px; border-bottom:1px solid #e5e7eb;">Category</th>
                         <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">% in ${w.sel}</th>
