@@ -53416,8 +53416,7 @@ ${clone.innerHTML}
         } else if (kind === 'continuous') {
             opts = [['', 'Sort: off'], ['val-desc', 'High to low'], ['val-asc', 'Low to high']];
         } else if (row.mode === 'gates') {
-            opts = [['', 'Sort: off'], ['cat-desc', 'Gate A first'], ['cat-asc', 'Ungated first'],
-                    ['score-desc', 'Score high to low'], ['score-asc', 'Score low to high']];
+            opts = [['', 'Sort: off'], ['cat-desc', 'Gate A first'], ['cat-asc', 'Ungated first']];
         } else if (kind === 'meta') {
             // Direction encodes canonical (desc) vs reversed (asc) against
             // the rank map, which for 'name' is built A first: so A to Z is
@@ -53426,9 +53425,12 @@ ${clone.innerHTML}
                     ['name-desc', 'A to Z'], ['name-asc', 'Z to A'],
                     ['score-desc', 'Score high to low'], ['score-asc', 'Score low to high']];
         } else {
-            // Alteration rows: hotspot 0/1/2, fusion, copy number.
-            opts = [['', 'Sort: off'], ['cat-asc', 'Wild-type first (0, 1, 2)'], ['cat-desc', 'Altered first (2, 1, 0)'],
-                    ['score-desc', 'Score high to low'], ['score-asc', 'Score low to high']];
+            // Alteration rows: hotspot 0/1/2, fusion, copy number. No score
+            // options here: with two or three fixed categories, ordering by
+            // median score almost always lands on the same picture as the
+            // level order, so the extra options read as two names for one
+            // thing (user feedback 2026-08-20).
+            opts = [['', 'Sort: off'], ['cat-asc', 'Wild-type first (0, 1, 2)'], ['cat-desc', 'Altered first (2, 1, 0)']];
         }
         return opts.map(([v, label]) => `<option value="${v}"${cur === v ? ' selected' : ''}>${label}</option>`).join('');
     }
@@ -53726,6 +53728,13 @@ ${clone.innerHTML}
         // a first paint after a restore is already correct rather than
         // waiting for a later sync call to catch up.
         const info = this._hmSortChainInfo();
+        // The score keys were withdrawn from alteration and gates rows
+        // (v.88.98); a row that still carries one from an earlier session or
+        // saved view falls back to its level order, same direction.
+        rows.forEach(r => {
+            const k = this._hmAnnRowKind(r.mode);
+            if (r.sortKey === 'score' && (k === 'alteration' || k === 'gates')) r.sortKey = null;
+        });
         wrap.innerHTML = rows.map((row, i) => {
             const dir = row.sortDir || null;
             const isBlock = i === info.blockIdx;

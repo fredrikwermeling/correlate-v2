@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.98 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>No two Sort options that do the same thing.</b> On hotspot, fusion, copy-number and gates rows the "Score high/low" choices were withdrawn: with only two or three fixed categories they almost always reproduced the level order (wild-type first / altered first), so the list offered two names for one picture. Lineage, subtype and disease rows keep their score ordering, where ranking many blocks by median score is a genuinely different view.</li>
+                </ul>
                 <p><strong>v.88.97 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>Heatmap toolbar text no longer runs under its arrows.</b> The "then by" select ("Score (mean of shown genes)") and the cohort select ("The cell lines the browser is filtered to") were narrower than their own labels, so the dropdown arrow sat on top of the text. Both widened to fit; a sweep of every other select in the toolbar found no further clipping.</li>
@@ -7084,7 +7088,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.97</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.98</a>
         </span>
     </div>
 
@@ -10117,6 +10121,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_97"></script>
+    <script src="app.js?v=v88_98"></script>
 </body>
 </html>
