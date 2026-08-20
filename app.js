@@ -15903,13 +15903,17 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         let cols, startX, startY;
         if (mode === 'gridRight') {
             // A column to the RIGHT of the network: taller than wide, rows
-            // roughly matching the network's height, centred on it.
+            // roughly matching the network's height, centred on it. The
+            // centring must use the rows the block actually FILLS (from the
+            // final column count), not the target row count: when the two
+            // differed the block sat above centre, pressed toward the top.
             let rows = Math.max(Math.round((maxY - minY) / stepY) + 1,
                 Math.ceil(Math.sqrt(loose.length / 2)));
             rows = Math.min(Math.max(rows, 1), loose.length);
             cols = Math.ceil(loose.length / rows);
+            const actualRows = Math.ceil(loose.length / cols);
             startX = maxX + stepX + nodeR * 2 + 40;
-            startY = (minY + maxY) / 2 - ((rows - 1) * stepY) / 2;
+            startY = (minY + maxY) / 2 - ((actualRows - 1) * stepY) / 2;
         } else {
             // Wider than tall, so the block reads as a footnote strip; roughly
             // match the network's width and centre the block underneath it.

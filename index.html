@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.92 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>Network polish.</b> "Show all input genes" is no longer on by default (Floating stays the default arrangement once it is switched on), and the "Lined up right" block is now properly centred on the network's vertical middle instead of sitting pressed toward the top.</li>
+                </ul>
                 <p><strong>v.88.91 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>The heatmap's exported text is editable.</b> Settings gains "Text on the exported figure": the title and the caption line each have a box (empty keeps the automatic wording, shown grayed) and an on/off tick to leave the line out of image exports and Copy. Custom text rides Save view. The .csv, Methods and AI exports keep the automatic text, so the record of how the figure was made stays intact.</li>
@@ -7060,7 +7064,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.91</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.92</a>
         </span>
     </div>
 
@@ -7563,9 +7567,9 @@
                             <!-- Gene Effect options (always shown) -->
                             <label class="panel-heading">Labels and color</label>
                             <div class="checkbox-group" style="margin-bottom: 4px;">
-                                <label><input type="checkbox" id="showUncorrelatedGenes" checked> Show all input genes in network</label>
+                                <label><input type="checkbox" id="showUncorrelatedGenes"> Show all input genes in network</label>
                             </div>
-                            <div id="uncorrLayoutOptions" style="display: block; margin-left: 20px; margin-bottom: 4px;">
+                            <div id="uncorrLayoutOptions" style="display: none; margin-left: 20px; margin-bottom: 4px;">
                                 <div class="radio-group-inline">
                                     <label title="Genes without correlations drift freely around the network"><input type="radio" name="uncorrLayout" value="float" checked> Floating</label>
                                     <label title="Genes without correlations park in a tidy row below the network"><input type="radio" name="uncorrLayout" value="grid"> Lined up below</label>
@@ -10107,6 +10111,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_91"></script>
+    <script src="app.js?v=v88_92"></script>
 </body>
 </html>
