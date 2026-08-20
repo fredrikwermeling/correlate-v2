@@ -53719,8 +53719,8 @@ ${clone.innerHTML}
             ['hotspot', 'e.g. BRAF', 'Colour this row by this gene\'s hotspot mutation status (0 / 1 / 2 copies)'],
             ['fusion', 'e.g. EWSR1', 'Colour this row by whether this gene is fused'],
             ['cn', 'e.g. MYC', 'Colour this row by this gene\'s curated amplification / deletion status'],
-            ['ge', 'e.g. MYC', 'Colour this row by this gene\'s CRISPR gene effect, z-scored against every cell line'],
-            ['expr', 'e.g. MYC', 'Colour this row by this gene\'s mRNA expression, z-scored against every cell line']
+            ['ge', 'e.g. MYC', 'Colour this row by this gene\'s CRISPR gene effect, coloured from lowest to highest across the shown lines'],
+            ['expr', 'e.g. MYC', 'Colour this row by this gene\'s mRNA expression, coloured from lowest to highest across the shown lines']
         ];
         const VALUE_KINDS = new Set(['ge', 'expr']);
         const cap = (k) => k.charAt(0).toUpperCase() + k.slice(1);
@@ -55413,21 +55413,29 @@ ${clone.innerHTML}
         if (mode === 'ge' || mode === 'expr') {
             const dt = mode === 'ge' ? 'ge' : 'expr';
             const rawFor = this._hmAnnRowNumericValueFor(mode, gene);
-            const stats = this._hmZAllStatsFor(gene, dt);
             const raws = orderedCLs.map(rawFor);
-            const zOf = (v) => (stats && !Number.isNaN(v)) ? (v - stats.mean) / stats.sd : NaN;
-            const domain = { lo: -2.5, hi: 2.5 };
-            const colors = raws.map(v => Number.isNaN(v) ? '#f3f4f6' : this._hmColorFor(zOf(v), 'zall', dt, domain));
             const unit = this._hmAnnRowUnit(mode);
             const values = raws.map(v => Number.isNaN(v) ? 'no data' : `${v.toFixed(2)} ${unit}`);
             const present = raws.filter(v => !Number.isNaN(v));
             const lo = present.length ? Math.min(...present) : NaN;
             const hi = present.length ? Math.max(...present) : NaN;
+            // Colours span the range of the SHOWN lines, edge to edge of the
+            // palette. The old z-vs-all-lines colouring with a fixed +-2.5
+            // domain went flat whenever the cohort's own spread was small
+            // against the whole panel (an 8-line Eye cohort's TP53
+            // expression band was one washed-out pink); the legend prints
+            // the numeric range, so a stretched band stays honest.
+            const domain = { lo: -2.5, hi: 2.5 };
+            const span = (Number.isFinite(hi - lo) && hi > lo) ? hi - lo : 0;
+            const colorAt = (v) => span
+                ? this._hmColorFor(((v - lo) / span) * 5 - 2.5, 'zall', dt, domain)
+                : this._hmColorFor(0, 'zall', dt, domain);
+            const colors = raws.map(v => Number.isNaN(v) ? '#f3f4f6' : colorAt(v));
             const gradStops = present.length
-                ? [0, 0.25, 0.5, 0.75, 1].map(t => this._hmColorFor(zOf(lo + t * (hi - lo)), 'zall', dt, domain))
+                ? [0, 0.25, 0.5, 0.75, 1].map(t => span ? colorAt(lo + t * span) : colorAt(lo))
                 : ['#f3f4f6'];
             const label = present.length
-                ? `${attrLabelEarly}: ${lo.toFixed(2)} to ${hi.toFixed(2)} ${unit}`
+                ? `${attrLabelEarly}: ${lo.toFixed(2)} to ${hi.toFixed(2)} ${unit}, coloured across this range`
                 : `${attrLabelEarly}: no data in these lines`;
             return { mode, gene, attrLabel: attrLabelEarly, colors, legend: [{ label, color: gradStops[gradStops.length - 1], gradStops }], values };
         }
