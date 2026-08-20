@@ -15888,36 +15888,39 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         if (document.querySelector('input[name="uncorrLayout"]:checked')?.value === 'float') return;
         const loose = [];
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        let nodeR = 25, fs = 16, longestLine = 4, labelLines = 1;
+        let nodeR = 25, fs = 16, labelLines = 1, maxLabelW = 0;
+        // MEASURE the widest label rather than estimating from character
+        // counts: the estimate first counted the <i></i> markup (block twice
+        // as wide as needed), then a tightened factor under-measured real
+        // capital-heavy gene names and the labels overlapped.
+        const mctx = (this._labelMeasureCanvas || (this._labelMeasureCanvas = document.createElement('canvas'))).getContext('2d');
         const pos = this.network.getPositions();
         for (const n of this.networkData.nodes.get()) {
             if ((this.network.getConnectedEdges(n.id) || []).length === 0) {
                 loose.push(n.id);
                 nodeR = n.size || nodeR;
                 fs = n.font?.size || fs;
-                // Measure the label WITHOUT its <i>/<b> markup: counting the
-                // tag characters doubled the step ("<i>CDKN2A</i>" is 13
-                // characters for a 6-letter gene) and spread the parked block
-                // across twice the space it needed.
-                const lines = this._plainNodeLabel(n.label || n.id).text.split('\n');
+                const p = this._plainNodeLabel(n.label || n.id);
+                mctx.font = `${p.italic ? 'italic ' : ''}${p.bold ? 'bold ' : ''}${n.font?.size || fs}px ${n.font?.face || 'Arial'}`;
+                const lines = p.text.split('\n');
                 labelLines = Math.max(labelLines, lines.length);
-                for (const line of lines) longestLine = Math.max(longestLine, line.length);
+                for (const line of lines) maxLabelW = Math.max(maxLabelW, mctx.measureText(line).width);
             } else {
-                const p = pos[n.id];
-                if (!p) continue;
-                minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-                minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+                const pp = pos[n.id];
+                if (!pp) continue;
+                minX = Math.min(minX, pp.x); maxX = Math.max(maxX, pp.x);
+                minY = Math.min(minY, pp.y); maxY = Math.max(maxY, pp.y);
             }
         }
         if (!loose.length) return;
         if (!Number.isFinite(maxX)) { minX = maxX = minY = maxY = 0; }
         loose.sort();
-        // Spacing from what actually needs the room (node diameter, label
-        // width and height), not the spring length: the spring-length grid
-        // sat far below the network and left the block airy, which zoomed
-        // the fitted picture out and shrank every node.
+        // Spacing from what actually needs the room (node diameter, measured
+        // label width and height), not the spring length: the spring-length
+        // grid sat far below the network and left the block airy, which
+        // zoomed the fitted picture out and shrank every node.
         const labelH = fs * 1.2 * labelLines;
-        const stepX = Math.max(nodeR * 2 + 16, longestLine * fs * 0.60 + 10);
+        const stepX = Math.max(nodeR * 2 + 16, maxLabelW + 14);
         const stepY = nodeR * 2 + labelH + 14;
         const mode = document.querySelector('input[name="uncorrLayout"]:checked')?.value || 'grid';
         let cols, startX, startY;
