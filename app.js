@@ -15895,7 +15895,11 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
                 loose.push(n.id);
                 nodeR = n.size || nodeR;
                 fs = n.font?.size || fs;
-                const lines = String(n.label || n.id).split('\n');
+                // Measure the label WITHOUT its <i>/<b> markup: counting the
+                // tag characters doubled the step ("<i>CDKN2A</i>" is 13
+                // characters for a 6-letter gene) and spread the parked block
+                // across twice the space it needed.
+                const lines = this._plainNodeLabel(n.label || n.id).text.split('\n');
                 labelLines = Math.max(labelLines, lines.length);
                 for (const line of lines) longestLine = Math.max(longestLine, line.length);
             } else {
@@ -15913,8 +15917,8 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         // sat far below the network and left the block airy, which zoomed
         // the fitted picture out and shrank every node.
         const labelH = fs * 1.2 * labelLines;
-        const stepX = Math.max(nodeR * 2 + 24, longestLine * fs * 0.62 + 14);
-        const stepY = nodeR * 2 + labelH + 22;
+        const stepX = Math.max(nodeR * 2 + 16, longestLine * fs * 0.60 + 10);
+        const stepY = nodeR * 2 + labelH + 14;
         const mode = document.querySelector('input[name="uncorrLayout"]:checked')?.value || 'grid';
         let cols, startX, startY;
         if (mode === 'gridRight') {

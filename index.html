@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.95 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>The lined-up genes pack tightly.</b> The parked block's spacing was measured on the label text INCLUDING its italic markup, so a 6-letter gene was spaced as if it were 13 characters wide and the block sprawled across twice the room it needed. Measured on the visible text now, plus tighter padding: the below variant reads as one neat footnote row, the right variant as a compact column beside the network, and the network itself draws larger since less of the canvas is wasted. The network's Heatmap button also drops its down-arrow.</li>
+                </ul>
                 <p><strong>v.88.94 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>Exports print at the width you asked for.</b> PNG and TIFF used to be stamped with the pre-trim resolution, so after the automatic whitespace trim a 12 cm request printed at about 11 cm and some exports lost up to a quarter of their width. The density is now derived from the pixels actually in the file, matching how PDF and PowerPoint already honoured the chosen size.</li>
@@ -7072,7 +7076,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.94</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.95</a>
         </span>
     </div>
 
@@ -7685,7 +7689,7 @@
                                 <button class="btn btn-secondary" id="networkAnalyzeWithAI" title="Package this network as one compressed file for a language model: gene effect, expression and mutation data plus the settings, with a description of every field">Export for AI</button>
                                 <button class="btn btn-secondary mobile-hide" onclick="app.openMethods('network')" title="Write out how this network was made, as a methods paragraph and as a plain walk-through">Methods</button>
                                 <span id="networkHeatmapWrap" style="position:relative; display:inline-flex; flex:1;">
-                                    <button class="btn btn-secondary" id="networkHeatmapBtn" aria-haspopup="true" aria-expanded="false" style="flex:1;" title="Draw the network's genes as a gene set heatmap">Heatmap &#9662;</button>
+                                    <button class="btn btn-secondary" id="networkHeatmapBtn" aria-haspopup="true" aria-expanded="false" style="flex:1;" title="Draw the network's genes as a gene set heatmap">Heatmap</button>
                                     <div id="networkHeatmapMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1500; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.14); min-width:230px; padding:4px;">
                                         <div style="font-size:10px; color:#9ca3af; padding:3px 10px 4px;">Which genes to draw?</div>
                                         <button class="options-menu-item" id="networkHeatmapEntered" data-net-heatmap="entered" data-base-title="Only the genes you typed into the input list; when filtered, the heatmap opens on the same cell lines the analysis was run on">Genes I entered (<span data-count>0</span>)</button>
@@ -10105,6 +10109,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_94"></script>
+    <script src="app.js?v=v88_95"></script>
 </body>
 </html>
