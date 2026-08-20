@@ -53423,7 +53423,7 @@ ${clone.innerHTML}
             // the canonical direction.
             opts = [['', 'Sort: off'], ['size-desc', 'Largest group first'], ['size-asc', 'Smallest group first'],
                     ['name-desc', 'A to Z'], ['name-asc', 'Z to A'],
-                    ['score-desc', 'Score high to low'], ['score-asc', 'Score low to high']];
+                    ['score-desc', 'Median gene score, high first'], ['score-asc', 'Median gene score, low first']];
         } else {
             // Alteration rows: hotspot 0/1/2, fusion, copy number. No score
             // options here: with two or three fixed categories, ordering by
@@ -53743,7 +53743,10 @@ ${clone.innerHTML}
             // key + direction. The topmost sorted row makes the blocks, so
             // the same options read as "block order" there and "sort inside
             // the blocks" further down; the title says which this row is.
-            const sortSel = `<select class="hm-ann-row-sortsel" data-idx="${i}" style="width:150px; font-size:11px; opacity:${inertReason ? '0.45' : '1'};"${inertReason ? ' disabled' : ''} title="${this.esc(inertReason || (isBlock ? 'This row is first with Sort on, so it splits the columns into blocks and this choice orders the blocks' : dir ? 'Sorts inside the blocks made by the rows above, top row first' : 'Sort: off, this row only paints colours'))}">${this._hmSortOptionsHtml(row)}</select>`;
+            const scoreNote = this._hmAnnRowKind(row.mode) === 'meta'
+                ? ' The median gene score options order the groups by the median, over each group\'s cell lines, of the per-line score (that line\'s mean of the shown genes).'
+                : '';
+            const sortSel = `<select class="hm-ann-row-sortsel" data-idx="${i}" style="width:200px; font-size:11px; opacity:${inertReason ? '0.45' : '1'};"${inertReason ? ' disabled' : ''} title="${this.esc(inertReason || ((isBlock ? 'This row is first with Sort on, so it splits the columns into blocks and this choice orders the blocks.' : dir ? 'Sorts inside the blocks made by the rows above, top row first.' : 'Sort: off, this row only paints colours.') + scoreNote))}">${this._hmSortOptionsHtml(row)}</select>`;
             // Lineage, subtype, disease, the clusters row and the gates row
             // need no gene; the box shown for them is disabled and cleared
             // rather than hidden outright, the same present-but-disabled

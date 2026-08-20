@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.99 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>The sort "score" says what it is.</b> The options on lineage / subtype / disease rows now read "Median gene score, high first / low first", and the control's hover text spells it out: each cell line's score is its mean of the shown genes, and the groups are ordered by their median of that. The selects widened to fit.</li>
+                </ul>
                 <p><strong>v.88.98 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>No two Sort options that do the same thing.</b> On hotspot, fusion, copy-number and gates rows the "Score high/low" choices were withdrawn: with only two or three fixed categories they almost always reproduced the level order (wild-type first / altered first), so the list offered two names for one picture. Lineage, subtype and disease rows keep their score ordering, where ranking many blocks by median score is a genuinely different view.</li>
@@ -7088,7 +7092,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.98</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.99</a>
         </span>
     </div>
 
@@ -10121,6 +10125,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_98"></script>
+    <script src="app.js?v=v88_99"></script>
 </body>
 </html>
