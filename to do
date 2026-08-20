@@ -1,10 +1,10 @@
 OPEN: UMAP gate comparison could reuse the shared inspect view (explicitly
 deferred by Fredrik 2026-08-19, only if ever wanted).
 OPEN (cosmetic debt, deliberate, from the 2026-08-20 export audit): PDF vector
-text is ASCII-only (base-14 fonts); chart rasters come out 5-25% narrower than
-the asked-for cm (whitespace trim). The rest of that list shipped in v.88.93
-(scope-carrying filenames + correlations # block, functional-loss column
-names, dead compare modal deleted).
+text is ASCII-only (base-14 fonts; fixing it means embedding a font subset in
+the hand-rolled PDF writer). Everything else from that list shipped: scoped
+filenames + correlations # block, functional-loss column names, dead compare
+modal deleted (v.88.93); PNG/TIFF print at the requested width (v.88.94).
 
 == SHIPPED v.88.85-91 (2026-08-20) ==
 

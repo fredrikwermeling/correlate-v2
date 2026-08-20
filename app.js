@@ -29049,6 +29049,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     async _downloadCanvasAs(canvas, fmt, filename, opts = {}) {
         const { dpi = 300, widthCm, heightCm, metaJson, svg, skipSidecar, second } = opts;
+        // The promise to the user is widthCm. PDF and PPTX honour it (they
+        // take the cm directly), but PNG and TIFF used to stamp the caller's
+        // dpi, which predates the whitespace trim, so a trimmed file printed
+        // 5-25% narrower than asked (2026-08-20 audit). Stamp the density
+        // that makes THIS canvas print at widthCm instead.
+        const effDpi = (widthCm && canvas?.width) ? Math.max(1, Math.round(canvas.width / (widthCm / 2.54))) : dpi;
         // Date and time on every exported file, so a folder of them can be told
         // apart later. Added here rather than at each call site.
         if (filename && !/_\d{4}-\d{2}-\d{2}_\d{4}$/.test(filename)) filename = `${filename}_${exportStamp()}`;
@@ -29062,7 +29068,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Companion metadata file (unless the caller already emits one).
         if (!skipSidecar) this._downloadMetaSidecar(filename, metaJson);
         try {
-            if (fmt === 'tiff') { save(new Blob([this._canvasToTiff(canvas, dpi)], { type: 'image/tiff' }), 'tiff'); return; }
+            if (fmt === 'tiff') { save(new Blob([this._canvasToTiff(canvas, effDpi)], { type: 'image/tiff' }), 'tiff'); return; }
             if (fmt === 'pdf') {
                 // Prefer a true vector PDF (svg2pdf) when we have the source SVG
                 // and the plugin loaded; otherwise fall back to the raster PDF.
@@ -29084,7 +29090,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return;
         }
         let buf = await (await fetch(durl)).arrayBuffer();
-        buf = this._setPngDpi(buf, dpi);
+        buf = this._setPngDpi(buf, effDpi);
         if (metaJson && typeof this._addPngTextChunk === 'function') buf = this._addPngTextChunk(buf, 'correlate-meta', metaJson);
         save(new Blob([buf], { type: 'image/png' }), 'png');
     }

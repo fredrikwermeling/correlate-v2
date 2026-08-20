@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.94 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>Exports print at the width you asked for.</b> PNG and TIFF used to be stamped with the pre-trim resolution, so after the automatic whitespace trim a 12 cm request printed at about 11 cm and some exports lost up to a quarter of their width. The density is now derived from the pixels actually in the file, matching how PDF and PowerPoint already honoured the chosen size.</li>
+                </ul>
                 <p><strong>v.88.93 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>Export housekeeping from the audit's leftovers.</b> Four CSVs now carry their scope in the filename (network correlations and clusters get the lineage/subtype, the scatter gets its tissue filter, the Cell Line Browser list its active filters, the mutation grid its filter label), and the correlations CSV gains the same # provenance block its clusters sibling always had. The mutation analysis CSV in functional loss / amplification / deletion mode names its columns as the screen does (Intact / Lost, WT / Amp) and drops the copy-number columns that never applied there, including a p-value of 1 for a test that was never run. The long-dead full-screen Compare modal (unreachable since v.84.33) is deleted outright.</li>
@@ -7068,7 +7072,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.93</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.94</a>
         </span>
     </div>
 
@@ -10101,6 +10105,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_93"></script>
+    <script src="app.js?v=v88_94"></script>
 </body>
 </html>
