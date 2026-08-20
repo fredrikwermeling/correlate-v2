@@ -47355,8 +47355,11 @@ ${clone.innerHTML}
     _geInspectSideWords() {
         const gate = this._geInspectMode === 'gateAB';
         return {
-            sel: gate ? 'A' : 'sel',
-            cmp: gate ? 'B' : 'rest',
+            // Short forms head table columns ("% gate A" / "% selected"):
+            // "sel" and "rest" read as cryptic abbreviations there (user
+            // feedback 2026-08-20), so they are real words now.
+            sel: gate ? 'gate A' : 'selected',
+            cmp: gate ? 'gate B' : 'others',
             selWord: gate ? 'gate A' : 'selection',
             cmpWord: gate ? 'gate B' : 'comparison group',
             deltaSuffix: gate ? '(A − B)' : '(selection − comparison)'
@@ -47508,8 +47511,21 @@ ${clone.innerHTML}
         if (!all.length) {
             return '<div style="color:#6b7280; font-size:11px;">No alteration calls overlap these cell lines, so there is nothing to compare here.</div>';
         }
-        // Biggest gap in percent altered first, chi-squared to break ties.
-        const ranked = [...all].sort((a, b) => (Math.abs(b.diff) - Math.abs(a.diff)) || (b.chi2 - a.chi2));
+        // Default: biggest gap in percent altered first, chi-squared to break
+        // ties. A clicked header sorts by that column instead (click again to
+        // reverse, a third time to come back here); untested rows sink to the
+        // bottom of a p sort rather than pretending p = 1 beats a real value.
+        const SORTS = {
+            gene: (a, b) => a.gene.localeCompare(b.gene),
+            pctA: (a, b) => b.pctA - a.pctA,
+            pctB: (a, b) => b.pctB - a.pctB,
+            diff: (a, b) => Math.abs(b.diff) - Math.abs(a.diff),
+            p: (a, b) => (b.tested - a.tested) || (a.pValue - b.pValue)
+        };
+        const sortCol = SORTS[st.sortCol] ? st.sortCol : null;
+        const baseCmp = sortCol ? SORTS[sortCol] : ((a, b) => (Math.abs(b.diff) - Math.abs(a.diff)) || (b.chi2 - a.chi2));
+        const flip = sortCol && st.sortFlipped ? -1 : 1;
+        const ranked = [...all].sort((a, b) => flip * baseCmp(a, b));
         const CHIPS = [
             { id: 'all', label: 'All' },
             { id: 'hotspot', label: 'Hotspot' },
@@ -47551,13 +47567,18 @@ ${clone.innerHTML}
         if (!filtered.length) {
             return html + '<div style="color:#6b7280; font-size:11px;">Nothing in this type for these two groups.</div>';
         }
+        const th = (col, label, align) => {
+            const on = sortCol === col;
+            const arrow = on ? (st.sortFlipped ? ' &#9650;' : ' &#9660;') : '';
+            return `<th onclick="app._setGEAltSort('${col}')" title="Click to sort by this column; click again to reverse, a third time for the default ranking" style="text-align:${align}; padding:3px 6px; border-bottom:1px solid #e5e7eb; cursor:pointer; white-space:nowrap;${on ? ' color:#111827;' : ''}">${label}${arrow}</th>`;
+        };
         html += `<table style="width:100%; border-collapse:collapse; font-size:11px;">
                 <thead><tr style="color:#6b7280;">
-                    <th style="text-align:left; padding:3px 6px; border-bottom:1px solid #e5e7eb;">Alteration</th>
-                    <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">% ${w.sel}</th>
-                    <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">% ${w.cmp}</th>
-                    <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">&Delta;%</th>
-                    <th style="text-align:center; padding:3px 6px; border-bottom:1px solid #e5e7eb;">p</th>
+                    ${th('gene', 'Alteration', 'left')}
+                    ${th('pctA', `% ${w.sel}`, 'center')}
+                    ${th('pctB', `% ${w.cmp}`, 'center')}
+                    ${th('diff', '&Delta;%', 'center')}
+                    ${th('p', 'p', 'center')}
                 </tr></thead><tbody>`;
         const BADGE = {
             hotspot: '#b58a3c', damaging: '#a8553a', fusion: '#4f6fa8', amp: '#8a5ba8', del: '#3f7f6f'
@@ -47594,6 +47615,23 @@ ${clone.innerHTML}
         if (!this._geAltPanel?.stats) return;
         this._geAltPanel.filter = id;
         this._geAltPanel.showAll = false;
+        const body = document.getElementById('gateABMutBody');
+        if (body) body.innerHTML = this._renderGateMutationPanel();
+    }
+
+    // Column-header sort for the alteration table: first click sorts by that
+    // column (its natural direction), second click reverses, third goes back
+    // to the default rank (gap in percent altered, chi-squared tie-break).
+    _setGEAltSort(col) {
+        const st = this._geAltPanel;
+        if (!st?.stats) return;
+        if (st.sortCol === col) {
+            if (st.sortFlipped) { st.sortCol = null; st.sortFlipped = false; }
+            else st.sortFlipped = true;
+        } else {
+            st.sortCol = col;
+            st.sortFlipped = false;
+        }
         const body = document.getElementById('gateABMutBody');
         if (body) body.innerHTML = this._renderGateMutationPanel();
     }
