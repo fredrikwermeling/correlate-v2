@@ -1,8 +1,28 @@
-OPEN: the annotation-rows design discussion (Fredrik: "lets discuss how it can be
-organized in the best way"). The concrete complaints all shipped (see below);
-what remains is the open conversation after using the v.88.80 Block/Sort model.
 OPEN: UMAP gate comparison could reuse the shared inspect view (explicitly
 deferred by Fredrik 2026-08-19, only if ever wanted).
+OPEN (cosmetic debt, deliberate, from the 2026-08-20 export audit): four CSVs
+carry their scope in neither filename nor file (network correlations, scatter,
+CLB list, oncoprint); PDF vector text is ASCII-only (base-14 fonts); chart
+rasters come out 5-25% narrower than the asked-for cm (whitespace trim);
+mutation CSV keeps hotspot column names in functional-loss mode; the dead
+mutCompareModal code (unreachable since v.84.33) could be deleted.
+
+== SHIPPED v.88.85-91 (2026-08-20) ==
+
+- Full export audit, 2 parallel agents, every image + data export driven
+  through the real UI: 15 fixes (v.88.86), specs kept in scripts/export_audit/.
+- Condensed Methods rewritten in materials-and-methods register (v.88.87).
+- Export for AI: companion image everywhere (incl. gate inspect, CLB, wiki)
+  with an on-by-default dialog tick (v.88.88); origin tables aligned.
+- Network: all input genes shown by default, Floating default, lined-up below
+  or to the right (v.88.89).
+- Heatmap annotation rows ARE the hierarchy (v.88.90): row order = sort order,
+  first sorted row makes the blocks, one Sort select per row (largest/A-Z/
+  score/wild-type-first...), clustering is just a row (tree-only default, no
+  band), defaults lineage-blocked by median score (disease when one lineage).
+  This CLOSES the annotation-rows design discussion from 2026-08-19.
+- Heatmap Settings: exported title/caption editable with on/off ticks
+  (v.88.91); .csv/Methods/AI keep automatic text by design.
 
 == SHIPPED v.88.74-84 (2026-08-19) ==
 
