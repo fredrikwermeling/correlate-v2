@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.91 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>The heatmap's exported text is editable.</b> Settings gains "Text on the exported figure": the title and the caption line each have a box (empty keeps the automatic wording, shown grayed) and an on/off tick to leave the line out of image exports and Copy. Custom text rides Save view. The .csv, Methods and AI exports keep the automatic text, so the record of how the figure was made stays intact.</li>
+                </ul>
                 <p><strong>v.88.90 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>The heatmap's annotation rows are the hierarchy, plainly.</b> Row order now IS the sort order: the first row with Sort on splits the columns into blocks, rows below it sort within each block, and rows with Sort off just paint colours. The ▦ blocks button and the arrow toggles are gone; each row carries one Sort select with choices that fit it: largest or smallest group first, A to Z, score high or low (blocks ordered by their median score), and for alteration rows wild-type first (0, 1, 2) or altered first (2, 1, 0).</li>
@@ -7056,7 +7060,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.90</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.91</a>
         </span>
     </div>
 
@@ -10103,6 +10107,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_90"></script>
+    <script src="app.js?v=v88_91"></script>
 </body>
 </html>

@@ -53747,6 +53747,8 @@ ${clone.innerHTML}
         this._hmDrillCells = null;
         this._hmDrillBack = null;
         this._hmDrillLabel = null;
+        // Custom figure text belongs to the view it was written for.
+        this._hmCustomText = null;
         // A restored view's frozen cohort snapshot belongs to that one
         // reopen; a fresh open (Options button, CLB button) starts from the
         // ordinary visible/selected/all resolution instead.
@@ -57728,7 +57730,17 @@ ${clone.innerHTML}
         const dateStr = new Date().toISOString().slice(0, 10);
         const line2 = [this._hmCohortPhrase(d.orderedCLs.length), sortWord, groupWord, ann2Word, scaleWord, colourWord, `DepMap ${DEPMAP_VERSION}, ${dateStr}.`]
             .filter(Boolean).join(' ');
-        return { line1, line2 };
+        // Settings can override either line or switch it off for exports
+        // (v.88.91). An empty override falls back to the auto text, so
+        // clearing the box is how you get the automatic wording back; the
+        // auto lines ride along so the Settings panel can show them as
+        // placeholders.
+        const ct = this._hmCustomText || {};
+        return {
+            line1: ct.titleOn === false ? '' : ((ct.title || '').trim() || line1),
+            line2: ct.captionOn === false ? '' : ((ct.caption || '').trim() || line2),
+            autoLine1: line1, autoLine2: line2
+        };
     }
 
     // Wraps the two caption lines to the figure's own width (reusing the
@@ -58008,10 +58020,42 @@ ${clone.innerHTML}
                 </select>
             </div>
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            ${(() => {
+                const cap = this._hmCaptionLines() || { autoLine1: '', autoLine2: '' };
+                const ct = this._hmCustomText || {};
+                return `
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Text on the exported figure</div>
+            <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:#374151;margin-bottom:2px;cursor:pointer;">
+                <input type="checkbox" id="hm_ts_titleOn"${ct.titleOn === false ? '' : ' checked'} onchange="app._hmTsTextApply()"> Title
+            </label>
+            <textarea id="hm_ts_titleText" rows="2" placeholder="${this.esc(cap.autoLine1)}" style="width:100%;font-size:10px;padding:3px 5px;border:1px solid #d1d5db;border-radius:4px;resize:vertical;" oninput="app._hmTsTextApply()">${this.esc(ct.title || '')}</textarea>
+            <label style="display:flex;align-items:center;gap:4px;font-size:10px;color:#374151;margin:5px 0 2px;cursor:pointer;">
+                <input type="checkbox" id="hm_ts_captionOn"${ct.captionOn === false ? '' : ' checked'} onchange="app._hmTsTextApply()"> Caption (cohort, sorting, scale)
+            </label>
+            <textarea id="hm_ts_captionText" rows="3" placeholder="${this.esc(cap.autoLine2)}" style="width:100%;font-size:10px;padding:3px 5px;border:1px solid #d1d5db;border-radius:4px;resize:vertical;" oninput="app._hmTsTextApply()">${this.esc(ct.caption || '')}</textarea>
+            <div style="font-size:9px;color:#9ca3af;margin:2px 0 6px;">Leave a box empty to keep the automatic wording (shown grayed). Untick to leave that line out of exports. The .csv, Methods and AI exports keep the automatic text, so the record of how the figure was made stays intact.</div>
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>`;
+            })()}
             <button onclick="app._hmTsReset()" style="font-size:10px;padding:3px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;color:#374151;">Reset to defaults</button>
             <div style="font-size:9px;color:#9ca3af;margin-top:6px;">Applies on screen and to every heatmap export (image, copy). Saved for next time.</div>
         `;
         panel.style.display = 'block';
+    }
+
+    // The Settings panel's figure-text hook: reads the two boxes and
+    // checkboxes into _hmCustomText (view state, rides Save view). No redraw
+    // needed: the caption only exists on the composed exports, which read
+    // _hmCaptionLines live.
+    _hmTsTextApply() {
+        this._hmCustomText = {
+            title: document.getElementById('hm_ts_titleText')?.value || '',
+            titleOn: document.getElementById('hm_ts_titleOn')?.checked !== false,
+            caption: document.getElementById('hm_ts_captionText')?.value || '',
+            captionOn: document.getElementById('hm_ts_captionOn')?.checked !== false
+        };
+        const empty = !this._hmCustomText.title.trim() && !this._hmCustomText.caption.trim()
+            && this._hmCustomText.titleOn && this._hmCustomText.captionOn;
+        if (empty) this._hmCustomText = null;
     }
 
     _hmTsStep(id, dir) {
@@ -58047,14 +58091,15 @@ ${clone.innerHTML}
     }
 
     _hmTsReset() {
-        // Resets only what this panel still owns (text/cell sizes); tree
-        // detail belongs to the toolbar selects now and isn't touched by
-        // this button.
+        // Resets what this panel owns: text/cell sizes and any custom figure
+        // text (back to the automatic wording, both lines on). Tree detail
+        // keeps its value; it is a drawing choice, not a size.
         const defaults = this._HM_SETTINGS_DEFAULTS();
         this._hmSettings = Object.assign({}, defaults, {
             treeDetailCells: this._hmSettings?.treeDetailCells ?? defaults.treeDetailCells,
             treeDetailGenes: this._hmSettings?.treeDetailGenes ?? defaults.treeDetailGenes
         });
+        this._hmCustomText = null;
         this._hmSaveSettingsToStorage();
         this.openHeatmapSettings();
         this._hmRedraw();
@@ -58121,6 +58166,7 @@ ${clone.innerHTML}
             silencedGenes: this._hmSilencedGenes ? [...this._hmSilencedGenes] : [],
             gateA: this._hmGates?.A ? [...this._hmGates.A] : [],
             gateB: this._hmGates?.B ? [...this._hmGates.B] : [],
+            customText: this._hmCustomText ? { ...this._hmCustomText } : null,
             settings: Object.assign({}, this._HM_SETTINGS_DEFAULTS(), this._hmSettings || {})
         };
     }
@@ -58376,6 +58422,7 @@ ${clone.innerHTML}
         };
         this._hmArmedGate = null;
         this._hmGateDrag = null;
+        this._hmCustomText = (state.customText && typeof state.customText === 'object') ? { ...state.customText } : null;
 
         this._hmSettings = this._hmMergeSettings(state.settings);
         this._hmSaveSettingsToStorage();
