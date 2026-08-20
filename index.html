@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.87 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>The condensed Methods paragraph now reads like a Materials and Methods section.</b> Every view's short paragraph was rewritten in paper register: data source, cohort, method with its thresholds and tests, software. Result numbers (r values, pair and cluster counts, rows listed), on-screen display state (tick boxes, list caps reached) and reader instructions moved out; they stay in the long section and on screen, where they always were. The date and the DepMap acknowledgment also live in the long section's header rather than in the paragraph meant for pasting into a manuscript.</li>
+                </ul>
                 <p><strong>v.88.86 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>Two full export audits, fifteen fixes.</b> Every image export and every data export was driven through the real UI, in plain and worked states, and everything found broken is fixed. Data side: the gate-mode inspect CSV names gate A / gate B in its columns; the heatmap CSV corner cell now tells the truth about hidden groups, silenced genes, min-n and hidden no-data lines, and the annotation bands ship as rows; the AI export from a scatter now carries the gates it always promised and no longer claims to have no precomputed lists while shipping three; the AI export from a mutation analysis applies the additional hotspot / fusion filters to its cohort, so its counts match the table on screen; the custom AI export no longer attaches a screenshot of a view it just disclaimed, and no longer silently loses a cell line whose display name could not be resolved back; three CSVs (oncoprint, both correlation-analysis exports) now pass the formula-injection guard like every other CSV.</li>
@@ -7037,7 +7041,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.86</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.87</a>
         </span>
     </div>
 
@@ -10098,6 +10102,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_86"></script>
+    <script src="app.js?v=v88_87"></script>
 </body>
 </html>

@@ -54866,14 +54866,17 @@ ${clone.innerHTML}
     // never leave a reader guessing what order the columns are actually in.
     // Reads the plan _hmBuildAndPaint actually ordered by (d.sortPlan), not
     // the controls, so the sentence and the picture cannot drift apart.
-    _hmSortSummary(d) {
+    _hmSortSummary(d, withNudge = false) {
         const plan = d.sortPlan || { block: null, chain: [], cluster: null, inert: [] };
         const thenByWord = d.sortSpec?.thenBy === 'name' ? 'name' : 'score';
         // Rows can be drawn without doing anything to the order: when at
         // least one is sitting there unused, say so rather than leaving the
-        // mismatch to be noticed by chance.
+        // mismatch to be noticed by chance. The click-this nudge is for the
+        // on-screen hint line ONLY: in the exported caption, the CSV corner,
+        // the Methods text and the AI export it read as instructions to a
+        // reader who has no controls to click.
         if (!plan.block && !plan.chain.length && !plan.cluster) {
-            const nudge = d.annRows.length ? ' (turn on a row\'s blocks toggle to split the columns, or its sort arrows to sort by it)' : '';
+            const nudge = (withNudge && d.annRows.length) ? ' (turn on a row\'s blocks toggle to split the columns, or its sort arrows to sort by it)' : '';
             return `sorted by ${thenByWord}` + nudge;
         }
         const dirWords = (row, isBlock) => {
@@ -56923,7 +56926,7 @@ ${clone.innerHTML}
             const geneCountWord = d.silencedGeneNames.length
                 ? `${d.foundGenes.length} genes (${d.silencedGeneNames.length} silenced)`
                 : `${nGenes} genes`;
-            let base = `${geneCountWord} x ${nCL} cell lines, ${this._hmSortSummary(d)}`;
+            let base = `${geneCountWord} x ${nCL} cell lines, ${this._hmSortSummary(d, true)}`;
             // The choice (hidden or shown) is always stated, never left to be
             // inferred from a count that quietly changed.
             if (d.noDataCount > 0) {
@@ -58321,17 +58324,25 @@ ${clone.innerHTML}
         return 'CRISPR gene effect (Chronos)';
     }
 
-    // First sentence of the condensed paragraph, and the data-source line of
-    // the long section: where the numbers come from.
+    // First sentence of the condensed paragraph: where the numbers come from.
+    // Written in the register of a Materials and Methods section (v.88.87):
+    // measure first, past tense, no colon construction.
     _methodsDataSentence(kind) {
         const m = this._methodsMeta();
-        return `Data were taken from the ${m.release} public release of the Cancer Dependency Map (DepMap, Broad Institute, https://depmap.org/): ${this._methodsMeasureWords(kind)}.`;
+        const what = kind === 'expr' ? 'mRNA expression values (log2(TPM+1))'
+            : kind === 'both' ? 'CRISPR gene effect scores (Chronos) and mRNA expression values (log2(TPM+1))'
+            : 'CRISPR gene effect scores (Chronos)';
+        // No capitalization of the first word: "mRNA" must stay "mRNA" even
+        // at the start of the sentence, as it would in a paper.
+        return `${what} were obtained from the ${m.release} public release of the Cancer Dependency Map (Broad Institute, https://depmap.org/).`;
     }
 
-    // Last sentence of the condensed paragraph: what produced it.
+    // Last sentence of the condensed paragraph: what produced it. The date
+    // and the DepMap acknowledgment live in the long section's header; a
+    // Methods paragraph is not the place to give the reader instructions.
     _methodsCitation() {
         const m = this._methodsMeta();
-        return `Analyses were carried out in ${m.app}${m.version ? ' ' + m.version : ''} (${m.url}) on ${m.date}; please acknowledge DepMap (Broad Institute) if you use this data.`;
+        return `Analyses were performed in ${m.app}${m.version ? ' ' + m.version : ''} (${m.url}).`;
     }
 
     // Opening block of the long section: the same facts, laid out rather than
@@ -58561,10 +58572,13 @@ ${clone.innerHTML}
         const tissueOpen = document.getElementById('byTissueContainer')?.style.display !== 'none'
             && !!document.getElementById('byTissueContainer');
 
+        // Condensed = Materials-and-Methods register (v.88.87): what was
+        // done, not what came out. The r, slope and p live on the figure and
+        // in the long section's THE NUMBERS ON THE PLOT.
         const condensed = this._mSentences([
             this._methodsDataSentence(kind),
             `${xLabel} was plotted against ${yLabel} across the ${this._mNum(pts.length)} cell lines with a value for both, ${filterWord}.`,
-            `The association was quantified as a Pearson correlation coefficient with an ordinary least squares slope of y on x, computed over pairwise complete observations, giving r = ${this._mFix(st.correlation)}, slope = ${this._mFix(st.slope)} and p = ${this._mP(st.pValue)} (two sided t test on n minus 2 degrees of freedom, not corrected for multiple testing).`,
+            'The association was quantified by Pearson correlation over pairwise complete observations, with an ordinary least squares slope of y on x; the p-value is from a two sided t test on n minus 2 degrees of freedom, not corrected for multiple testing.',
             this._methodsCitation()
         ]);
 
@@ -58681,15 +58695,14 @@ ${clone.innerHTML}
                 : 'Each group was compared against all the other cell lines in the cohort with a two sided Welch t test (unequal variances). Group means are reported with the population standard deviation.';
         const noFdr = 'No correction for multiple testing was applied to these p-values.';
 
+        // Condensed = Materials-and-Methods register (v.88.87). Display state
+        // (the p tick box, the no-minimum case) stays in the long section.
         const condensed = this._mSentences([
             this._methodsDataSentence(dataType),
             `${gene} ${measure} was summarised across the ${this._mNum(nPoints)} cell lines with a value for that gene ${cohortBits.length ? `after restricting the panel to ${this._mListOr(cohortBits, '')}` : 'in the whole panel, with no tissue, subtype, disease, alteration or cell-line-list restriction applied'}, as ${shape}.`,
-            // The minimum group size and the p filter belong to the grouped
-            // views; the mutation-inspect plot has neither control.
-            isMutMode ? null : (minGroup > 1 ? `Groups with fewer than ${minGroup} cell lines were not shown.` : 'No minimum group size was applied.'),
+            (!isMutMode && minGroup > 1) ? `Groups with fewer than ${minGroup} cell lines were excluded.` : null,
             statsSentence,
             noFdr,
-            isMutMode ? null : (pFilterOn ? 'Only rows with p below 0.05 are displayed.' : 'Every row is displayed, whatever its p-value.'),
             this._methodsCitation()
         ]);
 
@@ -58744,7 +58757,7 @@ ${clone.innerHTML}
             this._methodsDataSentence('both'),
             `Within ${subgroupWord}, the mRNA expression of every gene in the expression matrix was correlated against ${target} CRISPR gene effect using Pearson correlation over pairwise complete observations.`,
             'A gene was tested only where at least 10 cell lines had both values, and a two sided p was taken from a t test on n minus 2 degrees of freedom; no correction for multiple testing was applied.',
-            `Genes with |r| below 0.2 were discarded and the rest were ranked by |r|, with the list capped at the strongest 500; ${this._mNum(rows.length)} gene${rows.length === 1 ? ' is' : 's are'} listed${rows.length >= 500 ? ', so more genes cleared the cutoff than are shown' : ''}.`,
+            'Genes with |r| below 0.2 were discarded and the rest were ranked by |r|, with the list capped at the strongest 500.',
             scatterGene ? `The scatter plot shows ${scatterGene} expression against ${target} gene effect for the same cell lines.` : null,
             this._methodsCitation()
         ]);
@@ -58781,18 +58794,17 @@ ${clone.innerHTML}
 
         const view = this._caView || 'tissue';
         const shown = this.getCATissueFilteredData ? this.getCATissueFilteredData() : (d.data || []);
-        const overall = shown.length >= 3
-            ? this.pearsonWithSlope(shown.map(p => p.x), shown.map(p => p.y))
-            : { correlation: NaN, slope: NaN, pValue: NaN };
         const filterText = this._getCAFilterDescription ? this._getCAFilterDescription() : '';
 
         const viewSentence = view === 'tissue'
             ? 'The correlation was then recomputed within each tissue with at least 3 cell lines, and each tissue was compared against all the other cell lines in the view by a Fisher z test on the two correlation coefficients.'
             : 'The correlation was then recomputed separately in the wild-type and the mutated cell lines for the chosen gene, and the two coefficients were compared by a Fisher z test.';
 
+        // Condensed = Materials-and-Methods register (v.88.87): the overall r
+        // and slope are results and live on screen and in the long section.
         const condensed = this._mSentences([
             this._methodsDataSentence('ge'),
-            `${d.gene1} and ${d.gene2} CRISPR gene effect were compared across ${this._mNum(shown.length)} cell lines with a value for both${filterText ? `, restricted to ${filterText}` : ', with no tissue, subtype, disease or alteration restriction applied'}, giving an overall Pearson r of ${this._mFix(overall.correlation)} and a slope of ${this._mFix(overall.slope)}.`,
+            `${d.gene1} and ${d.gene2} CRISPR gene effect were correlated (Pearson, with an ordinary least squares slope) across ${this._mNum(shown.length)} cell lines with a value for both${filterText ? `, restricted to ${filterText}` : ''}.`,
             viewSentence,
             'No correction for multiple testing was applied to the group p-values.',
             this._methodsCitation()
@@ -58859,15 +58871,13 @@ ${clone.innerHTML}
         if (this._customCellLineFilter?.size) cohortBits.push(`a pasted list of ${this._mNum(this._customCellLineFilter.size)} cell lines`);
 
         const nAll = (mr.allResults || []).length;
-        const nSig = (mr.significantResults || []).length;
         const pFilterOn = !!document.getElementById('mutPvalueFilter')?.checked;
 
         const condensed = this._mSentences([
             this._methodsDataSentence(measure),
             `Cell lines were split by ${mr.hotspotGene} ${word} status into ${this._mNum(nMut)} altered and ${this._mNum(nWT)} ${L.ref === 'WT' ? 'wild-type' : L.ref.toLowerCase()} lines${cohortBits.length ? `, after restricting the panel to ${this._mListOr(cohortBits, '')}` : ', with no tissue, subtype, disease or additional alteration restriction applied'}.`,
             `For every gene in the ${measure === 'expr' ? 'expression' : 'gene effect'} matrix, the two groups were compared by a two sided Welch t test (unequal variances), and the difference reported is mean(altered) minus mean(${L.ref === 'WT' ? 'wild-type' : L.ref.toLowerCase()}).`,
-            `A gene was tested only where the reference group had at least ${this._mNum(mr.minN)} cell lines with a value and the altered group had at least 3; ${this._mNum(nAll)} gene${nAll === 1 ? ' was' : 's were'} tested.`,
-            `Genes reaching p below ${mr.pThreshold} in at least one of the comparisons were retained, giving ${this._mNum(nSig)} gene${nSig === 1 ? '' : 's'}.`,
+            `A gene was tested only where the reference group had at least ${this._mNum(mr.minN)} cell lines with a value and the altered group had at least 3, and genes reaching p below ${mr.pThreshold} in at least one of the comparisons were retained.`,
             'No correction for multiple testing was applied.',
             this._methodsCitation()
         ]);
@@ -58911,21 +58921,25 @@ ${clone.innerHTML}
         const clusterIds = [...new Set(clusterRows.map(c => c.cluster))].filter(c => c !== '-' && c !== 0 && c !== undefined);
         const unclustered = clusterRows.filter(c => c.cluster === '-' || c.cluster === 0).length;
         const filterText = (this._getNetworkFilterText() || '').replace(/^Filters:\s*/, '').replace(/\s+/g, ' ').trim();
-        const modeWord = r.mode === 'design'
-            ? `every gene in the ${basis === 'expr' ? 'expression' : 'gene effect'} matrix was correlated against the input genes`
-            : 'only pairs among the input genes were correlated';
-
         const nodes = this.networkData?.nodes?.length ?? null;
         const edges = this.networkData?.edges?.length ?? null;
 
+        // The condensed paragraph is written to be pasted into a Materials
+        // and Methods section (v.88.87): data source, cohort, method with
+        // thresholds, software. Result counts (pairs kept, clusters formed,
+        // nodes and edges), the no-p-value caveat and the UI filter phrasing
+        // stay in the long section, where they always were.
+        const filterProse = filterText
+            ? filterText.split('·').map(t => t.trim()).filter(t => t && !/^n\s*=/.test(t)).join(', ')
+            : '';
+        const pairWord = r.mode === 'design'
+            ? `between the ${this._mNum(inputGenes)} input gene${inputGenes === 1 ? '' : 's'} and every gene in the ${basis === 'expr' ? 'expression' : 'gene effect'} matrix`
+            : `among the ${this._mNum(inputGenes)} input gene${inputGenes === 1 ? '' : 's'}`;
         const condensed = this._mSentences([
             this._methodsDataSentence(basis),
-            `Starting from ${this._mNum(inputGenes)} input gene${inputGenes === 1 ? '' : 's'}, ${modeWord} across ${this._mNum(nCL)} cell lines${filterText ? ` (${filterText})` : ' (the whole panel, with no tissue, disease or alteration restriction)'}, using Pearson correlation over pairwise complete observations with an ordinary least squares slope.`,
-            `A pair was kept when it had at least ${this._mNum(r.minN)} cell lines with values for both genes, |r| of at least ${r.cutoff}, and |slope| of at least ${r.minSlope}; ${this._mNum(nPairs)} pair${nPairs === 1 ? '' : 's'} met all three.`,
-            r.expandNetwork ? 'A second pass then correlated the discovered genes with each other under the same thresholds.' : null,
-            `Genes were grouped into clusters as the connected components of the graph whose edges are those pairs, giving ${this._mNum(clusterIds.length)} cluster${clusterIds.length === 1 ? '' : 's'}.`,
-            'No p-values and no false discovery rate were computed for these pairs.',
-            (viewKey === 'network' && nodes != null) ? `The network drawn from this run has ${this._mNum(nodes)} nodes and ${this._mNum(edges)} edges.` : null,
+            `Pairwise Pearson correlations ${pairWord} were computed over pairwise complete observations across ${this._mNum(nCL)} cell lines${filterProse ? ` (${filterProse})` : ''}.`,
+            `Gene pairs with values in at least ${this._mNum(r.minN)} shared cell lines, |r| of at least ${r.cutoff} and |slope| of at least ${r.minSlope} (ordinary least squares) were retained${r.expandNetwork ? ', and a second pass correlated the genes discovered this way with each other under the same thresholds' : ''}; no significance testing was applied.`,
+            'Genes were grouped into clusters as the connected components of the resulting correlation network.',
             this._methodsCitation()
         ]);
 
@@ -59051,12 +59065,17 @@ ${clone.innerHTML}
         const silenced = d.silencedGeneNames || [];
         const missing = d.missingGenes || [];
 
+        // Condensed = Materials-and-Methods register (v.88.87): cohort folded
+        // into the drawing sentence, hand-painted gates left to the long
+        // section (they change no value unless they sort or block, and then
+        // the sort summary already names them).
         const condensed = this._mSentences([
             this._methodsDataSentence(measure),
             // The data sentence directly above already names the measure, so
             // this one refers back to it instead of repeating it.
-            `These values were drawn as a heatmap of ${this._mNum(d.genes.length)} gene${d.genes.length === 1 ? '' : 's'} from ${setLabel} across ${this._mNum(d.orderedCLs.length)} cell lines.`,
-            `Cohort: ${this._hmCohortPhrase(d.orderedCLs.length)}`,
+            // _hmCohortPhrase brings its own full stop (its other callers use
+            // it as a standalone line), so none is added here.
+            `These values were drawn as a heatmap of ${this._mNum(d.genes.length)} gene${d.genes.length === 1 ? '' : 's'} from ${setLabel} across ${this._hmCohortPhrase(d.orderedCLs.length)}`,
             this._hmDrillCells ? `The view was then drilled into ${this._hmDrillLabel || 'one group'}, so only that group's cell lines are drawn.` : null,
             scaleSentence,
             // _hmSortSummary already names the tie-break where one applies
@@ -59070,7 +59089,6 @@ ${clone.innerHTML}
             d.clustersActive ? `The cell-line clustering was average linkage on correlation distance over the genes shown${d.clusterKAuto ? ', with the number of clusters chosen as the cut between 2 and 8 giving the best mean silhouette width' : ''}.` : null,
             hiddenGroups.length ? `${this._mNum(hiddenGroups.length)} group${hiddenGroups.length === 1 ? ' was' : 's were'} hidden and excluded from the figure (${hiddenGroups.map(g => g.key).join(', ')}).` : null,
             silenced.length ? `${this._mNum(silenced.length)} gene${silenced.length === 1 ? ' was' : 's were'} silenced and excluded from everything shown (${silenced.join(', ')}).` : null,
-            gateA || gateB ? `Two cell-line gates were painted on the grid by hand, holding ${this._mNum(gateA)} and ${this._mNum(gateB)} cell lines; they appear as the Gates annotation row and select columns, and unless that row is sorting or blocking they do not alter the figure or any value in it.` : null,
             this._methodsCitation()
         ]);
 
@@ -59153,7 +59171,7 @@ ${clone.innerHTML}
             bits.length
                 ? `Cell lines were selected from the panel by ${this._mListOr(bits, '')}, leaving ${this._mNum(visible.length)} cell line${visible.length === 1 ? '' : 's'}.`
                 : `No filter was applied, so all ${this._mNum(visible.length)} cell lines in the panel are listed.`,
-            ticked ? `${this._mNum(ticked)} of them were ticked by hand, and it is those that any export carries.` : 'No cell lines were ticked, so an export carries the whole listed set.',
+            ticked ? `${this._mNum(ticked)} of them were then selected by hand, and exports carry that selection.` : null,
             `The list is ordered by ${sortWord}${sortGene ? ` (${sortGene})` : ''}, ${this._clbSortAsc ? 'ascending' : 'descending'}.`,
             this._methodsCitation()
         ]);
@@ -59227,9 +59245,7 @@ ${clone.innerHTML}
                 ? `Each gene was tested with a two sided Welch t test (unequal variances) and p-values were adjusted across all tested genes by the Benjamini-Hochberg procedure to give q-values (${this._mNum(geRows)} genes for gene effect${exprRows ? `, ${this._mNum(exprRows)} for expression` : ''}).`
                 : 'Fewer than 3 cell lines were available on a side, so no test was run and neither p-values nor q-values exist; only the difference in means is reported.',
             `A gene was included where at least ${isGateMode ? 3 : Math.min(3, nSel)} cell lines on the selection side and at least 3 on the comparison side had a value.`,
-            `The tables show genes with |difference| of at least ${leftDelta} and q of at most ${leftQ} for gene effect${exprRows ? `, and |difference| of at least ${rightDelta} and q of at most ${rightQ} for expression` : ''}, capped at the strongest ${this._mNum(leftN)}${exprRows && rightN !== leftN ? ` and ${this._mNum(rightN)}` : ''} genes.`,
-            `Two further panels, closed until they are opened, compare the same two sides by tissue, primary disease and Oncotree disease, and across ${altWords.coverage}${altRows != null ? ` (${this._mNum(altRows)} alterations carried by at least one cell line on either side)` : ''}.`,
-            `Those alteration rows are ranked by ${altWords.ranking}, and tested with ${altWords.test}.`,
+            `Genes with |difference| of at least ${leftDelta} and q of at most ${leftQ} for gene effect${exprRows ? `, and |difference| of at least ${rightDelta} and q of at most ${rightQ} for expression,` : ''} were reported, capped at the strongest ${this._mNum(leftN)}${exprRows && rightN !== leftN ? ` and ${this._mNum(rightN)}` : ''} genes.`,
             this._methodsCitation()
         ]);
 
@@ -59309,8 +59325,7 @@ ${clone.innerHTML}
             geneRule,
             'Genes missing in more than 30 percent of the cell lines were dropped, and the remaining missing values were filled with that gene\'s mean across the cohort.',
             methodRule,
-            `The plot shows ${u.axisLabels ? u.axisLabels.join(' against ') : 'two of the resulting components'}, one point per cell line, coloured by ${v('clbUmapColorBy') === 'subtissue' ? 'subtype' : 'tissue'}.`,
-            (explained && method === 'PCA') ? `The components drawn explain ${explained.slice(0, 2).map(e => `${(e * 100).toFixed(1)} percent`).join(' and ')} of the variance respectively.` : null,
+            `${u.axisLabels ? u.axisLabels.join(' and ') : 'Two of the resulting components'} were plotted, one point per cell line.`,
             this._methodsCitation()
         ]);
 
