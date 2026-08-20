@@ -36357,7 +36357,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // "damaging" and CN amp/deletion analysis sub-types cleanly.
             annMode = 'hotspot';
         }
-        this._hmAnnRows = annMode ? [{ mode: annMode, gene: mr.hotspotGene, sortDir: 'desc', block: true }] : [];
+        this._hmAnnRows = annMode ? [{ mode: annMode, gene: mr.hotspotGene, sortDir: 'desc', sortKey: null }] : [];
         this._hmRenderAnnRowsBlock();
         // hmThenBy stays on its 'score' default: the point of this handoff is
         // the blocked mutated/fused split, with score ordering within it. No
@@ -53540,41 +53540,10 @@ ${clone.innerHTML}
         document.getElementById('hmDataType')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmScale')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmThenBy')?.addEventListener('change', () => this._hmRedraw());
-        document.getElementById('hmClusterCells')?.addEventListener('change', (e) => {
-            // The checkbox is the master switch for the "Cell-line clusters"
-            // annotation row (v.88.76): checking it appends that row, toggled
-            // on, so clustering takes its place in the one ordering hierarchy
-            // the annotation rows now carry; unchecking removes it again.
-            // Deleting the row with its own x unchecks the box (see the
-            // remove handler in _hmRenderAnnRowsBlock), so the two can never
-            // disagree.
-            const rows = this._hmAnnRows || (this._hmAnnRows = []);
-            if (e.target.checked) {
-                // The clusters row takes the blocks when nothing else has
-                // them (so ticking the box on a plain heatmap still draws
-                // cluster blocks, as it always has), and otherwise joins as a
-                // sorting row that clusters inside whatever is blocking.
-                // Only the clusters row: nothing else is added on the user's
-                // behalf. (Before v.88.80 this also slipped in a lineage row,
-                // from the days when clustering REPLACED lineage grouping and
-                // its colours would otherwise have been lost; with blocking
-                // and sorting now separate flags nothing is lost, so the
-                // uninvited row is gone.)
-                if (!rows.some(r => r.mode === 'cluster')) {
-                    const blockTaken = rows.some(r => r.block && this._hmAnnRowCanBlock(r.mode));
-                    rows.push({ mode: 'cluster', gene: null, sortDir: 'desc', block: !blockTaken });
-                }
-            } else {
-                this._hmAnnRows = rows.filter(r => r.mode !== 'cluster');
-            }
-            this._hmRenderAnnRowsBlock();
-            this._hmSyncClusterControls();
-            this._hmRedraw();
-        });
-        document.getElementById('hmClusterK')?.addEventListener('change', () => {
-            this._hmSyncClusterControls();
-            this._hmRedraw();
-        });
+        // Cell-line clustering has no toolbar checkbox any more (v.88.90):
+        // it is the "Cell-line clusters" annotation row, added with + Add
+        // row, and its split select (hmClusterK) is rendered on that row and
+        // wired in _hmRenderAnnRowsBlock.
         document.getElementById('hmGeneClusterK')?.addEventListener('change', () => this._hmRedraw());
         // Fires on blur/focus-loss, not on every keystroke, so a half-typed
         // gene list doesn't repaint mid-edit; Redraw stays useful for that.
@@ -53639,11 +53608,8 @@ ${clone.innerHTML}
             this._hmSaveSettingsToStorage();
             this._hmRedraw();
         });
-        document.getElementById('hmTreeDetailCells')?.addEventListener('change', () => {
-            this._hmSettings = Object.assign({}, this._HM_SETTINGS_DEFAULTS(), this._hmSettings || {}, { treeDetailCells: document.getElementById('hmTreeDetailCells').value });
-            this._hmSaveSettingsToStorage();
-            this._hmRedraw();
-        });
+        // Cell-line tree detail moved into the Settings panel (v.88.90,
+        // hm_ts_treeCells via _hmTsApply); no toolbar select to wire.
         document.getElementById('hmDrillBackBtn')?.addEventListener('click', () => this._hmDrillBackToAll());
         document.getElementById('hmDrillToBrowserBtn')?.addEventListener('click', () => this._hmDrillToBrowser());
         // Cohort and lineage define the cell-line set the other selects are
@@ -53674,7 +53640,7 @@ ${clone.innerHTML}
             // of the four the user manages), so a new row goes above it.
             const gatesAt = this._hmAnnRows.findIndex(r => r.mode === 'gates');
             const newIdx = gatesAt >= 0 ? gatesAt : this._hmAnnRows.length;
-            this._hmAnnRows.splice(newIdx, 0, { mode: 'hotspot', gene: null, sortDir: null, block: false });
+            this._hmAnnRows.splice(newIdx, 0, { mode: 'hotspot', gene: null, sortDir: null, sortKey: null });
             this._hmRenderAnnRowsBlock();
             // New row starts in 'hotspot' mode with no gene: put focus on its
             // gene box so the user is looking straight at the picker instead
@@ -53714,13 +53680,12 @@ ${clone.innerHTML}
         this._hmResetControls();
         // Tree detail lives in this._hmSettings (persisted across opens,
         // like the font/cell-size settings), not among the controls
-        // _hmResetControls reverts to their fixed defaults, so the two
-        // toolbar selects are initialized from it here instead.
+        // _hmResetControls reverts to their fixed defaults; the gene tree's
+        // toolbar select is initialized from it here (the cell-line one
+        // lives in the Settings panel, which reads it on open).
         const hmS = Object.assign({}, this._HM_SETTINGS_DEFAULTS(), this._hmSettings || {});
         const genesDetailSel = document.getElementById('hmTreeDetailGenes');
         if (genesDetailSel) genesDetailSel.value = hmS.treeDetailGenes;
-        const cellsDetailSel = document.getElementById('hmTreeDetailCells');
-        if (cellsDetailSel) cellsDetailSel.value = hmS.treeDetailCells;
         this._hmSyncGroupControls();
         this._hmSyncClusterControls();
         this._hmRenderAnnRowsBlock();
@@ -53743,23 +53708,33 @@ ${clone.innerHTML}
         set('hmLineage', '');
         set('hmSubtype', '');
         set('hmDisease', '');
-        // v.88.76: a fresh open sorts by plain score, with no blocks at all.
-        // Blocking is now a deliberate act (toggle a row's sort arrows);
-        // clustering, likewise, is one click away on the Cluster cell lines
-        // checkbox, which adds its own annotation row.
+        // A fresh open sorts by plain score, with no blocks at all. Blocking
+        // is a deliberate act (set a row's Sort); clustering is one Add row
+        // away as the Cell-line clusters row, whose split select defaults to
+        // tree order only.
         set('hmScale', 'zall');
         set('hmThenBy', 'score');
-        const clusterCb = document.getElementById('hmClusterCells');
-        if (clusterCb) clusterCb.checked = false;
-        set('hmClusterK', 'auto');
+        this._hmClusterKChoice = '0';
         set('hmGeneClusterK', '0');
         const medianCb = document.getElementById('hmShowMedian');
         if (medianCb) medianCb.checked = true;
         set('hmMinGroupSize', '1');
-        // TP53 is the most generally useful default annotation. No sortDir and
-        // no block: a fresh open sorts by plain score with no blocks, and the
-        // row is there as colour until one of its two toggles is turned on.
-        this._hmAnnRows = [{ mode: 'hotspot', gene: 'TP53', sortDir: null, block: false }];
+        // Default hierarchy (v.88.90): lineage blocks ordered by median
+        // score, or disease blocks when the open-time cohort is already one
+        // lineage (a lineage strip with one colour says nothing). TP53
+        // hotspot rides below as colour only, the most generally useful
+        // annotation.
+        const defCohort = (this._clbVisibleCellLines?.length) ? this._clbVisibleCellLines : (this.metadata?.cellLines || []);
+        const defLineages = new Set();
+        for (const cl of defCohort) {
+            const l = this.cellLineMetadata?.lineage?.[cl];
+            if (l) defLineages.add(l);
+            if (defLineages.size > 1) break;
+        }
+        this._hmAnnRows = [
+            { mode: defLineages.size <= 1 ? 'disease' : 'lineage', gene: null, sortDir: 'desc', sortKey: 'score' },
+            { mode: 'hotspot', gene: 'TP53', sortDir: null, sortKey: null }
+        ];
         [['hmHotspotFilter', 'hmHotspotLevel', '1+2'], ['hmFusionFilter', 'hmFusionLevel', '1+2'], ['hmCnFilter', 'hmCnLevel', 'altered']]
             .forEach(([inputId, levelId, def]) => {
                 set(inputId, '');
@@ -53839,16 +53814,60 @@ ${clone.innerHTML}
         return this._hmAnnRowKind(mode) !== 'continuous';
     }
 
+    // The cluster row's split choice, kept as state because the select is
+    // recreated on every rows re-render (and absent when there is no cluster
+    // row). '0' = tree order only, no band, no Cluster groups.
+    _hmClusterKValue() {
+        return this._hmClusterKChoice || '0';
+    }
+
+    // The <option> list for one row's Sort select, by mode. Values encode
+    // key + direction; '' is off. The default key per mode is the historic
+    // rank (size for categories, altered-level for alterations), so an old
+    // saved sortDir maps straight onto it.
+    _hmSortOptionsHtml(row) {
+        const kind = this._hmAnnRowKind(row.mode);
+        const dir = row.sortDir || null;
+        const key = row.sortKey || null;
+        const cur = !dir ? ''
+            : row.mode === 'cluster' ? 'tree'
+            : key ? `${key}-${dir}`
+            : kind === 'continuous' ? `val-${dir}`
+            : (kind === 'meta' ? `size-${dir}` : `cat-${dir}`);
+        let opts;
+        if (row.mode === 'cluster') {
+            opts = [['', 'Sort: off'], ['tree', 'Tree order']];
+        } else if (kind === 'continuous') {
+            opts = [['', 'Sort: off'], ['val-desc', 'High to low'], ['val-asc', 'Low to high']];
+        } else if (row.mode === 'gates') {
+            opts = [['', 'Sort: off'], ['cat-desc', 'Gate A first'], ['cat-asc', 'Ungated first'],
+                    ['score-desc', 'Score high to low'], ['score-asc', 'Score low to high']];
+        } else if (kind === 'meta') {
+            // Direction encodes canonical (desc) vs reversed (asc) against
+            // the rank map, which for 'name' is built A first: so A to Z is
+            // the canonical direction.
+            opts = [['', 'Sort: off'], ['size-desc', 'Largest group first'], ['size-asc', 'Smallest group first'],
+                    ['name-desc', 'A to Z'], ['name-asc', 'Z to A'],
+                    ['score-desc', 'Score high to low'], ['score-asc', 'Score low to high']];
+        } else {
+            // Alteration rows: hotspot 0/1/2, fusion, copy number.
+            opts = [['', 'Sort: off'], ['cat-asc', 'Wild-type first (0, 1, 2)'], ['cat-desc', 'Altered first (2, 1, 0)'],
+                    ['score-desc', 'Score high to low'], ['score-asc', 'Score low to high']];
+        }
+        return opts.map(([v, label]) => `<option value="${v}"${cur === v ? ' selected' : ''}>${label}</option>`).join('');
+    }
+
     // The block + sort structure implied by this._hmAnnRows, shared by the
     // toolbar syncs, the row renderer and the redraw so all three agree on
     // which rows are actually doing something.
     //
-    // v.88.80: blocking and sorting are two separate, explicit per-row
-    // choices. At most ONE row carries block=true, and it makes the blocks
-    // (the colour strip, its labels, the legend, Min n and the drill) from
-    // wherever it sits in the list; its own sort arrows set the BLOCK ORDER.
-    // Every other row with a direction sorts WITHIN those blocks, top-down in
-    // list order. The first sorting cluster or continuous row ends the chain,
+    // v.88.90: the hierarchy IS the row order. The TOPMOST row whose Sort is
+    // on makes the blocks (the colour strip, its labels, the legend, Min n
+    // and the drill) and its own sort choice sets the BLOCK ORDER; every
+    // other sorted row sorts WITHIN those blocks, top-down in list order.
+    // A topmost sorted CONTINUOUS row cannot form blocks (a value has no
+    // categories), so it simply sorts every column and ends the chain. The
+    // first sorting cluster or continuous row below ends the chain likewise,
     // because a tree order and a numeric order both leave nothing for a
     // deeper row to break ties in; a blocking cluster row ends it outright,
     // since its tree fixes the order of every column inside each cluster.
@@ -53856,9 +53875,11 @@ ${clone.innerHTML}
     _hmSortChainInfo() {
         const rows = this._hmAnnRows || [];
         let blockIdx = -1;
-        rows.forEach((r, i) => {
-            if (blockIdx < 0 && r.block && this._hmAnnRowCanBlock(r.mode)) blockIdx = i;
-        });
+        for (let i = 0; i < rows.length; i++) {
+            if (!rows[i].sortDir) continue;
+            if (this._hmAnnRowCanBlock(rows[i].mode)) blockIdx = i;
+            break;
+        }
         const blockIsCluster = blockIdx >= 0 && this._hmAnnRowKind(rows[blockIdx].mode) === 'cluster';
         // The block row's own direction is the block order, not a place in
         // the within-block chain, so it is never one of these.
@@ -53915,7 +53936,7 @@ ${clone.innerHTML}
             minGroupInput.disabled = !minNUsable;
             minGroupInput.title = minNUsable
                 ? 'Minimum cell lines per group to show'
-                : 'Turn on the blocks toggle on a lineage, subtype, disease, alteration or gates row, then this drops the small blocks';
+                : 'Set Sort on a lineage, subtype, disease, alteration or gates row (the first sorted row makes the blocks), then this drops the small blocks';
         }
         const minGroupWrap = document.getElementById('hmMinGroupSizeWrap');
         if (minGroupWrap) {
@@ -53924,7 +53945,7 @@ ${clone.innerHTML}
         }
         // Show median labels blocks AND every annotation row's own legend
         // entries, so it stays live as soon as there is either.
-        const kRaw = document.getElementById('hmClusterK')?.value;
+        const kRaw = this._hmClusterKValue();
         const clustersEligible = !!spec && spec.kind === 'cluster'
             && (kRaw === 'auto' || (parseInt(kRaw, 10) || 0) >= 2);
         const anyRows = (this._hmAnnRows || []).length > 0;
@@ -53935,48 +53956,7 @@ ${clone.innerHTML}
         if (medianWrap) medianWrap.style.opacity = medianUsable ? '1' : '0.45';
     }
 
-    // Title text for one annotation row's sort toggle button, by its current
-    // direction, whether the row is the blocking one (then its arrows set the
-    // BLOCK order rather than an order inside the blocks) and whether another
-    // row has already fixed the order: shared by _hmRenderAnnRowsBlock's own
-    // render and _hmSyncClusterControls (which re-applies titles without a
-    // full re-render), so the two never drift on wording.
-    _hmSortToggleTitle(dir, mode, inertReason, isBlock) {
-        if (inertReason) return inertReason;
-        if (isBlock) {
-            if (dir === 'desc') return 'Blocks in their usual order: biggest, or altered, first. Click to reverse them';
-            if (dir === 'asc') return 'Blocks reversed. Click to go back to the usual order';
-            return 'Set the order of the blocks; off means the usual one (biggest, or altered, first)';
-        }
-        if (mode === 'cluster') {
-            return dir ? 'Clustering the columns. Click to turn it off' : 'Turn clustering back on for the columns';
-        }
-        if (this._hmAnnRowKind(mode) === 'continuous') {
-            if (dir === 'desc') return 'Sorting by this value, highest first. Click for lowest first (strongest dependency, for gene effect)';
-            if (dir === 'asc') return 'Sorting by this value, lowest first. Click to turn off';
-            return 'Sort the columns by this gene\'s value';
-        }
-        if (mode === 'gates') {
-            if (dir === 'desc') return 'Sorting by gate: gate A, then gate B, then both, then the ungated lines. Click for reversed';
-            if (dir === 'asc') return 'Sorting by gate, reversed: ungated lines first. Click to turn off';
-            return 'Sort the columns by gate: gate A, then gate B, then both, then the ungated lines';
-        }
-        if (dir === 'desc') return 'Sorting by this row, altered/biggest first. Click for reversed';
-        if (dir === 'asc') return 'Sorting by this row, reversed. Click to turn off';
-        return 'Sort the columns by this row';
-    }
-
-    // Title text for one row's blocks toggle, by its current state and
-    // whether the row has categories to block by at all.
-    _hmBlockToggleTitle(mode, isBlock) {
-        if (!this._hmAnnRowCanBlock(mode)) {
-            return 'A gene\'s value has no categories to block by, so this row can only sort';
-        }
-        if (isBlock) return 'This row makes the blocks. Click to turn blocking off';
-        return 'Make this row the blocks: the colour strip, its labels, the legend, Min n and the drill all follow it. One row at a time';
-    }
-
-    // Why a given row's sort toggle is dead in place, or '' when it is live.
+    // Why a given row's sort control is dead in place, or '' when it is live.
     _hmSortInertReason(rowIdx, info) {
         // The blocking cluster row's tree fixes the order outright, so its
         // own arrows have nothing left to say about it.
@@ -54001,10 +53981,6 @@ ${clone.innerHTML}
         const clusterOn = info.clusterIdx >= 0 || info.blockIsCluster;
         const clusterCuttable = info.clusterWholeCohort;
         const genesOn = !!document.getElementById('hmClusterGenes')?.checked;
-        // The checkbox mirrors the row's existence, so a restore or a handoff
-        // that rewrote the rows directly can never leave the two disagreeing.
-        const cellsCb = document.getElementById('hmClusterCells');
-        if (cellsCb) cellsCb.checked = !!clusterRow;
         const thenBySel = document.getElementById('hmThenBy');
         if (thenBySel) {
             thenBySel.disabled = clusterOn;
@@ -54013,35 +53989,24 @@ ${clone.innerHTML}
                 : 'The final tie-break, inside the innermost blocks, or the whole order when no row\'s sort arrows are on';
             thenBySel.style.opacity = clusterOn ? '0.45' : '1';
         }
-        document.querySelectorAll('.hm-ann-row-sort').forEach(btn => {
-            const idx = parseInt(btn.dataset.idx, 10);
+        document.querySelectorAll('.hm-ann-row-sortsel').forEach(sel => {
+            const idx = parseInt(sel.dataset.idx, 10);
             const row = rows[idx];
             if (!row) return;
             const reason = this._hmSortInertReason(idx, info);
-            btn.disabled = !!reason;
-            btn.style.opacity = reason ? '0.45' : '1';
-            btn.title = this._hmSortToggleTitle(row.sortDir || null, row.mode, reason, idx === info.blockIdx);
-        });
-        document.querySelectorAll('.hm-ann-row-block').forEach(btn => {
-            const idx = parseInt(btn.dataset.idx, 10);
-            const row = rows[idx];
-            if (!row) return;
-            const canBlock = this._hmAnnRowCanBlock(row.mode);
-            btn.disabled = !canBlock;
-            btn.style.opacity = canBlock ? '1' : '0.45';
-            btn.title = this._hmBlockToggleTitle(row.mode, idx === info.blockIdx);
+            sel.disabled = !!reason;
+            sel.style.opacity = reason ? '0.45' : '1';
+            if (reason) sel.title = reason;
         });
         const kSel = document.getElementById('hmClusterK');
         if (kSel) {
-            kSel.disabled = !clusterCuttable;
-            kSel.title = !clusterRow
-                ? 'Turn on Cluster cell lines to choose a cluster count'
-                : (!clusterOn
-                    ? 'Turn the Cell-line clusters row\'s sort arrows back on, or make it the blocks, to choose a cluster count'
-                    : (clusterCuttable
-                        ? 'How many clusters to cut the tree into; Tree order only draws the dendrogram without colouring clusters'
-                        : 'A cluster count needs one tree over the whole cohort; with another row blocking or sorting above it, it clusters inside each block instead'));
-            kSel.style.opacity = clusterCuttable ? '1' : '0.45';
+            kSel.disabled = !clusterOn || !clusterCuttable;
+            kSel.title = !clusterOn
+                ? 'Set the clusters row\'s Sort to Tree order first'
+                : (clusterCuttable
+                    ? 'No split draws the dendrogram with no coloured band; Auto or a number cuts the tree into that many coloured clusters'
+                    : 'A cluster count needs one tree over the whole cohort; with a sorted row above, this row clusters inside each block instead');
+            kSel.style.opacity = (!clusterOn || !clusterCuttable) ? '0.45' : '1';
         }
         const cellsOn = !!clusterRow;
         // Tree detail selects: each is only meaningful while its own tree is
@@ -54167,7 +54132,8 @@ ${clone.innerHTML}
         const TYPE_OPTIONS = [
             ['lineage', 'Lineage'], ['subtype', 'Subtype'], ['disease', 'Disease'],
             ['hotspot', 'Hotspot mutation'], ['fusion', 'Fusion'], ['cn', 'Copy number'],
-            ['ge', 'CRISPR gene effect'], ['expr', 'mRNA expression']
+            ['ge', 'CRISPR gene effect'], ['expr', 'mRNA expression'],
+            ['cluster', 'Cell-line clusters']
         ];
         const CATEGORICAL_MODES = new Set(['lineage', 'subtype', 'disease']);
         const KINDS = [
@@ -54179,35 +54145,20 @@ ${clone.innerHTML}
         ];
         const VALUE_KINDS = new Set(['ge', 'expr']);
         const cap = (k) => k.charAt(0).toUpperCase() + k.slice(1);
-        // Which toggles are live and which are already overruled by a row
+        // Which sorts are live and which are already overruled by a row
         // above: computed once from the same helper the toolbar syncs use, so
         // a first paint after a restore is already correct rather than
         // waiting for a later sync call to catch up.
         const info = this._hmSortChainInfo();
-        // Precedence badge = this row's position among the rows that sort
-        // INSIDE the blocks, in row order, counted as the map below walks the
-        // rows top-down. The blocking row is not in that chain (its own
-        // arrows order the blocks themselves), so it never carries a badge.
-        let sortPrecedence = 0;
         wrap.innerHTML = rows.map((row, i) => {
             const dir = row.sortDir || null;
             const isBlock = i === info.blockIdx;
-            if (dir && !isBlock) sortPrecedence++;
             const inertReason = this._hmSortInertReason(i, info);
-            const sortBadge = (dir && !isBlock)
-                ? `<span style="position:absolute; top:-5px; right:-5px; background:#111827; color:#fff; border-radius:7px; min-width:13px; height:13px; line-height:13px; font-size:9px; text-align:center; padding:0 2px; pointer-events:none;">${sortPrecedence}</span>` : '';
-            // Neutral up-down glyph when off; a down arrow for desc (altered/
-            // biggest/highest first), an up arrow for asc (reversed). The
-            // clusters row has no meaningful reverse, so it shows a plain
-            // dot when on and cycles on/off only.
-            const sortGlyph = row.mode === 'cluster' ? (dir ? '&bull;' : '&#8597;')
-                : dir === 'asc' ? '&uarr;' : dir === 'desc' ? '&darr;' : '&#8597;';
-            const sortBtn = `<button type="button" class="btn btn-outline btn-sm hm-ann-row-sort" data-idx="${i}" style="font-size:10px; padding:0 6px; position:relative; ${dir ? 'background:#2563eb; border-color:#2563eb; color:#fff;' : ''} opacity:${inertReason ? '0.45' : '1'};"${inertReason ? ' disabled' : ''} title="${this.esc(this._hmSortToggleTitle(dir, row.mode, inertReason, isBlock))}">${sortGlyph}${sortBadge}</button>`;
-            // Blocks toggle: a radio across the rows, always present so the
-            // control strip never shifts, and disabled in place on the two
-            // continuous rows (a gene's value has no categories to block by).
-            const canBlock = this._hmAnnRowCanBlock(row.mode);
-            const blockBtn = `<button type="button" class="btn btn-outline btn-sm hm-ann-row-block" data-idx="${i}" style="font-size:10px; padding:0 6px; ${isBlock ? 'background:#111827; border-color:#111827; color:#fff;' : ''} opacity:${canBlock ? '1' : '0.45'};"${canBlock ? '' : ' disabled'} title="${this.esc(this._hmBlockToggleTitle(row.mode, isBlock))}">&#9638;</button>`;
+            // ONE Sort select per row (v.88.90): off, or a mode-appropriate
+            // key + direction. The topmost sorted row makes the blocks, so
+            // the same options read as "block order" there and "sort inside
+            // the blocks" further down; the title says which this row is.
+            const sortSel = `<select class="hm-ann-row-sortsel" data-idx="${i}" style="width:150px; font-size:11px; opacity:${inertReason ? '0.45' : '1'};"${inertReason ? ' disabled' : ''} title="${this.esc(inertReason || (isBlock ? 'This row is first with Sort on, so it splits the columns into blocks and this choice orders the blocks' : dir ? 'Sorts inside the blocks made by the rows above, top row first' : 'Sort: off, this row only paints colours'))}">${this._hmSortOptionsHtml(row)}</select>`;
             // Lineage, subtype, disease, the clusters row and the gates row
             // need no gene; the box shown for them is disabled and cleared
             // rather than hidden outright, the same present-but-disabled
@@ -54217,6 +54168,17 @@ ${clone.innerHTML}
             const isGates = row.mode === 'gates';
             const disabled = isCluster || isGates || CATEGORICAL_MODES.has(row.mode);
             const activeKind = disabled ? 'hotspot' : row.mode;
+            // The cluster row's gene slot carries its ONE setting instead: cut
+            // the tree into coloured clusters, or leave it tree order only
+            // (default, no band, no Cluster groups).
+            const kVal = this._hmClusterKValue();
+            const clusterKSlot = `<span class="filter-input-wrap" style="position:relative; width:130px; display:inline-block;">
+                <select id="hmClusterK" style="width:124px; font-size:11px;" title="No split draws the dendrogram and orders the columns with no coloured band; Auto or a number cuts the tree into that many coloured clusters (needs one tree over the whole cohort, so the row must be first)">
+                    <option value="0"${kVal === '0' ? ' selected' : ''}>No split (tree only)</option>
+                    <option value="auto"${kVal === 'auto' ? ' selected' : ''}>Auto clusters</option>
+                    ${[2,3,4,5,6,7,8].map(k => `<option value="${k}"${kVal === String(k) ? ' selected' : ''}>${k} clusters</option>`).join('')}
+                </select>
+            </span>`;
             const slots = KINDS.map(([kind, placeholder, title]) => {
                 const visible = activeKind === kind;
                 const id = `hmAnnRow${i}${cap(kind)}`;
@@ -54243,9 +54205,7 @@ ${clone.innerHTML}
             // every other row so the columns line up, but theirs is fixed:
             // one is put there by the Clustering checkbox, the other appears
             // on its own as soon as a gate holds a cell line.
-            const typeControl = isCluster
-                ? `<select id="hmAnnRow${i}Type" style="width:150px;" disabled title="Added by Cluster cell lines, in the Clustering row above"><option>Cell-line clusters</option></select>`
-                : isGates
+            const typeControl = isGates
                 ? `<select id="hmAnnRow${i}Type" style="width:150px;" disabled title="Here as long as a gate holds a cell line. Paint the gates by dragging on the grid with Gate A or Gate B armed"><option>Gates</option></select>`
                 : `<select id="hmAnnRow${i}Type" style="width:150px;">
                         ${TYPE_OPTIONS.map(([v, label]) => `<option value="${v}"${row.mode === v ? ' selected' : ''}>${label}</option>`).join('')}
@@ -54254,12 +54214,11 @@ ${clone.innerHTML}
                 <div class="hm-ann-row" data-idx="${i}" style="display:flex; align-items:center; gap:6px;">
                     <span class="clb-group-label" style="flex:0 0 auto; width:38px;">Row ${i + 1}</span>
                     ${typeControl}
-                    <span style="display:inline-block; width:130px; vertical-align:top;">${slots}</span>
-                    ${blockBtn}
-                    ${sortBtn}
+                    <span style="display:inline-block; width:130px; vertical-align:top;">${isCluster ? clusterKSlot : slots}</span>
+                    ${sortSel}
                     <button type="button" class="btn btn-outline btn-sm hm-ann-row-up" data-idx="${i}" style="font-size:10px; padding:0 6px;"${isFirst ? ' disabled' : ''} title="${orderTitle}">&uarr;</button>
                     <button type="button" class="btn btn-outline btn-sm hm-ann-row-down" data-idx="${i}" style="font-size:10px; padding:0 6px;"${isLast ? ' disabled' : ''} title="${orderTitle}">&darr;</button>
-                    <button type="button" class="btn btn-outline btn-sm hm-ann-row-remove" data-idx="${i}" style="font-size:10px; padding:0 6px;" title="${isCluster ? 'Remove this row and switch Cluster cell lines off' : isGates ? 'Clear both gates, which also removes this row' : 'Remove this row'}">&times;</button>
+                    <button type="button" class="btn btn-outline btn-sm hm-ann-row-remove" data-idx="${i}" style="font-size:10px; padding:0 6px;" title="${isGates ? 'Clear both gates, which also removes this row' : 'Remove this row'}">&times;</button>
                 </div>
                 <div id="hmAnnRow${i}Note" style="font-size:10px; color:#9ca3af; margin:2px 0 0 44px;${needsNote ? '' : ' display:none;'}">Row ${i + 1} draws once a gene is picked.</div>
             </div>`;
@@ -54279,41 +54238,51 @@ ${clone.innerHTML}
         rows.forEach((row, i) => {
             const typeSel = document.getElementById(`hmAnnRow${i}Type`);
             typeSel?.addEventListener('change', () => {
+                // At most one clusters row: a second would mean two trees
+                // fighting over the same columns.
+                if (typeSel.value === 'cluster'
+                    && this._hmAnnRows.some((r, j) => j !== i && r.mode === 'cluster')) {
+                    typeSel.value = this._hmAnnRows[i].mode;
+                    this.showCopyNotification?.('There is already a Cell-line clusters row.');
+                    return;
+                }
                 this._hmAnnRows[i].mode = typeSel.value;
-                if (CATEGORICAL_MODES.has(typeSel.value)) this._hmAnnRows[i].gene = null;
-                // A row switched to a gene's value has no categories left to
-                // block by, so it gives the blocks up rather than keeping a
-                // flag that quietly does nothing.
-                if (!this._hmAnnRowCanBlock(typeSel.value)) this._hmAnnRows[i].block = false;
+                if (CATEGORICAL_MODES.has(typeSel.value) || typeSel.value === 'cluster') this._hmAnnRows[i].gene = null;
+                // A sort key belongs to the mode it was chosen under; keep
+                // the direction, drop the key, and clamp what the new mode
+                // cannot do (a cluster row is on/off only).
+                this._hmAnnRows[i].sortKey = null;
+                if (typeSel.value === 'cluster' && this._hmAnnRows[i].sortDir) this._hmAnnRows[i].sortDir = 'desc';
                 this._hmRenderAnnRowsBlock();
                 this._hmSyncGroupControls();
                 this._hmSyncClusterControls();
                 this._hmRedraw();
             });
-            wrap.querySelector(`.hm-ann-row-sort[data-idx="${i}"]`)?.addEventListener('click', () => {
-                const cur = this._hmAnnRows[i].sortDir || null;
-                // Three-state cycle (v.88.72): off -> desc -> asc -> off. The
-                // clusters row is clamped to on/off: a similarity tree has no
-                // meaningful reverse to offer.
-                this._hmAnnRows[i].sortDir = this._hmAnnRows[i].mode === 'cluster'
-                    ? (cur ? null : 'desc')
-                    : (cur === null ? 'desc' : (cur === 'desc' ? 'asc' : null));
-                this._hmRenderAnnRowsBlock();
-                this._hmSyncClusterControls();
-                this._hmRedraw();
-            });
-            // Blocking is a radio: turning it on here turns it off wherever
-            // it was, so there is only ever one colour strip, one legend and
-            // one thing Min n and the drill can mean.
-            wrap.querySelector(`.hm-ann-row-block[data-idx="${i}"]`)?.addEventListener('click', () => {
-                const wasBlock = !!this._hmAnnRows[i].block;
-                this._hmAnnRows.forEach(r => { r.block = false; });
-                if (!wasBlock) this._hmAnnRows[i].block = true;
+            wrap.querySelector(`.hm-ann-row-sortsel[data-idx="${i}"]`)?.addEventListener('change', (e) => {
+                const v = e.target.value;
+                const r = this._hmAnnRows[i];
+                if (!v) { r.sortDir = null; r.sortKey = null; }
+                else if (v === 'tree') { r.sortDir = 'desc'; r.sortKey = null; }
+                else {
+                    const m = v.match(/^(size|cat|val|name|score)-(asc|desc)$/);
+                    if (m) {
+                        r.sortDir = m[2];
+                        r.sortKey = (m[1] === 'name' || m[1] === 'score') ? m[1] : null;
+                    }
+                }
                 this._hmRenderAnnRowsBlock();
                 this._hmSyncGroupControls();
                 this._hmSyncClusterControls();
                 this._hmRedraw();
             });
+            // The cluster row's split select (only rendered on that row).
+            if (row.mode === 'cluster') {
+                document.getElementById('hmClusterK')?.addEventListener('change', (e) => {
+                    this._hmClusterKChoice = e.target.value;
+                    this._hmSyncGroupControls();
+                    this._hmRedraw();
+                });
+            }
             wrap.querySelector(`.hm-ann-row-remove[data-idx="${i}"]`)?.addEventListener('click', () => {
                 const removed = this._hmAnnRows[i];
                 // The gates row exists only while a gate holds a cell line,
@@ -54328,13 +54297,6 @@ ${clone.innerHTML}
                     return;
                 }
                 this._hmAnnRows.splice(i, 1);
-                // Removing the clusters row IS switching clustering off, so
-                // the checkbox follows rather than being left ticked with no
-                // row behind it (_hmSyncClusterControls re-reads the rows).
-                if (removed?.mode === 'cluster') {
-                    const cb = document.getElementById('hmClusterCells');
-                    if (cb) cb.checked = false;
-                }
                 this._hmRenderAnnRowsBlock();
                 this._hmSyncClusterControls();
                 this._hmRedraw();
@@ -54428,7 +54390,7 @@ ${clone.innerHTML}
         let changed = false;
         if (anyGated) {
             if (!gateRowIdxs.length) {
-                rows.push({ mode: 'gates', gene: null, sortDir: null, block: false });
+                rows.push({ mode: 'gates', gene: null, sortDir: null, sortKey: null });
                 changed = true;
             } else if (gateRowIdxs.length > 1) {
                 // At most one: a restored file plus a live sync could
@@ -54463,7 +54425,7 @@ ${clone.innerHTML}
         // Clustering is no longer a control of its own down here: it enters
         // as the Cell-line clusters annotation ROW, resolved with the rest of
         // the hierarchy further down (v.88.76).
-        const clusterKRaw = document.getElementById('hmClusterK')?.value || '0';
+        const clusterKRaw = this._hmClusterKValue();
         // 'auto' resolves to a concrete number once the whole-cohort tree
         // exists (it needs the tree to pick from); clusterK stays 0 until
         // then, same as "Tree order only", so nothing downstream needs to
@@ -54614,12 +54576,14 @@ ${clone.innerHTML}
         // silent empty band.
         const annRowsResolved = this._hmResolveAnnotationRows();
         const annRowsNote = annRowsResolved.note || '';
-        // The order is carried by the annotation rows (v.88.76), in the two
-        // explicit choices v.88.80 split it into: the ONE row marked as the
-        // blocks splits the columns (and its own arrows set the order of the
-        // blocks), then every other row with a direction sorts inside them,
-        // top-down in row order, with hmThenBy as the terminal comparator.
-        const blockRow = annRowsResolved.rows.find(r => r.block && this._hmAnnRowCanBlock(r.mode)) || null;
+        // The order is carried by the annotation rows: row order IS the
+        // hierarchy (v.88.90). The TOPMOST resolved row with Sort on splits
+        // the columns into blocks (its own sort choice sets the block
+        // order), every other sorted row sorts inside them, top-down, with
+        // hmThenBy as the terminal comparator. A topmost sorted continuous
+        // row cannot block, it just sorts every column.
+        const firstSorted = annRowsResolved.rows.find(r => r.sortDir) || null;
+        const blockRow = (firstSorted && this._hmAnnRowCanBlock(firstSorted.mode)) ? firstSorted : null;
         const blockIsCluster = !!blockRow && this._hmAnnRowKind(blockRow.mode) === 'cluster';
         const toggledRows = annRowsResolved.rows.filter(r => r.sortDir && r !== blockRow);
         const sortSpec = { rows: toggledRows, thenBy };
@@ -54645,7 +54609,7 @@ ${clone.innerHTML}
         // through its own colour band instead.
         const groupSpec = !blockRow ? null
             : blockIsCluster ? { kind: 'cluster' }
-            : { kind: 'row', mode: blockRow.mode, gene: blockRow.gene, dir: blockRow.sortDir, rowIdx: blockRow.idx, label: this._hmAnnRowLabel(blockRow.mode, blockRow.gene) };
+            : { kind: 'row', mode: blockRow.mode, gene: blockRow.gene, dir: blockRow.sortDir, sortKey: blockRow.sortKey || null, rowIdx: blockRow.idx, label: this._hmAnnRowLabel(blockRow.mode, blockRow.gene) };
 
         // A hidden legend group from a previous grouping scheme means
         // nothing under a different one (its key won't recur), so it is
@@ -54819,19 +54783,19 @@ ${clone.innerHTML}
         // the clusters row (Cluster cell lines) and the gates row.
         rows.forEach((row, idx) => {
             if (resolved.length >= 6) return;
-            // sortDir and block carry through to the resolved row unchanged:
-            // together they drive the column order (_hmRedrawCore reads the
-            // block row and the sorting subset off exactly these resolved
-            // rows, in this same order), independent of whether the row ends
-            // up drawn.
+            // sortDir and sortKey carry through to the resolved row
+            // unchanged: together they drive the column order (_hmRedrawCore
+            // reads the block row and the sorting subset off exactly these
+            // resolved rows, in this same order), independent of whether the
+            // row ends up drawn.
             const sortDir = row.sortDir || null;
-            const block = !!row.block;
+            const sortKey = row.sortKey || null;
             if (row.mode === 'cluster') {
                 // At most one clusters row: a second would mean two trees
                 // fighting over the same columns.
                 if (clusterSeen) return;
                 clusterSeen = true;
-                resolved.push({ mode: 'cluster', gene: null, sortDir, block, idx });
+                resolved.push({ mode: 'cluster', gene: null, sortDir, sortKey, idx });
                 return;
             }
             if (row.mode === 'gates') {
@@ -54841,10 +54805,10 @@ ${clone.innerHTML}
                 const gates = this._hmGates || { A: new Set(), B: new Set() };
                 if (gatesSeen || !(gates.A?.size || gates.B?.size)) return;
                 gatesSeen = true;
-                resolved.push({ mode: 'gates', gene: null, sortDir, block, idx });
+                resolved.push({ mode: 'gates', gene: null, sortDir, sortKey, idx });
                 return;
             }
-            if (row.mode === 'lineage' || row.mode === 'subtype' || row.mode === 'disease') { resolved.push({ mode: row.mode, gene: null, sortDir, block, idx }); return; }
+            if (row.mode === 'lineage' || row.mode === 'subtype' || row.mode === 'disease') { resolved.push({ mode: row.mode, gene: null, sortDir, sortKey, idx }); return; }
             let raw = (row.gene || '').trim().toUpperCase();
             if (!raw) return;
             if (row.mode === 'hotspot') {
@@ -54852,7 +54816,7 @@ ${clone.innerHTML}
                     note += `${raw} has no hotspot or damaging mutation data, that annotation row is not drawn. `;
                     return;
                 }
-                resolved.push({ mode: 'hotspot', gene: raw, sortDir, block, idx });
+                resolved.push({ mode: 'hotspot', gene: raw, sortDir, sortKey, idx });
             } else if (row.mode === 'fusion') {
                 // The fusion gene slot is the same searchable widget the
                 // fusion filter uses, whose picks can carry the legacy
@@ -54860,13 +54824,13 @@ ${clone.innerHTML}
                 // (mirrors the cn fix below, which is the one actually
                 // reported broken), so a decorated pick still resolves.
                 raw = this._stripFusionFilterDecoration(row.gene).trim().toUpperCase();
-                resolved.push({ mode: 'fusion', gene: raw, sortDir, block, idx });
+                resolved.push({ mode: 'fusion', gene: raw, sortDir, sortKey, idx });
             } else if (row.mode === 'ge') {
                 if (!this.geneIndex?.has(raw)) {
                     note += `${raw} has no CRISPR gene effect data, that annotation row is not drawn. `;
                     return;
                 }
-                resolved.push({ mode: 'ge', gene: raw, sortDir, block, idx });
+                resolved.push({ mode: 'ge', gene: raw, sortDir, sortKey, idx });
             } else if (row.mode === 'expr') {
                 // Expression loads on demand; _hmRedrawCore awaits that load
                 // before calling this whenever a row asks for it, so a miss
@@ -54875,7 +54839,7 @@ ${clone.innerHTML}
                     note += `${raw} has no mRNA expression data, that annotation row is not drawn. `;
                     return;
                 }
-                resolved.push({ mode: 'expr', gene: raw, sortDir, block, idx });
+                resolved.push({ mode: 'expr', gene: raw, sortDir, sortKey, idx });
             } else {
                 // The cn gene slot is the CN filter widget, whose picks are
                 // the DECORATED panel key ("MYC_amp"/"MYC_del", see
@@ -54891,7 +54855,7 @@ ${clone.innerHTML}
                     note += `${raw} has no curated or measured copy-number data, that annotation row is not drawn. `;
                     return;
                 }
-                resolved.push({ mode: 'cn', gene: raw, sortDir, block, idx });
+                resolved.push({ mode: 'cn', gene: raw, sortDir, sortKey, idx });
             }
         });
         return { rows: resolved, note };
@@ -54963,10 +54927,14 @@ ${clone.innerHTML}
         // the Methods text and the AI export it read as instructions to a
         // reader who has no controls to click.
         if (!plan.block && !plan.chain.length && !plan.cluster) {
-            const nudge = (withNudge && d.annRows.length) ? ' (turn on a row\'s blocks toggle to split the columns, or its sort arrows to sort by it)' : '';
+            const nudge = (withNudge && d.annRows.length) ? ' (set a row\'s Sort to split the columns into blocks and order them by it)' : '';
             return `sorted by ${thenByWord}` + nudge;
         }
         const dirWords = (row, isBlock) => {
+            // The chosen sort key (v.88.90) names its own order; without one
+            // the historic per-kind default order applies.
+            if (row.sortKey === 'name') return row.dir === 'asc' ? 'Z to A' : 'A to Z';
+            if (row.sortKey === 'score') return row.dir === 'asc' ? 'lowest median score first' : 'highest median score first';
             const kind = this._hmAnnRowKind(row.mode);
             if (kind === 'continuous') return row.dir === 'asc' ? 'lowest first' : 'highest first';
             if (kind === 'meta') return row.dir === 'asc' ? 'smallest block first' : 'biggest block first';
@@ -55188,7 +55156,7 @@ ${clone.innerHTML}
             return {
                 numeric: false,
                 valueFor: this._hmAnnRowValueFor(row.mode, row.gene),
-                rankMap: this._hmAnnRowRankMap(row.mode, row.gene, cohort),
+                rankMap: this._hmAnnRowRankMap(row.mode, row.gene, cohort, row.sortKey || null, clScore),
                 dir: row.sortDir === 'asc' ? -1 : 1
             };
         });
@@ -55292,7 +55260,7 @@ ${clone.innerHTML}
             // colour strip, staggered labels, legend, drill-down and Min n
             // have always used.
             const valueFor = this._hmAnnRowValueFor(outerRow.mode, outerRow.gene);
-            const rankMap = this._hmAnnRowRankMap(outerRow.mode, outerRow.gene, cohort);
+            const rankMap = this._hmAnnRowRankMap(outerRow.mode, outerRow.gene, cohort, outerRow.sortKey || null, clScore);
             const byKey = new Map();
             for (const cl of cohort) {
                 const k = valueFor(cl);
@@ -55546,9 +55514,9 @@ ${clone.innerHTML}
             block: groupSpec
                 ? (groupSpec.kind === 'cluster'
                     ? { kind: 'cluster' }
-                    : { kind: 'row', mode: groupSpec.mode, gene: groupSpec.gene, dir: groupSpec.dir || null })
+                    : { kind: 'row', mode: groupSpec.mode, gene: groupSpec.gene, dir: groupSpec.dir || null, sortKey: groupSpec.sortKey || null })
                 : null,
-            chain: chainRows.map(r => ({ mode: r.mode, gene: r.gene, dir: r.sortDir })),
+            chain: chainRows.map(r => ({ mode: r.mode, gene: r.gene, dir: r.sortDir, sortKey: r.sortKey || null })),
             cluster: clusterCells ? { blocking: !!(groupSpec && groupSpec.kind === 'cluster') } : null,
             inert: (sortSpec.rows || []).filter(r => !chainRows.includes(r) && r.mode !== 'cluster')
                 .map(r => this._hmAnnRowLabel(r.mode, r.gene))
@@ -55675,7 +55643,16 @@ ${clone.innerHTML}
     // whatever slice is being sorted, so every group's blocks agree on which
     // category counts as "biggest"), ties A-Z: the same size-first order
     // _hmBuildAnnotation2 computes for its own legend/colour assignment.
-    _hmAnnRowRankMap(mode, gene, cohort) {
+    // Category rank for one row, by the row's sort KEY (v.88.90):
+    //   null    the historic default: altered level first for alteration and
+    //           gates rows, biggest category first for the rest
+    //   'name'  categories A to Z
+    //   'score' categories by their median per-line score, highest first
+    //           (clScore comes from the caller; without it, falls back to
+    //           the default rank)
+    // The row's direction is applied by the caller as a multiplier, so
+    // 'asc' reads as the reverse of whatever this rank says.
+    _hmAnnRowRankMap(mode, gene, cohort, sortKey = null, clScore = null) {
         const ALTERED_FIRST = {
             hotspot: ['Both copies', 'One copy', 'Wild-type'],
             fusion: ['Fused', 'No fusion'],
@@ -55683,11 +55660,41 @@ ${clone.innerHTML}
             gates: this._HM_GATE_CATEGORIES()
         };
         const rankMap = new Map();
+        const valueFor = this._hmAnnRowValueFor(mode, gene);
+        if (sortKey === 'name' || (sortKey === 'score' && clScore)) {
+            const perCat = new Map();
+            for (const cl of cohort) {
+                const v = valueFor(cl);
+                if (!perCat.has(v)) perCat.set(v, []);
+                perCat.get(v).push(cl);
+            }
+            let order;
+            if (sortKey === 'name') {
+                order = [...perCat.keys()].sort((a, b) => String(a).localeCompare(String(b)));
+            } else {
+                const medianOf = (cls) => {
+                    const vals = cls.map(cl => clScore.get(cl)).filter(v => v != null && !Number.isNaN(v)).sort((a, b) => a - b);
+                    if (!vals.length) return NaN;
+                    const m = Math.floor(vals.length / 2);
+                    return vals.length % 2 ? vals[m] : (vals[m - 1] + vals[m]) / 2;
+                };
+                const med = new Map([...perCat.entries()].map(([k, cls]) => [k, medianOf(cls)]));
+                order = [...perCat.keys()].sort((a, b) => {
+                    const ma = med.get(a), mb = med.get(b);
+                    const na = Number.isNaN(ma), nb = Number.isNaN(mb);
+                    if (na && nb) return String(a).localeCompare(String(b));
+                    if (na) return 1;
+                    if (nb) return -1;
+                    return mb - ma || String(a).localeCompare(String(b));
+                });
+            }
+            order.forEach((label, i) => rankMap.set(label, i));
+            return rankMap;
+        }
         if (ALTERED_FIRST[mode]) {
             ALTERED_FIRST[mode].forEach((label, i) => rankMap.set(label, i));
             return rankMap;
         }
-        const valueFor = this._hmAnnRowValueFor(mode, gene);
         const counts = new Map();
         for (const cl of cohort) { const v = valueFor(cl); counts.set(v, (counts.get(v) || 0) + 1); }
         const order = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b));
@@ -57993,6 +58000,14 @@ ${clone.innerHTML}
             ${sizeRow('Cell width max', 'hm_ts_cellWMax', s.cellWMax, 2, 40)}
             ${sizeRow('Cell height', 'hm_ts_cellH', s.cellH, 4, 40)}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
+            <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Cell-line tree detail</div>
+            <div style="display:flex; align-items:center; margin-bottom:5px; gap:4px;">
+                <span style="width:15px;"></span>
+                <select id="hm_ts_treeCells" style="flex:1; font-size:11px;" onchange="app._hmTsApply()" title="Drawing detail only, does not change the clustering: how much branch detail the cell-line tree above the grid draws">
+                    ${['full', 'medium', 'coarse', 'xcoarse', 'minimal'].map(v => `<option value="${v}"${s.treeDetailCells === v ? ' selected' : ''}>${v === 'full' ? 'Full' : v === 'medium' ? 'Medium' : v === 'coarse' ? 'Coarse' : v === 'xcoarse' ? 'Very coarse' : 'Minimal'}</option>`).join('')}
+                </select>
+            </div>
+            <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <button onclick="app._hmTsReset()" style="font-size:10px;padding:3px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;background:#f9fafb;color:#374151;">Reset to defaults</button>
             <div style="font-size:9px;color:#9ca3af;margin-top:6px;">Applies on screen and to every heatmap export (image, copy). Saved for next time.</div>
         `;
@@ -58015,15 +58030,17 @@ ${clone.innerHTML}
             const v = parseInt(document.getElementById(id)?.value, 10);
             return Number.isFinite(v) ? v : def;
         };
-        // Tree detail no longer lives in this panel (it's the two toolbar
-        // selects now), so it's carried forward from whatever is already
-        // set rather than read from a control here.
+        // Cell-line tree detail lives in this panel (v.88.90; the toolbar
+        // select is gone with the Cluster cell lines checkbox); the gene
+        // tree's detail select stays on the Clustering toolbar row.
+        const treeCells = document.getElementById('hm_ts_treeCells')?.value;
         this._hmSettings = Object.assign({}, defaults, this._hmSettings || {}, {
             geneFont: num('hm_ts_geneFont', defaults.geneFont),
             labelFont: num('hm_ts_labelFont', defaults.labelFont),
             legendFont: num('hm_ts_legendFont', defaults.legendFont),
             cellWMax: num('hm_ts_cellWMax', defaults.cellWMax),
-            cellH: num('hm_ts_cellH', defaults.cellH)
+            cellH: num('hm_ts_cellH', defaults.cellH),
+            ...(treeCells ? { treeDetailCells: treeCells } : {})
         });
         this._hmSaveSettingsToStorage();
         this._hmRedraw();
@@ -58078,19 +58095,21 @@ ${clone.innerHTML}
             minN: parseInt(val('hmMinGroupSize'), 10) || 1,
             showMedian: checked('hmShowMedian'),
             clusterGenes: checked('hmClusterGenes'),
-            clusterCells: checked('hmClusterCells'),
-            clusterK: val('hmClusterK') === 'auto' ? 'auto' : (parseInt(val('hmClusterK'), 10) || 0),
+            // v.88.90: the cluster checkbox is gone; a saved file records
+            // whether a sorted cluster row exists (clusterCells, kept for
+            // older readers) and the split choice, which now lives in state.
+            clusterCells: (this._hmAnnRows || []).some(r => r.mode === 'cluster' && r.sortDir),
+            clusterK: this._hmClusterKValue() === 'auto' ? 'auto' : (parseInt(this._hmClusterKValue(), 10) || 0),
             geneClusterK: val('hmGeneClusterK') === 'auto' ? 'auto' : (parseInt(val('hmGeneClusterK'), 10) || 0),
             // v.88.70: rows carry their own sort state (replacing the retired
             // hmSort select); v.88.72 widened that from a boolean sortOn to a
             // three-state sortDir (null | 'desc' | 'asc'); v.88.76 made the
             // rows the WHOLE hierarchy, retiring groupBy/groupGene/groupOrder
             // and adding the 'cluster' row mode; v.88.80 split blocking off
-            // into its own `block` flag (at most one row) and added the
-            // 'gates' row mode, whose PRESENCE is derived from gateA/gateB
-            // below on restore while its own two flags ride along here. All
-            // migrated on read by _hmRestoreView for an older file.
-            annRows: (this._hmAnnRows || []).map(r => ({ mode: r.mode, gene: r.gene || null, sortDir: r.sortDir || null, block: !!r.block })),
+            // into a `block` flag; v.88.90 retired that flag again (the
+            // topmost sorted row IS the blocks) and added per-row sortKey.
+            // All migrated on read by _hmRestoreView for an older file.
+            annRows: (this._hmAnnRows || []).map(r => ({ mode: r.mode, gene: r.gene || null, sortDir: r.sortDir || null, sortKey: r.sortKey || null })),
             hiddenGroups: this._hmHiddenGroups ? [...this._hmHiddenGroups] : [],
             drillCells: this._hmDrillCells ? [...this._hmDrillCells] : null,
             drillLabel: this._hmDrillLabel || null,
@@ -58158,8 +58177,9 @@ ${clone.innerHTML}
         // toggle/then-by migration below (that migration can add or toggle
         // an annotation row, which has to land in this._hmAnnRows first).
         setChecked('hmClusterGenes', state.clusterGenes);
-        setChecked('hmClusterCells', state.clusterCells);
-        set('hmClusterK', state.clusterK != null ? String(state.clusterK) : '0');
+        // The cluster split choice lives in state now (v.88.90; the select
+        // is rendered on the cluster row itself when one exists).
+        this._hmClusterKChoice = state.clusterK != null ? String(state.clusterK) : '0';
         // Older files predate the gene-tree colour select; they drew plain
         // gray trees (or the brief always-auto v.88.77/78), so absent means
         // Tree order only rather than inheriting whatever is on screen.
@@ -58199,20 +58219,30 @@ ${clone.innerHTML}
         // what tells a new file from a v.88.70 one rather than its value;
         // a v.88.70 file has sortOn instead, true -> 'desc' (its only "on"
         // meant today's altered/biggest-first order), false/absent -> null.
-        // v.88.80 split blocking off from sorting: a file from v.88.76-79
-        // carries sortDir but no `block` key at all, and in that model the
-        // OUTERMOST toggled row was the blocks. Detected here (a new file
-        // always writes the key on every row, so its presence is what tells
-        // the formats apart) and applied further down, after the older
-        // migrations have finished rebuilding the row list.
-        const needsBlockMigration = !Array.isArray(state.annRows)
-            || !state.annRows.some(r => r && typeof r === 'object' && 'block' in r);
+        // v.88.90 retired the v.88.80 `block` flag: the TOPMOST sorted row is
+        // the blocks now. A v.88.80-89 file that marked a NON-first row as
+        // the blocks is migrated by moving that row to the front (its
+        // within-block chain keeps its order behind it), and a block row
+        // whose own arrows were off gets sortDir 'desc', since under the old
+        // model the flag alone made blocks in the default order while the
+        // new model needs Sort on. A v.88.76-79 file (no block key) already
+        // meant "outermost toggled row blocks", which is the new rule.
         this._hmAnnRows = Array.isArray(state.annRows) ? state.annRows.map(r => ({
             mode: r.mode,
             gene: r.gene || null,
             sortDir: ('sortDir' in r) ? (r.sortDir || null) : (r.sortOn ? 'desc' : null),
-            block: !!r.block
+            sortKey: ('sortKey' in r) ? (r.sortKey || null) : null,
+            _legacyBlock: !!r.block
         })) : [];
+        {
+            const bi = this._hmAnnRows.findIndex(r => r._legacyBlock && this._hmAnnRowCanBlock(r.mode));
+            if (bi >= 0) {
+                const [b] = this._hmAnnRows.splice(bi, 1);
+                if (!b.sortDir) b.sortDir = 'desc';
+                this._hmAnnRows.unshift(b);
+            }
+            this._hmAnnRows.forEach(r => { delete r._legacyBlock; });
+        }
         // v.88.76 retired the separate Sort row: state.groupBy/groupGene are
         // now the outermost TOGGLED annotation row, and state.clusterCells is
         // the Cell-line clusters row. Migrated here (before the older
@@ -58237,27 +58267,32 @@ ${clone.innerHTML}
         // pre-v.88.76 here, so none of this fires for one.
         if (state.groupBy !== undefined) {
             const legacyGroup = state.groupBy || 'none';
-            // 'desc' is the old size-ordered / altered-first block order,
-            // i.e. what the block row draws with its arrows off too, so it is
-            // set explicitly and reads back as the same picture.
-            const promote = (row) => { row.sortDir = 'desc'; row.block = true; };
+            // 'desc' is the old size-ordered / altered-first block order.
+            // Under the positional model (v.88.90) the block row is the
+            // FIRST sorted row, so promoting means moving it to the front.
+            const promote = (row) => {
+                row.sortDir = 'desc';
+                const at = this._hmAnnRows.indexOf(row);
+                if (at > 0) { this._hmAnnRows.splice(at, 1); this._hmAnnRows.unshift(row); }
+            };
+            let promoted = false;
             if (legacyGroup === 'lineage' || legacyGroup === 'subtype' || legacyGroup === 'disease') {
                 const existing = this._hmAnnRows.find(r => r.mode === legacyGroup);
                 if (existing) promote(existing);
-                else this._hmAnnRows.unshift({ mode: legacyGroup, gene: null, sortDir: 'desc', block: true });
+                else this._hmAnnRows.unshift({ mode: legacyGroup, gene: null, sortDir: 'desc', sortKey: null });
+                promoted = true;
             } else if (legacyGroup === 'alteration' && state.groupGene) {
                 const gene = String(state.groupGene).trim().toUpperCase();
                 const existing = this._hmAnnRows.find(r => r.mode === 'hotspot' && (r.gene || '').toUpperCase() === gene);
                 if (existing) promote(existing);
-                else this._hmAnnRows.unshift({ mode: 'hotspot', gene, sortDir: 'desc', block: true });
+                else this._hmAnnRows.unshift({ mode: 'hotspot', gene, sortDir: 'desc', sortKey: null });
+                promoted = true;
             }
             if (state.clusterCells && !this._hmAnnRows.some(r => r.mode === 'cluster')) {
-                // Right after whichever row now blocks, so it reads as
-                // "clustered inside these blocks"; at the top when nothing
-                // blocks, where the rule at the end of this function then
-                // makes it the block row.
-                const blockAt = this._hmAnnRows.findIndex(r => r.block);
-                this._hmAnnRows.splice(blockAt + 1, 0, { mode: 'cluster', gene: null, sortDir: 'desc', block: false });
+                // Right after the block row, so it reads as "clustered inside
+                // these blocks"; at the top when nothing blocks, where being
+                // first sorted makes it the block row itself.
+                this._hmAnnRows.splice(promoted ? 1 : 0, 0, { mode: 'cluster', gene: null, sortDir: 'desc', sortKey: null });
             }
         }
 
@@ -58288,7 +58323,7 @@ ${clone.innerHTML}
                 thenBy = 'score';
                 const lineageRows = this._hmAnnRows.filter(r => r.mode === 'lineage');
                 if (lineageRows.length) lineageRows.forEach(r => { r.sortDir = 'desc'; });
-                else this._hmAnnRows.push({ mode: 'lineage', gene: null, sortDir: 'desc', block: false });
+                else this._hmAnnRows.push({ mode: 'lineage', gene: null, sortDir: 'desc', sortKey: null });
             } else if (state.sort === 'annotation') {
                 thenBy = 'score';
                 this._hmAnnRows.forEach(r => { r.sortDir = 'desc'; });
@@ -58298,16 +58333,6 @@ ${clone.innerHTML}
         }
         set('hmThenBy', thenBy);
 
-        // The v.88.80 block migration, run last so it sees the row list every
-        // older migration above has finished building: under the old model
-        // the OUTERMOST toggled row was the blocks (a continuous one made no
-        // blocks at all, and neither does this), so that is the row that gets
-        // block=true here. It keeps its own sortDir, which is now the order
-        // of the blocks and means exactly what it meant before.
-        if (needsBlockMigration && !this._hmAnnRows.some(r => r.block)) {
-            const outermost = this._hmAnnRows.find(r => r.sortDir);
-            if (outermost && this._hmAnnRowCanBlock(outermost.mode)) outermost.block = true;
-        }
         // The gates row's presence is derived from the gates themselves, not
         // taken from the file: gates land in this._hmGates further down and
         // the redraw's _hmSyncGatesRow adds or drops the row to match, so a

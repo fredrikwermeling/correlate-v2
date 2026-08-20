@@ -2635,6 +2635,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.90 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>The heatmap's annotation rows are the hierarchy, plainly.</b> Row order now IS the sort order: the first row with Sort on splits the columns into blocks, rows below it sort within each block, and rows with Sort off just paint colours. The ▦ blocks button and the arrow toggles are gone; each row carries one Sort select with choices that fit it: largest or smallest group first, A to Z, score high or low (blocks ordered by their median score), and for alteration rows wild-type first (0, 1, 2) or altered first (2, 1, 0).</li>
+                    <li><b>Clustering is just a row now.</b> The Cluster cell lines checkbox and its toolbar selects are gone; add a Cell-line clusters row instead. First in the list it orders the whole cohort by the dendrogram; below a sorted row it clusters within each of that row's blocks. Its one setting: No split (tree only, the default, no coloured band) or Auto / 2-8 coloured clusters. Cell-line tree drawing detail moved into Settings.</li>
+                    <li><b>Better default.</b> The heatmap opens blocked by Lineage with blocks ordered by median score (by Disease when the cohort is already one lineage), TP53 hotspot as a colour row below. Old saved views reopen unchanged: the old blocks flag is translated into the new row order.</li>
+                </ul>
                 <p><strong>v.88.89 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>All input genes show in the network by default, floating.</b> "Show all input genes" starts on, and genes without a surviving correlation drift freely around the network instead of parking in a row. The lined-up option now comes in two placements: below the network (as before) or in a column to its right. The Methods text names whichever arrangement is in force.</li>
@@ -7050,7 +7056,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.89</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.90</a>
         </span>
     </div>
 
@@ -8933,31 +8939,11 @@
                                 <option value="xcoarse">Very coarse</option>
                                 <option value="minimal">Minimal</option>
                             </select>
-                            <label style="display:flex; align-items:center; gap:4px; font-size:12px; color:#374151; cursor:pointer;" title="Adds a Cell-line clusters annotation row that orders the columns by similarity. Move it below another toggled row to cluster within that row's blocks instead">
-                                <input type="checkbox" id="hmClusterCells" style="margin:0;"> Cluster cell lines
-                            </label>
-                            <select id="hmClusterK" style="width:150px;" title="How many clusters to cut the tree into; Tree order only draws the dendrogram without colouring clusters">
-                                <option value="auto" selected>Auto (suggested)</option>
-                                <option value="0">Tree order only</option>
-                                <option value="2">2 clusters</option>
-                                <option value="3">3 clusters</option>
-                                <option value="4">4 clusters</option>
-                                <option value="5">5 clusters</option>
-                                <option value="6">6 clusters</option>
-                                <option value="7">7 clusters</option>
-                                <option value="8">8 clusters</option>
-                                <option value="9">9 clusters</option>
-                                <option value="10">10 clusters</option>
-                                <option value="11">11 clusters</option>
-                                <option value="12">12 clusters</option>
-                            </select>
-                            <select id="hmTreeDetailCells" style="width:110px;" title="Drawing detail only, does not change the clustering: How much branch detail the cell-line tree above the grid draws">
-                                <option value="full" selected>Full</option>
-                                <option value="medium">Medium</option>
-                                <option value="coarse">Coarse</option>
-                                <option value="xcoarse">Very coarse</option>
-                                <option value="minimal">Minimal</option>
-                            </select>
+                            <!-- Cell-line clustering lives on the "Cell-line
+                                 clusters" annotation row (add it with + Add
+                                 row): its position among the rows says what
+                                 it clusters, and its own select says whether
+                                 the tree is cut into coloured clusters. -->
                         </div>
                     </div>
                     <div class="clb-row clb-row-alt">
@@ -9022,7 +9008,7 @@
                                 <option value="score" selected>Score (mean of shown genes)</option>
                                 <option value="name">Name (A-Z)</option>
                             </select>
-                            <span id="hmAnnRowsSortNote" style="display:none; font-size:10px; color:#9ca3af;">&#9638; makes that row the blocks, one row at a time; its &#8597; arrows then set the order of the blocks. Any other row's arrows sort inside the blocks, top row first. Add the Cell-line clusters row (Clustering, above) to cluster within blocks.</span>
+                            <span id="hmAnnRowsSortNote" style="display:none; font-size:10px; color:#9ca3af;">Rows apply top to bottom: the first row with Sort on splits the columns into blocks, rows below it sort within each block, and rows with Sort off just paint colours. Use the arrows to reorder rows. Add a Cell-line clusters row to cluster the columns, on the whole cohort when it is first, or within each block when it sits below a sorted row.</span>
                         </div>
                     </div>
                 </div>
@@ -10117,6 +10103,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_89"></script>
+    <script src="app.js?v=v88_90"></script>
 </body>
 </html>
