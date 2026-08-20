@@ -2296,8 +2296,8 @@
             /* No exports anywhere on phones: hide every remaining CSV / AI
                (.json.gz) data-export button (PNG/SVG already hidden elsewhere). */
             #downloadScatterCSV, #downloadTissueCSV, #scatterAnalyzeWithAI,
-            #mutAnalyzeWithAI, #downloadSynonyms, #downloadExprCorrelatesCSV,
-            #mutCompareExportCSV { display: none !important; }
+            #mutAnalyzeWithAI, #downloadSynonyms,
+            #downloadExprCorrelatesCSV { display: none !important; }
             /* What a phone is actually for here: showing someone a cell line
                and its wiki, a gene's effect, a pair on the scatter, a mutation
                analysis, or a network from a test gene set. Everything below
@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.93 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>Export housekeeping from the audit's leftovers.</b> Four CSVs now carry their scope in the filename (network correlations and clusters get the lineage/subtype, the scatter gets its tissue filter, the Cell Line Browser list its active filters, the mutation grid its filter label), and the correlations CSV gains the same # provenance block its clusters sibling always had. The mutation analysis CSV in functional loss / amplification / deletion mode names its columns as the screen does (Intact / Lost, WT / Amp) and drops the copy-number columns that never applied there, including a p-value of 1 for a test that was never run. The long-dead full-screen Compare modal (unreachable since v.84.33) is deleted outright.</li>
+                </ul>
                 <p><strong>v.88.92 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>Network polish.</b> "Show all input genes" is no longer on by default (Floating stays the default arrangement once it is switched on), and the "Lined up right" block is now properly centred on the network's vertical middle instead of sitting pressed toward the top.</li>
@@ -7064,7 +7068,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.92</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.93</a>
         </span>
     </div>
 
@@ -9345,20 +9349,6 @@
     </div>
 
 
-    <!-- Full-screen Compare Modal -->
-    <div id="mutCompareModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.5);">
-      <div style="position:absolute; inset:20px; background:white; border-radius:12px; display:flex; flex-direction:column; overflow:hidden;">
-        <div style="padding:16px 20px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-          <h3 id="mutCompareModalTitle" style="margin:0; flex:1;"></h3>
-          <label style="font-size:12px;">Min mutated: <input type="number" id="mutCompareMinN" value="5" min="1" max="50" style="width:50px; font-size:12px;"></label>
-          <button class="btn btn-outline btn-sm" id="mutCompareExportCSV">Export CSV</button>
-          <button class="btn btn-sm" id="mutCompareModalClose" style="background:#ef4444; color:white;">Close</button>
-        </div>
-        <div id="mutCompareModalInfo" style="padding:8px 20px; font-size:11px; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb;"></div>
-        <div id="mutCompareModalBody" style="flex:1; overflow:auto; padding:0;"></div>
-      </div>
-    </div>
-
     <!-- Enrichr Pathway Analysis Modal -->
     <div id="enrichrModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:10000;">
       <div id="enrichrCard" style="background:#fff; margin:30px auto; width:90%; max-width:1100px; max-height:90vh; border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
@@ -10111,6 +10101,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_92"></script>
+    <script src="app.js?v=v88_93"></script>
 </body>
 </html>

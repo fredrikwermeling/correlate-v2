@@ -1,11 +1,10 @@
 OPEN: UMAP gate comparison could reuse the shared inspect view (explicitly
 deferred by Fredrik 2026-08-19, only if ever wanted).
-OPEN (cosmetic debt, deliberate, from the 2026-08-20 export audit): four CSVs
-carry their scope in neither filename nor file (network correlations, scatter,
-CLB list, oncoprint); PDF vector text is ASCII-only (base-14 fonts); chart
-rasters come out 5-25% narrower than the asked-for cm (whitespace trim);
-mutation CSV keeps hotspot column names in functional-loss mode; the dead
-mutCompareModal code (unreachable since v.84.33) could be deleted.
+OPEN (cosmetic debt, deliberate, from the 2026-08-20 export audit): PDF vector
+text is ASCII-only (base-14 fonts); chart rasters come out 5-25% narrower than
+the asked-for cm (whitespace trim). The rest of that list shipped in v.88.93
+(scope-carrying filenames + correlations # block, functional-loss column
+names, dead compare modal deleted).
 
 == SHIPPED v.88.85-91 (2026-08-20) ==
 
