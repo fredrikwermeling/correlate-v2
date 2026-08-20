@@ -2636,6 +2636,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.103 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>Colour by GE / expression, simplified and scalable.</b> The unintuitive "GE / Absolute" sub-choice is gone: gene effect always colours on its signed orange-to-purple scale. In its place, one choice that works for both measures: scale the colours to the genes on screen (default) or to the whole input set, so a gene keeps its colour when others are hidden. The export legends follow the same choice. In mRNA mode nothing gene-effect-specific shows any more.</li>
+                </ul>
                 <p><strong>v.88.102 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>Network polish, three pieces.</b> Floating input genes now settle on a ring around the connected network instead of freezing wherever the solver left them, sometimes right among the connected nodes. The coarse pan arrows and - / + buttons are gone (drag and scroll do the same job smoothly); the fit button stays. And the Enrichr menu states each choice's gene count for the current run: "All input genes (n=18)", "Correlated genes (the clusters) (n=11)", "Everything in the network (n=18)".</li>
@@ -7105,7 +7109,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.102</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.103</a>
         </span>
     </div>
 
@@ -7628,8 +7632,8 @@
                             </div>
                             <div id="colorGEOptions" style="display: none; margin-left: 20px; margin-bottom: 4px;">
                                 <div class="radio-group-inline">
-                                    <label><input type="radio" name="colorGEType" value="signed" checked> GE</label>
-                                    <label><input type="radio" name="colorGEType" value="absolute"> Absolute</label>
+                                    <label title="The colour range is stretched over the genes drawn on screen"><input type="radio" name="colorGERange" value="shown" checked> Scale to genes on screen</label>
+                                    <label title="The colour range covers every input gene with data, so a gene keeps its colour when others are hidden"><input type="radio" name="colorGERange" value="input"> Whole input set</label>
                                 </div>
                             </div>
                             <!-- Gene Statistics options (shown when stats loaded) -->
@@ -10138,6 +10142,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_102"></script>
+    <script src="app.js?v=v88_103"></script>
 </body>
 </html>

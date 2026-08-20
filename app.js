@@ -6225,7 +6225,7 @@ class CorrelationExplorer {
             }
             this.updateNetworkColors();
         });
-        document.querySelectorAll('input[name="colorGEType"]').forEach(radio => {
+        document.querySelectorAll('input[name="colorGERange"]').forEach(radio => {
             radio.addEventListener('change', () => this.updateNetworkColors());
         });
 
@@ -12005,18 +12005,10 @@ class CorrelationExplorer {
         setLabel('showGeneEffect', expr ? 'Show expression in label' : 'Show gene effect (GE) in label');
         setLabel('colorByGeneEffect', expr ? 'Color by expression' : 'Color by GE');
 
-        // Signed vs Absolute only makes sense for gene effect, which is
-        // centered on zero; expression (log2 TPM+1) is never negative and
-        // always uses one sequential scale (updateNetworkColors), so that
-        // choice is moot in mRNA mode. Disabled rather than relabeled: there
-        // is no "mRNA" equivalent of "signed vs absolute" to name it with.
-        document.querySelectorAll('input[name="colorGEType"]').forEach(radio => {
-            radio.disabled = expr;
-            const label = radio.parentElement;
-            if (!label) return;
-            label.style.opacity = expr ? '0.5' : '';
-            label.title = expr ? 'Not used for mRNA: expression coloring always uses one scale.' : '';
-        });
+        // The GE / Absolute sub-choice is gone (v.88.103): gene effect always
+        // colours on its signed scale, and the remaining sub-option (scale to
+        // the shown genes or the whole input set) applies to both measures,
+        // so nothing under the checkbox needs relabelling per basis.
     }
 
     displayNetwork() {
@@ -12810,7 +12802,7 @@ class CorrelationExplorer {
             const el = document.getElementById(id); if (el) el.style.display = 'none';
         });
         const radio = (name, val) => { const el = document.querySelector(`input[name="${name}"][value="${val}"]`); if (el) el.checked = true; };
-        radio('colorGEType', 'signed'); radio('colorStatType', 'signed_lfc');
+        radio('colorGERange', 'shown'); radio('colorStatType', 'signed_lfc');
         radio('colorScale', 'all'); radio('statsLabelDisplay', 'lfc');
 
         // Re-render with the restored settings
@@ -13351,8 +13343,15 @@ class CorrelationExplorer {
     // Gene-effect values for the genes actually drawn in the network, which is
     // what the node gradient is scaled to. Falls back to every analysed gene
     // when the network is not built yet, so the legend always has a range.
+    // The values the colour scale is normalised over. "Genes on screen"
+    // (default) uses the drawn nodes; "Whole input set" uses every gene the
+    // analysis holds a value for, so the same gene keeps the same colour
+    // whether or not its neighbours are drawn. Read here, in ONE place, so
+    // the on-screen colours and both export legends can never disagree.
     _networkEffectValues() {
         const all = (this.results?.clusters || []).map(c => c.meanEffect).filter(v => !isNaN(v));
+        const range = document.querySelector('input[name="colorGERange"]:checked')?.value || 'shown';
+        if (range === 'input') return all;
         if (!this.networkData?.nodes?.length) return all;
         const byGene = new Map();
         (this.results?.clusters || []).forEach(c => byGene.set(c.gene, c.meanEffect));
@@ -15286,13 +15285,10 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
             const effectMap = new Map();
             this.results.clusters.forEach(c => effectMap.set(c.gene, c.meanEffect));
 
-            // Use visible network genes for scale (not all clusters)
-            const visibleEffects = [];
-            this.networkData.nodes.forEach(node => {
-                const effect = effectMap.get(node.id);
-                if (effect !== undefined && !isNaN(effect)) visibleEffects.push(effect);
-            });
-            const effectValues = visibleEffects.length > 0 ? visibleEffects : this.results.clusters.map(c => c.meanEffect).filter(v => !isNaN(v));
+            // The scale's values come from the shared helper, which honours
+            // the "Genes on screen / Whole input set" choice; the export
+            // legends read the same helper.
+            const effectValues = this._networkEffectValues();
 
             if (this.results?.basis === 'expr') {
                 // Expression values (log2 TPM+1) are never negative, so the
@@ -16670,7 +16666,8 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         if (statsLabelCb) statsLabelCb.checked = false;
 
         // Reset radio buttons
-        document.querySelector('input[name="colorGEType"][value="signed"]').checked = true;
+        const geRange = document.querySelector('input[name="colorGERange"][value="shown"]');
+        if (geRange) geRange.checked = true;
         document.querySelector('input[name="colorStatType"][value="signed_lfc"]').checked = true;
         document.querySelector('input[name="colorScale"][value="all"]').checked = true;
         document.querySelector('input[name="statsLabelDisplay"][value="lfc"]').checked = true;
@@ -24078,8 +24075,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
                 const cbGE = document.getElementById('colorByGeneEffect');
                 if (cbGE) cbGE.checked = ns.colorByGeneEffect || false;
-                if (ns.colorGEType) {
-                    const r = document.querySelector(`input[name="colorGEType"][value="${ns.colorGEType}"]`);
+                if (ns.colorGERange) {
+                    const r = document.querySelector(`input[name="colorGERange"][value="${ns.colorGERange}"]`);
                     if (r) r.checked = true;
                 }
                 const cbStats = document.getElementById('colorByStats');
@@ -24580,7 +24577,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             labelItalic: this._netLabelItalic === undefined ? null : this._netLabelItalic,
             highlight: this._netHighlightText || '',
             colorByGeneEffect: document.getElementById('colorByGeneEffect')?.checked || false,
-            colorGEType: document.querySelector('input[name="colorGEType"]:checked')?.value || 'signed',
+            colorGEType: 'signed',
+            colorGERange: document.querySelector('input[name="colorGERange"]:checked')?.value || 'shown',
             colorByStats: document.getElementById('colorByStats')?.checked || false,
             colorStatType: document.querySelector('input[name="colorStatType"]:checked')?.value || 'signed_lfc',
             colorScale: document.querySelector('input[name="colorScale"]:checked')?.value || 'all',
