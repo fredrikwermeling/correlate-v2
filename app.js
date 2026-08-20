@@ -53318,6 +53318,7 @@ ${clone.innerHTML}
             });
         this._hmHiddenGroups = new Set();
         this._hmHiddenGroupsSig = null;
+        this._hmMinNBlockSig = null;
         this._hmDrillCells = null;
         this._hmDrillBack = null;
         this._hmDrillLabel = null;
@@ -54021,7 +54022,7 @@ ${clone.innerHTML}
         const clusterKAuto = clusterKRaw === 'auto';
         let clusterK = clusterKAuto ? 0 : (parseInt(clusterKRaw, 10) || 0);
         const presetKey = document.getElementById('hmPreset')?.value || Object.keys(this._GENE_SET_LIBRARY())[0];
-        const minGroupSize = Math.max(1, parseInt(document.getElementById('hmMinGroupSize')?.value) || 1);
+        let minGroupSize = Math.max(1, parseInt(document.getElementById('hmMinGroupSize')?.value) || 1);
 
         // An mRNA expression annotation row needs the expression matrix even
         // when the grid itself is drawing gene effect, so it counts towards
@@ -54198,6 +54199,25 @@ ${clone.innerHTML}
         const groupSpec = !blockRow ? null
             : blockIsCluster ? { kind: 'cluster' }
             : { kind: 'row', mode: blockRow.mode, gene: blockRow.gene, dir: blockRow.sortDir, sortKey: blockRow.sortKey || null, rowIdx: blockRow.idx, label: this._hmAnnRowLabel(blockRow.mode, blockRow.gene) };
+
+        // Min n belongs to the grouping it was set for. A threshold chosen
+        // for 30 lineage blocks silently swallowed the altered groups when
+        // the blocking moved to a hotspot row (user-reported 2026-08-20:
+        // Eye + Min n 9 hid both CDKN2A-mutated groups and the "wild-type
+        // first" split drew one block). When the block row's identity
+        // changes, the threshold goes back to 1; restores and drill-back
+        // null the signature first so their own minN survives.
+        {
+            const minNSig = groupSpec
+                ? (groupSpec.kind === 'cluster' ? 'cluster' : `${groupSpec.mode}|${groupSpec.gene || ''}`)
+                : 'none';
+            if (this._hmMinNBlockSig != null && minNSig !== this._hmMinNBlockSig && minGroupSize > 1) {
+                const minEl = document.getElementById('hmMinGroupSize');
+                if (minEl) minEl.value = '1';
+                minGroupSize = 1;
+            }
+            this._hmMinNBlockSig = minNSig;
+        }
 
         // A hidden legend group from a previous grouping scheme means
         // nothing under a different one (its key won't recur), so it is
@@ -56718,11 +56738,20 @@ ${clone.innerHTML}
         const d = this._hmData;
         if (!d || !g || !d.groups || !d.groupSpec) return;
         const lineageSel = document.getElementById('hmLineage');
+        const minNInput = document.getElementById('hmMinGroupSize');
         this._hmDrillBack = {
             annRows: (this._hmAnnRows || []).map(r => ({ ...r })),
             lineageValue: lineageSel?.value,
-            drillCells: this._hmDrillCells || null
+            drillCells: this._hmDrillCells || null,
+            minN: minNInput?.value || '1'
         };
+        // Min n belongs to the level being LEFT: a threshold that hid small
+        // lineages can hide every group at the finer level inside one
+        // lineage, and the drill then landed on an empty grid (user-reported
+        // 2026-08-20: Eye, 15 lines, Min n 9, three disease groups, nothing
+        // drawn). The drill is an explicit "show me this group", so it
+        // starts unfiltered; going back restores the threshold.
+        if (minNInput) minNInput.value = '1';
         // Whatever was hidden belonged to the blocking being left behind; a
         // stale hidden key could otherwise hide the one group a drill
         // leaves on screen, including the group just drilled into.
@@ -56767,6 +56796,12 @@ ${clone.innerHTML}
             this._hmRenderAnnRowsBlock();
         }
         if (lineageSel && back.lineageValue !== undefined) lineageSel.value = back.lineageValue;
+        const minNInput = document.getElementById('hmMinGroupSize');
+        if (minNInput && back.minN !== undefined) minNInput.value = back.minN;
+        // The redraw below returns to the pre-drill grouping; nulling the
+        // signature stops the block-change guard from wiping the restored
+        // threshold on that same redraw.
+        this._hmMinNBlockSig = null;
         this._hmDrillCells = back.drillCells || null;
         this._hmDrillBack = null;
         this._hmDrillLabel = null;
@@ -58009,6 +58044,11 @@ ${clone.innerHTML}
         this._hmArmedGate = null;
         this._hmGateDrag = null;
         this._hmCustomText = (state.customText && typeof state.customText === 'object') ? { ...state.customText } : null;
+
+        // A restored file's minN belongs with its restored grouping; null
+        // the signature so the first redraw adopts both instead of treating
+        // the grouping change as a reason to reset the threshold.
+        this._hmMinNBlockSig = null;
 
         this._hmSettings = this._hmMergeSettings(state.settings);
         this._hmSaveSettingsToStorage();
