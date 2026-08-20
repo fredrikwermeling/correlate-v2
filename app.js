@@ -53451,7 +53451,11 @@ ${clone.innerHTML}
             : (kind === 'meta' ? `size-${dir}` : `cat-${dir}`);
         let opts;
         if (row.mode === 'cluster') {
-            opts = [['', 'Sort: off'], ['tree', 'Tree order']];
+            // No off state: a clusters row with Sort off did nothing at all
+            // (no colours to paint, no order to impose), which read as a
+            // broken control (user feedback 2026-08-20). The row clusters
+            // while it exists; its x removes it.
+            opts = [['tree', 'Tree order']];
         } else if (kind === 'continuous') {
             opts = [['', 'Sort: off'], ['val-desc', 'High to low'], ['val-asc', 'Low to high']];
         } else if (row.mode === 'gates') {
@@ -53773,6 +53777,9 @@ ${clone.innerHTML}
         rows.forEach(r => {
             const k = this._hmAnnRowKind(r.mode);
             if (r.sortKey === 'score' && (k === 'alteration' || k === 'gates')) r.sortKey = null;
+            // A clusters row is always on (its off state was removed); an
+            // off one from an older session or saved view switches on here.
+            if (r.mode === 'cluster' && !r.sortDir) r.sortDir = 'desc';
         });
         wrap.innerHTML = rows.map((row, i) => {
             const dir = row.sortDir || null;
@@ -53879,7 +53886,7 @@ ${clone.innerHTML}
                 // the direction, drop the key, and clamp what the new mode
                 // cannot do (a cluster row is on/off only).
                 this._hmAnnRows[i].sortKey = null;
-                if (typeSel.value === 'cluster' && this._hmAnnRows[i].sortDir) this._hmAnnRows[i].sortDir = 'desc';
+                if (typeSel.value === 'cluster') this._hmAnnRows[i].sortDir = 'desc';
                 this._hmRenderAnnRowsBlock();
                 this._hmSyncGroupControls();
                 this._hmSyncClusterControls();
