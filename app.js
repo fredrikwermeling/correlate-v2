@@ -1325,19 +1325,10 @@ class CorrelationExplorer {
         const diseaseVal = (this._paramDiseaseMulti?.length ? this._paramDiseaseMulti : null)
             || document.getElementById('paramOncotreeFilter')?.value || '';
 
-        if (!lineage && !diseaseVal) {
-            // The block stays on screen with nothing chosen. Showing and hiding
-            // it as a lineage is picked made the whole panel jump.
-            subSelect.innerHTML = '<option value="">All subtypes</option>';
-            subSelect.value = '';
-            // Update hotspot counts for all lineages
-            this.updateHotspotCountsForCurrentFilters();
-            return;
-        }
-
-        // A disease alone is enough to scope the subtype list: picking Ewing
-        // sarcoma first shows which subtype (and via the tissue list, which
-        // lineage) it belongs to.
+        // With nothing else chosen the list covers the whole panel: a subtype
+        // can be picked on its own, the same way a disease can (the empty
+        // wait-for-a-lineage list read as a dead control, user feedback
+        // 2026-08-20). A lineage or disease pick rescopes it as before.
         const { items, total } = this._subtypeOptionsFor(lineage, diseaseVal);
 
         if (items.length > 0) {
@@ -1368,17 +1359,17 @@ class CorrelationExplorer {
         const subSelect = document.getElementById('scatterSubtypeFilter');
         const diseaseVal = document.getElementById('scatterOncotreeFilter')?.value || '';
 
-        if ((!lineage && !diseaseVal) || !this.currentInspect?.data) {
-            // Stays on screen with nothing chosen. Appearing and disappearing as
-            // a tissue is picked made the panel jump.
+        if (!this.currentInspect?.data) {
             subSelect.innerHTML = '<option value="">All subtypes</option>';
             subSelect.value = '';
             return;
         }
 
         // Subtypes from current inspect data, scoped by the panel's lineage
-        // AND disease picks (a disease alone is enough) and by the panel's
-        // alteration filters, so the selectors stay consistent with each other.
+        // AND disease picks where set, and covering the whole plot when
+        // neither is (a subtype is pickable on its own, like a disease;
+        // consistency feedback 2026-08-20), plus the panel's alteration
+        // filters, so the selectors stay consistent with each other.
         const { items, total } = this._subtypeOptionsFor(lineage, diseaseVal,
             this._annotationCountCohort('scatter') || this.currentInspect.data.map(d => d.cellLineId));
 
@@ -1495,15 +1486,15 @@ class CorrelationExplorer {
         if (!subSelect) return;
         const diseaseVal = document.getElementById('geOncotreeFilter')?.value || '';
 
-        if ((!lineage && !diseaseVal) || !this.cellLineMetadata?.primaryDisease) {
-            // Stays on screen with nothing chosen, so the panel does not jump.
+        if (!this.cellLineMetadata?.primaryDisease) {
             subSelect.innerHTML = '<option value="">All subtypes</option>';
             subSelect.value = '';
             return;
         }
 
-        // Subtype counts scoped by the panel's lineage AND disease picks (a
-        // disease alone is enough), counted over the popout's own points so
+        // Subtype counts scoped by the panel's lineage AND disease picks
+        // where set, covering the whole popout when neither is (a subtype is
+        // pickable on its own, like a disease), counted over its own points so
         // they agree with the tissue selector: counting the whole metadata
         // here said "Lung n=126" while the tissue list, built from the lines
         // actually measured for this gene, said 123.
