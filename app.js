@@ -6667,7 +6667,16 @@ class CorrelationExplorer {
             netEnrBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const willOpen = netEnrMenu.style.display !== 'block';
-                if (willOpen) netEnrOpenedAt = Date.now();
+                if (willOpen) {
+                    netEnrOpenedAt = Date.now();
+                    // Each choice states its gene count for the CURRENT run,
+                    // from the same helper that builds the list it sends.
+                    const BASE = { input: 'All input genes', correlated: 'Correlated genes (the clusters)', drawn: 'Everything in the network' };
+                    netEnrMenu.querySelectorAll('[data-net-enrichr]').forEach(item => {
+                        const scope = item.dataset.netEnrichr;
+                        item.textContent = `${BASE[scope] || scope} (n=${this._netEnrichrGenes(scope).length})`;
+                    });
+                }
                 netEnrMenu.style.display = willOpen ? 'block' : 'none';
                 netEnrBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
             });
@@ -15883,9 +15892,6 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
     // for the drag and re-pin it where it is dropped.
     _arrangeUncorrelatedGrid() {
         if (!this.network || !this.networkData?.nodes) return;
-        // The sub-choice under "Show all input genes": Floating leaves these
-        // genes to the solver (unpinned, drifting as before the grid existed).
-        if (document.querySelector('input[name="uncorrLayout"]:checked')?.value === 'float') return;
         const loose = [];
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         let nodeR = 25, fs = 16, labelLines = 1, maxLabelW = 0;
@@ -15923,6 +15929,24 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         const stepX = Math.max(nodeR * 2 + 16, maxLabelW + 14);
         const stepY = nodeR * 2 + labelH + 14;
         const mode = document.querySelector('input[name="uncorrLayout"]:checked')?.value || 'grid';
+        if (mode === 'float') {
+            // Floating means floating OUTSIDE the network: at Run the loose
+            // genes start at random positions and the post-settle physics
+            // stop froze them wherever they happened to be, including right
+            // among the connected nodes (user-reported 2026-08-20). Place
+            // them on a ring around the connected drawing, unpinned, so a
+            // live solver lets them drift from there and a stopped one
+            // leaves them floating clear of the network.
+            const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+            const reach = (this._netSpringLength || 150) * 1.2;
+            const rx = (maxX - minX) / 2 + reach + stepX / 2;
+            const ry = (maxY - minY) / 2 + reach + stepY / 2;
+            this.networkData.nodes.update(loose.map((id, k) => {
+                const a = (2 * Math.PI * k) / loose.length + 0.4;
+                return { id, x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry, fixed: false, physics: true };
+            }));
+            return;
+        }
         let cols, startX, startY;
         if (mode === 'gridRight') {
             // A column to the RIGHT of the network: taller than wide, rows
@@ -16173,28 +16197,10 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         if (!document.getElementById('showUncorrelatedGenes')?.checked) return;
         const mode = document.querySelector('input[name="uncorrLayout"]:checked')?.value || 'grid';
         if (mode === 'float') {
-            const loose = [];
-            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-            const pos = this.network.getPositions();
-            for (const n of this.networkData.nodes.get()) {
-                if ((this.network.getConnectedEdges(n.id) || []).length === 0) { loose.push(n.id); continue; }
-                const p = pos[n.id];
-                if (!p) continue;
-                minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-                minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
-            }
-            if (!loose.length) return;
-            if (!Number.isFinite(maxX)) { minX = maxX = minY = maxY = 0; }
-            // Released straight from the parked row they barely move (the
-            // solver drifts slowly), which does not read as floating at all.
-            // Ring them around the network first, then let the solver drift.
-            const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-            const reach = (this._netSpringLength || 150) * 1.2;
-            const rx = (maxX - minX) / 2 + reach, ry = (maxY - minY) / 2 + reach;
-            this.networkData.nodes.update(loose.map((id, k) => {
-                const a = (2 * Math.PI * k) / loose.length + 0.4;
-                return { id, x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry, fixed: false, physics: true };
-            }));
+            // The ring placement lives in _arrangeUncorrelatedGrid (shared
+            // with the post-Run settle, which needs it too so floaters never
+            // freeze among the connected nodes).
+            this._arrangeUncorrelatedGrid();
             this.network.fit({ animation: false });
         } else {
             this._arrangeUncorrelatedGrid();
@@ -35669,7 +35675,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // brought in by the search is not one of the three: by the time it is drawn
     // and correlated it is part of the same answer. Nodes removed by hand are
     // gone from networkData, so both drawn sets mean what is on screen.
-    async openNetworkEnrichr(scope) {
+    // One place computes each scope's gene list, so the n= the menu shows
+    // and the set actually sent to Enrichr cannot drift apart.
+    _netEnrichrGenes(scope) {
         const input = (this.results?.geneList || []).map(g => String(g).toUpperCase());
         const drawn = this.networkData?.nodes
             ? this.networkData.nodes.getIds().map(g => String(g).toUpperCase())
@@ -35687,8 +35695,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
             genes = drawn.filter(g => connected.has(g));
         } else genes = drawn;
+        return [...new Set(genes)].filter(Boolean);
+    }
 
-        genes = [...new Set(genes)].filter(Boolean);
+    async openNetworkEnrichr(scope) {
+        let genes = this._netEnrichrGenes(scope);
         if (genes.length < 2) {
             this.showCopyNotification(scope === 'correlated'
                 ? 'No gene in this network is correlated with another.'

@@ -149,14 +149,15 @@
             text-decoration: underline;
         }
 
-        /* vis-network's navigation arrows pan the CAMERA, so pressing "left"
-           made the network slide right. Swap each button's slot and flip its
-           icon (180° rotation) so every arrow points the way the network
-           itself moves when pressed. */
-        #networkPlot .vis-button.vis-up    { left: 55px !important; bottom: 10px !important; top: auto !important; transform: rotate(180deg); }
-        #networkPlot .vis-button.vis-down  { left: 55px !important; bottom: 50px !important; top: auto !important; transform: rotate(180deg); }
-        #networkPlot .vis-button.vis-left  { left: 95px !important; bottom: 10px !important; top: auto !important; transform: rotate(180deg); }
-        #networkPlot .vis-button.vis-right { left: 15px !important; bottom: 10px !important; top: auto !important; transform: rotate(180deg); }
+        /* vis-network's navigation buttons: the pan arrows and - / + step
+           too coarsely to be useful (drag and scroll do the same job
+           smoothly), so only the fit button stays (v.88.102). */
+        #networkPlot .vis-button.vis-up,
+        #networkPlot .vis-button.vis-down,
+        #networkPlot .vis-button.vis-left,
+        #networkPlot .vis-button.vis-right,
+        #networkPlot .vis-button.vis-zoomIn,
+        #networkPlot .vis-button.vis-zoomOut { display: none !important; }
 
         /* The tree makes the logo image asymmetric: its visible text sits
            9.55% of the image width left of the image centre. Shift the IMAGE
@@ -2635,6 +2636,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.102 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>Network polish, three pieces.</b> Floating input genes now settle on a ring around the connected network instead of freezing wherever the solver left them, sometimes right among the connected nodes. The coarse pan arrows and - / + buttons are gone (drag and scroll do the same job smoothly); the fit button stays. And the Enrichr menu states each choice's gene count for the current run: "All input genes (n=18)", "Correlated genes (the clusters) (n=11)", "Everything in the network (n=18)".</li>
+                </ul>
                 <p><strong>v.88.101 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>Gene-value annotation rows use the full colour range.</b> The expression / gene effect bands were coloured on the whole-panel z scale, so a small cohort whose values sit close together drew as one washed-out shade. The band now stretches its colours across the range of the shown lines, edge to edge; the legend states the numeric range and says "coloured across this range", so the picture stays honest.</li>
@@ -7100,7 +7105,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.101</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.102</a>
         </span>
     </div>
 
@@ -10133,6 +10138,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_101"></script>
+    <script src="app.js?v=v88_102"></script>
 </body>
 </html>
