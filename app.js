@@ -4040,12 +4040,7 @@ class CorrelationExplorer {
             data.topGenes.forEach(g => {
                 csv += g.gene + ',' + data.sortedCLs.map(cl => g.muts[cl] || 0).join(',') + '\n';
             });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = csvName('oncoprint');
-            a.click();
-            URL.revokeObjectURL(a.href);
+            this.downloadFile(csv, csvName('oncoprint'), 'text/csv');
             return;
         }
 
@@ -7154,7 +7149,13 @@ class CorrelationExplorer {
             const cls = this._getAICellLines(source);
             const n = cls.length;
             const sourceEl = document.getElementById('aiDialogSource');
-            if (sourceEl) sourceEl.textContent = `${aiSourceLabels[source] || source}  ·  ${n} cell line${n === 1 ? '' : 's'} in cohort`;
+            // The scatter label names the actual gene pair; the literal
+            // "gene1 vs gene2" placeholder read as a bug in the title bar.
+            let sourceLabel = aiSourceLabels[source] || source;
+            if (source === 'scatter' && this.currentInspect?.gene1) {
+                sourceLabel = `Scatter inspect, ${this.currentInspect.gene1} vs ${this.currentInspect.gene2}`;
+            }
+            if (sourceEl) sourceEl.textContent = `${sourceLabel}  ·  ${n} cell line${n === 1 ? '' : 's'} in cohort`;
 
             // Tier description, same structure for every source so users
             // see consistent file shapes. Variance filter + per-matrix gene
@@ -14276,7 +14277,9 @@ Results:
         // Trim the empty frame, then recompute the height so the figure keeps its
         // real proportions at the width that was asked for.
         const trimmed = this._trimCanvasWhitespace(canvas);
-        const outHeightCm = (trimmed !== canvas && trimmed.width)
+        // Physical height from the pixels actually written, never from the
+        // dialog's remembered height (which can belong to a different view).
+        const outHeightCm = trimmed.width
             ? Math.round(widthCm * (trimmed.height / trimmed.width) * 100) / 100
             : heightCm;
         await this._downloadCanvasAs(trimmed, dlg.format, 'correlation_network', {
@@ -14303,15 +14306,18 @@ Results:
         const transparentBg = background === 'transparent';
         const CM_TO_IN = 1 / 2.54;
         const targetPxW = Math.round(widthCm * dpi * CM_TO_IN);
-        const targetPxH = Math.round(heightCm * dpi * CM_TO_IN);
-        const sx = targetPxW / totalWidth;
-        const sy = targetPxH / totalHeight;
+        // Height always follows the drawing's own aspect, like the chart
+        // raster path. Filling the requested box stretched the nodes into
+        // ellipses whenever the dialog carried a height remembered from a
+        // different view.
+        const targetPxH = Math.round(targetPxW * (totalHeight / totalWidth));
+        const s = targetPxW / totalWidth;
 
         const canvas = document.createElement('canvas');
         canvas.width = targetPxW;
         canvas.height = targetPxH;
         const ctx = canvas.getContext('2d');
-        ctx.scale(sx, sy);
+        ctx.scale(s, s);
 
         if (!transparentBg) {
             ctx.fillStyle = 'white';
@@ -14780,8 +14786,14 @@ Results:
             domPositions[nodeId] = { x: domPos.x, y: domPos.y + headerH };
         }
 
+        // The chosen print width becomes the SVG's physical size; the height
+        // follows the content's own aspect so nothing letterboxes. Before
+        // this the file opened at the on-screen pixel size (often ~28 cm)
+        // whatever the dialog said.
+        const svgWCm = widthCm || Math.round(width / 37.8 * 10) / 10;
+        const svgHCm = Math.round(svgWCm * (totalHeight / width) * 100) / 100;
         let svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${totalHeight}" viewBox="0 0 ${width} ${totalHeight}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${svgWCm}cm" height="${svgHCm}cm" viewBox="0 0 ${width} ${totalHeight}">
 <defs>
     <linearGradient id="signedGradient" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" style="stop-color:#b2182b;stop-opacity:1" />
@@ -14847,7 +14859,16 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
                 // the same edge on screen.
                 const nodeFontSize = (node.font?.size || 16) * scale;
                 const borderW = node.borderWidth != null ? node.borderWidth : 2;
-                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="${borderW > 0 ? '#000' : 'none'}" stroke-width="${borderW * scale}"/>\n`;
+                // Carry the node's actual border state: highlighted genes
+                // have a coloured, possibly dashed, thicker ring (and dimmed
+                // nodes an opacity) that the PNG kept and this SVG dropped,
+                // exporting a figure whose "Highlighted:" note pointed at
+                // rings that were not drawn.
+                const borderColor = node.color?.border || '#000';
+                const dashes = node.shapeProperties?.borderDashes;
+                const dashAttr = Array.isArray(dashes) ? ` stroke-dasharray="${dashes.map(v => v * scale).join(' ')}"` : '';
+                const opAttr = node.opacity != null && node.opacity < 1 ? ` opacity="${node.opacity}"` : '';
+                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="${borderW > 0 ? borderColor : 'none'}" stroke-width="${borderW * scale}"${dashAttr}${opAttr}/>\n`;
 
                 // Handle multi-line labels. Bold / Italic arrive as markup
                 // inside the label, so they become font attributes here rather
@@ -15039,9 +15060,11 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         svg += '</svg>';
 
         // Apply user's chosen cm dimensions to the outer svg tag so
-        // Illustrator / Inkscape open at the print size requested.
-        svg = svg.replace(/<svg([^>]*)\bwidth="[^"]*"/, `<svg$1width="${widthCm}cm"`);
-        svg = svg.replace(/<svg([^>]*)\bheight="[^"]*"/, `<svg$1height="${heightCm}cm"`);
+        // Illustrator / Inkscape open at the print size requested. Height is
+        // the aspect-true one: the dialog can carry a height remembered from
+        // a different view, and honouring it would letterbox or stretch.
+        svg = svg.replace(/<svg([^>]*)\bwidth="[^"]*"/, `<svg$1width="${svgWCm}cm"`);
+        svg = svg.replace(/<svg([^>]*)\bheight="[^"]*"/, `<svg$1height="${svgHCm}cm"`);
         if (!transparentBg && !/<rect[^>]*id="correlateExportBg"/.test(svg)) {
             svg = svg.replace(/(<svg[^>]*>)/, `$1<rect id="correlateExportBg" x="0" y="0" width="100%" height="100%" fill="white"/>`);
         }
@@ -17131,7 +17154,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 // the same edge on screen.
                 const nodeFontSize = (node.font?.size || 16) * scale;
                 const borderW = node.borderWidth != null ? node.borderWidth : 2;
-                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="${borderW > 0 ? '#000' : 'none'}" stroke-width="${borderW * scale}"/>\n`;
+                // Carry the node's actual border state: highlighted genes
+                // have a coloured, possibly dashed, thicker ring (and dimmed
+                // nodes an opacity) that the PNG kept and this SVG dropped,
+                // exporting a figure whose "Highlighted:" note pointed at
+                // rings that were not drawn.
+                const borderColor = node.color?.border || '#000';
+                const dashes = node.shapeProperties?.borderDashes;
+                const dashAttr = Array.isArray(dashes) ? ` stroke-dasharray="${dashes.map(v => v * scale).join(' ')}"` : '';
+                const opAttr = node.opacity != null && node.opacity < 1 ? ` opacity="${node.opacity}"` : '';
+                svg += `  <circle cx="${pos.x}" cy="${pos.y}" r="${nodeRadius}" fill="${bgColor}" stroke="${borderW > 0 ? borderColor : 'none'}" stroke-width="${borderW * scale}"${dashAttr}${opAttr}/>\n`;
 
                 // Handle multi-line labels. Bold / Italic arrive as markup
                 // inside the label, so they become font attributes here rather
@@ -18018,6 +18050,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (stripped) this._cellLineNameToId.set(stripped.toUpperCase(), cl);
             const full = this.cellLineMetadata?.cellLineName?.[cl];
             if (full) this._cellLineNameToId.set(full.toUpperCase(), cl);
+            // getCellLineName() corrects DepMap's stripped name where it lost
+            // a character (RVH421_DAB_R arrives stripped as RVH42DABR). That
+            // corrected name is what the app DISPLAYS and writes into text
+            // fields, so it must resolve back; without this entry the custom
+            // AI export dropped that line on the name round-trip and the
+            // dialog's count disagreed with the file by one.
+            const shown = this.getCellLineName(cl);
+            if (shown) this._cellLineNameToId.set(String(shown).toUpperCase(), cl);
         }
         return this._cellLineNameToId;
     }
@@ -23488,8 +23528,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         //    1 SVG px = 1pt gives ~33% larger rendering (1pt = 1/72", 1px = 1/96")
         //    Cap at 280mm wide so it fits on A4 with margins
         // 2. Remove empty style attribute and Plotly class
+        // A caller that already set a physical print size (cm/mm/in) chose it
+        // in the export dialog; overwriting it here with viewBox-derived pt
+        // made the network SVG open at ~28 cm whatever width was asked for.
+        const hasPhysicalSize = /(cm|mm|in)\s*$/i.test(svgEl.getAttribute('width') || '');
         const vb = svgEl.getAttribute('viewBox');
-        if (vb) {
+        if (vb && !hasPhysicalSize) {
             const parts = vb.trim().split(/\s+/).map(Number);
             if (parts.length === 4) {
                 const vbW = parts[2];
@@ -25660,13 +25704,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             });
         }
 
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = csvName(`correlation_${d.gene1}_vs_${d.gene2}_by_${this._caView}`);
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        this.downloadFile(csv, csvName(`correlation_${d.gene1}_vs_${d.gene2}_by_${this._caView}`), 'text/csv');
     }
 
     downloadCACellLineCSV() {
@@ -25678,13 +25716,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             csv += `${p.cellLineId},"${p.cellLineName}","${p.lineage || ''}",${p.x.toFixed(4)},${p.y.toFixed(4)}\n`;
         });
 
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = csvName(`correlation_${d.gene1}_vs_${d.gene2}_cell_lines`);
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        this.downloadFile(csv, csvName(`correlation_${d.gene1}_vs_${d.gene2}_cell_lines`), 'text/csv');
     }
 
     switchToInspectWithTissue(tissue) {
@@ -27354,7 +27386,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const highlightCl = this._geHighlightCellLine;
         const searchCl = document.getElementById('geCellLineSearch')?.value?.trim().toUpperCase();
         if (highlightCl || searchCl) {
-            const annotations = [];
+            // Start from the annotations already on the plot: relayout with
+            // a bare arrow list REPLACED them all, which silently deleted the
+            // title annotation, on screen and in every subsequent export,
+            // whenever a cell-line search or highlight was active.
+            const annotations = [...layout.annotations];
             for (let i = 0; i < stats.length; i++) {
                 const s = stats[i];
                 for (const c of s.cellData) {
@@ -27380,7 +27416,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     }
                 }
             }
-            if (annotations.length > 0) {
+            if (annotations.length > layout.annotations.length) {
                 Plotly.relayout('geneEffectPlot', { annotations });
             }
         }
@@ -28298,7 +28334,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         } catch (e) { /* use original dimensions */ }
         document.body.removeChild(measurer);
 
-        svgEl.querySelectorAll('clipPath').forEach(cp => {
+        // Widen ONLY the legend scrollbox clip (the historic too-narrow-legend
+        // bug). This used to hit every clipPath anchored at 0,0, which
+        // includes Plotly's plot-area clip: the regression line then ran out
+        // of the plot corners across the subtitle and axis labels in every
+        // exported format.
+        svgEl.querySelectorAll('clipPath[id*="legend" i]').forEach(cp => {
             const rect = cp.querySelector('rect');
             if (rect && parseFloat(rect.getAttribute('x') || 0) === 0 && parseFloat(rect.getAttribute('y') || 0) === 0) {
                 rect.setAttribute('x', -500);
@@ -28822,6 +28863,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 windowWidth: document.documentElement.scrollWidth,
                 onclone: (clonedDoc) => {
                     const scopeEl = (rootId && clonedDoc.getElementById(rootId)) || clonedDoc.body;
+                    // Swap each Plotly chart in the clone for its crisp PNG:
+                    // html2canvas mis-scales Plotly's stacked SVGs (the
+                    // correlation-analysis panel came out with a second,
+                    // hugely magnified copy of the chart smeared over the
+                    // bottom half), and compositing after the fact at
+                    // live-measured coordinates missed, because the clone's
+                    // layout can differ from the live one under a full-content
+                    // stash. An <img> in the clone renders wherever the clone
+                    // puts the div, so it can't land in the wrong place.
+                    // Charts whose PNG failed keep html2canvas's own render
+                    // as the fallback.
+                    scopeEl.querySelectorAll('.js-plotly-plot').forEach((el, i) => {
+                        if (!plotPngs[i]?.img) return;
+                        const im = clonedDoc.createElement('img');
+                        im.src = plotPngs[i].img.src;
+                        im.style.cssText = `width:${plotRects[i].w}px;height:${plotRects[i].h}px;display:block;`;
+                        el.innerHTML = '';
+                        el.style.width = plotRects[i].w + 'px';
+                        el.style.height = plotRects[i].h + 'px';
+                        el.appendChild(im);
+                    });
                     // Replace text inputs with flex-centered divs (reliable centring).
                     scopeEl.querySelectorAll('input').forEach((el, i) => {
                         const snap = inputSnap[i];
@@ -28843,15 +28905,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             alert('Screenshot failed: ' + (e?.message || e));
             return;
         }
-        // Composite the crisp Plotly PNGs over their plot areas.
-        try {
-            const cctx = canvas.getContext('2d');
-            plotPngs.forEach((p, i) => {
-                if (!p.img) return;
-                const r = plotRects[i];
-                cctx.drawImage(p.img, Math.round(r.x * scale), Math.round(r.y * scale), Math.round(r.w * scale), Math.round(r.h * scale));
-            });
-        } catch (e) { /* keep html2canvas's own chart render if compositing fails */ }
+        // The crisp charts are already in the capture: they were swapped into
+        // the clone as <img> elements, which render in the clone's own layout.
+        // The old post-composite at live-measured coordinates is exactly what
+        // painted charts in the wrong place.
         saved.forEach(s => { for (const p in s.prev) s.el.style[p] = s.prev[p]; });
         const date = new Date().toISOString().slice(0, 10);
         const filename = `${fileStem || 'correlate_figure'}_${exportStamp()}`;
@@ -28859,7 +28916,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ? this._buildExportMetadata('popout_screenshot', { scope, ...metaExtra })
             : null;
         const metaJson = (meta && dlg.sidecar !== false) ? JSON.stringify(meta) : null;
-        await this._downloadCanvasAs(canvas, fmt, filename, { dpi, widthCm, heightCm, metaJson });
+        // The canvas is capW×scale pixels whatever width was asked for, so the
+        // physical size has to come from the REQUESTED width: stamping the
+        // dialog dpi made an 18 cm request print at 41 cm. Density = pixels
+        // over the chosen width; height follows the capture's own aspect.
+        const effDpi = widthCm && canvas.width ? Math.max(1, Math.round(canvas.width / (widthCm / 2.54))) : dpi;
+        const effHeightCm = widthCm && canvas.width
+            ? Math.round(widthCm * (canvas.height / canvas.width) * 100) / 100
+            : heightCm;
+        await this._downloadCanvasAs(canvas, fmt, filename, { dpi: effDpi, widthCm, heightCm: effHeightCm, metaJson });
     }
 
     // Inject a small camera button into a popout header that captures the given
@@ -29324,13 +29389,34 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const allResults = mr.allResults || mr.significantResults || [];
             if (allResults.length === 0) return [];
             const cls = new Set();
+            // The additional hotspot / fusion filters DEFINE the analysis
+            // cohort just like the lineage filters do. Leaving them out here
+            // exported the lines the analysis excluded, and the recount over
+            // the file then contradicted the table on screen (an APC/Bowel
+            // run with a TP53 filter exported 20 extra TP53-WT lines and
+            // reported their split as the analysis result).
+            const addMutData = mr.additionalHotspot && mr.additionalHotspotLevel !== 'all'
+                ? this.mutations?.geneData?.[mr.additionalHotspot]?.mutations : null;
+            const addFusionActive = !!(mr.additionalTransGene && mr.additionalTransLevel !== 'all');
             this.metadata.cellLines.forEach(cl => {
                 if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== mr.lineageFilter) return;
                 if (mr.subLineageFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== mr.subLineageFilter) return;
                 if (!this._mrOncotreePasses(cl)) return;
                 if (mr.excludedTissues?.size > 0 && mr.excludedTissues.has(this.cellLineMetadata?.lineage?.[cl])) return;
+                if (addMutData) {
+                    const lvl = addMutData[cl] || 0;
+                    if (mr.additionalHotspotLevel === '0' && lvl !== 0) return;
+                    if (mr.additionalHotspotLevel === '1' && lvl !== 1) return;
+                    if (mr.additionalHotspotLevel === '2' && lvl < 2) return;
+                    if (mr.additionalHotspotLevel === '1+2' && lvl === 0) return;
+                }
+                if (addFusionActive) {
+                    const hasFusion = this._geFusionPasses(cl, mr.additionalTransGene);
+                    if (mr.additionalTransLevel === '0' ? hasFusion : !hasFusion) return;
+                }
                 if (this._gridAppliesToAnalysis() && !this._cellLinePassesOncoprintFilters(cl)) return;
                 if (this._customCellLineFilter && !this._customCellLineFilter.has(cl)) return;
+                if (this._analysisCellLineSubset && !this._analysisCellLineSubset.has(cl)) return;
                 cls.add(cl);
             });
             return [...cls];
@@ -30088,6 +30174,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 + (clickedLabelled?.length ? ` ${clickedLabelled.length} point(s) carry a visible name label because they were clicked on screen; every other point is unlabelled but present.` : '')
                 + (this._gateFilter ? ` Only the cell lines inside gate ${this._gateFilter.gate} are plotted; the rest of the panel is excluded.` : '');
             description = `Scatter of ${xLabel} (x) vs ${yLabel} (y)${parts.length ? ', filtered by ' + parts.join(', ') : ''}.`;
+            // Gates drawn on the scatter ship as top-level cellLineGroups,
+            // the same mechanism every other grouped source uses. The dialog
+            // has promised "any gates you have drawn" since the copy was
+            // written; until v.88.86 the file silently dropped them.
+            if (this._gateA?.length || this._gateB?.length) {
+                const inFile = new Set(cellLines);
+                const gA = (this._gateA || []).map(d => d.cellLineId).filter(id => inFile.has(id));
+                const gB = (this._gateB || []).map(d => d.cellLineId).filter(id => inFile.has(id));
+                if (gA.length) cellLineGroups.gateA = gA;
+                if (gB.length) cellLineGroups.gateB = gB;
+                const gateWords = [gA.length ? `gate A (n=${gA.length})` : '', gB.length ? `gate B (n=${gB.length})` : ''].filter(Boolean);
+                if (gateWords.length) {
+                    context.gates = `The user drew ${gateWords.join(' and ')} on the scatter; the top-level cellLineGroups section states the membership, so the contrast can be recomputed from this file.`;
+                    context.plotDescribesWhat += ` The user drew ${gateWords.join(' and ')} around subsets of the points; cellLineGroups says which lines each encloses.`;
+                }
+            }
         } else if (source === 'mutation') {
             const excludedList = mr?.excludedTissues?.size ? [...mr.excludedTissues] : [];
             context = {
@@ -30126,7 +30228,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     const drift = (mr?.nWT != null && mr?.nMut != null && (mr.nWT !== wt || mr.nMut !== alt));
                     return {
                         nWT: wt, nMutated: alt,
-                        ...(drift ? { countsNote: `Counted over the ${cellLines.length.toLocaleString()} cell lines in this file, so nWT + nMutated equals nTotal. The analysis on screen ran over ${(mr.nWT + mr.nMut).toLocaleString()} lines (${mr.nMut} altered, ${mr.nWT} unaltered); the difference is lines that have no CRISPR screen and so carry no data to export. Precomputed rows in extras were computed on the analysis cohort, which is why an n there can exceed what you count here by one or two.` } : {})
+                        ...(drift ? { countsNote: `Counted over the ${cellLines.length.toLocaleString()} cell lines in this file, so nWT + nMutated equals nTotal. The analysis on screen ran over ${(mr.nWT + mr.nMut).toLocaleString()} lines (${mr.nMut} altered, ${mr.nWT} unaltered); the two can differ when a line has no CRISPR screen and so carries no data to export, or when a filter was changed after the analysis ran. Where they disagree, the analysis numbers describe the precomputed rows in extras and the recount here describes the matrices.` } : {})
                     };
                 })(),
                 pValueThreshold: mr?.pThreshold,
@@ -30911,7 +31013,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // user noticed). With the gene cap, even a 1186-cell correlation
         // export fits comfortably under the 30 MB limit while still giving
         // the AI matrix context.
-        context.dataTier = `${tierLabel} (this describes the geneEffect / expression MATRICES only${extras ? '; the precomputed lists in extras are governed separately, and extras._listScope says for each one whether it is complete or was cut' : ', and this file carries no precomputed lists for it to be confused with'})`;
+        // context.dataTier is written at composition time, just before the
+        // file is serialized: wording it here, off the `extras` variable,
+        // made the scatter export claim "no precomputed lists" while shipping
+        // three top-30 scans and seven extras that are attached further down.
         // An unfiltered view was arriving with five empty strings and a null
         // ahead of the two fields that carry the answer. A filter that is not
         // set is not information.
@@ -32620,7 +32725,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const _stem = `correlate_export_${source}_${_label}_${n}cl`;
         let _pngUrl = null;
         try {
-            if (source === 'correlations' || source === 'clusters') {
+            // A custom export whose request replaced the cohort describes
+            // nothing on screen: its context says so, and a screenshot of
+            // the open view would be a picture of the very results the file
+            // just dropped for not describing this cohort.
+            if (exportData.context?.type === 'custom_export') {
+                // no companion image, deliberately
+            } else if (source === 'correlations' || source === 'clusters') {
                 // The network is a vis-network canvas, not a Plotly chart:
                 // reuse the same composition path "Copy network" / "Export
                 // image" use, so the companion picture carries the same
@@ -32677,6 +32788,25 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
         } catch (e) { console.warn('Companion PNG not produced:', e); }
 
+        // dataTier is a claim about what THIS file carries, so it is worded
+        // here, where the file is complete, not up in the per-source branches.
+        // Written earlier it read the `extras` variable before the scatter's
+        // focal-gene lists were attached and told the reader the file carried
+        // no precomputed lists while shipping three top-30 scans.
+        {
+            const hasTopLists = !!(exportData.topCorrelates || exportData.topCoessentials || exportData.topExpressionCorrelates);
+            // _listScope only exists when extras holds list-shaped sections;
+            // extras of plain objects has nothing for it to describe, and the
+            // wording must not point at a field the file does not carry.
+            const hasExtrasLists = !!exportData.extras?._listScope;
+            let listWord;
+            if (hasTopLists && hasExtrasLists) listWord = '; the top-30 scan lists and the precomputed lists in extras are governed separately: scanScope describes the scans, and extras._listScope says for each extras list whether it is complete or was cut';
+            else if (hasTopLists) listWord = '; the top-30 scan lists are governed separately, see scanScope';
+            else if (hasExtrasLists) listWord = '; the precomputed lists in extras are governed separately, and extras._listScope says for each one whether it is complete or was cut';
+            else listWord = ', and this file carries no precomputed list for it to be confused with';
+            exportData.context.dataTier = `${tierLabel} (this describes the geneEffect / expression MATRICES only${listWord})`;
+        }
+
         const jsonStr = JSON.stringify(exportData);
         const compressed = pako.gzip(jsonStr);
         const uncompressedBytes = new Blob([jsonStr]).size;
@@ -32695,6 +32825,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 : null;
             const autoFormat = uncompressedBytes < EIGHT_MB ? 'plain' : 'gz';
             useCompressed = (manualFormat || autoFormat) === 'gz';
+            // When the size decided, move the radio to match: the dialog was
+            // showing "Plain .json" selected while writing a .json.gz.
+            if (!manualFormat) {
+                const plainRadio = document.getElementById('aiFormatPlain');
+                const gzRadio = document.getElementById('aiFormatGz');
+                if (plainRadio && gzRadio) {
+                    (useCompressed ? gzRadio : plainRadio).checked = true;
+                }
+            }
             // Sizes are only known now; state them on the format labels.
             const plainSizeEl = document.getElementById('aiFormatPlainSize');
             if (plainSizeEl) plainSizeEl.textContent = ` (~${(uncompressedBytes / (1024 * 1024)).toFixed(1)} MB)`;
@@ -47887,8 +48026,14 @@ ${clone.innerHTML}
         // took THAT as the header: the real column names became data and the
         // numbers stopped parsing. Scope belongs in the filename and the
         // on-screen message, not in the file's first row.
-        const head = ['Gene', 'GE_mean_selection', 'GE_mean_others', 'GE_delta', 'GE_p', 'GE_q', 'GE_n_selection', 'GE_n_others',
-                      'Expr_mean_selection', 'Expr_mean_others', 'Expr_delta', 'Expr_p', 'Expr_q', 'Expr_n_selection', 'Expr_n_others'].join(sep) + '\n';
+        // In gate mode the two arms are gate A and gate B, not a selection
+        // and a rest: the per-cell-line export already said so in its Group
+        // column while this file kept calling them "selection"/"others".
+        const gate = this._geInspectMode === 'gateAB';
+        const a = gate ? 'gateA' : 'selection';
+        const b = gate ? 'gateB' : 'others';
+        const head = ['Gene', `GE_mean_${a}`, `GE_mean_${b}`, 'GE_delta', 'GE_p', 'GE_q', `GE_n_${a}`, `GE_n_${b}`,
+                      `Expr_mean_${a}`, `Expr_mean_${b}`, 'Expr_delta', 'Expr_p', 'Expr_q', `Expr_n_${a}`, `Expr_n_${b}`].join(sep) + '\n';
         const body = [...byGene.entries()]
             .sort((a, b) => Math.abs(b[1].ge?.delta ?? b[1].expr?.delta ?? 0)
                           - Math.abs(a[1].ge?.delta ?? a[1].expr?.delta ?? 0))
@@ -51412,7 +51557,22 @@ ${clone.innerHTML}
         const fmt = dlg.format || format;
         const CM_TO_IN = 1 / 2.54;
 
-        const url = await Plotly.toImage(plotDiv, { format: 'svg', width: w, height: h });
+        // "Transparent" has to reach Plotly itself: skipping our own white
+        // rect still left the plot's paper and panel backgrounds baked into
+        // the SVG, so the exported file came out fully opaque.
+        const prevPaperBg = plotDiv.layout.paper_bgcolor;
+        const prevPlotBg = plotDiv.layout.plot_bgcolor;
+        if (background === 'transparent') {
+            await Plotly.relayout(plotDiv, { paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)' });
+        }
+        let url;
+        try {
+            url = await Plotly.toImage(plotDiv, { format: 'svg', width: w, height: h });
+        } finally {
+            if (background === 'transparent') {
+                await Plotly.relayout(plotDiv, { paper_bgcolor: prevPaperBg ?? '#ffffff', plot_bgcolor: prevPlotBg ?? '#ffffff' });
+            }
+        }
         let plotSvg = url.indexOf('base64,') > -1
             ? atob(url.split('base64,')[1])
             : decodeURIComponent(url.split(',').slice(1).join(','));
@@ -57605,17 +57765,31 @@ ${clone.innerHTML}
         const narrowWord = [d.subtypeLabel, d.diseaseLabel].filter(Boolean).map(w => `${w} only`).join(', ');
         const filterParts = this._hmActiveFilterParts();
         const filterWord = filterParts.length ? `, filtered to ${filterParts.join(', ')}` : '';
+        // Count what the FILE carries, not what the view once computed: a
+        // hidden group's columns are not in this export, and the corner cell
+        // saying "3 blocks" over 2 made the file contradict its own Group
+        // row (and the Methods text beside it).
+        const shownGroups = d.groups ? d.groups.filter(g => !g.hidden) : null;
+        const hiddenN = d.groups ? d.groups.length - shownGroups.length : 0;
         const groupWord = d.groups
-            ? `${d.groups.length} block${d.groups.length === 1 ? '' : 's'}`
+            ? `${shownGroups.length} block${shownGroups.length === 1 ? '' : 's'}${hiddenN ? ` (${hiddenN} group${hiddenN === 1 ? '' : 's'} hidden and not in this file)` : ''}`
             : 'no blocks';
-        const ann2Word = d.annRows.length ? `, annotation rows ${d.annRows.map(r => r.attrLabel).join(', ')}` : '';
+        const silencedWord = d.silencedGeneNames?.length
+            ? `, ${d.silencedGeneNames.length} gene${d.silencedGeneNames.length === 1 ? '' : 's'} silenced and not in this file (${d.silencedGeneNames.join(' ')})`
+            : '';
+        const minN = parseInt(document.getElementById('hmMinGroupSize')?.value) || 1;
+        const minNWord = minN > 1 ? `, groups under n=${minN} hidden` : '';
+        const noDataWord = d.noDataCount > 0
+            ? `, ${d.noDataCount} line${d.noDataCount === 1 ? '' : 's'} without data ${d.hideNoDataChecked ? 'hidden' : 'shown'}`
+            : '';
+        const ann2Word = d.annRows.length ? `, annotation rows ${d.annRows.map(r => r.attrLabel).join(' / ')} included as rows` : '';
         const sortWord = this._hmSortSummary(d);
         const dateStr = new Date().toISOString().slice(0, 10);
         // Provenance lives in the CORNER CELL, not a line of its own: a
         // plain sentence above the header once made a spreadsheet read the
         // real column names as a row of data, because a header row only
         // works as a header if row 1 IS the header row.
-        const corner = `Gene [${measureWord}, ${scaleWord}, ${colourWord}, ${cohortWord}${filterWord}, ${lineageWord}${narrowWord ? `, ${narrowWord}` : ''}, ${sortWord}, ${groupWord}${ann2Word}, DepMap ${DEPMAP_VERSION}, ${dateStr}]`;
+        const corner = `Gene [${measureWord}, ${scaleWord}, ${colourWord}, ${cohortWord}${filterWord}, ${lineageWord}${narrowWord ? `, ${narrowWord}` : ''}, ${sortWord}, ${groupWord}${minNWord}${noDataWord}${silencedWord}${ann2Word}, DepMap ${DEPMAP_VERSION}, ${dateStr}]`;
         const header = csvField(corner) + ',' + d.orderedCLs.map(cl => this.getCellLineName(cl)).join(',');
         const rows = d.orderedGenes.map(g => {
             const row = d.scaledRows[d.geneIndexInResult.get(g)];
@@ -57631,6 +57805,13 @@ ${clone.innerHTML}
             const groupRow = 'Group,' + d.orderedCLs.map(cl => csvField(groupOf.get(cl) || '')).join(',');
             csv += groupRow + '\n';
         }
+        // The annotation bands, one row per band in drawn order, per-column
+        // values aligned to the same cell lines as everything else. The
+        // corner cell used to advertise them while the file carried only the
+        // blocking row.
+        d.annRows.forEach(r => {
+            csv += csvField(r.attrLabel) + ',' + d.orderedCLs.map((cl, i) => csvField(r.values?.[i] ?? '')).join(',') + '\n';
+        });
         csv += rows.join('\n') + '\n';
         this.downloadFile(csv, csvName('heatmap'), 'text/csv');
     }
@@ -58410,7 +58591,10 @@ ${clone.innerHTML}
             + (colorBy ? `Points are coloured by ${colorBy}. ` : 'Points are not coloured by any category. ')
             + (overlayHot ? `Points are split by ${overlayHot} hotspot mutation status as an overlay. ` : '')
             + (overlayFus ? `Points are split by ${overlayFus} fusion status as an overlay. ` : '')
-            + 'Highlighting, labelling and colouring are drawn on top of the same points; none of them add or remove a cell line, so none of them change n, r, p or the slope.',
+            + (this._gateA?.length || this._gateB?.length
+                ? `${this._gateA?.length ? `Gate A encloses ${this._mNum(this._gateA.length)} points` : ''}${this._gateA?.length && this._gateB?.length ? ' and gate' : this._gateB?.length ? 'Gate' : ''}${this._gateB?.length ? ` B encloses ${this._mNum(this._gateB.length)} points` : ''}, drawn by hand on the plot; a gate marks its points unless it is applied as a filter, which the WHICH CELL LINES section above would then say. `
+                : '')
+            + 'Highlighting, labelling, colouring and gating are drawn on top of the same points; none of them add or remove a cell line, so none of them change n, r, p or the slope.',
             tissueOpen
                 ? 'THE BY-TISSUE CHART\n'
                 + 'The By Tissue chart in this popout repeats the same correlation within each tissue that has at least 3 cell lines on the plot, using the same Pearson coefficient. Its p-value is a different test from the one above: a Fisher z test comparing that tissue\'s correlation with the correlation across all the other cell lines on the plot. A tissue with only a handful of lines can reach r = 1 by chance, which is why the z values are clamped just short of 1.'

@@ -2635,6 +2635,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.86 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>Two full export audits, fifteen fixes.</b> Every image export and every data export was driven through the real UI, in plain and worked states, and everything found broken is fixed. Data side: the gate-mode inspect CSV names gate A / gate B in its columns; the heatmap CSV corner cell now tells the truth about hidden groups, silenced genes, min-n and hidden no-data lines, and the annotation bands ship as rows; the AI export from a scatter now carries the gates it always promised and no longer claims to have no precomputed lists while shipping three; the AI export from a mutation analysis applies the additional hotspot / fusion filters to its cohort, so its counts match the table on screen; the custom AI export no longer attaches a screenshot of a view it just disclaimed, and no longer silently loses a cell line whose display name could not be resolved back; three CSVs (oncoprint, both correlation-analysis exports) now pass the formula-injection guard like every other CSV.</li>
+                    <li><b>Image side.</b> The gene-effect chart keeps its title and filter line after a filter or cell-line search (a highlight redraw was deleting the title annotation); the network SVG draws the highlight rings, honours the chosen print width and carries each node's real border; the network raster export never stretches into ellipses when the dialog remembers another view's height; PCA/UMAP transparent background is actually transparent; "the whole panel" screenshots no longer paint a second, giant copy of the chart and now print at the width you asked for; and the regression line is clipped to the plot again in every scatter export (the legend un-clipping was un-clipping the data layer too).</li>
+                </ul>
                 <p><strong>v.88.85 (2026-08-19)</strong></p>
                 <ul>
                     <li><b>The gate export passed a blind-reader audit, after fixes.</b> A reading assistant given yesterday's gate file with no other knowledge found the gate membership filed where the file's own index called it absent, a leftover sentence claiming the comparison side was not included, and the only statistically significant genes hidden outside the exported lists. All fixed: the two gates are a properly indexed top-level section, the composition of BOTH gates is tallied, every differential list now ships a significance-first companion (top 50 by q) plus a one-glance summary of how many genes survive correction, the selection-vs-gate-A column mapping is stated in words, and the not-included section no longer describes things the file actually carries.</li>
@@ -7032,7 +7037,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.85</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.86</a>
         </span>
     </div>
 
@@ -7317,7 +7322,7 @@
                                 <option value="2">Both copies mutated</option>
                                 <option value="0">Wild-type</option>
                             </select>
-                            <button type="button" class="btn btn-outline btn-sm clb-icon-btn" id="paramGridHotspotBtn" title="Mutation grid for the cell lines currently selected, click a gene to require it mutated or wild-type">&#9638;</button>
+                            <button type="button" class="btn btn-outline btn-sm clb-icon-btn" id="paramGridHotspotBtn" title="Mutation grid for the cell lines the analysis filters above select, click a gene to require it mutated or wild-type">&#9638;</button>
                         </div>
                         <!-- Grid picks are listed with every other filter beside Run. -->
                     </div>
@@ -10093,6 +10098,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_85"></script>
+    <script src="app.js?v=v88_86"></script>
 </body>
 </html>
