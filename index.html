@@ -2635,6 +2635,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.89 (2026-08-20)</strong></p>
+                <ul>
+                    <li><b>All input genes show in the network by default, floating.</b> "Show all input genes" starts on, and genes without a surviving correlation drift freely around the network instead of parking in a row. The lined-up option now comes in two placements: below the network (as before) or in a column to its right. The Methods text names whichever arrangement is in force.</li>
+                </ul>
                 <p><strong>v.88.88 (2026-08-20)</strong></p>
                 <ul>
                     <li><b>Export for AI always offers a picture of the view.</b> The dialog has a new "Also save an image of the view" choice, on by default, and the companion PNG now also covers the views that never produced one: the selection / gate inspect (volcanoes, tables and panels as on screen), the Cell Line Browser list and the cell line wiki. Charts inside those panels are rendered by Plotly itself before the screenshot, so they come out crisp and in place.</li>
@@ -7046,7 +7050,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.88</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.89</a>
         </span>
     </div>
 
@@ -7549,12 +7553,13 @@
                             <!-- Gene Effect options (always shown) -->
                             <label class="panel-heading">Labels and color</label>
                             <div class="checkbox-group" style="margin-bottom: 4px;">
-                                <label><input type="checkbox" id="showUncorrelatedGenes"> Show all input genes in network</label>
+                                <label><input type="checkbox" id="showUncorrelatedGenes" checked> Show all input genes in network</label>
                             </div>
-                            <div id="uncorrLayoutOptions" style="display: none; margin-left: 20px; margin-bottom: 4px;">
+                            <div id="uncorrLayoutOptions" style="display: block; margin-left: 20px; margin-bottom: 4px;">
                                 <div class="radio-group-inline">
-                                    <label title="Genes without correlations park in a tidy row below the network"><input type="radio" name="uncorrLayout" value="grid" checked> Lined up</label>
-                                    <label title="Genes without correlations drift freely around the network"><input type="radio" name="uncorrLayout" value="float"> Floating</label>
+                                    <label title="Genes without correlations drift freely around the network"><input type="radio" name="uncorrLayout" value="float" checked> Floating</label>
+                                    <label title="Genes without correlations park in a tidy row below the network"><input type="radio" name="uncorrLayout" value="grid"> Lined up below</label>
+                                    <label title="Genes without correlations park in a column to the right of the network"><input type="radio" name="uncorrLayout" value="gridRight"> Lined up right</label>
                                 </div>
                             </div>
                             <div class="checkbox-group" style="margin-bottom: 4px;">
@@ -10112,6 +10117,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_88"></script>
+    <script src="app.js?v=v88_89"></script>
 </body>
 </html>

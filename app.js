@@ -15765,8 +15765,20 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         const parent = new Map(nodes.map(n => [n.id, n.id]));
         const find = (x) => { while (parent.get(x) !== x) { parent.set(x, parent.get(parent.get(x))); x = parent.get(x); } return x; };
         edges.forEach(e => { const ra = find(e.from), rb = find(e.to); if (ra !== rb) parent.set(ra, rb); });
+        // In Floating mode the edgeless input genes are meant to drift where
+        // the solver leaves them, so they are not components to be packed
+        // into the satellite rows; sweeping them in parked them in a grid
+        // whatever the layout choice said.
+        const floatMode = document.querySelector('input[name="uncorrLayout"]:checked')?.value === 'float';
+        const connected = new Set();
+        edges.forEach(e => { connected.add(e.from); connected.add(e.to); });
         const groups = new Map();
-        nodes.forEach(n => { const r = find(n.id); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(n.id); });
+        nodes.forEach(n => {
+            if (floatMode && !connected.has(n.id)) return;
+            const r = find(n.id);
+            if (!groups.has(r)) groups.set(r, []);
+            groups.get(r).push(n.id);
+        });
         if (groups.size < 2) return false;
         const positions = this.network.getPositions();
         const comps = [...groups.values()].map(ids => {
@@ -15887,13 +15899,26 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         const labelH = fs * 1.2 * labelLines;
         const stepX = Math.max(nodeR * 2 + 24, longestLine * fs * 0.62 + 14);
         const stepY = nodeR * 2 + labelH + 22;
-        // Wider than tall, so the block reads as a footnote strip; roughly
-        // match the network's width and centre the block underneath it.
-        let cols = Math.max(Math.round((maxX - minX) / stepX) + 1,
-            Math.ceil(Math.sqrt(loose.length * 2)));
-        cols = Math.min(cols, loose.length);
-        const startY = maxY + nodeR * 2 + labelH + 40;
-        const startX = (minX + maxX) / 2 - ((cols - 1) * stepX) / 2;
+        const mode = document.querySelector('input[name="uncorrLayout"]:checked')?.value || 'grid';
+        let cols, startX, startY;
+        if (mode === 'gridRight') {
+            // A column to the RIGHT of the network: taller than wide, rows
+            // roughly matching the network's height, centred on it.
+            let rows = Math.max(Math.round((maxY - minY) / stepY) + 1,
+                Math.ceil(Math.sqrt(loose.length / 2)));
+            rows = Math.min(Math.max(rows, 1), loose.length);
+            cols = Math.ceil(loose.length / rows);
+            startX = maxX + stepX + nodeR * 2 + 40;
+            startY = (minY + maxY) / 2 - ((rows - 1) * stepY) / 2;
+        } else {
+            // Wider than tall, so the block reads as a footnote strip; roughly
+            // match the network's width and centre the block underneath it.
+            cols = Math.max(Math.round((maxX - minX) / stepX) + 1,
+                Math.ceil(Math.sqrt(loose.length * 2)));
+            cols = Math.min(cols, loose.length);
+            startY = maxY + nodeR * 2 + labelH + 40;
+            startX = (minX + maxX) / 2 - ((cols - 1) * stepX) / 2;
+        }
         // physics:false, not merely pinned: a fixed node still repels the
         // rest, so the parked block used to shove the connected network away
         // from itself, opening a wide gap the fit then had to zoom out over.
@@ -59038,7 +59063,7 @@ ${clone.innerHTML}
             + '   NO p-value is computed for these pairs, and no false discovery rate or other multiple-testing correction is applied anywhere in this analysis. The correlation cutoff is a display threshold chosen by hand, not a significance test, and it should not be described as one.\n'
             + '   The slope is a least squares fit of the second gene on the first and carries the units of the measure.',
             viewKey === 'network' && nodes != null
-                ? `THE NETWORK AS DRAWN\n   ${this._mNum(nodes)} nodes and ${this._mNum(edges)} edges.\n   Node size, font size, edge width and spread are display settings and carry no data.\n   ${document.getElementById('showUncorrelatedGenes')?.checked ? 'Input genes with no surviving correlation are shown as well, placed apart from the network; they have no edges by definition.' : 'Input genes with no surviving correlation are not drawn.'}\n   ${(this._netHighlightText || '').trim() ? `Genes ringed on the picture: ${this._netHighlightText.trim()}${this._netHighlightNote ? ` (${this._netHighlightNote})` : ''}.` : 'No genes are ringed or highlighted on the picture.'}\n   A * after a gene name on a node means a synonym or ortholog was used to find it in the data.`
+                ? `THE NETWORK AS DRAWN\n   ${this._mNum(nodes)} nodes and ${this._mNum(edges)} edges.\n   Node size, font size, edge width and spread are display settings and carry no data.\n   ${document.getElementById('showUncorrelatedGenes')?.checked ? (() => { const m = document.querySelector('input[name="uncorrLayout"]:checked')?.value; return m === 'grid' ? 'Input genes with no surviving correlation are shown as well, parked in a row below the network; they have no edges by definition.' : m === 'gridRight' ? 'Input genes with no surviving correlation are shown as well, parked in a column to the right of the network; they have no edges by definition.' : 'Input genes with no surviving correlation are shown as well, drifting unconnected around the network; they have no edges by definition.'; })() : 'Input genes with no surviving correlation are not drawn.'}\n   ${(this._netHighlightText || '').trim() ? `Genes ringed on the picture: ${this._netHighlightText.trim()}${this._netHighlightNote ? ` (${this._netHighlightNote})` : ''}.` : 'No genes are ringed or highlighted on the picture.'}\n   A * after a gene name on a node means a synonym or ortholog was used to find it in the data.`
                 : null,
             'WHAT THIS DOES NOT SAY\nA correlation between two genes across a panel of cell lines does not show that one acts on the other, and genes in the same cluster are not necessarily a complex or a pathway. Where the cohort spans several tissues, both the correlations and the clusters can be shaped by differences between tissues.'
         ]);
