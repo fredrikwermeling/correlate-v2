@@ -12040,6 +12040,7 @@ class CorrelationExplorer {
                 },
                 borderWidth: document.getElementById('networkNodeBorder')?.checked === false ? 0 : 2,
                 isSynonym: isSynonym,
+                isInput: isInput,
                 originalName: originalName
             });
         });
@@ -12089,6 +12090,7 @@ class CorrelationExplorer {
                         borderWidth: document.getElementById('networkNodeBorder')?.checked === false ? 0 : 2,
                         borderWidthSelected: 3,
                         isSynonym: isSynonym,
+                        isInput: true,
                         originalName: originalName || null,
                         uncorrelated: true,
                         physics: !uncorrParked
@@ -12996,6 +12998,18 @@ class CorrelationExplorer {
 
         // Update legend for edge thickness
         this.updateEdgeLegend(edgeWidthBase, cutoff);
+        this._reparkUncorrelated();
+    }
+
+    // Label metrics changed (font/node slider, GE-in-label): the parked grid
+    // was spaced for the old label width, so re-space it in place. Floaters
+    // are left alone; their positions are the solver's.
+    _reparkUncorrelated() {
+        if (!this.network) return;
+        if (!document.getElementById('showUncorrelatedGenes')?.checked) return;
+        const mode = document.querySelector('input[name="uncorrLayout"]:checked')?.value || 'grid';
+        if (mode === 'float') return;
+        this._arrangeUncorrelatedGrid();
     }
 
     openNetworkTextSettings() {
@@ -15099,6 +15113,7 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         });
 
         this.networkData.nodes.update(updates);
+        this._reparkUncorrelated();
     }
 
     updateNetworkLabelsWithStats() {
@@ -15156,6 +15171,7 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         });
 
         this.networkData.nodes.update(updates);
+        this._reparkUncorrelated();
     }
 
     // Data files carry the same cache-bust token as app.js: without it a
@@ -35530,12 +35546,23 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // surfaced). Shared by the menu's live counts and the click handler so
     // they can never disagree about what a choice means.
     _netHeatmapGeneSets() {
-        const entered = ((this.getGeneList && this.getGeneList()) || []).map(g => String(g).toUpperCase());
-        const all = this.networkData?.nodes
-            ? this.networkData.nodes.getIds().map(g => String(g).toUpperCase())
-            : [];
-        const enteredSet = new Set(entered);
-        const correlating = all.filter(g => !enteredSet.has(g));
+        const nodes = this.networkData?.nodes ? this.networkData.nodes.get() : [];
+        const all = nodes.map(n => String(n.id).toUpperCase());
+        // Classify by the node's own isInput flag (set at build time from the
+        // run's gene list), so the split always matches the node colours; the
+        // live textarea can be edited or empty after a restore, and a synonym
+        // node's id no longer matches what was typed. Older node sets without
+        // the flag fall back to the run's recorded gene list.
+        const flagged = nodes.some(n => n.isInput !== undefined);
+        let entered, correlating;
+        if (flagged) {
+            entered = nodes.filter(n => n.isInput).map(n => String(n.id).toUpperCase());
+            correlating = nodes.filter(n => !n.isInput).map(n => String(n.id).toUpperCase());
+        } else {
+            const enteredSet = new Set((this.results?.geneList || (this.getGeneList && this.getGeneList()) || []).map(g => String(g).toUpperCase()));
+            entered = all.filter(g => enteredSet.has(g));
+            correlating = all.filter(g => !enteredSet.has(g));
+        }
         return { entered, all, correlating };
     }
 
@@ -53429,6 +53456,15 @@ ${clone.innerHTML}
         const wrap = document.getElementById('hmAnnRowsBlock');
         if (!wrap) return;
         const rows = this._hmAnnRows || (this._hmAnnRows = []);
+        // The drawn heatmap always puts the blocking row on top (the group
+        // strip), so the list mirrors it: the topmost row with Sort on that
+        // can form blocks moves to position 1. Continuous rows sort without
+        // blocking, so they stay where they sit.
+        const bi = rows.findIndex(r => r.sortDir && this._hmAnnRowCanBlock(r.mode));
+        const firstSorted = rows.findIndex(r => r.sortDir);
+        if (bi > 0 && bi === firstSorted) {
+            rows.unshift(rows.splice(bi, 1)[0]);
+        }
         const TYPE_OPTIONS = [
             ['lineage', 'Lineage'], ['subtype', 'Subtype'], ['disease', 'Disease'],
             ['hotspot', 'Hotspot mutation'], ['fusion', 'Fusion'], ['cn', 'Copy number'],

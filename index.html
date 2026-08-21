@@ -2636,6 +2636,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.108 (2026-08-21)</strong></p>
+                <ul>
+                    <li><b>Lined-up genes keep their spacing.</b> Changing the font or node size, or adding gene effect to the labels, now re-spaces the lined up below/right block, so labels no longer overlap after the controls change.</li>
+                    <li><b>"Correlating genes only" always means what it says.</b> The network's Heatmap menu now classifies genes by how each node was drawn (input vs surfaced by correlation) instead of re-reading the input box, which could be empty after a restore and made the choice behave like "All network genes".</li>
+                    <li><b>Annotation row order matches the heatmap.</b> Turning Sort on for a row that sits below unsorted rows moves it to Row 1, because that is where the heatmap draws it (the block strip is always on top). The list and the picture can no longer disagree.</li>
+                </ul>
                 <p><strong>v.88.107 (2026-08-21)</strong></p>
                 <ul>
                     <li><b>Code comment cleanup.</b> Source comments rewritten for clarity: shorter, no version history or dates in the code itself (that lives in this changelog and git). No behavior changes.</li>
@@ -7125,7 +7131,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.107</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.108</a>
         </span>
     </div>
 
@@ -10147,6 +10153,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_107"></script>
+    <script src="app.js?v=v88_108"></script>
 </body>
 </html>
