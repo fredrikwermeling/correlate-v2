@@ -1,3 +1,9 @@
+The network sometimes have overlapping text when seleting show all input genes, lined up below/right.
+the network to heatmap doesnt seem to recognize the "corrlating genes only" version, i guess its the same as the "all network genes". it looks a bit strange.
+
+
+
+
 OPEN: UMAP gate comparison could reuse the shared inspect view (explicitly
 deferred by Fredrik 2026-08-19, only if ever wanted).
 PARKED (Fredrik 2026-08-21, "pause on this"): in-app "Report a bug" /
