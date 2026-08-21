@@ -6551,6 +6551,7 @@ class CorrelationExplorer {
         document.getElementById('filterClustersToggle')?.addEventListener('click', () => this.toggleTableFilters('clustersTable'));
         document.getElementById('filterMutationToggle')?.addEventListener('click', () => this.toggleTableFilters('mutationTable'));
         document.getElementById('mutPvalueFilter')?.addEventListener('change', () => this.displayMutationResults());
+        document.getElementById('mutLowNFilter')?.addEventListener('change', () => this.displayMutationResults());
         document.getElementById('filterExprCorrelatesToggle')?.addEventListener('click', () => this.toggleTableFilters('exprCorrelatesTable'));
 
         // Enrichr buttons
@@ -9717,9 +9718,15 @@ class CorrelationExplorer {
         // only pass on a secondary column. When checked, restrict to the primary
         // 1+2-vs-WT comparison being significant at 0.05.
         const pFilterOn = document.getElementById('mutPvalueFilter')?.checked !== false;
-        const results = pFilterOn
+        let results = pFilterOn
             ? mr.significantResults.filter(r => r.p_mut != null && r.p_mut < 0.05)
             : mr.significantResults;
+        // "hide * genes" filter: the * marks rows whose gene is measured in
+        // fewer cell lines than the cohort. The reference n comes from the
+        // FULL result list, so ticking the box cannot move the bar.
+        const lowNFilterOn = document.getElementById('mutLowNFilter')?.checked === true;
+        const fullMaxN = mr.significantResults.reduce((m, r) => Math.max(m, (r.n_wt || 0) + (r.n_mut || 0)), 0);
+        if (lowNFilterOn) results = results.filter(r => ((r.n_wt || 0) + (r.n_mut || 0)) >= fullMaxN);
         const hasFusion = mr.hasFusionData && mr.isTranslocation;
         const tbody = document.getElementById('mutationTableBody');
         tbody.innerHTML = '';
@@ -46059,7 +46066,10 @@ ${clone.innerHTML}
                     <div style="display:flex; gap:4px; align-items:center;">
                         <input type="text" id="geInspectSearch" placeholder="e.g. BRAF, SOX10" title="Show these genes in both tables whatever the cutoffs are set to. Separate several with commas or spaces." style="flex:1; min-width:0; font-size:11px; padding:3px 5px; border:1px solid #d1d5db; border-radius:3px;">
                         <button type="button" id="geInspectSearchClear" title="Clear" style="border:1px solid #d1d5db; border-radius:3px; background:#f9fafb; cursor:pointer; padding:2px 6px; line-height:1.4; display:none;">&times;</button>
-                    </div>`)
+                    </div>
+                    <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:#374151; margin-top:6px; cursor:pointer;" title="A ⚠ row rests on fewer cell lines than the groups suggest, because the gene was only measured in some of them. Tick to drop those rows from the tables and volcanos; searching still finds them.">
+                        <input type="checkbox" id="geInspectHideThin" style="margin:0;"> Hide ⚠ genes with data in fewer lines
+                    </label>`)
                 + filterCard('Left', 'CRISPR gene effect', 0.3, 0.05)
                 + filterCard('Right', 'mRNA expression', 1.0, 0.1);
         }
@@ -46124,6 +46134,7 @@ ${clone.innerHTML}
         // using the same shared top-N menu as the mutation analysis table.
         document.getElementById('geLeftHeatmap')?.addEventListener('click', (e) => this._openHeatmapFromGEInspectMenu('left', e.currentTarget));
         document.getElementById('geRightHeatmap')?.addEventListener('click', (e) => this._openHeatmapFromGEInspectMenu('right', e.currentTarget));
+        document.getElementById('geInspectHideThin')?.addEventListener('change', () => renderSides());
         const searchEl = document.getElementById('geInspectSearch');
         if (searchEl) {
             searchEl.addEventListener('input', () => {
@@ -48118,6 +48129,8 @@ ${clone.innerHTML}
         set('geInspectSearch', '');
         const clr = document.getElementById('geInspectSearchClear');
         if (clr) clr.style.display = 'none';
+        const thinCb = document.getElementById('geInspectHideThin');
+        if (thinCb) thinCb.checked = false;
         this._geInspectSort = {
             left:  { key: 'delta', dir: -1, absolute: true },
             right: { key: 'delta', dir: -1, absolute: true },
@@ -48200,6 +48213,10 @@ ${clone.innerHTML}
                             : 'Needs at least three cell lines to test';
         });
         const passQ = (r, cut) => !anyQ || cut >= 1 || (r.q != null && r.q <= cut);
+        // Hide-⚠ filter: applied with the cutoffs, so the volcano and the
+        // table drop the same rows; a gene search still finds hidden genes.
+        const hideThin = !!document.getElementById('geInspectHideThin')?.checked;
+        const passCov = (r, side) => !hideThin || !this._geInspectThin(r, side);
 
         // Looking up a named gene is a different question from browsing the
         // strongest differences, and a search that returned nothing because
@@ -48212,13 +48229,13 @@ ${clone.innerHTML}
         const leftRows = terms.length
             ? applySort(rows.filter(matches), this._geInspectSort.left).slice(0, leftN)
             : applySort(
-                rows.filter(r => Math.abs(r.delta) >= leftCut && passQ(r, leftQ)),
+                rows.filter(r => Math.abs(r.delta) >= leftCut && passQ(r, leftQ) && passCov(r, 'left')),
                 this._geInspectSort.left
             ).slice(0, leftN);
         const rightRows = terms.length
             ? applySort(exprRows.filter(matches), this._geInspectSort.right).slice(0, rightN)
             : applySort(
-                exprRows.filter(r => Math.abs(r.delta) >= rightCut && passQ(r, rightQ)),
+                exprRows.filter(r => Math.abs(r.delta) >= rightCut && passQ(r, rightQ) && passCov(r, 'right')),
                 this._geInspectSort.right
             ).slice(0, rightN);
         // What is on screen right now, so an export can follow the tables
@@ -48230,8 +48247,8 @@ ${clone.innerHTML}
         // table is for. The volcano keeps the cutoff set it was already
         // showing and marks the searched genes on top of it, so looking a gene
         // up adds it to the picture instead of emptying the picture.
-        const cutLeft = applySort(rows.filter(r => Math.abs(r.delta) >= leftCut && passQ(r, leftQ)), this._geInspectSort.left).slice(0, leftN);
-        const cutRight = applySort(exprRows.filter(r => Math.abs(r.delta) >= rightCut && passQ(r, rightQ)), this._geInspectSort.right).slice(0, rightN);
+        const cutLeft = applySort(rows.filter(r => Math.abs(r.delta) >= leftCut && passQ(r, leftQ) && passCov(r, 'left')), this._geInspectSort.left).slice(0, leftN);
+        const cutRight = applySort(exprRows.filter(r => Math.abs(r.delta) >= rightCut && passQ(r, rightQ) && passCov(r, 'right')), this._geInspectSort.right).slice(0, rightN);
         const foundLeft = terms.length ? rows.filter(matches) : [];
         const foundRight = terms.length ? exprRows.filter(matches) : [];
         // "selection - comparison" ordinarily; "A - B" for Inspect A vs B,
@@ -48342,6 +48359,19 @@ ${clone.innerHTML}
     }
 
     // Build the HTML for one sortable GE-inspect table.
+    // "Fewer lines than the groups suggest": the row rests on under 70% of
+    // either group, because the gene was only measured in some lines. Shared
+    // by the table's ⚠ mark and the hide filter, so the checkbox hides
+    // exactly the marked rows. Each side is measured against its OWN cohort:
+    // the expression matrix covers more cell lines than the CRISPR screen.
+    _geInspectThin(r, side) {
+        const cov = side === 'right'
+            ? (this._geInspectResults?.exprCoverage || this._geInspectResults?.geCoverage)
+            : this._geInspectResults?.geCoverage;
+        const nomSel = cov?.selNominal || 0, nomOth = cov?.othNominal || 0;
+        return !!((nomSel && r.nSel < nomSel * 0.7) || (nomOth && r.nOther < nomOth * 0.7));
+    }
+
     _buildGEInspectTable(rows, side, emptyMessage) {
         // No q column at all when the selection was too small to test, rather
         // than a column of blanks.
@@ -48364,17 +48394,7 @@ ${clone.innerHTML}
         // screen, so a comparison billed as 48 against 12 can come down to
         // 27 against 3 for a particular gene, and without this the row looks
         // as solid as any other.
-        // Each side is measured against its OWN cohort: the expression matrix
-        // covers more cell lines than the CRISPR screen does.
-        const cov = side === 'right'
-            ? (this._geInspectResults?.exprCoverage || this._geInspectResults?.geCoverage)
-            : this._geInspectResults?.geCoverage;
-        const nomSel = cov?.selNominal || 0, nomOth = cov?.othNominal || 0;
-        // Only "fewer lines than the group you picked" is a row-level fact. A
-        // group that is simply small is a property of the whole comparison, so
-        // it belongs in the heading; testing it here put a warning on every
-        // single row of a four-line selection, which said nothing.
-        const thin = (r) => (nomSel && r.nSel < nomSel * 0.7) || (nomOth && r.nOther < nomOth * 0.7);
+        const thin = (r) => this._geInspectThin(r, side);
         const trows = rows.map(r => `
             <tr class="si-row" data-gene="${this.esc(r.gene)}" style="cursor:pointer;">
                 <td style="padding:4px 8px; border-bottom:1px solid #f3f4f6; font-weight:600; color:#4c782e;">${r.gene}</td>
@@ -52870,6 +52890,7 @@ ${clone.innerHTML}
         document.getElementById('hmPreset')?.addEventListener('change', () => { this._hmSyncPresetUI(); this._hmRedraw(); });
         document.getElementById('hmDataType')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmScale')?.addEventListener('change', () => this._hmRedraw());
+        document.getElementById('hmGeneMinN')?.addEventListener('change', () => this._hmRedraw());
         document.getElementById('hmThenBy')?.addEventListener('change', () => this._hmRedraw());
         // Cell-line clustering has no toolbar checkbox any more:
         // it is the "Cell-line clusters" annotation row, added with + Add
@@ -53050,6 +53071,7 @@ ${clone.innerHTML}
         const medianCb = document.getElementById('hmShowMedian');
         if (medianCb) medianCb.checked = true;
         set('hmMinGroupSize', '1');
+        set('hmGeneMinN', '1');
         // Default hierarchy: lineage blocks ordered by median
         // score, or disease blocks when the open-time cohort is already one
         // lineage (a lineage strip with one colour says nothing). TP53
@@ -53818,7 +53840,7 @@ ${clone.innerHTML}
         const hasGene = (g) => dataType === 'expr'
             ? !!this.expressionGeneIndex?.has(g.toUpperCase())
             : !!this.geneIndex?.has(g.toUpperCase());
-        const genes = enteredGenes.filter(hasGene);
+        let genes = enteredGenes.filter(hasGene);
         const missingGenes = enteredGenes.filter(g => !hasGene(g));
 
         if (!genes.length) {
@@ -53914,6 +53936,33 @@ ${clone.innerHTML}
                 if (hint) hint.textContent = 'No cell lines left in this drilled-down group. Use the "Show all" link below to start over.';
                 this._hmClearCanvases();
                 return;
+            }
+        }
+
+        // Gene min n: a gene measured in only a few of the shown lines rests
+        // on less data than the rest of the grid, so it can be hidden by
+        // count. Applied to the FINAL cohort, so the bar means "of the lines
+        // actually drawn"; hidden genes are named in the summary, never
+        // silently dropped.
+        const geneMinN = Math.max(1, parseInt(document.getElementById('hmGeneMinN')?.value, 10) || 1);
+        if (geneMinN > 1) {
+            const rowIdx = this._hmCellLineRowIndex();
+            const idxs = cohort.map(cl => rowIdx.get(cl)).filter(i => i !== undefined);
+            const kept = [], thin = [];
+            for (const g of genes) {
+                const vec = this._hmFullPanelVector(g, dataType);
+                let c = 0;
+                if (vec) for (const i of idxs) { const v = vec[i]; if (v !== undefined && !Number.isNaN(v)) c++; }
+                (c >= geneMinN ? kept : thin).push(g);
+            }
+            if (thin.length && !kept.length) {
+                if (hint) hint.textContent = `All ${genes.length} genes have data in fewer than ${geneMinN} of the shown lines. Lower Gene min n.`;
+                this._hmClearCanvases();
+                return;
+            }
+            if (thin.length) {
+                genes = kept;
+                cohortNote += `${thin.length} gene${thin.length === 1 ? '' : 's'} with data in fewer than ${geneMinN} shown lines hidden (${thin.length <= 6 ? thin.join(', ') : thin.slice(0, 5).join(', ') + ', …'}). `;
             }
         }
 
@@ -57461,6 +57510,7 @@ ${clone.innerHTML}
             hideNoData: checked('hmHideNoData'),
             thenBy: val('hmThenBy') === 'name' ? 'name' : 'score',
             minN: parseInt(val('hmMinGroupSize'), 10) || 1,
+            geneMinN: parseInt(val('hmGeneMinN'), 10) || 1,
             showMedian: checked('hmShowMedian'),
             clusterGenes: checked('hmClusterGenes'),
             // the cluster checkbox is gone; a saved file records
@@ -57554,6 +57604,7 @@ ${clone.innerHTML}
         // Tree order only rather than inheriting whatever is on screen.
         set('hmGeneClusterK', state.geneClusterK != null ? String(state.geneClusterK) : '0');
         set('hmMinGroupSize', state.minN != null ? String(state.minN) : '1');
+        set('hmGeneMinN', state.geneMinN != null ? String(state.geneMinN) : '1');
         setChecked('hmShowMedian', state.showMedian);
 
         // Lineage/subtype/disease options are rebuilt from the resolved
