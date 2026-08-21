@@ -1,7 +1,7 @@
 The network sometimes have overlapping text when seleting show all input genes, lined up below/right.
 the network to heatmap doesnt seem to recognize the "corrlating genes only" version, i guess its the same as the "all network genes". it looks a bit strange.
 sorting in the hotspot annotation rows doesnt work properly. now if hotspot mutationn is row 2 and i select to dort by it (where row 1 has sort off), hotspot is mowed to row 1 in the the heatmap, but not in the annotations row box. row1 in annotations row should always be row 1 in the heatmap
-
+cell line inspect and mutatipon analyis should allow for filtering out genes with much fewer cell lines than the expected (becasue gene is only anotated/tested in some cell lines). now in cell line inspect its warned, but i need to be able to remove them with an fiulter. also in heatmap, there should ba a n selector for genes, not only cell lines.
 
 
 OPEN: UMAP gate comparison could reuse the shared inspect view (explicitly
