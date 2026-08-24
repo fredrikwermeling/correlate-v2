@@ -2636,6 +2636,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.111 (2026-08-24)</strong></p>
+                <ul>
+                    <li><b>Fix: the expression correlates in Find correlates were computed on misaligned data.</b> The expression matrix covers more cell lines than the CRISPR screen and holds them in a different order, but the list was reading it with the screen's row positions, so every value belonged to some other cell line. The top expression correlates of TP53 gene effect were noise; they are now EDA2R, PTCHD4, ZMAT3, RPS27L and CDKN1A, and the r in the list matches the r on the plot you land on.</li>
+                    <li><b>Fix: picking an expression correlate said the gene does not exist.</b> Expression covers thousands of genes the screen never targets, and an Expr axis was still being checked against the gene-effect list, so a gene the panel had just offered was rejected. The Expr axis is now checked against the expression data, and the "Open in Gene Effect" button beside it appears for those genes too.</li>
+                    <li><b>Test Genes steps back once there are genes in the box.</b> It is an invitation for an empty box; with a list in place it is only a way to wipe what was typed, so it drops its green.</li>
+                </ul>
                 <p><strong>v.88.110 (2026-08-21)</strong></p>
                 <ul>
                     <li><b>The comparison tissue picker is a proper popout.</b> "Pick tissues / diseases" in the selection inspect now opens a draggable, searchable panel instead of a cramped sidebar box. Each row carries a level tag (tissue / subtype / disease), because a subtype can share its name with one of its diseases: Melanoma the subtype also holds Acral and Cutaneous Melanoma, so "melanoma" at the two levels means two different sets of cell lines.</li>
@@ -7139,7 +7145,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.110</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.111</a>
         </span>
     </div>
 
@@ -10167,6 +10173,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_110"></script>
+    <script src="app.js?v=v88_111"></script>
 </body>
 </html>
