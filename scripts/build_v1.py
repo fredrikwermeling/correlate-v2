@@ -101,7 +101,35 @@ def main():
         if os.path.exists(s):
             shutil.copy2(s, os.path.join(V1, a))
     print(f"\nWrote index.html + app.js + {len(ASSETS)} assets to:\n  {V1}")
-    print("Data files (web_data/) are copied separately, only when the release changes.")
+
+    missing = sync_new_data(check)
+    if missing:
+        verb = "would copy" if check else "copied"
+        print(f"\nweb_data files absent from V1 ({verb}):")
+        for m in missing:
+            print(f"  {m}")
+    print("Existing web_data files are refreshed separately, only when the release changes.")
+
+
+def sync_new_data(check=False):
+    """Copy any web_data file V1 does not have at all.
+
+    A data file added to V2 for a new feature (retroelements.json was the one
+    that got away) otherwise never reaches V1: its fetch fails silently, the
+    feature's controls are all present and do nothing. Files V1 already has
+    are left alone, those follow the DepMap release, not the build."""
+    src_dir = os.path.join(V2, "web_data")
+    dst_dir = os.path.join(V1, "web_data")
+    if not os.path.isdir(src_dir) or not os.path.isdir(dst_dir):
+        return []
+    new = sorted(f for f in os.listdir(src_dir)
+                 if not f.startswith(".")
+                 and os.path.isfile(os.path.join(src_dir, f))
+                 and not os.path.exists(os.path.join(dst_dir, f)))
+    if not check:
+        for f in new:
+            shutil.copy2(os.path.join(src_dir, f), os.path.join(dst_dir, f))
+    return new
 
 
 if __name__ == "__main__":

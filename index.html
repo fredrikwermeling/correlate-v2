@@ -2636,6 +2636,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.112 (2026-08-25)</strong></p>
+                <ul>
+                    <li><b>The interferon and retroelement sorts start at the top.</b> Both opened lowest-first, which put the unremarkable lines on screen and buried the answer. "Which lines are interferon-high" is the question those sorts exist for, so they now run highest to lowest, like the expression and copy-number sorts. The direction button reverses them as before.</li>
+                </ul>
                 <p><strong>v.88.111 (2026-08-24)</strong></p>
                 <ul>
                     <li><b>Fix: the expression correlates in Find correlates were computed on misaligned data.</b> The expression matrix covers more cell lines than the CRISPR screen and holds them in a different order, but the list was reading it with the screen's row positions, so every value belonged to some other cell line. The top expression correlates of TP53 gene effect were noise; they are now EDA2R, PTCHD4, ZMAT3, RPS27L and CDKN1A, and the r in the list matches the r on the plot you land on.</li>
@@ -7145,7 +7149,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.111</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.112</a>
         </span>
     </div>
 
@@ -10173,6 +10177,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_111"></script>
+    <script src="app.js?v=v88_112"></script>
 </body>
 </html>
