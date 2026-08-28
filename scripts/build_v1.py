@@ -102,6 +102,15 @@ def main():
             shutil.copy2(s, os.path.join(V1, a))
     print(f"\nWrote index.html + app.js + {len(ASSETS)} assets to:\n  {V1}")
 
+    # V1 is served by Apache (V2 and CoExpress are on GitHub Pages, which sets
+    # its own headers), so the cache policy is a V1-only deployment file. It
+    # lives here rather than only in the derived repo, so a rebuild reproduces
+    # it instead of depending on a file someone once put there by hand.
+    ht = os.path.join(V2, "scripts", "deploy", "v1.htaccess")
+    if os.path.exists(ht) and not check:
+        shutil.copy2(ht, os.path.join(V1, ".htaccess"))
+        print("  .htaccess (cache policy)")
+
     missing = sync_new_data(check)
     if missing:
         verb = "would copy" if check else "copied"
