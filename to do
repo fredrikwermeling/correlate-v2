@@ -1,3 +1,9 @@
+The cell lien borwser sorting by drug, the heading is overlapping with the drugs when scrolling. 
+Also I cell line it should be possible to select gate a a nd to compare then to each other (ie via the inspect), eg low and high drug response
+corrlate.cmm.se seems to be the wrong version?
+
+
+
 SHIPPED v.88.108-110 (2026-08-21), the 2026-08-21 batch:
 - lined-up label overlap: the parked grid now re-spaces when font/node size
   or GE-in-label changes (v.88.108)
