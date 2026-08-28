@@ -2651,6 +2651,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.117 (2026-08-28)</strong></p>
+                <ul>
+                    <li><b>Export for AI carries the retroelement signal and the interferon score per cell line.</b> Both are measures a group can be built on, since the Cell Line Browser sorts by either, but neither was in the file: a reader asked to explain a LINE-1-high versus LINE-1-low split could not see the axis that produced the split, and said so. Each line now carries its LINE-1, HERV-K, SVA and total CPM with the top-decile flag, and its interferon score. Absence is stated rather than left to inference: only 669 of the 1,208 lines have an alignment to measure retroelements from, and a line without the field was never measured, which is not a zero.</li>
+                </ul>
                 <p><strong>v.88.116 (2026-08-28)</strong></p>
                 <ul>
                     <li><b>The Cell Line Browser gates work on a phone.</b> They are filled by ticking rather than by dragging, so unlike the heatmap's gates there is nothing about them a touch screen cannot do. Each Set Gate button now stays joined to its own count when the toolbar wraps, and the count and its clear link are sized for a finger.</li>
@@ -7181,7 +7185,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.116</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.117</a>
         </span>
     </div>
 
@@ -10233,6 +10237,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_116"></script>
+    <script src="app.js?v=v88_117"></script>
 </body>
 </html>
