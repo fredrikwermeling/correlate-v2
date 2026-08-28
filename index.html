@@ -2641,6 +2641,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.115 (2026-08-28)</strong></p>
+                <ul>
+                    <li><b>Two gates in the Cell Line Browser, compared against each other.</b> Until now a selection could only be measured against the rest of the panel. Tick some cell lines and press <b>Set Gate A</b>, tick others and press <b>Set Gate B</b>, then <b>Inspect A vs B</b> compares the two directly, gene by gene, with the same tables, volcano and statistics the heatmap gates produce. Sort by drug response first and the two ends of the list become the two gates. Setting a gate clears the ticks so the other one can be picked, members are tagged in the list, and the gates survive a saved view.</li>
+                </ul>
                 <p><strong>v.88.114 (2026-08-28)</strong></p>
                 <ul>
                     <li><b>Fix: the compound list scrolled over its own heading.</b> In the Cell Line Browser's drug-response sort, the explanation pinned at the top of the compound list was painted over by the compounds themselves, leaving two lines of text on top of each other. The rows are dimmed to mark broadly-cytotoxic compounds, and that dimming was enough to let them cover the heading. The gene and copy-number pickers had the same weakness and were fixed with it.</li>
@@ -7163,7 +7167,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.114</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.115</a>
         </span>
     </div>
 
@@ -9724,6 +9728,21 @@
 
               <span class="clb-sep"></span>
 
+              <!-- Two named groups, filled from the ticks. Tick some lines,
+                   press Set Gate A, tick the others, press Set Gate B, then
+                   compare the two directly instead of either against the rest
+                   of the panel. The chips and the compare button reserve their
+                   space (visibility:hidden / disabled) rather than appearing
+                   and shoving their neighbours; see _syncClbGateUI. -->
+              <span class="clb-group-label" style="color:var(--green-700);">Gates</span>
+              <button id="clbSetGateA" class="btn btn-outline btn-sm" title="Put the ticked cell lines into gate A. The ticks then clear, ready for gate B.">Set Gate A</button>
+              <span id="clbGateAChip" style="font-size:10px; visibility:hidden; white-space:nowrap;"></span>
+              <button id="clbSetGateB" class="btn btn-outline btn-sm" title="Put the ticked cell lines into gate B.">Set Gate B</button>
+              <span id="clbGateBChip" style="font-size:10px; visibility:hidden; white-space:nowrap;"></span>
+              <button id="clbInspectABBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:#5d9239; border-color:#6ba544;" title="Compare gate A against gate B, gene by gene." disabled>Inspect<br><span>A vs B</span></button>
+
+              <span class="clb-sep"></span>
+
               <span class="clb-group-label" style="color:var(--green-700);">Look at</span>
               <button id="clbInspectGEBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:#5d9239; border-color:#6ba544;" title="Compare the selected cell lines against every other cell line, gene by gene. Fast (~seconds).">Inspect<br><span>selected vs rest</span></button>
               <button id="clbSendToBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:#5d9239; border-color:#6ba544;" title="Carry these cell lines over to another view: highlight them on a chart, or narrow that view to them.">Send to<br><span>another view</span></button>
@@ -10196,6 +10215,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_114"></script>
+    <script src="app.js?v=v88_115"></script>
 </body>
 </html>
