@@ -1795,6 +1795,7 @@
         .clb-tall-btn { height: calc(var(--clb-ctl-h) + 12px) !important; line-height: 1.15; flex-direction: column; gap: 0; padding: 0 10px !important; }
         .clb-tall-btn span { font-size: 9px; font-weight: normal; }
         .clb-pair { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+        .clb-gate-chip { font-size: 10px; }
         .clb-anchor { position: relative; display: inline-flex; align-items: center; }
         .clb-dropdown {
             display: none; position: absolute; top: 100%; left: 0;
@@ -2379,6 +2380,15 @@
                rather than the 11px it wears beside the desktop export buttons.
                16px also stops iOS zooming the page when it takes focus. */
             #geScopeSelect { width: 100% !important; font-size: 16px !important; padding: 7px 8px !important; }
+            /* Gate counts and their clear link: 10px and a bare "x" are a
+               desktop-mouse size. The gates themselves work by ticking, so
+               they stay on phones, and their controls have to be tappable. */
+            .clb-gate-chip { font-size: 12px !important; }
+            /* 32px square, the size the other phone touch targets use. */
+            .clb-gate-chip a {
+                display: inline-flex; align-items: center; justify-content: center;
+                min-width: 32px; min-height: 32px; font-size: 15px;
+            }
             /* "With Stats" offers manual entry or a file upload. Nobody uploads
                a file from a phone, so the choice is not a choice: hide the
                sub-tabs and leave manual entry, which is what the panel opens on. */
@@ -2641,6 +2651,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.116 (2026-08-28)</strong></p>
+                <ul>
+                    <li><b>The Cell Line Browser gates work on a phone.</b> They are filled by ticking rather than by dragging, so unlike the heatmap's gates there is nothing about them a touch screen cannot do. Each Set Gate button now stays joined to its own count when the toolbar wraps, and the count and its clear link are sized for a finger.</li>
+                </ul>
                 <p><strong>v.88.115 (2026-08-28)</strong></p>
                 <ul>
                     <li><b>Two gates in the Cell Line Browser, compared against each other.</b> Until now a selection could only be measured against the rest of the panel. Tick some cell lines and press <b>Set Gate A</b>, tick others and press <b>Set Gate B</b>, then <b>Inspect A vs B</b> compares the two directly, gene by gene, with the same tables, volcano and statistics the heatmap gates produce. Sort by drug response first and the two ends of the list become the two gates. Setting a gate clears the ticks so the other one can be picked, members are tagged in the list, and the gates survive a saved view.</li>
@@ -7167,7 +7181,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.115</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.116</a>
         </span>
     </div>
 
@@ -9735,10 +9749,14 @@
                    space (visibility:hidden / disabled) rather than appearing
                    and shoving their neighbours; see _syncClbGateUI. -->
               <span class="clb-group-label" style="color:var(--green-700);">Gates</span>
-              <button id="clbSetGateA" class="btn btn-outline btn-sm" title="Put the ticked cell lines into gate A. The ticks then clear, ready for gate B.">Set Gate A</button>
-              <span id="clbGateAChip" style="font-size:10px; visibility:hidden; white-space:nowrap;"></span>
-              <button id="clbSetGateB" class="btn btn-outline btn-sm" title="Put the ticked cell lines into gate B.">Set Gate B</button>
-              <span id="clbGateBChip" style="font-size:10px; visibility:hidden; white-space:nowrap;"></span>
+              <span class="clb-pair">
+                <button id="clbSetGateA" class="btn btn-outline btn-sm" title="Put the ticked cell lines into gate A. The ticks then clear, ready for gate B.">Set Gate A</button>
+                <span id="clbGateAChip" class="clb-gate-chip" style="visibility:hidden; white-space:nowrap;"></span>
+              </span>
+              <span class="clb-pair">
+                <button id="clbSetGateB" class="btn btn-outline btn-sm" title="Put the ticked cell lines into gate B.">Set Gate B</button>
+                <span id="clbGateBChip" class="clb-gate-chip" style="visibility:hidden; white-space:nowrap;"></span>
+              </span>
               <button id="clbInspectABBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:#5d9239; border-color:#6ba544;" title="Compare gate A against gate B, gene by gene." disabled>Inspect<br><span>A vs B</span></button>
 
               <span class="clb-sep"></span>
@@ -10215,6 +10233,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_115"></script>
+    <script src="app.js?v=v88_116"></script>
 </body>
 </html>
