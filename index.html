@@ -2664,6 +2664,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.124 (2026-08-29)</strong></p>
+                <ul>
+                    <li><b>The export says how much of the release its matrices carry.</b> They are variance-filtered, often to a fifth of the genes, and the file never gave a denominator, so a reading assistant took "this gene is not in the file" for "this gene is not a partner" and reported it as a negative result. A new <code>matrixCoverage</code> block states carried versus in-release for both matrices, and each matrix's own description now says outright that an absent gene was filtered, never measured as flat, and can be asked for by name.</li>
+                    <li><b>A new assay note on what a pooled screen cannot show.</b> Every knockout grows beside thousands of others, so anything secreted and shared is invisible: interferon, and everything upstream of it, scores near zero while the receptor and below score strongly. That boundary is the assay, not the biology, and two assistants spent a round each on it. The note gives the interferon case as the worked example.</li>
+                    <li><b>Fix: a custom export of a closed plot described its axes as "?".</b> It now reads the axis controls, and where even those are empty it says the axes were not recorded and points at the companion image, instead of writing a gene called "?" into the description.</li>
+                </ul>
                 <p><strong>v.88.123 (2026-08-29)</strong></p>
                 <ul>
                     <li><b>The instructions an assistant reads before writing a request block are clearer about what it cannot know.</b> The block it writes chooses values on your behalf without seeing your screen, and <code>cohort: view</code> is the line that goes wrong. That is now said at the top of the section, not only in the key's own entry, and a second worked example shows the safe shape: a named gene panel across the whole release, which needs nothing open. The <code>genes</code> entry also states that superseded symbols are swapped for the current ones and the swap reported, so an assistant writes the symbol it knows rather than leaving a gene out.</li>
@@ -7226,7 +7232,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.123</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.124</a>
         </span>
     </div>
 
@@ -10289,13 +10295,13 @@
                alongside the upload, so the user does not have to explain the
                file format themselves. -->
           <div style="margin-top:10px; padding:8px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:4px; font-size:11px; display:flex; gap:8px; align-items:flex-start;">
-            <span id="aiInstructionText" style="flex:1; color:#374151; line-height:1.4;">Instruction for your AI assistant: This file is JSON (if the name ends in .gz, it is gzip-compressed, decompress it first). Start by reading the readMe fields; every section explains itself.</span>
+            <span id="aiInstructionText" style="flex:1; color:#374151; line-height:1.4;">Instruction for your AI assistant: This file is JSON (if the name ends in .gz, it is gzip-compressed, decompress it first; if your assistant will not accept a .gz at all, export again with the plain .json option above). Start by reading the readMe fields; every section explains itself, and matrixCoverage says how much of the release the matrices carry before you read anything into a gene you cannot find.</span>
             <button class="btn btn-outline btn-sm" id="aiCopyInstructionBtn" style="font-size:10px; white-space:nowrap; flex:none;" title="Copy this instruction to the clipboard">Copy</button>
           </div>
         </div>
       </div>
     </div>
 
-    <script src="app.js?v=v88_123"></script>
+    <script src="app.js?v=v88_124"></script>
 </body>
 </html>
