@@ -2664,6 +2664,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.125 (2026-08-29)</strong></p>
+                <ul>
+                    <li><b>An assistant can now open a view on your screen instead of describing one.</b> Reading an export, it can write a <code>CORRELATE-VIEW</code> block naming a plot and its settings; paste that into <b>Options &rsaquo; Other &rsaquo; Open a view an assistant described</b> and the app builds it. Three views to begin with: a scatter of two genes on any measure, a gene-effect view across tissues, and the cell line list sorted by a measure, each with optional tissue and disease filters. Its "why" line is shown when the view opens, so what to look for arrives with the picture. The two block types are no longer a trap either: paste an export request into the view box, or a view into the export box, and each hands it to the other.</li>
+                    <li><b>The numbered reading steps arrive in order.</b> They are assembled by filtering a longer list and then appending one at the end, so a file could carry Step 3b before Step 3a and Step 3 last. They are sorted by their own number now.</li>
+                    <li><b>Assistants are asked to argue with figures.</b> The reading instructions now say that a claim resting on a shape in the data deserves a drawing, that one figure carrying the argument beats three decorating it, and that where the app can draw the same thing it should supply the view block too, so you can open it and click around rather than only look at a static picture.</li>
+                </ul>
                 <p><strong>v.88.124 (2026-08-29)</strong></p>
                 <ul>
                     <li><b>The export says how much of the release its matrices carry.</b> They are variance-filtered, often to a fifth of the genes, and the file never gave a denominator, so a reading assistant took "this gene is not in the file" for "this gene is not a partner" and reported it as a negative result. A new <code>matrixCoverage</code> block states carried versus in-release for both matrices, and each matrix's own description now says outright that an absent gene was filtered, never measured as flat, and can be asked for by name.</li>
@@ -7232,7 +7238,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.124</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.125</a>
         </span>
     </div>
 
@@ -7261,6 +7267,7 @@
                                 <button class="options-menu-item" id="showCorrelationDirect">Correlation</button>
                                 <button class="options-menu-item" id="showHeatmapDirect" title="Show a gene set across the cell lines currently listed, as a heatmap">Gene set heatmap</button>
                                 <button class="options-menu-item" id="customAIExportBtn" title="Build a file for a language model with exactly the data you choose, including layers the standard export leaves out. An assistant reading a standard export can write the settings for you.">Custom export for AI&hellip;</button>
+                                <button class="options-menu-item" id="openAIViewBtn" title="An assistant that has read an export can describe a plot to look at. Paste what it wrote and the app opens that view with those settings, instead of you rebuilding it by hand.">Open a view an assistant described&hellip;</button>
                                 <label class="options-menu-item" for="restoreFromExportInput" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">Open saved figure...</label>
                             </div>
                         </div>
@@ -10170,7 +10177,29 @@
     <!-- Custom Export for AI. Everything the standard export decides for you,
          decided explicitly instead, plus a box that takes the request block an
          assistant writes after reading a standard export. -->
-    <div id="customAIDialog" style="display:none; position:fixed; inset:0; z-index:2600; background:rgba(0,0,0,0.5); justify-content:center; align-items:flex-start; padding:40px 20px; overflow-y:auto;">
+        <!-- Paste a CORRELATE-VIEW block: an assistant saying what to LOOK AT,
+         as opposed to a CORRELATE-REQUEST, which says what to export. -->
+    <div id="aiViewDialog" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:1450; align-items:center; justify-content:center;">
+      <div style="background:#fff; border-radius:10px; width:560px; max-width:94vw; max-height:88vh; overflow:auto; padding:18px 20px; box-shadow:0 18px 50px rgba(0,0,0,0.28);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-weight:600; color:#374151; font-size:14px;">Open a view an assistant described</span>
+          <button id="aiViewClose" style="background:none; border:none; font-size:20px; line-height:1; cursor:pointer; color:#9ca3af;">&times;</button>
+        </div>
+        <p style="margin:0 0 10px; font-size:11.5px; color:#6b7280; line-height:1.5;">
+          An assistant reading an export can point you at a specific plot rather than describing one in words.
+          Paste what it wrote and this opens that view with those settings. It reads a <code>CORRELATE-VIEW</code> block;
+          a <code>CORRELATE-REQUEST</code> block pasted here is sent to the export dialog instead, so either one works.
+        </p>
+        <textarea id="aiViewText" rows="7" placeholder="CORRELATE-VIEW v1&#10;view: scatter&#10;x: ADAR&#10;y: USP18&#10;tissue: Lung&#10;why: check the correlation holds inside one lineage" style="width:100%; border:1px solid #d1d5db; border-radius:4px; padding:6px 8px; font-size:11.5px; font-family:ui-monospace, monospace; box-sizing:border-box;"></textarea>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+          <button class="btn btn-success btn-sm" id="aiViewOpen">Open the view</button>
+          <span id="aiViewNote" style="font-size:10.5px; color:#6b7280; flex:1;"></span>
+        </div>
+        <div id="aiViewWhy" style="display:none; margin-top:10px; padding:8px 10px; background:#f3faee; border:1px solid #b2dd95; border-radius:5px; font-size:11.5px; color:#3b5e23;"></div>
+      </div>
+    </div>
+
+<div id="customAIDialog" style="display:none; position:fixed; inset:0; z-index:2600; background:rgba(0,0,0,0.5); justify-content:center; align-items:flex-start; padding:40px 20px; overflow-y:auto;">
       <div style="background:#fff; max-width:640px; width:100%; border-radius:8px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);">
         <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid #e5e7eb;">
           <span style="font-weight:600; color:#374151; font-size:14px;">Custom export for AI</span>
@@ -10302,6 +10331,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_124"></script>
+    <script src="app.js?v=v88_125"></script>
 </body>
 </html>
