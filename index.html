@@ -2064,6 +2064,17 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        /* Inline busy marker for anything that blocks long enough to look like
+           a click that did nothing. Takes its colour from the text around it,
+           so it works on a button and in a status line alike. */
+        .busy-dot {
+            display: inline-block; width: 10px; height: 10px; margin-right: 5px;
+            border: 2px solid currentColor; border-right-color: transparent;
+            border-radius: 50%; vertical-align: -1px; opacity: .75;
+            animation: spin .7s linear infinite;
+        }
+        .busy-secs { font-variant-numeric: tabular-nums; opacity: .8; }
+        @media (prefers-reduced-motion: reduce) { .busy-dot { animation: none; } }
         @keyframes pulse {
             0%, 100% { width: 30%; margin-left: 0; }
             50% { width: 60%; margin-left: 20%; }
@@ -2653,6 +2664,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.121 (2026-08-29)</strong></p>
+                <ul>
+                    <li><b>Slow jobs now say they are running.</b> A full Export for AI takes tens of seconds, and the button gave no sign it had been pressed, so the natural response was to press it again. Export, Find correlates, Inspect selected vs rest and Inspect A vs B now put a spinner on the button, stop accepting clicks while they work, and count the seconds beside them. The export finishes with the time it took.</li>
+                    <li><b>Clearer wording on the export format.</b> The note claimed chat assistants cannot open a compressed file. The truth is narrower: a .gz has to be unpacked first, which needs a code or data-analysis tool switched on, so plain is the safer upload rather than the only one that works.</li>
+                </ul>
                 <p><strong>v.88.120 (2026-08-29)</strong></p>
                 <ul>
                     <li><b>Fix: a pinned gene card could not be dismissed once you had clicked it.</b> The click-outside-to-close listener was set to fire once, so any click on the card itself, a link in it or just its text, used the listener up and nothing outside it closed the card afterwards. On a phone that is the only exit the card offers, so one tap left it stuck over whatever was underneath. A card also now closes when Export for AI opens, the same as when a popout opens: it belongs to the view behind the dialog, and it draws above every dialog.</li>
@@ -7201,7 +7217,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.120</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.121</a>
         </span>
     </div>
 
@@ -10244,7 +10260,8 @@
             <!-- Why plain is the default. Both sizes are only known once the
                  file has been built, so the rule is stated here instead. -->
             <div style="font-size:10px; color:#6b7280; margin-top:5px; line-height:1.45;">
-              Most chat assistants cannot open a compressed attachment, so plain is the default and is usually the one to send.
+              Plain is the safer upload: an assistant reads it directly, while a .gz has to be unpacked first, which needs a
+              code / data-analysis tool switched on. Pick compressed if you know yours has one, or if the file is large.
               Exports over 8 MB switch to compressed on their own. The exact sizes appear beside each choice once you have exported.
             </div>
             <!-- The companion image ships beside the data file so the reading
@@ -10270,6 +10287,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_120"></script>
+    <script src="app.js?v=v88_121"></script>
 </body>
 </html>
