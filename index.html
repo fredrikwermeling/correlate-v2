@@ -2664,6 +2664,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.122 (2026-08-29)</strong></p>
+                <ul>
+                    <li><b>A pasted request asking for "cohort: view" says so straight away when nothing is open.</b> That line means "whatever the app is showing", which an assistant writing the block cannot see. The dialog used to report it as understood and then refuse at Export, which read as the whole block being rejected. It is now flagged on Apply, with the fix named: open the view first, or ask for <code>all</code> or a named group. The syntax handed to assistants leads with those instead, and warns about this.</li>
+                    <li><b>Renamed gene symbols in a pasted list are resolved.</b> An assistant writes the symbol it learned, and HGNC keeps renaming: DDX58 is RIGI in this release. The synonym table the gene box already uses is now consulted here too, and the dialog reports what it renamed rather than calling a live gene missing.</li>
+                </ul>
                 <p><strong>v.88.121 (2026-08-29)</strong></p>
                 <ul>
                     <li><b>Slow jobs now say they are running.</b> A full Export for AI takes tens of seconds, and the button gave no sign it had been pressed, so the natural response was to press it again. Export, Find correlates, Inspect selected vs rest and Inspect A vs B now put a spinner on the button, stop accepting clicks while they work, and count the seconds beside them. The export finishes with the time it took.</li>
@@ -7217,7 +7222,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.121</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.122</a>
         </span>
     </div>
 
@@ -10287,6 +10292,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_121"></script>
+    <script src="app.js?v=v88_122"></script>
 </body>
 </html>
