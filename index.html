@@ -2653,6 +2653,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.120 (2026-08-29)</strong></p>
+                <ul>
+                    <li><b>Fix: a pinned gene card could not be dismissed once you had clicked it.</b> The click-outside-to-close listener was set to fire once, so any click on the card itself, a link in it or just its text, used the listener up and nothing outside it closed the card afterwards. On a phone that is the only exit the card offers, so one tap left it stuck over whatever was underneath. A card also now closes when Export for AI opens, the same as when a popout opens: it belongs to the view behind the dialog, and it draws above every dialog.</li>
+                    <li><b>The export dialog says why plain .json is the default.</b> Most chat assistants cannot open a compressed attachment, so plain is offered first and anything over 8 MB switches to .gz on its own. The rule now appears under the two choices, since the exact sizes cannot be known until the file has been built.</li>
+                </ul>
                 <p><strong>v.88.119 (2026-08-29)</strong></p>
                 <ul>
                     <li><b>Fill both gates from the two ends of a sorted list.</b> Sort the Cell Line Browser by drug response, expression, copy number, interferon or retroelement signal, then <b>Top / bottom</b> puts the strongest share into gate A and the weakest into gate B, 25&nbsp;% each by default and adjustable. Only cell lines that actually carry a value for that sort are eligible, so the unmeasured tail every value sort collects at its end can never become a gate.</li>
@@ -7196,7 +7201,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.119</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.120</a>
         </span>
     </div>
 
@@ -10236,6 +10241,12 @@
             <label style="display:block; cursor:pointer;">
               <input type="radio" name="aiExportFormat" id="aiFormatGz" value="gz" style="margin-right:5px; vertical-align:middle;">Compressed (.json.gz, smallest)<span id="aiFormatGzSize" style="color:#6b7280;"></span>
             </label>
+            <!-- Why plain is the default. Both sizes are only known once the
+                 file has been built, so the rule is stated here instead. -->
+            <div style="font-size:10px; color:#6b7280; margin-top:5px; line-height:1.45;">
+              Most chat assistants cannot open a compressed attachment, so plain is the default and is usually the one to send.
+              Exports over 8 MB switch to compressed on their own. The exact sizes appear beside each choice once you have exported.
+            </div>
             <!-- The companion image ships beside the data file so the reading
                  assistant can see the same picture the user was looking at. -->
             <label style="display:block; margin-top:8px; padding-top:8px; border-top:1px solid #e5e7eb; cursor:pointer;">
@@ -10259,6 +10270,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_119"></script>
+    <script src="app.js?v=v88_120"></script>
 </body>
 </html>
