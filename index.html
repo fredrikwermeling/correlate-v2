@@ -2770,6 +2770,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.11 (2026-08-30)</strong></p>
+                <ul>
+                    <li><b>A Tissue split can now mix levels: Melanoma together with the whole of Bowel.</b> Tissue, subtype and disease are one nested choice with a single lineage at the top, so a selection spanning two lineages where one is sliced finer had nowhere to go. It was applied as the tissue alone and the finer tick was dropped without a word, while the popup's footer counted both. Such a selection now travels as the list of branches it actually is, and everything reads it: the cohort, the results, the chip beside Run, the analysis it is saved into, its inspect and compare views, and the AI export.</li>
+                    <li><b>Fix: the disease menu did not follow the tissue chosen in a Tissue split.</b> Picking Bowel there left the menu offering melanomas and glioblastomas, because the split set the lineage without announcing it and the menus only rescope when told. All three levels scale to each other now however the choice was made, including across the branches of a mixed selection.</li>
+                    <li><b>Reopening a Tissue split shows what is filtering.</b> Only the lineage row was ever ticked again, so a subtype or disease pick came back as an empty table. The branches now come back ticked, with their rows opened.</li>
+                </ul>
                 <p><strong>v.89.10 (2026-08-30)</strong></p>
                 <ul>
                     <li><b>Tissue split: a tissue and one of its own subtypes can no longer both be ticked.</b> The finer level replaces the coarser one when the filter is applied, so ticking Skin and Melanoma together filtered on Melanoma and the Skin tick did nothing, while the footer counted both. Ticking one level now clears the others in that branch: tick Melanoma and Skin lets go, tick Skin again and its subtypes let go. Separate branches are untouched, so several tissues, or several subtypes of one tissue, still combine as before. Both Tissue split popups behave the same way.</li>
@@ -7441,7 +7447,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.10</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.11</a>
         </span>
     </div>
 
@@ -10547,6 +10553,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_10"></script>
+    <script src="app.js?v=v89_11"></script>
 </body>
 </html>
