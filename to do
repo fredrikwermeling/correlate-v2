@@ -1,8 +1,109 @@
-The cell lien borwser sorting by drug, the heading is overlapping with the drugs when scrolling. 
-Also I cell line it should be possible to select gate a a nd to compare then to each other (ie via the inspect), eg low and high drug response
-corrlate.cmm.se seems to be the wrong version?
+OPEN, needs someone other than me
+- correlate.cmm.se runs whatever work IT last deployed. V1 main is 15 commits
+  ahead of it (v.88.112 is live; v.88.125 is current). A rebuild from current
+  main is all it takes; the Dockerfile pins nothing.
+- The .htaccess added on 2026-08-29 only takes effect if IT's Apache allows
+  overrides for the document root. If it is AllowOverride None the file is
+  silently ignored and the same headers have to go in the vhost instead. Worth
+  asking them which it is, because that file is what stops a browser serving a
+  months-old build.
+- The Dockerfile change that enables mod_headers / AllowOverride is UNTESTED:
+  there is no container runtime on this machine. The .htaccess itself is tested
+  against a real Apache.
 
+OPEN, next steps I would pick up
+- CoExpress has never been rebuilt against any of this. It derives from V1's
+  files and shares the build gap that lost retroelements.json, so it likely
+  needs the same data-file sync plus every fix since v.88.110.
+- getGeneList() and validateGenes() filter the gene box against the GE index
+  whatever the Correlate-on setting is, so on the mRNA basis a gene that exists
+  only in the expression matrix is silently dropped and reported "not found",
+  and design mode searches the screened genes rather than the expressed ones.
+  Costs coverage, does not produce wrong numbers. Not self-contained: the fix
+  needs a basis-aware companion to _geneCoverage(), which is GE-indexed.
+- A full-cohort Custom export (1,208 lines + extra layers) is slow enough that
+  I could not time it reliably; the "Screen-quality control per cell line"
+  stage ran past 160s in a throttled tab. Worth profiling that stage properly
+  rather than guessing, now that the spinner makes the wait visible.
+- Busy indicators cover Export for AI, Find correlates and the two Inspect
+  buttons. The heatmap build and UMAP/PCA are still uncovered; startBusy() /
+  _runBusy() are there to reuse if a sweep is wanted.
+- CORRELATE-VIEW opens three views (scatter, gene-effect, cell-lines). The
+  heatmap and the network are the obvious next two, and were left out only to
+  keep the first version small.
 
+SHIPPED v.88.111-125 (2026-08-24 to 08-29). Three threads ran together:
+reported bugs, the Cell Line Browser gates, and making the AI export work for
+a real back-and-forth with an assistant.
+
+Bugs reported and fixed
+- Find correlates read the expression matrix with gene-effect row positions.
+  Expression has 1,719 lines in a different order from the screen's 1,208, so
+  every value belonged to another cell line and the whole expression list was
+  noise. Top correlates of TP53 went from GOLGA8B/ZGLP1 to EDA2R, PTCHD4,
+  ZMAT3, RPS27L, CDKN1A (v.88.111). Audited every other expressionData read in
+  the file: this was the only misaligned one.
+- An Expr axis was validated against the gene-effect index, so a gene the
+  panel had just offered was rejected as not existing (v.88.111).
+- Interferon and retroelement sorts opened lowest-first, burying the answer
+  (v.88.112).
+- The cell-line arrow in the gene effect chart pointed at nothing: row labels
+  are shortened (to 9 characters on a phone) but the arrow asked for the full
+  name, which matches no row (v.88.113).
+- The drug-sort compound list scrolled over its own pinned heading: the rows
+  carry opacity, which makes a stacking context that paints at the same level
+  as a sticky header with no z-index (v.88.114).
+- A pinned gene card could not be dismissed once clicked. The
+  click-outside-to-close listener was { once: true }, so any click on the card
+  spent it. On a phone that is the only exit the card offers (v.88.120).
+- An alteration measured in ONE cell line headed the comparison table: 1/1
+  against 0/3 scores a 100-point gap by construction. Untested rows now sort
+  below tested ones and a warning marks any side under three lines (v.88.119).
+
+Cell Line Browser gates
+- Gates A and B, filled by ticking, compared directly against each other
+  through the same differential the heatmap gates use (v.88.115). Sized for a
+  phone, where they work unlike the heatmap's, which need a drag (v.88.116).
+- Top / bottom fills both gates from the ends of a value sort, counting only
+  the lines that HAVE a value: with Head and Neck filtered, 77 lines are
+  visible but 26 have a drug AUC (v.88.119).
+
+Export for AI, driven by reading two real assistant sessions
+- Per-cell-line retroelement signal and interferon score (v.88.117). This was
+  the one that mattered: with them present ChatGPT built the 2x2 and ran the
+  partial correlation unaided.
+- Gates record the list order in force WHEN EACH WAS SET, so changing the sort
+  afterwards cannot misdescribe them (v.88.118).
+- matrixCoverage: the matrices are variance-filtered, often to a fifth of the
+  release, and a reader took "not in the file" for "not a partner" and
+  reported it as a negative result (v.88.124).
+- assayNotes.pooledScreenCellAutonomy: a pooled screen cannot show a phenotype
+  for anything secreted and shared, so interferon and everything upstream reads
+  null while the receptor and below reads strong. Both assistants spent a round
+  discovering this (v.88.124).
+- A custom export of a closed plot described its own axes as "?" while
+  shipping a picture of that plot (v.88.124).
+- cohort: view was reported as understood and then refused at Export, which
+  read as the block being rejected. Checked at Apply now, and the instructions
+  handed to assistants lead with the forms that do not depend on screen state
+  (v.88.122-123). Renamed symbols resolve through the synonym table the gene
+  box already used (DDX58 -> RIGI).
+- CORRELATE-VIEW: an assistant can open a view on the user's screen instead of
+  describing one. Scatter, gene-effect and cell-lines, with a `why` line shown
+  when the view opens. Either paste box hands the other block type over
+  (v.88.125). Assistants are also asked to argue with figures.
+
+Elsewhere
+- Slow jobs show a spinner and count the seconds; Export finishes with the
+  time it took (v.88.121). The Inspect buttons block the thread, so the busy
+  state is painted a macrotask early.
+- build_v1.py copies web_data files V1 does not have. retroelements.json had
+  been missing since v.88.39, so every retroelement feature in V1 was inert
+  with no error anywhere (v.88.112).
+- .htaccess cache policy for the Apache-served V1 build. The site sent no
+  Cache-Control at all, so browsers held index.html for months, and a stale
+  index.html pins app.js through its ?v= query. This is why correlate.cmm.se
+  looked like a 25Q3 build while the origin served 26Q1.
 
 SHIPPED v.88.108-110 (2026-08-21), the 2026-08-21 batch:
 - lined-up label overlap: the parked grid now re-spaces when font/node size
