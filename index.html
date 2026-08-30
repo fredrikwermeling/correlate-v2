@@ -2689,6 +2689,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.129 (2026-08-30)</strong></p>
+                <ul>
+                    <li><b>A block an assistant writes now says where to paste it.</b> One of the two assistants tested named the menu path and the other handed over a bare block with no destination, which leaves you holding something with nowhere to put it. Every block and every worked example now carries <code># paste into Options &rsaquo; Other &rsaquo; ...</code> as its second line, so the address travels with the thing even if the assistant forgets to mention it, and both sets of instructions now ask outright for that line to appear beside the code fence.</li>
+                </ul>
                 <p><strong>v.88.128 (2026-08-30)</strong></p>
                 <ul>
                     <li><b>Fix: a gene card outlived the popout it came from.</b> Hovering a gene name inside the correlation popout could leave its card pinned over the front page after the popout closed, with nothing on screen to say where it had come from. A card belongs to the view it was raised from, so it now goes whenever a dialog closes, not only when one opens.</li>
@@ -7280,7 +7284,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.128</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.129</a>
         </span>
     </div>
 
@@ -10377,6 +10381,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_128"></script>
+    <script src="app.js?v=v88_129"></script>
 </body>
 </html>
