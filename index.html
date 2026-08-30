@@ -2725,6 +2725,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.5 (2026-08-30)</strong></p>
+                <ul>
+                    <li><b>Phone: everything in "1. Set Parameters" sat flush against the card's left edge.</b> A collapsed section on a phone is meant to shrink to a line of text, so the box it lives in drops its padding. "Lineage and disease" and "Genetic alterations" share that box with the rest of the card, though, so collapsing them (they start collapsed) stripped the padding from Analysis Mode, Correlate on and every label above them too. The box only sheds its padding now when it holds nothing but the collapsed section.</li>
+                </ul>
                 <p><strong>v.89.4 (2026-08-30)</strong></p>
                 <ul>
                     <li><b>The heatmap legends wrapped at the grid's width, not the screen's.</b> The grid is thousands of pixels wide behind its sideways scroller, so the lineage and annotation legends were laid out to match and ran off the right edge of a phone. They wrap to the width actually on screen now, so a 29-lineage legend reads as a block instead of a line to chase sideways. Desktop is unchanged.</li>
@@ -7366,7 +7370,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.4</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.5</a>
         </span>
     </div>
 
@@ -10468,6 +10472,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_4"></script>
+    <script src="app.js?v=v89_5"></script>
 </body>
 </html>
