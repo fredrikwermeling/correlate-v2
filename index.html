@@ -2288,6 +2288,15 @@
                Plotly renders at a fixed pixel width, so allow horizontal pan
                instead of clipping when a chart is wider than the phone. */
             #geChartTableLayout, #caChartTableLayout { flex-direction: column !important; gap: 10px !important; }
+            /* "What is this compared against" belongs with the chart it
+               describes. It sits after the chart in the markup, followed by
+               the export row a phone never shows, so on a phone it landed
+               below the fold and the chart looked like it had no choice
+               behind it. Everything else here keeps document order. */
+            #geneEffectModal .modal-body { display: flex; flex-direction: column; }
+            #geneEffectModal .modal-body > * { flex: 0 0 auto; }
+            #geneEffectModal #geScopeRow { order: 1; }
+            #geneEffectModal #geChartTableLayout { order: 2; }
             #geChartContainer, #caChartContainer { flex: 1 1 100% !important; width: 100% !important; overflow-x: auto !important; }
             #geTableContainer { min-width: 0 !important; width: 100% !important; overflow-x: auto !important; }
             /* Scatter Inspect: single-column controls, full-width plot */
@@ -2725,6 +2734,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.7 (2026-08-30)</strong></p>
+                <ul>
+                    <li><b>Fix: alteration picks made in the Cell Line Browser silently narrowed charts opened elsewhere.</b> Picking rows in the browser's mutation grid is meant to filter the browser's list and nothing else, which is what it already does for analyses. The gene-effect and expression popouts applied them anyway, so opening a gene from a cell line's wiki drew it over whatever the browser happened to be filtered to and still called the chart every lineage: a gene shown across 112 cell lines with no hint of why. Those picks now stop at the browser's list. Picks made inside the popout itself still apply there, as before.</li>
+                    <li><b>Fix: the disease filter in the gene-effect popout did nothing on its own.</b> It was nested inside the alteration-grid branch by mistake, so choosing a disease only had an effect when a grid filter happened to be active too.</li>
+                    <li><b>Phone: the comparison selector now sits above the chart it describes.</b> "All lineages / this lineage by primary disease / this lineage by disease" was placed after the chart, behind an export row a phone doesn't show, so it was below the fold and the chart looked like it offered no choice.</li>
+                </ul>
                 <p><strong>v.89.6 (2026-08-30)</strong></p>
                 <ul>
                     <li><b>Phone: a finger on a chart now scrolls the page.</b> Charts were meant to stop claiming the touch for their own pan, but the setting was written to the wrong object (it belongs to the chart's layout, not its config) so it never took effect, and a swipe that started over any plot went nowhere. Scrolling is the same everywhere now, over text or over a chart; a tap still reaches a point.</li>
@@ -7378,7 +7393,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.6</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.7</a>
         </span>
     </div>
 
@@ -10480,6 +10495,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_6"></script>
+    <script src="app.js?v=v89_7"></script>
 </body>
 </html>
