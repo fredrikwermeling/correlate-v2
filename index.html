@@ -2770,6 +2770,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.10 (2026-08-30)</strong></p>
+                <ul>
+                    <li><b>Tissue split: a tissue and one of its own subtypes can no longer both be ticked.</b> The finer level replaces the coarser one when the filter is applied, so ticking Skin and Melanoma together filtered on Melanoma and the Skin tick did nothing, while the footer counted both. Ticking one level now clears the others in that branch: tick Melanoma and Skin lets go, tick Skin again and its subtypes let go. Separate branches are untouched, so several tissues, or several subtypes of one tissue, still combine as before. Both Tissue split popups behave the same way.</li>
+                </ul>
                 <p><strong>v.89.9 (2026-08-30)</strong></p>
                 <ul>
                     <li><b>Phone: the tree in the logo was cut off at the right edge.</b> The logo image is wider than its lettering, so it is nudged right to bring "Correlate" over the middle of the app. On a phone the image already filled the width, leaving nothing for that nudge to move into, so it pushed the tree off the screen. The image is a little smaller there now and the whole logo fits.</li>
@@ -7437,7 +7441,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.9</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.10</a>
         </span>
     </div>
 
@@ -10543,6 +10547,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_9"></script>
+    <script src="app.js?v=v89_10"></script>
 </body>
 </html>
