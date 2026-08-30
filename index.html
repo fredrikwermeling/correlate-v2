@@ -2689,6 +2689,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.130 (2026-08-30)</strong></p>
+                <ul>
+                    <li><b>One export for several questions, not one each.</b> Every export round costs a dialog, a download and an upload, and that cost is yours rather than the assistant's. The instructions now say to gather what the open questions need between them, the union of the genes, the widest cohort and the union of the layers, and ask once; the only accepted reason to split is when the first answer would change what the second should ask for, and it has to say so.</li>
+                    <li><b>The question line asks for a hypothesis.</b> The file usually goes straight back to the same assistant, so restating the question tells it nothing it did not already know. What the field is worth is committing to a test before the numbers arrive: not "does X explain Y", which invites finding the pattern that fits, but "X explains Y, which predicts A and would be refuted by B".</li>
+                </ul>
                 <p><strong>v.88.129 (2026-08-30)</strong></p>
                 <ul>
                     <li><b>A block an assistant writes now says where to paste it.</b> One of the two assistants tested named the menu path and the other handed over a bare block with no destination, which leaves you holding something with nowhere to put it. Every block and every worked example now carries <code># paste into Options &rsaquo; Other &rsaquo; ...</code> as its second line, so the address travels with the thing even if the assistant forgets to mention it, and both sets of instructions now ask outright for that line to appear beside the code fence.</li>
@@ -7284,7 +7289,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.129</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.130</a>
         </span>
     </div>
 
@@ -10381,6 +10386,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_129"></script>
+    <script src="app.js?v=v88_130"></script>
 </body>
 </html>
