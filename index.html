@@ -2725,6 +2725,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.4 (2026-08-30)</strong></p>
+                <ul>
+                    <li><b>The heatmap legends wrapped at the grid's width, not the screen's.</b> The grid is thousands of pixels wide behind its sideways scroller, so the lineage and annotation legends were laid out to match and ran off the right edge of a phone. They wrap to the width actually on screen now, so a 29-lineage legend reads as a block instead of a line to chase sideways. Desktop is unchanged.</li>
+                    <li><b>Phone: the heatmap is view-only.</b> Tapping a gene name silenced it and tapping a lineage chip hid that group, but a fingertip covers several rows and several chips at once, so it fired by accident more than on purpose and the way back needed screen room a phone doesn't have. Both are off below 640px, and the cursor and hover text no longer offer them. Tablets and desktop keep them.</li>
+                </ul>
                 <p><strong>v.89.3 (2026-08-30)</strong></p>
                 <ul>
                     <li><b>Network &rarr; Heatmap counted the wrong genes.</b> "Genes I entered" was counting the entered genes that ended up drawn as nodes, not the genes actually entered: a gene whose strongest correlation falls below the cutoff never becomes a node, so a run of 18 genes that drew 8 offered a heatmap of 8 and called them the ones entered. It now offers all 18, and says on hover how many of them the network left out and why. "All network genes" and "Correlating genes only" still describe the network itself and are unchanged.</li>
@@ -7361,7 +7366,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.3</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.4</a>
         </span>
     </div>
 
@@ -10463,6 +10468,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_3"></script>
+    <script src="app.js?v=v89_4"></script>
 </body>
 </html>
