@@ -2693,6 +2693,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.0 (2026-08-30)</strong></p>
+                <ul>
+                    <li><b>The Enrichr gene column is narrower, which makes the whole table shorter.</b> It was wide enough to lay each row's genes out on one or two lines while the term beside them wrapped onto four, so the genes were using a fraction of the height the row already had. Narrowing it hands the width back to the term, which then wraps less: the same results now take eleven rows on screen where they took eight, and the genes fill the height that was there anyway.</li>
+                    <li>Version numbering restarts at 89.0 after 134 releases in the 88 series.</li>
+                </ul>
                 <p><strong>v.88.134 (2026-08-30)</strong></p>
                 <ul>
                     <li><b>Dialogs can be sized as well as moved.</b> Grips on the left, right and bottom edges of every popout set its width and height, alongside the dragging by the title bar that was already there. Dragging the left edge keeps the right one still, so a panel does not walk across the screen while being narrowed.</li>
@@ -7310,7 +7315,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.134</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.0</a>
         </span>
     </div>
 
@@ -10408,6 +10413,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_134"></script>
+    <script src="app.js?v=v89_0"></script>
 </body>
 </html>
