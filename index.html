@@ -2689,6 +2689,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.131 (2026-08-30)</strong></p>
+                <ul>
+                    <li><b>Where to paste a block is now part of the reading steps, not just the reference section.</b> An assistant handed over a view block with no destination even though the file explained where it goes, because that explanation sat in a section it had no reason to open. The step that asks for a figure now also asks, in the same sentence, for the menu path to be named beside any block it writes.</li>
+                </ul>
                 <p><strong>v.88.130 (2026-08-30)</strong></p>
                 <ul>
                     <li><b>One export for several questions, not one each.</b> Every export round costs a dialog, a download and an upload, and that cost is yours rather than the assistant's. The instructions now say to gather what the open questions need between them, the union of the genes, the widest cohort and the union of the layers, and ask once; the only accepted reason to split is when the first answer would change what the second should ask for, and it has to say so.</li>
@@ -7289,7 +7293,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.130</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.131</a>
         </span>
     </div>
 
@@ -10386,6 +10390,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_130"></script>
+    <script src="app.js?v=v88_131"></script>
 </body>
 </html>
