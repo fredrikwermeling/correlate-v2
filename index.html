@@ -2481,6 +2481,34 @@
             .js-plotly-plot .draglayer {
                 touch-action: pan-y !important;
             }
+            /* Labelled cell lines, listed under the scatter. A tap on a point
+               labels it; the name here opens what the app knows about it, the
+               x takes the label off. The height is reserved so the row does not
+               appear and shove the rest of the popout down. */
+            #scatterChipRow {
+                display: flex !important; flex-wrap: wrap; gap: 6px; align-items: center;
+                /* .inspect-plot is itself a flex column, so the row is a flex
+                   item and would otherwise shrink to its chips, taking the
+                   rule above them with it. */
+                width: 100%; flex: 0 0 auto;
+                min-height: 50px; margin-top: 8px; padding: 5px 2px;
+                border-top: 1px solid var(--gray-200);
+            }
+            #scatterChipRow .scatter-chip {
+                display: inline-flex; align-items: stretch; overflow: hidden;
+                border: 1px solid #fcd34d; background: #fffbeb; border-radius: 14px;
+            }
+            #scatterChipRow .scatter-chip button {
+                background: none; border: none; font-family: inherit; color: #374151;
+                min-height: 40px; cursor: pointer;
+            }
+            #scatterChipRow .scatter-chip-name { font-size: 13px; font-weight: 600; padding: 0 5px 0 13px; }
+            /* Its own target, not a sliver beside the name. */
+            #scatterChipRow .scatter-chip-x {
+                font-size: 18px; line-height: 1; color: #9ca3af; padding: 0 13px 0 8px;
+                border-left: 1px solid #fde68a;
+            }
+            #scatterChipRow .scatter-chip-hint { font-size: 11px; color: #9ca3af; padding: 0 2px; }
             /* 2. The cell-line detail stacked under the whole list, so tapping
                a line meant scrolling past every other one to reach its wiki.
                Put it above the list. */
@@ -2680,6 +2708,8 @@
                shrinking the canvas, which would make the labels unreadable. */
             #hmLegendBlock { overflow-x: auto; touch-action: pan-x pan-y; }
         }
+        /* Phone only; everywhere else hover already reaches all of this. */
+        #scatterChipRow { display: none; }
         /* Expression Correlates needs a mutation-analysis subgroup context, which
            the condensed popout (opened from the Cell Line Browser) doesn't have,
            so hide it there. It stays available in the full gene-effect modal. */
@@ -2734,6 +2764,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.8 (2026-08-30)</strong></p>
+                <ul>
+                    <li><b>Phone: the cell lines you label on a scatter are now a list you can act on.</b> Tapping a point labels it, but a phone has no hover, so nothing the app knows about that cell line was reachable from the plot. The labelled lines appear as chips directly under it: tap a name for its summary card, its wiki, or to open it in the Cell Line Browser, and tap the &times; to take the label off. Before anything is labelled the row says what to do, which was the other half of the problem. The row keeps its height either way, so it never appears and pushes the plot around. Desktop and tablet are unchanged, hover already reaches all of this there.</li>
+                </ul>
                 <p><strong>v.89.7 (2026-08-30)</strong></p>
                 <ul>
                     <li><b>Fix: alteration picks made in the Cell Line Browser silently narrowed charts opened elsewhere.</b> Picking rows in the browser's mutation grid is meant to filter the browser's list and nothing else, which is what it already does for analyses. The gene-effect and expression popouts applied them anyway, so opening a gene from a cell line's wiki drew it over whatever the browser happened to be filtered to and still called the chart every lineage: a gene shown across 112 cell lines with no hint of why. Those picks now stop at the browser's list. Picks made inside the popout itself still apply there, as before.</li>
@@ -7393,7 +7427,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.7</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.8</a>
         </span>
     </div>
 
@@ -8528,6 +8562,10 @@
                     </div>
                     <div class="inspect-plot">
                         <div id="scatterPlot"></div>
+                        <!-- Phone only: with no hover there is nothing to hover, so
+                             the labelled cell lines are listed here as the way into
+                             each one's card, wiki or the browser. -->
+                        <div id="scatterChipRow"></div>
                         <div id="compareTable" style="display: none; max-height: 500px; overflow-y: auto;"></div>
                     </div>
                 </div>
@@ -10495,6 +10533,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_7"></script>
+    <script src="app.js?v=v89_8"></script>
 </body>
 </html>
