@@ -684,7 +684,8 @@
             background: var(--gray-200);
         }
 
-        .btn-secondary.btn-active {
+        .btn-secondary.btn-active,
+        .btn-outline.btn-active {
             background: var(--green-100);
             border-color: var(--green-500);
             color: var(--green-700);
@@ -2689,6 +2690,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.88.132 (2026-08-30)</strong></p>
+                <ul>
+                    <li><b>Color by tissue is one click in the correlation popout.</b> It is the colouring worth reaching for most often and it sat three clicks down a select, below the highlight box. A button above that select turns it on and off and shows which state it is in; by subtype and by disease answer narrower questions and stay in the select.</li>
+                </ul>
                 <p><strong>v.88.131 (2026-08-30)</strong></p>
                 <ul>
                     <li><b>Where to paste a block is now part of the reading steps, not just the reference section.</b> An assistant handed over a view block with no destination even though the file explained where it goes, because that explanation sat in a section it had no reason to open. The step that asks for a figure now also asks, in the same sentence, for the menu path to be named beside any block it writes.</li>
@@ -7293,7 +7298,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.131</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.88.132</a>
         </span>
     </div>
 
@@ -8346,6 +8351,10 @@
                                 <!-- Names clicked onto the plot, each removable,
                                      the same row the gene-effect popout uses. -->
                                 <div id="scatterLabeledCellLines" style="display:flex; gap:4px; flex-wrap:wrap; align-items:center; width:100%; margin-top:4px;"></div>
+                                <!-- Tissue is the colouring people actually want, and it
+                                     was three clicks down a select. Subtype and disease
+                                     are narrower questions and stay in the select. -->
+                                <button type="button" id="colorByTissueBtn" class="btn btn-sm btn-outline" aria-pressed="false" style="font-size:10px; padding:2px 4px; margin-top:3px; width:100%;" title="Colour every point by tissue of origin, and show each tissue in the legend">Color by tissue</button>
                                 <select id="colorByCategory" class="form-control" style="font-size:10px; padding:1px 3px; margin-top:2px;">
                                     <option value="">Color by...</option>
                                     <option value="tissue">By tissue</option>
@@ -10390,6 +10399,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v88_131"></script>
+    <script src="app.js?v=v88_132"></script>
 </body>
 </html>
