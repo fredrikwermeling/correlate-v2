@@ -2725,6 +2725,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.3 (2026-08-30)</strong></p>
+                <ul>
+                    <li><b>Network &rarr; Heatmap counted the wrong genes.</b> "Genes I entered" was counting the entered genes that ended up drawn as nodes, not the genes actually entered: a gene whose strongest correlation falls below the cutoff never becomes a node, so a run of 18 genes that drew 8 offered a heatmap of 8 and called them the ones entered. It now offers all 18, and says on hover how many of them the network left out and why. "All network genes" and "Correlating genes only" still describe the network itself and are unchanged.</li>
+                </ul>
                 <p><strong>v.89.2 (2026-08-30)</strong></p>
                 <ul>
                     <li><b>Phone and tablet: the heatmap now opens on the heatmap.</b> It used to open on its settings stack, which is tall enough to fill a phone screen on its own, so the picture sat below the fold and the first thing you saw after asking for a heatmap was a column of dropdowns. On a touch screen the grid, its legends and the scroll hint move to the top and the settings follow underneath. The scatter has behaved this way for a while; this is the same idea. Opening one on a touch screen also scrolls it into view.</li>
@@ -7357,7 +7361,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.2</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.3</a>
         </span>
     </div>
 
@@ -10459,6 +10463,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_2"></script>
+    <script src="app.js?v=v89_3"></script>
 </body>
 </html>
