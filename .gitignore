@@ -9,6 +9,11 @@ OmicsFusionFilteredSupplementary.csv
 OmicsInferredMolecularSubtypes.csv
 OmicsGlobalSignatures.csv
 OmicsCNGeneWGS.csv
+OmicsCNGene.csv
+/Model2*.csv
+mouse_cell_lines/
+# unpacked copy of the tracked counts_all.json.gz
+scripts/te_aws/results/counts_all.json
 humanComplexes.txt
 humanComplexes.txt.zip
 allComplexes.txt
@@ -24,3 +29,7 @@ scripts/OmicsSomaticMutationsMatrixDamaging.csv
 scripts/hallmark_raw.json
 scripts/kegg_raw.json
 26Q1/
+
+# Local working files, not repo material
+Make correlate scale for cell phone.docx
+cell line browser image.png
