@@ -2254,6 +2254,14 @@
                 min-height: 40px !important;
                 padding: 8px 10px !important;
             }
+            /* The searchable disease picker is a button standing in for a
+               select, so the select and input upsizing above misses it and it
+               kept its desktop size beside full-width siblings. */
+            #cellLineBrowserModal .select-proxy { width: 100% !important; flex: 1 1 100% !important; }
+            #cellLineBrowserModal .select-proxy-btn {
+                width: 100% !important; font-size: 15px !important;
+                min-height: 40px !important; padding: 8px 10px !important;
+            }
             .modal-body .btn, .sidebar .btn, #cellLineBrowserModal .btn {
                 font-size: 14px !important;
                 min-height: 40px !important;
@@ -2718,6 +2726,16 @@
                stays a reachable 44px even though .modal-footer isn't covered
                by the generic .modal-body/.sidebar button upsizing above. */
             #hmGridScroll { touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
+            /* The UpSet plot is wider than the screen and scrolls inside its
+               popup, but the global chart rule above it allows only pan-y, so
+               a sideways swipe over the plot went nowhere. Pan both ways
+               here; zoom and drag are already off. */
+            #upsetPopup .js-plotly-plot, #upsetPopup .js-plotly-plot .main-svg,
+            #upsetPopup .js-plotly-plot .drag, #upsetPopup .js-plotly-plot .draglayer,
+            #upsetPopup .js-plotly-plot .nsewdrag { touch-action: pan-x pan-y !important; }
+            #upsetPopup [style*="overflow:auto"], #upsetPopup [style*="overflow: auto"] {
+                -webkit-overflow-scrolling: touch;
+            }
             #heatmapModal .modal-footer .btn { min-height: 44px !important; }
         }
         /* Touch, phone or tablet: the heatmap opened on its settings stack, which
@@ -2793,6 +2811,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.19 (2026-08-31)</strong></p>
+                <ul>
+                    <li><b>Phone: the Cell Line Browser's disease picker matches its neighbours.</b> It is a searchable popout rather than a plain dropdown, so the phone rules that enlarge dropdowns, text boxes and buttons all missed it and it kept its desktop size in a column of full-width controls.</li>
+                    <li><b>Phone: the mutation grid's include / exclude squares are twice as wide.</b> They are the grid's main control and a fingertip covered the pair.</li>
+                    <li><b>Phone: the UpSet plot scrolls sideways and its bars are narrower.</b> The rule that lets a finger on a chart scroll the page allows vertical panning only, so the sideways swipe the too-wide plot needed went nowhere; inside the UpSet both directions pan now. Bars drop from 30px to 16px so more combinations fit before scrolling starts.</li>
+                </ul>
                 <p><strong>v.89.18 (2026-08-31)</strong></p>
                 <ul>
                     <li>Reference Data: the citation note no longer credits DepMap with all cell-line data; the screening, sequencing and molecular data are DepMap's, the annotation layers have their own sources.</li>
@@ -7504,7 +7528,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.18</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.19</a>
         </span>
     </div>
 
@@ -10610,6 +10634,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_18"></script>
+    <script src="app.js?v=v89_19"></script>
 </body>
 </html>
