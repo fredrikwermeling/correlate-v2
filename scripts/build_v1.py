@@ -26,7 +26,9 @@ V1 = "/Users/fredrikwermeling/Documents/correlate app feb 2026 (färdig)/correla
 REMOVE_DIVS = [
     ("clbUmapSection", "PCA / UMAP dimensionality reduction"),
     ("changelogModal", "changelog modal"),
-    ("basisParams", "expression basis toggle"),
+    # basisParams (the gene effect / mRNA choice) shipped to V1 on
+    # 2026-08-31 at Fredrik's request; V1 carries the expression matrix
+    # already, so the toggle needed nothing else.
 ]
 
 ASSETS = ["network_example.svg", "scatter_example.svg", "tsc_pathway.svg",

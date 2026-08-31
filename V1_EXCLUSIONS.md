@@ -40,15 +40,15 @@ dragmode branches that exist to draw a gate.
 Note `clearGEGates()` is called from `_resetGEFilters()`, so either keep a
 no-op stub or drop that call too.
 
-## Expression basis (gene effect vs mRNA)
+## Expression basis (gene effect vs mRNA): NO LONGER EXCLUDED
 
-The `#basisParams` block in `index.html`, marked
-`===== V2 ONLY: expression basis for the gene-set analysis =====`: the
-"Correlate on: Gene effect / mRNA expression" choice.
+Was V1-excluded until 2026-08-31, when Fredrik asked for mRNA correlation
+in V1 too. The `#basisParams` block now ships in both builds; the guards
+described below stay, they just never fire in either build any more.
 
 `app.js` needs no edit. `_analysisBasis()` reads the radios with
-`?.value || 'ge'`, and every other reference is null-guarded, so with the
-markup gone the analysis simply always runs on gene effect.
+`?.value || 'ge'`, and every other reference is null-guarded, so a build
+without the markup simply always runs on gene effect.
 
 ## Not yet decided
 

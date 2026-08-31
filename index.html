@@ -2793,6 +2793,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.16 (2026-08-31)</strong></p>
+                <ul>
+                    <li><b>Reference Data reads as a page for outsiders.</b> Every source is now a link (COSMIC, OncoKB, NCCN, the WHO tumour classification, both Lehmann papers, CCLE); the retroelement entry explains where the sequencing comes from and how the signal was computed in two sentences; the closing paragraph says plainly what to cite for what instead of asserting that databases "have their own attribution requirements"; and "Curated annotations (in this app)" now says what it means: layers assembled by analysis while building Correlate, not taken ready-made from a database.</li>
+                    <li><b>The gene effect / mRNA choice ships in Correlate V1 as well</b> (it was an extended-version exclusive; the expression data was already there).</li>
+                </ul>
                 <p><strong>v.89.15 (2026-08-31)</strong></p>
                 <ul>
                     <li><b>The "Correlate on" choice says what its options are.</b> "Gene effect" and "mRNA" assumed the reader knew the assays behind them; they now read Gene effect (CRISPR) and mRNA (bulk RNA-seq), and the heading names the release (DepMap 26Q1).</li>
@@ -7456,21 +7461,22 @@
                         <li><a href="https://reactome.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Reactome</a> <span style="color:#999;">(curated human pathways &amp; signaling cascades; pathways of size 5&ndash;100)</span></li>
                         <li>Curated cancer-pathway and complex KBs <span style="color:#999;">(in-app)</span></li>
                     </ul>
-                    <p style="margin: 12px 0 0 0; font-weight:600; color:#374151;">Curated annotations (in this app)</p>
+                    <p style="margin: 12px 0 2px 0; font-weight:600; color:#374151;">Annotations curated for Correlate</p>
+                    <p style="margin: 0 0 0 0; font-size:11px; color:#9ca3af;">Data layers we assembled while building the app, by combining and re-analysing the sources named on each line. They are not taken ready-made from any one database.</p>
                     <ul style="margin: 4px 0 0 0; padding-left: 18px;">
-                        <li>Clinically relevant fusions <span style="color:#999;">(51 driver fusions + 7 KMT2A partners; COSMIC; validated per cell line)</span></li>
-                        <li>Subtype hallmarks KB <span style="color:#999;">(WHO 5th ed. 2022, COSMIC, OncoKB, NCCN; ~40 Oncotree subtypes)</span></li>
-                        <li>Lehmann TNBC subtypes <span style="color:#999;">(Lehmann <em>JCI</em> 2011 + 2016 update; BL1/BL2/IM/M/MSL/LAR for ~22 TNBC lines)</span></li>
+                        <li>Clinically relevant fusions <span style="color:#999;">(51 driver fusions + 7 KMT2A partners, drawn from <a href="https://cancer.sanger.ac.uk/cosmic" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">COSMIC</a>; each call validated per cell line)</span></li>
+                        <li>Subtype hallmarks KB <span style="color:#999;">(expected driver alterations per cancer type, compiled from the <a href="https://tumourclassification.iarc.who.int/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">WHO Classification of Tumours</a> 5th ed. 2022, <a href="https://cancer.sanger.ac.uk/cosmic" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">COSMIC</a>, <a href="https://www.oncokb.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">OncoKB</a> and <a href="https://www.nccn.org/guidelines/category_1" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">NCCN guidelines</a>; ~40 Oncotree subtypes)</span></li>
+                        <li>Lehmann TNBC subtypes <span style="color:#999;">(<a href="https://doi.org/10.1172/JCI45014" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Lehmann <em>JCI</em> 2011</a> + <a href="https://doi.org/10.1371/journal.pone.0157368" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">2016 update</a>; BL1/BL2/IM/M/MSL/LAR for ~22 TNBC lines)</span></li>
                         <li>Focal CN events <span style="color:#999;">(curated panel of ~32 amps + ~14 extended TSG deletions; from <code>OmicsCNGeneWGS.csv</code>)</span></li>
                         <li>HLA copy number <span style="color:#999;">(extracted from <code>OmicsCNGeneWGS.csv</code>; B2M-normalized to control for HLA-C mapping bias)</span></li>
-                        <li>Retroelement signal <span style="color:#999;">(RNA output of 750 full-length LINE-1 / HERV-K / SVA elements outside genes, quantified from the public CCLE RNA sequencing files; 669 lines have data)</span></li>
+                        <li>Retroelement signal <span style="color:#999;">(how much LINE-1, HERV-K and SVA RNA each cell line makes. We downloaded the raw RNA sequencing of these cell lines from the <a href="https://sites.broadinstitute.org/ccle/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cancer Cell Line Encyclopedia</a> (CCLE, the Broad project behind DepMap), took the reads that map uniquely to one of 750 full-length retroelement copies lying outside genes, and counted them per line, scaled to reads per million. 669 of the 1,208 lines have public sequencing to do this with)</span></li>
                         <li>Interferon score <span style="color:#999;">(computed in-app: mean z-score of 34 interferon-stimulated genes from the expression matrix)</span></li>
                         <li>STR profiles <span style="color:#999;">(Cellosaurus reference panels)</span></li>
                         <li>Published fusion calls <span style="color:#999;">(<a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cellosaurus</a>; fills in cell lines with no RNA-seq, and recurrent driver fusions the caller did not report)</span></li>
                         <li>Problematic cell lines <span style="color:#999;">(<a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cellosaurus</a>; contaminated / misidentified / misclassified flags, 56 lines in this panel)</span></li>
                         <li>Viral transformation <span style="color:#999;">(<a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cellosaurus</a> Transformant records; 53 lines in this panel are confirmed transformed by EBV, HPV16/18, HBV, KSHV or HTLV-1. A line without a record has not been recorded, which is not the same as being free of the virus)</span></li>
                     </ul>
-                    <p style="margin: 12px 0 0 0; font-style: italic;"><a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;" rel="noopener noreferrer">Please acknowledge DepMap</a> if you use this data. CORUM, Reactome and COSMIC have their own attribution requirements. Cell-line identity, fusion and provenance annotations come from <a href="https://www.cellosaurus.org/" target="_blank" style="color: #0066cc;" rel="noopener noreferrer">Cellosaurus</a> (Bairoch A. <em>J Biomol Tech</em> 2018), which asks to be cited when used.</p>
+                    <p style="margin: 12px 0 0 0;">If you publish results from Correlate, please <a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;" rel="noopener noreferrer">acknowledge DepMap</a>, which the cell-line data comes from. If your figures lean on a particular layer above, also cite the resource behind it: <a href="https://mips.helmholtz-muenchen.de/corum/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">CORUM</a> or <a href="https://reactome.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Reactome</a> for complex and pathway memberships, <a href="https://cancer.sanger.ac.uk/cosmic" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">COSMIC</a> for fusion and hallmark curation, and <a href="https://www.cellosaurus.org/" target="_blank" style="color: #0066cc;" rel="noopener noreferrer">Cellosaurus</a> (Bairoch A. <em>J Biomol Tech</em> 2018) for cell-line identity, fusion and provenance records.</p>
                 </div>
             </div>
         </div>
@@ -7490,7 +7496,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.15</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.16</a>
         </span>
     </div>
 
@@ -10596,6 +10602,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_15"></script>
+    <script src="app.js?v=v89_16"></script>
 </body>
 </html>
