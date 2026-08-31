@@ -26,10 +26,21 @@ V1 = "/Users/fredrikwermeling/Documents/correlate app feb 2026 (färdig)/correla
 REMOVE_DIVS = [
     ("clbUmapSection", "PCA / UMAP dimensionality reduction"),
     ("changelogModal", "changelog modal"),
-    # basisParams (the gene effect / mRNA choice) shipped to V1 on
-    # 2026-08-31 at Fredrik's request; V1 carries the expression matrix
-    # already, so the toggle needed nothing else.
+    ("basisParams", "expression basis toggle"),
 ]
+
+# What replaces a removed block, where cutting it clean would hide a fact
+# the reader still needs. V1 always correlates on gene effect, and with the
+# choice gone nothing on the page said so.
+REPLACE_WITH = {
+    "basisParams": (
+        '                    <div class="form-group">\n'
+        '                        <label class="form-label" style="font-weight:400; color:#6b7280;">'
+        'Correlates on: gene effect <span style="font-size:10px; color:#9ca3af;">'
+        '(CRISPR knockout, DepMap 26Q1)</span></label>\n'
+        '                    </div>\n'
+    ),
+}
 
 ASSETS = ["network_example.svg", "scatter_example.svg", "tsc_pathway.svg",
           "favicon-32x32.png", "favicon.ico",
@@ -66,7 +77,8 @@ def cut_div(lines, div_id):
     if end is None:
         raise SystemExit(f"could not find the end of #{div_id}")
     removed = end - first + 1
-    return lines[:first] + lines[end + 1:], removed
+    replacement = [REPLACE_WITH[div_id]] if div_id in REPLACE_WITH else []
+    return lines[:first] + replacement + lines[end + 1:], removed
 
 
 def main():

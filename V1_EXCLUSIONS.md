@@ -40,15 +40,17 @@ dragmode branches that exist to draw a gate.
 Note `clearGEGates()` is called from `_resetGEFilters()`, so either keep a
 no-op stub or drop that call too.
 
-## Expression basis (gene effect vs mRNA): NO LONGER EXCLUDED
+## Expression basis (gene effect vs mRNA)
 
-Was V1-excluded until 2026-08-31, when Fredrik asked for mRNA correlation
-in V1 too. The `#basisParams` block now ships in both builds; the guards
-described below stay, they just never fire in either build any more.
+The `#basisParams` block in `index.html`: the "Correlate on: Gene effect /
+mRNA" choice. Briefly shipped to V1 on 2026-08-31 and reverted the same
+day; it stays V2-only. The build replaces the block with a static line
+saying V1 correlates on gene effect (CRISPR, DepMap 26Q1), so the fact the
+toggle carried is still on the page (REPLACE_WITH in build_v1.py).
 
 `app.js` needs no edit. `_analysisBasis()` reads the radios with
-`?.value || 'ge'`, and every other reference is null-guarded, so a build
-without the markup simply always runs on gene effect.
+`?.value || 'ge'`, and every other reference is null-guarded, so with the
+markup gone the analysis simply always runs on gene effect.
 
 ## Not yet decided
 

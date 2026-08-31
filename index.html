@@ -2793,6 +2793,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.17 (2026-08-31)</strong></p>
+                <ul>
+                    <li><b>The gene effect / mRNA choice returns to being extended-version only</b>, reversing the previous entry. Correlate V1 instead states what it runs on, where the choice would sit: "Correlates on: gene effect (CRISPR knockout, DepMap 26Q1)".</li>
+                </ul>
                 <p><strong>v.89.16 (2026-08-31)</strong></p>
                 <ul>
                     <li><b>Reference Data reads as a page for outsiders.</b> Every source is now a link (COSMIC, OncoKB, NCCN, the WHO tumour classification, both Lehmann papers, CCLE); the retroelement entry explains where the sequencing comes from and how the signal was computed in two sentences; the closing paragraph says plainly what to cite for what instead of asserting that databases "have their own attribution requirements"; and "Curated annotations (in this app)" now says what it means: layers assembled by analysis while building Correlate, not taken ready-made from a database.</li>
@@ -7496,7 +7500,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.16</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.17</a>
         </span>
     </div>
 
@@ -10602,6 +10606,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_16"></script>
+    <script src="app.js?v=v89_17"></script>
 </body>
 </html>
