@@ -2793,6 +2793,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.18 (2026-08-31)</strong></p>
+                <ul>
+                    <li>Reference Data: the citation note no longer credits DepMap with all cell-line data; the screening, sequencing and molecular data are DepMap's, the annotation layers have their own sources.</li>
+                </ul>
                 <p><strong>v.89.17 (2026-08-31)</strong></p>
                 <ul>
                     <li><b>The gene effect / mRNA choice returns to being extended-version only</b>, reversing the previous entry. Correlate V1 instead states what it runs on, where the choice would sit: "Correlates on: gene effect (CRISPR knockout, DepMap 26Q1)".</li>
@@ -7480,7 +7484,7 @@
                         <li>Problematic cell lines <span style="color:#999;">(<a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cellosaurus</a>; contaminated / misidentified / misclassified flags, 56 lines in this panel)</span></li>
                         <li>Viral transformation <span style="color:#999;">(<a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cellosaurus</a> Transformant records; 53 lines in this panel are confirmed transformed by EBV, HPV16/18, HBV, KSHV or HTLV-1. A line without a record has not been recorded, which is not the same as being free of the virus)</span></li>
                     </ul>
-                    <p style="margin: 12px 0 0 0;">If you publish results from Correlate, please <a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;" rel="noopener noreferrer">acknowledge DepMap</a>, which the cell-line data comes from. If your figures lean on a particular layer above, also cite the resource behind it: <a href="https://mips.helmholtz-muenchen.de/corum/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">CORUM</a> or <a href="https://reactome.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Reactome</a> for complex and pathway memberships, <a href="https://cancer.sanger.ac.uk/cosmic" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">COSMIC</a> for fusion and hallmark curation, and <a href="https://www.cellosaurus.org/" target="_blank" style="color: #0066cc;" rel="noopener noreferrer">Cellosaurus</a> (Bairoch A. <em>J Biomol Tech</em> 2018) for cell-line identity, fusion and provenance records.</p>
+                    <p style="margin: 12px 0 0 0;">If you publish results from Correlate, please <a href="https://depmap.org/portal/data_page/?tab=overview#how-to-cite" target="_blank" style="color: #0066cc;" rel="noopener noreferrer">acknowledge DepMap</a>, which the screening, sequencing and molecular data come from. The annotation layers have their own sources: if your figures lean on one, also cite the resource behind it: <a href="https://mips.helmholtz-muenchen.de/corum/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">CORUM</a> or <a href="https://reactome.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Reactome</a> for complex and pathway memberships, <a href="https://cancer.sanger.ac.uk/cosmic" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">COSMIC</a> for fusion and hallmark curation, and <a href="https://www.cellosaurus.org/" target="_blank" style="color: #0066cc;" rel="noopener noreferrer">Cellosaurus</a> (Bairoch A. <em>J Biomol Tech</em> 2018) for cell-line identity, fusion and provenance records.</p>
                 </div>
             </div>
         </div>
@@ -7500,7 +7504,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.17</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.18</a>
         </span>
     </div>
 
@@ -10606,6 +10610,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_17"></script>
+    <script src="app.js?v=v89_18"></script>
 </body>
 </html>
