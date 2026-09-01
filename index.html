@@ -2811,6 +2811,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.22 (2026-09-01)</strong></p>
+                <ul>
+                    <li><b>The popouts name their assays the way the front page now does.</b> The gene-effect popout's data choice reads Gene effect (CRISPR) / mRNA (bulk RNA-seq) instead of GE / Expression. The correlation popout's axis selectors are too narrow for the full tags, so there Expr becomes mRNA and hovering the selector spells out all three: GE = CRISPR gene effect, mRNA = bulk RNA-seq expression, CN = copy number.</li>
+                </ul>
                 <p><strong>v.89.21 (2026-09-01)</strong></p>
                 <ul>
                     <li><b>Hovering a gene name in the heatmap shows its gene card</b>, the same card every gene link in the tables shows. The heatmap draws its labels on a canvas, so they had been the one place a gene name told you nothing.</li>
@@ -7536,7 +7540,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.21</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.22</a>
         </span>
     </div>
 
@@ -8435,17 +8439,17 @@
                             <span class="control-label" style="margin-bottom: 2px;">Genes (X/Y)</span>
                             <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
                                 <input type="text" id="inspectGeneX" class="form-control" style="flex: 1 1 70px; min-width: 60px; font-size: 12px; padding: 3px 8px;" placeholder="X gene">
-                                <select id="xAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;">
+                                <select id="xAxisDataType" title="What this axis measures: GE = CRISPR gene effect (Chronos), mRNA = bulk RNA-seq expression (log2 TPM+1), CN = copy number" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;">
                                     <option value="ge">GE</option>
-                                    <option value="expr">Expr</option>
+                                    <option value="expr">mRNA</option>
                                     <option value="cn">CN</option>
                                     
                                 </select>
                                 <button class="btn btn-outline btn-sm" id="inspectSwapAxes" style="font-size: 11px; padding: 2px 6px; min-width: 26px;" title="Swap X and Y axes (gene names + data types)">&#8644;</button>
                                 <input type="text" id="inspectGeneY" class="form-control" style="flex: 1 1 70px; min-width: 60px; font-size: 12px; padding: 3px 8px;" placeholder="Y gene">
-                                <select id="yAxisDataType" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;">
+                                <select id="yAxisDataType" title="What this axis measures: GE = CRISPR gene effect (Chronos), mRNA = bulk RNA-seq expression (log2 TPM+1), CN = copy number" style="font-size: 10px; padding: 1px 4px; border: 1px solid #ddd; border-radius: 4px; background: #fff;">
                                     <option value="ge">GE</option>
-                                    <option value="expr">Expr</option>
+                                    <option value="expr">mRNA</option>
                                     <option value="cn">CN</option>
                                                                     
                                 </select>
@@ -8737,12 +8741,12 @@
                 <div id="geSearchBar" style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb;">
                     <!-- Row 1: Gene Effect + Mutation + Analyze -->
                     <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
+                        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                             <label id="geneEffectLabel" style="font-size: 13px; font-weight: 600; color: #374151; white-space: nowrap;">Gene Effect:</label>
                             <input type="text" id="geneEffectSearch" class="form-control" placeholder="Gene symbol" style="width: 130px; font-size: 13px; padding: 6px 10px;">
                             <select id="geDataType" title="Switch between gene-effect (CRISPR knockout) and expression (log2-TPM+1) as the y-axis data" style="font-size: 12px; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 4px; background: #fff;">
-                                <option value="ge">GE</option>
-                                <option value="expr">Expression</option>
+                                <option value="ge">Gene effect (CRISPR)</option>
+                                <option value="expr">mRNA (bulk RNA-seq)</option>
                             </select>
                         </div>
                         <span id="geHotspotGeneGroup" style="display: none;">
@@ -10642,6 +10646,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_21"></script>
+    <script src="app.js?v=v89_22"></script>
 </body>
 </html>
