@@ -2811,6 +2811,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.21 (2026-09-01)</strong></p>
+                <ul>
+                    <li><b>Hovering a gene name in the heatmap shows its gene card</b>, the same card every gene link in the tables shows. The heatmap draws its labels on a canvas, so they had been the one place a gene name told you nothing.</li>
+                </ul>
                 <p><strong>v.89.20 (2026-09-01)</strong></p>
                 <ul>
                     <li><b>A custom export requested by an assistant now says so.</b> When an AI writes a CORRELATE-REQUEST and the resulting file goes back to it, the file used to read as if the user had asked a brand-new question, and assistants restarted the analysis around their own follow-up, losing the original thread. The file now carries the question's provenance, the reading instructions say to treat it as the material the assistant asked for rather than a fresh ask, and the request-writing guidance tells the assistant to lead the question field with the user's original question so the focus survives the round trip.</li>
@@ -7532,7 +7536,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.20</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.21</a>
         </span>
     </div>
 
@@ -10638,6 +10642,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_20"></script>
+    <script src="app.js?v=v89_21"></script>
 </body>
 </html>
