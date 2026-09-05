@@ -2811,6 +2811,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.23 (2026-09-05)</strong></p>
+                <ul>
+                    <li><b>The correlation scatter reads properly on a phone.</b> The heading no longer runs into the statistics under it, the mean/median line breaks instead of running off the edge, and the mutation legend sits under the plot instead of covering half of it. In the split view the panel headers go on two rows when the panels are narrow, so the three no longer run into each other.</li>
+                </ul>
                 <p><strong>v.89.22 (2026-09-01)</strong></p>
                 <ul>
                     <li><b>The popouts name their assays the way the front page now does.</b> The gene-effect popout's data choice reads Gene effect (CRISPR) / mRNA (bulk RNA-seq) instead of GE / Expression. The correlation popout's axis selectors are too narrow for the full tags, so there Expr becomes mRNA and hovering the selector spells out all three: GE = CRISPR gene effect, mRNA = bulk RNA-seq expression, CN = copy number.</li>
@@ -7540,7 +7544,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.22</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.23</a>
         </span>
     </div>
 
@@ -10646,6 +10650,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_22"></script>
+    <script src="app.js?v=v89_23"></script>
 </body>
 </html>

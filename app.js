@@ -19275,7 +19275,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             titleLines.push(`<span style="font-size:${subSize}px;color:#666;">${filterDesc}</span>`);
         }
         titleLines.push(`<span style="font-size:${subSize}px;">n=${filteredData.length}, r=${this.formatNum(allStats.correlation)}, ${this.formatPClause(allStats.pValue)}, slope=${this.formatNum(allStats.slope)}</span>`);
-        titleLines.push(`<span style="font-size:${subSize}px;">mean (X: ${meanX.toFixed(2)}, Y: ${meanY.toFixed(2)}) median (X: ${medianX.toFixed(2)}, Y: ${medianY.toFixed(2)})</span>`);
+        // The mean/median line is wider than a phone screen and was clipped
+        // mid-number, so it breaks before "median" when it will not fit.
+        const _mmSegs = [`mean (X: ${meanX.toFixed(2)}, Y: ${meanY.toFixed(2)})`, `median (X: ${medianX.toFixed(2)}, Y: ${medianY.toFixed(2)})`];
+        const _mmBrk = _mmSegs.join(' ').length * subSize * 0.55 > _plotW ? '<br>' : ' ';
+        titleLines.push(`<span style="font-size:${subSize}px;">${_mmSegs.join(_mmBrk)}</span>`);
         if (this.currentInspect?.sparseNote) {
             // The note is a full sentence and easily wider than the canvas,
             // which clips it at both ends. Wrap it on words to the plot width
@@ -19300,7 +19304,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // it across lines when it will not fit the chosen width.
         const _wrapStatLine = (segments, sep = ' | ') => {
             const perChar = subSize * 0.55;
-            const budget = Math.max(240, (parseInt(document.getElementById('plotWidth')?.value, 10) || 500) * 0.95);
+            const budget = _scPhone ? _plotW : Math.max(240, (parseInt(document.getElementById('plotWidth')?.value, 10) || 500) * 0.95);
             const out = [];
             let line = '';
             for (const seg of segments) {
@@ -19370,8 +19374,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // exist gave a nonsense offset, which is what put the statistics lines
         // through the heading and into the chart.
         const _titleRows = _fitsOneLine ? 1 : 2;
-        const _plotPx = Math.max(160, parseInt(document.getElementById('plotHeight')?.value, 10)
-            || document.getElementById('scatterPlot')?.clientHeight || 400);
         const _subSizePx = Math.round(subSize * 0.85);
         // Measured from the top of the plot upwards, in pixels, then converted.
         // Both blocks are anchored by their bottom edge, so the reserve above the
@@ -19382,26 +19384,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const _titleBlockPx = _titleRows * titleFontSize * 1.3;
         const _subBottomPx = 8;
         const _titleBottomPx = _subBottomPx + _subBlockPx + 10;
-        const _baseY = 1 + _subBottomPx / _plotPx;
-        titleAnnotation.y = this._userTitlePosition ? this._userTitlePosition.y
-            : 1 + _titleBottomPx / _plotPx;
-        const subtitleAnnotation = _subLines.length ? {
-            x: titleAnnotation.x,
-            y: _baseY,
-            xref: 'paper', yref: 'paper',
-            xanchor: titleAnnotation.xanchor, yanchor: 'bottom',
-            text: _subLines.join('<br>'),
-            showarrow: false,
-            font: { size: _subSizePx },
-            _tsRole: 'subtitle'
-        } : null;
-
         // Room for the title block. A wrapped pair label is spaced by the title
         // size, so the reserve has to follow the same number.
         const topMargin = _titleBottomPx + _titleBlockPx + 16;
-
-        const showZero = document.getElementById('showZeroLines')?.checked !== false;
-
         // Axis labels as draggable annotations instead of axis titles.
         // A label longer than the axis it sits against gets clipped at both
         // ends ("MDM2 Expression (log2 TPM+1)" losing its M on a 400px plot),
@@ -19420,6 +19405,40 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             _plotWpx * 0.78, sts?.xLabelFontSize || 20);
         const yLabelText = _wrapAxisLabel(this.getAxisLabel(gene2, this.currentInspect?.yType || 'ge'),
             _plotHpx * 0.62, sts?.yLabelFontSize || (_isPhone ? 13 : 20));
+        // On a phone the mutation legend moves under the plot (see the legend
+        // below), so the bottom margin has to hold it as well as the x label.
+        const _legendBelow = _scPhone && !colorByCategory && !this._userLegendPosition
+            && ((hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene));
+        const _xLabelRows = xLabelText.includes('<br>') ? 2 : 1;
+        const _botMargin = colorByCategory ? 100 : (_legendBelow ? 90 + _xLabelRows * 17 : 60);
+        // The offsets below are pixels divided by the plot height, so they have
+        // to use the height that is actually drawn. On a phone the plot is
+        // capped further down, and measuring against the uncapped control
+        // value shrank the offsets and put the heading on top of the stats.
+        let _plotPx = Math.max(160, parseInt(document.getElementById('plotHeight')?.value, 10)
+            || document.getElementById('scatterPlot')?.clientHeight || 400);
+        // Capped at about two thirds of the screen (a little more when the
+        // legend sits underneath) so the head of the controls shows below it.
+        const _phoneCap = _scPhone
+            ? Math.round(window.innerHeight * 0.62) + (_legendBelow ? 44 : 0) - topMargin - _botMargin
+            : Infinity;
+        if (_scPhone && _phoneCap > 160 && _plotPx > _phoneCap) _plotPx = _phoneCap;
+        const _baseY = 1 + _subBottomPx / _plotPx;
+        titleAnnotation.y = this._userTitlePosition ? this._userTitlePosition.y
+            : 1 + _titleBottomPx / _plotPx;
+        const subtitleAnnotation = _subLines.length ? {
+            x: titleAnnotation.x,
+            y: _baseY,
+            xref: 'paper', yref: 'paper',
+            xanchor: titleAnnotation.xanchor, yanchor: 'bottom',
+            text: _subLines.join('<br>'),
+            showarrow: false,
+            font: { size: _subSizePx },
+            _tsRole: 'subtitle'
+        } : null;
+
+        const showZero = document.getElementById('showZeroLines')?.checked !== false;
+
         const xLabelAnnotation = {
             x: this._userXLabelPos ? this._userXLabelPos.x : 0.5,
             y: this._userXLabelPos ? this._userXLabelPos.y : -0.08,
@@ -19465,7 +19484,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 tickfont: { size: sts?.yTickSize || (_isPhone ? 11 : 17) }
             },
             hovermode: 'closest',
-            margin: { t: topMargin, r: _isPhone ? 14 : 30, b: colorByCategory ? 100 : 60, l: _isPhone ? 52 : 96, autoexpand: false },
+            margin: { t: topMargin, r: _isPhone ? 14 : 30, b: _botMargin, l: _isPhone ? 52 : 96, autoexpand: false },
             showlegend: (hotspotMode === 'color' && hotspotGene) || (transOverlayMode === 'color' && transOverlayGene) || !!colorByCategory,
             legend: colorByCategory ? {
                 orientation: 'h',
@@ -19483,6 +19502,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 tracegroupgap: 0,
                 entrywidth: this._colorByLegendEntryW || 120,
                 entrywidthmode: 'pixels'
+            } : _legendBelow ? {
+                // A corner legend covers half of a phone-sized plot, so it goes
+                // in a row under the x label instead, wrapping as it needs to.
+                orientation: 'h',
+                x: 0.5,
+                y: -(0.08 + (_xLabelRows * 13 * 1.3 + 10) / _plotPx),
+                xanchor: 'center',
+                yanchor: 'top',
+                bgcolor: 'white',
+                bordercolor: '#ddd',
+                borderwidth: 1,
+                title: { text: (transOverlayMode === 'color' && transOverlayGene) ? `${transOverlayGene} (fusion)` : hotspotGene, font: { size: 11 }, side: 'left' },
+                font: { size: 11 }
             } : (() => {
                 // Auto-placed unless the user has dragged it somewhere.
                 const corner = this._userLegendPosition
@@ -19547,16 +19579,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         layout.height = plotAreaH + m.t + m.b;
         // On a phone the chart filled the window exactly, so nothing below it
         // showed and the gene boxes, the filters and Update read as absent
-        // rather than as further down. Cap the whole thing at about two thirds
-        // of the screen: the head of the controls is then visible under it and
-        // says, without a word, that there is more.
-        if (_scPhone) {
-            const cap = Math.round(window.innerHeight * 0.62) - m.t - m.b;
-            if (cap > 160 && plotAreaH > cap) {
-                plotAreaH = cap;
-                if (heightEl) heightEl.value = plotAreaH;
-                layout.height = plotAreaH + m.t + m.b;
-            }
+        // rather than as further down. Cap it (the same cap the header offsets
+        // were computed against) so the head of the controls shows under it.
+        if (_scPhone && _phoneCap > 160 && plotAreaH > _phoneCap) {
+            plotAreaH = _phoneCap;
+            if (heightEl) heightEl.value = plotAreaH;
+            layout.height = plotAreaH + m.t + m.b;
         }
         // Constrain to available space
         const availableWidth = plotContainer.parentElement?.offsetWidth || 600;
@@ -19910,8 +19938,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Header and title offsets in pixels, converted to paper units, so the
         // spacing holds at any plot size instead of drifting with it.
         const panelPx3 = this._threePanelSidePx || 260;
+        // A narrow popout gives each panel less width than its stats line, and
+        // the three headers ran into each other. When the line will not fit
+        // the panel (plus a little of the gutter), the label goes on its own
+        // row above the stats, and the title moves up to make room.
+        const _hdrFits = (label, rows, st) => {
+            const plain = `${label.replace(/<[^>]*>/g, '')} n=${rows.length}, r=${isNaN(st.correlation) ? 'n/a' : st.correlation.toFixed(3)}, ${isNaN(st.pValue) ? 'p = n/a' : this.formatPClause(st.pValue).replace(/<[^>]*>/g, '')}`;
+            return plain.length * 11 * 0.55 <= panelPx3 * 1.12;
+        };
+        const _hdrWrap = !(_hdrFits(annotLabels[0], wt, wtStats) && _hdrFits(annotLabels[1], mut1, mut1Stats) && _hdrFits(annotLabels[2], mut2, mut2Stats));
         const yHeader = 1 + 10 / panelPx3;
-        const yTitle = 1 + 40 / panelPx3;
+        const yTitle = 1 + (_hdrWrap ? 58 : 40) / panelPx3;
 
         titleAnnotation.y = this._userTitlePosition ? this._userTitlePosition.y : yTitle;
         titleAnnotation._tsRole = 'title';
@@ -19924,7 +19961,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const rTxt = isNaN(st.correlation) ? 'n/a' : st.correlation.toFixed(3);
             const pTxt = isNaN(st.pValue) ? 'p = n/a' : this.formatPClause(st.pValue);
             const medTxt = `median x=${isNaN(mx) ? 'n/a' : mx.toFixed(2)}, y=${isNaN(my) ? 'n/a' : my.toFixed(2)}`;
-            return `${label} n=${rows.length}, r=${rTxt}, ${pTxt}`
+            return `${label}${_hdrWrap ? '<br>' : ' '}n=${rows.length}, r=${rTxt}, ${pTxt}`
                 + `<br><span style="font-size:10px; color:#6b7280;">${medTxt}</span>`;
         };
 
@@ -19971,7 +20008,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                   text: yLabelText3, showarrow: false, font: { size: 13 }, textangle: -90, _tsRole: 'ylabel' },
                 ...threePanelHighlightAnnotations
             ],
-            margin: { t: 76, r: 30, b: categoryOrder ? 110 : 66, l: 76 },
+            margin: { t: _hdrWrap ? 96 : 76, r: 30, b: categoryOrder ? 110 : 66, l: 76 },
             showlegend: !!categoryOrder,
             legend: {
                 orientation: 'h',
