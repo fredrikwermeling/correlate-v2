@@ -19278,7 +19278,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // The mean/median line is wider than a phone screen and was clipped
         // mid-number, so it breaks before "median" when it will not fit.
         const _mmSegs = [`mean (X: ${meanX.toFixed(2)}, Y: ${meanY.toFixed(2)})`, `median (X: ${medianX.toFixed(2)}, Y: ${medianY.toFixed(2)})`];
-        const _mmBrk = _mmSegs.join(' ').length * subSize * 0.55 > _plotW ? '<br>' : ' ';
+        // 0.62 em per character: the phone's real glyph width, measured; the
+        // 0.55 used elsewhere let a line that did not fit call itself fitting.
+        const _mmBrk = _mmSegs.join(' ').length * subSize * 0.62 > _plotW ? '<br>' : ' ';
         titleLines.push(`<span style="font-size:${subSize}px;">${_mmSegs.join(_mmBrk)}</span>`);
         if (this.currentInspect?.sparseNote) {
             // The note is a full sentence and easily wider than the canvas,
@@ -19303,7 +19305,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Plotly does not wrap, so it was being cut off at the plot edge. Break
         // it across lines when it will not fit the chosen width.
         const _wrapStatLine = (segments, sep = ' | ') => {
-            const perChar = subSize * 0.55;
+            const perChar = subSize * (_scPhone ? 0.62 : 0.55);
             const budget = _scPhone ? _plotW : Math.max(240, (parseInt(document.getElementById('plotWidth')?.value, 10) || 500) * 0.95);
             const out = [];
             let line = '';
@@ -39817,12 +39819,28 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (!box) return;
         if (!box._chipsWired) {
             box._chipsWired = true;
-            box.addEventListener('click', (e) => {
-                const drop = e.target.closest('.scatter-chip-x');
-                if (drop) { this.removeHighlight(drop.dataset.cl); return; }
-                const open = e.target.closest('.scatter-chip-name');
-                if (open) this._openScatterChipMenu(open, open.dataset.cl);
+            const act = (target) => {
+                const drop = target.closest('.scatter-chip-x');
+                if (drop) { this.removeHighlight(drop.dataset.cl); return true; }
+                const open = target.closest('.scatter-chip-name');
+                if (open) { this._openScatterChipMenu(open, open.dataset.cl); return true; }
+                return false;
+            };
+            // The tap is taken at touchend, not left to the click iOS
+            // synthesises afterwards: that click is withheld when the tap's
+            // hover pass changes the page, which the help engine does, so the
+            // x could not be pressed. A finger that moved was scrolling.
+            let t0 = null;
+            box.addEventListener('touchstart', (e) => {
+                const t = e.changedTouches[0];
+                t0 = t ? { x: t.clientX, y: t.clientY } : null;
+            }, { passive: true });
+            box.addEventListener('touchend', (e) => {
+                const t = e.changedTouches[0];
+                if (!t0 || !t || Math.hypot(t.clientX - t0.x, t.clientY - t0.y) > 10) return;
+                if (act(e.target) && e.cancelable) e.preventDefault();
             });
+            box.addEventListener('click', (e) => { act(e.target); });
         }
         const list = [...new Set(names || [])];
         // The empty state says what to do, which is the other half of the
@@ -39835,7 +39853,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const e = this.esc(n);
             return `<span class="scatter-chip">`
                 + `<button type="button" class="scatter-chip-name" data-cl="${e}">${e}</button>`
-                + `<button type="button" class="scatter-chip-x" data-cl="${e}" aria-label="Remove the ${e} label" title="Remove the ${e} label">&times;</button>`
+                + `<button type="button" class="scatter-chip-x" data-cl="${e}" aria-label="Remove the ${e} label">&times;</button>`
                 + `</span>`;
         }).join('');
     }
