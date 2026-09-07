@@ -2811,6 +2811,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.26 (2026-09-07)</strong></p>
+                <ul>
+                    <li><b>Phone: the "nothing to show" note from the alteration grid buttons fits the screen.</b> It was a fixed 420px box pinned to the right edge, so its left half hung off a phone and the text was cut.</li>
+                </ul>
                 <p><strong>v.89.25 (2026-09-07)</strong></p>
                 <ul>
                     <li><b>The heatmap carries a heading.</b> Above the grid it now names the gene set and measure, and under that which cell lines are shown: the cohort, the lineage, subtype or disease it was narrowed to, and any mutation, fusion or copy-number filter. The same words the exported picture already carried. On a phone, where the controls sit below the picture, this is the only place the filters were readable at a glance.</li>
@@ -7552,7 +7556,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.25</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.26</a>
         </span>
     </div>
 
@@ -10665,6 +10669,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_25"></script>
+    <script src="app.js?v=v89_26"></script>
 </body>
 </html>

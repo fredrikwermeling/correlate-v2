@@ -3296,7 +3296,9 @@ class CorrelationExplorer {
                             : gridKind === 'cn' ? 'focal copy-number event' : 'hotspot mutation';
             const empty = document.createElement('div');
             empty.id = 'oncoprintPopup';
-            empty.style.cssText = 'position:fixed; z-index:10000; right:20px; top:20px; width:420px; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.15); padding:14px 16px; font-size:12px; color:#374151;';
+            // Capped to the screen: a fixed 420px pinned to the right edge
+            // hung off the left of a phone.
+            empty.style.cssText = 'position:fixed; z-index:10000; right:20px; top:20px; width:min(420px, calc(100vw - 40px)); box-sizing:border-box; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.15); padding:14px 16px; font-size:12px; color:#374151;';
             empty.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">`
                 + `<b>No ${emptyWord}s to show</b>`
                 + `<button onclick="app._upsetClose?.(); document.getElementById('oncoprintPopup')?.remove();" style="background:none;border:none;font-size:18px;line-height:1;cursor:pointer;color:#9ca3af;">&times;</button></div>`
