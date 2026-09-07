@@ -34085,7 +34085,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Links wrap onto their own line so adding more of them doesn't
             // squeeze the hint next to them.
             html += `<div style="margin-top:8px; padding-top:6px; border-top:1px solid #f3f4f6; font-size:10px; color:#6b7280;">`;
-            html += `<div style="display:flex; flex-wrap:wrap; gap:2px 4px;">${links}</div>`;
+            // The way into the analyses from a pinned card, so a name that
+            // opens a card rather than a popout still leads somewhere.
+            const inApp = el.dataset.pinned === '1' && this.geneIndex?.has(String(gene).toUpperCase())
+                ? `<a href="#" onclick="event.preventDefault(); app._openGeneEffectFromCard('${this.esc(gene)}')" style="color:#4c782e; font-weight:600; margin-right:6px;">Gene effect in this app &#9656;</a>`
+                : '';
+            html += `<div style="display:flex; flex-wrap:wrap; gap:2px 4px;">${inApp}${links}</div>`;
             // No Shift key and no Esc on a phone, so neither hint leads
             // anywhere: the card is dismissed by tapping away from it.
             const _hint = window.innerWidth <= 640
@@ -34102,6 +34107,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 el.style.top = Math.max(10, window.innerHeight - rect.height - 10) + 'px';
             }
         });
+    }
+
+    // From a pinned gene card: the gene-effect popout, with the cell line
+    // whose wiki or browser card the gene was pressed in highlighted.
+    _openGeneEffectFromCard(gene) {
+        this.hideGeneTooltip(true);
+        const wikiOpen = document.getElementById('clbWikiModal')?.style.display === 'flex';
+        this._geHighlightCellLine = wikiOpen ? (this._wikiCellLineId || this._clbInspectedCellLine) : this._clbInspectedCellLine;
+        this.openGeneEffectModal(gene, 'tissue');
     }
 
     // `force` dismisses pinned tooltips too (used by the close button / Esc /
@@ -45682,7 +45696,13 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             .map(h => {
                 const variant = geneVariant[h.gene];
                 const variantSuffix = variant ? ` <span style="color:#5d9239; font-weight:500;">(${variant})</span>` : '';
-                return `<span class="gene-hover clb-gene-link" data-gene="${h.gene}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ` (${h.level})` : ''}</span>${variantSuffix}`;
+                // A gene card, not the gene-effect popout: the line is
+                // about the mutation, so a press explains it, and the card
+                // itself offers the gene-effect view.
+                const why = h.level >= 2
+                    ? 'Hotspot mutation on both copies in this cell line'
+                    : 'Hotspot mutation on one copy in this cell line';
+                return `<span class="gene-hover" data-gene="${h.gene}" data-why="${why}" style="cursor:help; ${h.level >= 2 ? 'color:#dc2626; font-weight:600;' : ''}">${h.gene}${h.level >= 2 ? ' <span style="font-weight:400; font-size:10px;">(both copies)</span>' : ''}</span>${variantSuffix}`;
             }).join(', ');
         // Compact counts line, three values in one row instead of three
         // separate label/value rows. Top hits are bumped to their own line
@@ -46050,7 +46070,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 + (damagingOnlyDrivers.length ? `<div style="margin-top:5px; color:#374151;"><b>Canonical drivers with a damaging mutation</b> <span style="font-size:10px; color:#9ca3af;">(outside the curated layers above)</span>: ${damagingOnlyDrivers.join(', ')}.</div>` : '')
                 + (notFoundDrivers.length ? `<div style="margin-top:5px; color:#6b7280;"><b>Canonical drivers with nothing detected here:</b> ${notFoundDrivers.join(', ')} <span style="font-size:10px; color:#9ca3af;">(no hotspot, damaging mutation, functional loss, curated fusion or focal CN event)</span>.</div>` : '')
                 + `</div>`
-            : `<div style="margin-top:10px; padding:8px 12px; background:#f9fafb; border-left:3px solid #9ca3af; font-size:11px; color:#6b7280;">No curated driver profile for &ldquo;${typFor}&rdquo; yet (~30 common Oncotree subtypes covered), so the alterations above aren't tagged typical / atypical.</div>`;
+            : `<div style="margin-top:8px; font-size:10px; color:#9ca3af;">Typical / atypical tags are not available for ${typFor} yet.</div>`;
 
         const keyAlterationsHtml = `
             <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">The alterations most likely <b>central to this cell line's transformation</b>, activating oncogene mutations, tumor-suppressor functional loss, validated driver fusions, and focal copy-number events, each tagged <span style="color:#4c782e; font-weight:600;">✓ typical</span> driver of, or <span style="color:#6b7280;">not a canonical hallmark</span> of, its cancer subtype. Overall mutation / fusion burden and the functional pathway read-out follow.</p>

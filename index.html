@@ -2827,6 +2827,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.33 (2026-09-07)</strong></p>
+                <ul>
+                    <li><b>Wiki, key alterations: three things made clearer.</b> The "(2)" after a top hotspot hit now reads "(both copies)". Pressing a gene on that line opens its gene card, headed by the mutation it was listed for, rather than jumping to the gene effect view; the card offers "Gene effect in this app" for those who want it, and so does every pinned gene card now. The boxed note about a missing curated driver profile is replaced by one quiet line saying that typical / atypical tags are not available for this subtype yet.</li>
+                </ul>
                 <p><strong>v.89.32 (2026-09-07)</strong></p>
                 <ul>
                     <li><b>Phone: the subtype and disease menus can be told apart.</b> iOS draws these menus itself and cuts each entry at about forty characters, so "Oral Cavity Squamous Cell Carcinoma (n=12)" lost its count and every entry ended the same way. In lists with long names the count now comes first and "Squamous Cell Carcinoma" reads SCC when the list is still too long, so what shows is what tells the entries apart. Short lists, such as tissues, are unchanged.</li>
@@ -7596,7 +7600,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.32</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.33</a>
         </span>
     </div>
 
@@ -10709,6 +10713,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_32"></script>
+    <script src="app.js?v=v89_33"></script>
 </body>
 </html>
