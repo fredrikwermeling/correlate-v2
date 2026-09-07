@@ -19390,7 +19390,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // plot has to cover the whole stack: the subtitle, the gap, and the full
         // height of the heading. Leaving out that last part is what clipped the
         // top line of a wrapped heading.
-        const _subBlockPx = _subLines.length * _subSizePx * 1.35;
+        // Rows, not entries: the mean/median entry breaks into two on a phone.
+        const _subRows = _subLines.reduce((n, l) => n + 1 + (l.match(/<br>/g) || []).length, 0);
+        const _subBlockPx = _subRows * _subSizePx * 1.35;
         const _titleBlockPx = _titleRows * titleFontSize * 1.3;
         const _subBottomPx = 8;
         const _titleBottomPx = _subBottomPx + _subBlockPx + 10;
