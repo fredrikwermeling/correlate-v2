@@ -2827,6 +2827,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.32 (2026-09-07)</strong></p>
+                <ul>
+                    <li><b>Phone: the subtype and disease menus can be told apart.</b> iOS draws these menus itself and cuts each entry at about forty characters, so "Oral Cavity Squamous Cell Carcinoma (n=12)" lost its count and every entry ended the same way. In lists with long names the count now comes first and "Squamous Cell Carcinoma" reads SCC when the list is still too long, so what shows is what tells the entries apart. Short lists, such as tissues, are unchanged.</li>
+                </ul>
                 <p><strong>v.89.31 (2026-09-07)</strong></p>
                 <ul>
                     <li><b>Phone: the correlation cutoff is back in the gene set analysis sidebar.</b> It was hidden with the other four thresholds to save space, but it is the one setting a phone session does reach for, to loosen or tighten a network. It sits under the data basis with finger-sized − and + buttons. Min slope, min cell lines, the gene-coverage floor and the p-value threshold stay at their defaults on a phone.</li>
@@ -7592,7 +7596,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.31</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.32</a>
         </span>
     </div>
 
@@ -10705,6 +10709,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_31"></script>
+    <script src="app.js?v=v89_32"></script>
 </body>
 </html>

@@ -11928,7 +11928,7 @@ class CorrelationExplorer {
     _armPhoneCollapsibles() {
         if (window.innerWidth > 640 || this._phoneCollapseArmed) return;
         this._phoneCollapseArmed = true;
-        const run = () => this._setupPhoneCollapsibles(document);
+        const run = () => { this._setupPhoneCollapsibles(document); this._phoneifySelectLabels(document); };
         run();
         let pending = null;
         new MutationObserver(() => {
@@ -11951,6 +11951,34 @@ class CorrelationExplorer {
             clearTimeout(pending);
             pending = setTimeout(run, 60);
         }).observe(document.body, { childList: true, subtree: true });
+    }
+
+    // iOS draws a select's menu itself, in its own large font, and cuts
+    // every option at about forty characters. "Oral Cavity Squamous Cell
+    // Carcinoma (n=12)" lost its count and the disease names all ended the
+    // same way. Count first, and the standard SCC abbreviation when the name
+    // is still too long, so what shows is what tells the entries apart. The
+    // option's value is untouched; only what is read on screen changes.
+    _phoneifySelectLabels(root) {
+        if (window.innerWidth > 640) return;
+        const RE = /^(.+?) \(n=(\d[\d,]*)\)$/;
+        const scope = root || document;
+        const selects = scope.tagName === 'SELECT' ? [scope] : scope.querySelectorAll('select');
+        for (const sel of selects) {
+            const hits = [];
+            for (const o of sel.options) {
+                const m = RE.exec(o.textContent.trim());
+                if (m) hits.push({ o, name: m[1], n: m[2] });
+            }
+            // Only lists with a long name are touched, and then every counted
+            // entry in the list, so it reads alike throughout.
+            if (!hits.some(h => h.name.length >= 30)) continue;
+            const abbreviate = hits.some(h => `${h.n} · ${h.name}`.length > 36);
+            for (const h of hits) {
+                const name = abbreviate ? h.name.replace(/Squamous Cell Carcinoma/g, 'SCC') : h.name;
+                h.o.textContent = `${h.n} · ${name}`;
+            }
+        }
     }
 
     _setupPhoneCollapsibles(root, sidebarOnly = false) {
@@ -41796,6 +41824,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 : `${name} (n=${k})`;
             sel.appendChild(o);
         });
+        // Directly, not only from the phone DOM sweep: the list under this
+        // menu keeps mutating while it renders, so the sweep can wait a while.
+        this._phoneifySelectLabels(sel);
         // Keep the chosen disease even if the other filters exclude it, so the
         // list does not silently widen behind an unchanged-looking control.
         if (current && !counts.has(current)) {
@@ -42382,6 +42413,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             subSelect.appendChild(opt);
         });
         if (keepClbSub && items.some(s => s.name === keepClbSub)) subSelect.value = keepClbSub;
+        this._phoneifySelectLabels(subSelect);
     }
 
     // Options behind each filter chip. The level select still holds the value
@@ -43132,6 +43164,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (sub === subVal) opt.selected = true;
                 subSelect.appendChild(opt);
             });
+            this._phoneifySelectLabels(subSelect);
             // Kept in place and disabled rather than hidden: showing it only
             // once a tissue was chosen made the toolbar jump sideways.
             subSelect.disabled = Object.keys(subCounts).length === 0;
