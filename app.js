@@ -397,6 +397,10 @@ class CorrelationExplorer {
             try { this.openCellLineBrowser(); }
             catch (e) { console.warn('Could not open cell-line browser from #cell route:', e); }
         }
+        if (h === 'quiz') {
+            try { window.CorrelateQuiz?.open(); }
+            catch (e) { console.warn('Could not open the quiz from the #quiz route:', e); }
+        }
     }
 
     // Serialize a popout's recreate-metadata into a URL and open it in a new
@@ -40797,6 +40801,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('openAIViewBtn')?.addEventListener('click', () => {
             document.getElementById('optionsOtherMenu')?.style.setProperty('display', 'none');
             this.openAIViewDialog();
+        });
+        document.getElementById('openQuizBtn')?.addEventListener('click', () => {
+            document.getElementById('optionsOtherMenu')?.style.setProperty('display', 'none');
+            window.CorrelateQuiz?.open();
         });
         document.getElementById('showCorrelationDirect')?.addEventListener('click', () => {
             document.getElementById('inspectModal').classList.add('active');

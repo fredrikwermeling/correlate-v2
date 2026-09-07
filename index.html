@@ -6,7 +6,7 @@
     <title>Correlate V2</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Press+Start+2P&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" integrity="sha384-Hl48Kq2HifOWdXEjMsKo6qxqvRLTYqIGbvlENBmkHAxZKIGCXv43H6W1jA671RzC" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js" integrity="sha384-rNlaE5fs9dGIjmxWDALQh/RBAaGRYT5ChrzHo6tRfgrZ36iRFAiquP5g41Jsv+0j" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://unpkg.com/vis-network@10.1.1/standalone/umd/vis-network.min.js" integrity="sha384-hQiS3pHN272vQg3Yxv+h9eJDB+peejHT2uA031YxhWTxH7miNr5arcgJD2Ytx3uS" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -17,7 +17,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.2.3/dist/svg2pdf.umd.min.js" integrity="sha384-HoxAKaOOcVifYbcey45SDVl9ja1q3b04qwykef9f6tzQAkkmNNGH3lclNdTquUX9" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Roboto+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Press+Start+2P&family=Roboto+Mono:wght@400;500&display=swap');
 
         /* Hide native number input spinners — use custom −/+ buttons */
         input[type=number]::-webkit-inner-spin-button,
@@ -2827,6 +2827,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.36 (2026-09-07)</strong></p>
+                <ul>
+                    <li><b>New: Correlate Quest, an 8-bit quiz built from the app's data.</b> Options, Other, Quiz (or the #quiz link). Pick all cancers or one tissue and 10 or 20 questions. Twelve question types drawn live from the panel: who-am-I from a cell line's summary, tissue of origin, strongest dependency, higher expression, the sign of a correlation from a pixel scatter, which tissue carries a mutation most often, panel counts, hallmark genes, pathway membership, the most effective PRISM compound, fusion carriers and mutation burden. Every answer is followed by the fact behind it, a chart where there is one, and a link into the app. Three lives, a 20-second timer, points for speed and streaks, sound off by default. High scores live on this device only, as three initials and a score; nothing is sent anywhere.</li>
+                </ul>
                 <p><strong>v.89.35 (2026-09-07)</strong></p>
                 <ul>
                     <li><b>Wiki text, second pass over every branch.</b> The passages a given cell line may or may not show were reviewed as well: the pathway read-outs ("BCR-ABL-addicted by gene-effect" is now "Depends on BCR-ABL in the CRISPR screen", "mixed signal" is "mixed picture"), the sex check, the breast receptor note, the fusion and genome tooltips, the mutation-burden cards and the summary sentence at the top. Same rule throughout: plain words, and nothing that only makes sense to whoever built the page.</li>
@@ -7608,7 +7612,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.35</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.36</a>
         </span>
     </div>
 
@@ -7636,6 +7640,7 @@
                                 <button class="options-menu-item" id="showGeneEffectDirect">Gene Effect</button>
                                 <button class="options-menu-item" id="showCorrelationDirect">Correlation</button>
                                 <button class="options-menu-item" id="showHeatmapDirect" title="Show a gene set across the cell lines currently listed, as a heatmap">Gene set heatmap</button>
+                                <button class="options-menu-item" id="openQuizBtn" title="A quick quiz built from the data in this app">Quiz</button>
                                 <button class="options-menu-item" id="customAIExportBtn" title="Build a file for a language model with exactly the data you choose, including layers the standard export leaves out. An assistant reading a standard export can write the settings for you.">Custom export for AI</button>
                                 <button class="options-menu-item" id="openAIViewBtn" title="An assistant that has read an export can describe a plot to look at. Paste what it wrote and the app opens that view with those settings, instead of you rebuilding it by hand.">Open a view from AI</button>
                                 <label class="options-menu-item" for="restoreFromExportInput" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">Open saved figure</label>
@@ -10721,6 +10726,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_35"></script>
+    <script src="app.js?v=v89_36"></script>
+    <script src="quiz.js?v=v89_36"></script>
 </body>
 </html>
