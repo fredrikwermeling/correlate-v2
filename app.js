@@ -401,6 +401,10 @@ class CorrelationExplorer {
             try { window.CorrelateQuiz?.open(); }
             catch (e) { console.warn('Could not open the quiz from the #quiz route:', e); }
         }
+        if (h === 'tour') {
+            try { window.CorrelateQuiz?.tour(); }
+            catch (e) { console.warn('Could not start the tour from the #tour route:', e); }
+        }
     }
 
     // Serialize a popout's recreate-metadata into a URL and open it in a new
