@@ -45779,7 +45779,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                         <button onclick="app._downloadGenomeMetricsCSV('${cellLineId}')" style="font-size:10px; padding:3px 8px; background:#fff; color:#4c782e; border:1px solid #d1d5db; border-radius:4px; cursor:pointer;" title="Download cohort values for Ploidy, WGD, Aneuploidy, CIN as CSV (with this line flagged)">⤓ CSV</button>
                     </div>
                     <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">Distribution of each metric across all cell lines with the value available. The dashed red line marks <b>this</b> cell line's position; for WGD (binary) the red bar is this line's category. Hover the Plotly toolbar (top-right of each plot) for PNG / SVG download per panel.</p>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="wiki-hist-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                         <div id="clbWikiHistPloidy" style="height:170px;"></div>
                         <div id="clbWikiHistAneup" style="height:170px;"></div>
                         <div id="clbWikiHistCin" style="height:170px;"></div>
@@ -45816,7 +45816,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 <div style="margin-top:16px; padding-top:12px; border-top:1px dashed #e5e7eb;">
                     <div style="font-weight:600; color:#374151; font-size:12px; margin-bottom:6px;">Where this line sits among the 669 measured lines</div>
                     <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">Distribution of each measure across the measured lines; the dashed red line marks this cell line. The CPM axes are on a log2 scale because the signal is strongly skewed.</p>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="wiki-hist-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                         <div id="clbWikiHistRetroTotal" style="height:170px;"></div>
                         <div id="clbWikiHistRetroL1" style="height:170px;"></div>
                         <div id="clbWikiHistRetroHervk" style="height:170px;"></div>
@@ -46400,7 +46400,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     const survivalLabel = c.v < 0.3 ? 'kills most cells' : c.v < 0.6 ? 'kills many cells' : c.v < 0.85 ? 'modest killing' : 'little effect';
                     const sc = c._sensCounts;
                     const cohortStr = sc
-                        ? `<div style="padding-left:170px; font-size:10px; color:#6b7280;">PRISM cohort: <b style="color:#4c782e;">${sc.very}</b> very-sensitive (AUC&nbsp;&lt;&nbsp;0.3) · <b style="color:#a16207;">${sc.part}</b> partly-sensitive (AUC&nbsp;0.3&ndash;0.6) of ${sc.total} tested.</div>`
+                        ? `<div class="wiki-drug-indent" style="padding-left:170px; font-size:10px; color:#6b7280;">PRISM cohort: <b style="color:#4c782e;">${sc.very}</b> very-sensitive (AUC&nbsp;&lt;&nbsp;0.3) · <b style="color:#a16207;">${sc.part}</b> partly-sensitive (AUC&nbsp;0.3&ndash;0.6) of ${sc.total} tested.</div>`
                         : '';
                     // c.indication is the clinical disease(s) the drug is
                     // approved for; "Used in" makes the bare labels (CRC,
@@ -46411,11 +46411,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     const slug = slugify(c.name);
                     drugHistTargets.push({ slug, name: c.name, currentVal: c.v });
                     const histId = `clbWikiHistDrug_${slug}`;
-                    return `<li style="padding:3px 0;"><span style="display:inline-block; min-width:170px; font-weight:600; color:${color};">${c.name}</span>
+                    return `<li style="padding:3px 0;"><span class="wiki-drug-name" style="display:inline-block; min-width:170px; font-weight:600; color:${color};">${c.name}</span>
                         <span style="font-size:10px; color:#6b7280;">${c.target} &middot; ${c.moa}</span><br>
-                        <span style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}), <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span></span>
+                        <span class="wiki-drug-indent" style="padding-left:170px; font-size:10px;">Viability score <b title="AUC = area under the dose-response curve. 0 = all cells killed across the tested dose range; 1 = no killing at any dose.">${c.v.toFixed(2)}</b> (${survivalLabel}), <span style="background:${bg}; color:${color}; padding:1px 5px; border-radius:3px;"><b>${zStr}σ</b> ${word}</span></span>
                         ${cohortStr}
-                        <div id="${histId}" style="margin: 4px 0 0 170px; height: 84px;"></div></li>`;
+                        <div id="${histId}" class="wiki-drug-indent" style="margin: 4px 0 0 170px; height: 84px;"></div></li>`;
                 };
 
                 // No therapy matching here on purpose: this is a cell-line

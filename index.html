@@ -2188,6 +2188,14 @@
         .resize-bottom { left: 0; right: 0; bottom: -3px; height: 10px; cursor: ns-resize; }
         .resize-bottom::after { left: 50%; transform: translateX(-50%); height: 4px; width: 44px; top: 3px; }
         @media (max-width: 640px) { .resize-grip { display: none; } }
+        /* Wiki on a phone: the drug rows indent their text and histogram by a
+           desktop 170px, which left a third of the screen for both and cut the
+           histogram; the two-up histogram grids stack for the same reason. */
+        @media (max-width: 640px) {
+            #clbWikiBody .wiki-drug-indent { padding-left: 0 !important; margin-left: 0 !important; }
+            #clbWikiBody .wiki-drug-name { min-width: 0 !important; }
+            #clbWikiBody .wiki-hist-grid { grid-template-columns: 1fr !important; }
+        }
 
         @media (max-width: 640px) {
             /* No room to put anything beside anything on a phone. */
@@ -2811,6 +2819,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.27 (2026-09-07)</strong></p>
+                <ul>
+                    <li><b>Phone: the wiki's drug histograms are no longer cut.</b> Each compound row indented its text and histogram by a desktop-sized 170px, which left a third of the screen for both. On a phone the rows now run full width, and the genome and retroelement histogram grids stack one per row.</li>
+                </ul>
                 <p><strong>v.89.26 (2026-09-07)</strong></p>
                 <ul>
                     <li><b>Phone: the "nothing to show" note from the alteration grid buttons fits the screen.</b> It was a fixed 420px box pinned to the right edge, so its left half hung off a phone and the text was cut.</li>
@@ -7556,7 +7568,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.26</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.27</a>
         </span>
     </div>
 
@@ -10669,6 +10681,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_26"></script>
+    <script src="app.js?v=v89_27"></script>
 </body>
 </html>
