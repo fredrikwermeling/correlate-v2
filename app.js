@@ -34446,7 +34446,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const bodyText = [s2, s3, s4].filter(Boolean).join(' ');
         return warn + (bodyText
             ? `${s1} ${bodyText}`
-            : `${s1} <span style="color:#6b7280;">No driver fusion, canonical oncogene hotspot or focal copy-number change was found in the integrated DepMap layers. That is a statement about these layers, not proof the cell line carries no driver.</span>`);
+            : `${s1} <span style="color:#6b7280;">No driver fusion, oncogene hotspot or focal copy-number change was found in the curated data. That does not prove the cell line has no driver.</span>`);
     }
 
     // Thin wrapper: same text as the wiki, plus the ID / RRID footer the
@@ -44569,7 +44569,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 lookFor: ['TP53', 'ATM', 'NOTCH1', 'SF3B1']
             },
             'Burkitt Lymphoma': {
-                expected: 'Defining translocation: MYC-IGH t(8;14), or variants t(2;8) IGK-MYC / t(8;22) MYC-IGL. Often germline-like TP53, ID3, TCF3, CCND3 mutations. EBV+ in endemic form. Should NOT have BCL2/BCL6 rearrangements (that would be "high-grade B-cell lymphoma with MYC+BCL2/BCL6").',
+                expected: 'Defining translocation: MYC-IGH t(8;14), or variants t(2;8) IGK-MYC / t(8;22) MYC-IGL. Often TP53, ID3, TCF3 and CCND3 mutations. EBV+ in endemic form. Should NOT have BCL2/BCL6 rearrangements (that would be "high-grade B-cell lymphoma with MYC+BCL2/BCL6").',
                 lookFor: ['MYC', 'TP53', 'ID3', 'TCF3', 'CCND3']
             },
             'Diffuse Large B-Cell Lymphoma, NOS': {
@@ -45084,7 +45084,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 // the reader is better served knowing they part company here.
                 const conflictHtml = (_lehName && _measured && _measured !== 'triple-negative')
                     ? `<div style="margin:0 0 10px; padding:7px 10px; background:#fffbeb; border:1px solid #fcd34d; border-left:3px solid #d97706; border-radius:5px; font-size:11px; line-height:1.5; color:#92400e;">
-                        <b>The published call and this line's own data disagree.</b> The Lehmann panel classifies it as triple-negative, subtype <b>${this.esc(_lehName)}</b>, and that is the call shown above. Its own measurements read <b>${this.esc(_measured)}</b> instead${_measured === 'HER2+' ? ', from a focal ERBB2 amplification' : ', from the transcript levels below'}. Neither is IHC, so treat this line as unresolved rather than as either call.
+                        <b>The published call and this line's own data disagree.</b> The Lehmann panel classifies it as triple-negative, subtype <b>${this.esc(_lehName)}</b>, and that is the call shown above. Its own measurements read <b>${this.esc(_measured)}</b> instead${_measured === 'HER2+' ? ', from a focal ERBB2 amplification' : ', from the transcript levels below'}. Neither is the clinical test, so treat this line's receptor status as unresolved.
                        </div>`
                     : '';
                 const targets = [
@@ -45103,7 +45103,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     </div>`;
                 }).join('');
                 receptorHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines in the cohort; the <span style="color:#dc2626;">red line</span> marks this cell line. A published classification, where one exists, is the leading call; otherwise the measurement stands in, and where the two disagree both are shown. The measured rule: <b>HER2+</b> on focal <i>ERBB2</i> amplification, otherwise <b>HR+</b> at ESR1 &ge; 3.0 or PGR &ge; 1.0 log&#8322;-TPM, otherwise <b>triple-negative</b>. The ER and PR cutoffs are fixed levels, placed in the gap between the expressing and non-expressing groups visible in these histograms. <b>None of this is the clinical test.</b> Clinically, ER and PR are scored by immunohistochemistry on protein, and HER2 by immunohistochemistry with in-situ hybridization (FISH) counting <i>ERBB2</i> gene copies where the staining is equivocal. Transcript level and copy number stand in for those, and a cell line can read differently from the tumor it came from.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines; the <span style="color:#dc2626;">red line</span> marks this cell line. A published classification, where one exists, is the leading call; otherwise the measurement stands in, and where the two disagree both are shown. The rule used here: <b>HER2+</b> on focal <i>ERBB2</i> amplification, otherwise <b>HR+</b> at ESR1 &ge; 3.0 or PGR &ge; 1.0 log&#8322;-TPM, otherwise <b>triple-negative</b>. The ER and PR cutoffs are fixed levels, placed in the gap between the expressing and non-expressing groups visible in these histograms. <b>None of this is the clinical test.</b> Clinically, ER and PR are scored by immunohistochemistry on protein, and HER2 by immunohistochemistry with in-situ hybridization (FISH) counting <i>ERBB2</i> gene copies where the staining is equivocal. Transcript level and copy number stand in for those, and a cell line can read differently from the tumor it came from.</p>
                     ${conflictHtml}
                     <div style="margin:0 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <span>Expression-surrogate call: <span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${callColor}22; color:${callColor}; font-weight:600; font-size:11px;">${call}</span>${callBasis ? `<span style="color:#6b7280; font-size:10px; margin-left:6px;">${callBasis}</span>` : ''}</span>
@@ -45157,11 +45157,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         } else if (sexInfo.annotation === 'Male' && sexInfo.byExpression === 'unknown') {
             sexNarrative = this._hasWikiExpression(cellLineId)
                 ? 'Annotated male, but the Y-chromosome marker genes are not clearly expressed here. The usual explanation is <b>loss of the Y chromosome</b>, common in cancer and especially in older male donors, though low expression alone does not prove the chromosome is gone.'
-                : 'Annotated male. This cell line has no expression data, so the expression-based check could not be run, this is missing information rather than a finding.';
+                : 'Annotated male. This cell line has no expression data, so the expression check could not be run and nothing can be said either way.';
         } else if (sexInfo.annotation === 'Female' && sexInfo.byExpression === 'unknown') {
             sexNarrative = this._hasWikiExpression(cellLineId)
                 ? 'Annotated female, and neither the Y markers nor XIST reach the expression threshold here. <b>XIST silencing</b> is well documented in many cancers (breast, blood, some epithelial) and is thought to re-activate genes on the silent X chromosome, but the call is not certain from expression alone.'
-                : 'Annotated female. This cell line has no expression data, so the expression-based check could not be run, this is missing information rather than a finding.';
+                : 'Annotated female. This cell line has no expression data, so the expression check could not be run and nothing can be said either way.';
         } else if (sexInfo.annotation !== 'Unknown' && sexInfo.annotation.toLowerCase() !== sexInfo.byExpression) {
             sexNarrative = `<span style="color:#b45309;"><b>Disagreement.</b> The annotation does not match what the cell-line expression pattern suggests. This can happen with cell-line mix-ups or contamination, re-authentication (see Authentication section below) is recommended.</span>`;
         } else if (sexInfo.annotation === 'Unknown' && sexInfo.byExpression !== 'unknown') {
@@ -45230,7 +45230,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             color: '#6b7280'
         });
         if (damagingCount > 1000) flagCards.push({
-            title: 'Very high mutation burden (passenger noise warning)',
+            title: 'Very high mutation burden',
             body: `${damagingCount.toLocaleString()} damaging mutations, an exceptionally high count. This usually means the cell has lost part of its DNA-repair machinery (mismatch repair, polymerase proofreading, AID/APOBEC activity) or carries a heavy UV or smoking signature. With this many mutations, most individual damaging mutations are passengers rather than drivers, and the driver flags below (HRD, TP53, CDKN2A and others) should be read with that in mind.`,
             color: '#dc2626'
         });
@@ -45425,7 +45425,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     ? `BRAF knockout <b>strongly reduces growth</b> (${fmtGE(brafGE)}), cell line is <b>BRAF-addicted</b>.`
                     : brafGE < -0.2
                         ? `BRAF knockout <b>moderately reduces growth</b> (${fmtGE(brafGE)}), partial BRAF dependency.`
-                        : `BRAF knockout has limited effect (${fmtGE(brafGE)}), bypass mechanism may be present.`);
+                        : `BRAF knockout has limited effect (${fmtGE(brafGE)}), so another route may be driving growth.`);
             }
             if (mekGE !== null && mekGE < -0.5) {
                 lines.push(`MEK1 (MAP2K1) knockout <b>strongly reduces growth</b> (${fmtGE(mekGE)}), MAPK signaling is essential here.`);
@@ -45443,7 +45443,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 synthesis = 'No evidence of RAS/MAPK pathway activation.';
                 color = '#6b7280';
             } else {
-                synthesis = 'Mixed signal, mutation present but limited functional dependency.';
+                synthesis = 'Mixed picture: the mutation is present, but the cell does not depend much on it.';
                 color = '#d97706';
             }
             pathwayStatuses.push({ name: 'RAS / MAPK signaling', lines, synthesis, color });
@@ -45473,7 +45473,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 } else if (pi3kGE < -0.2) {
                     lines.push(`PIK3CA knockout <b>moderately reduces growth</b> (${fmtGE(pi3kGE)}), partial PI3K dependency, not a strong addiction.`);
                 } else {
-                    lines.push(`PIK3CA knockout is neutral (${fmtGE(pi3kGE)}), PI3K not the limiting node here.`);
+                    lines.push(`PIK3CA knockout is neutral (${fmtGE(pi3kGE)}), so PI3K is not what limits growth here.`);
                 }
             }
             if (aktcombGE !== null) {
@@ -45485,7 +45485,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }
             let synthesis, color;
             if ((pikMut || ptenLoss) && (pi3kGE !== null && pi3kGE < -0.5 || aktcombGE !== null && aktcombGE < -0.5)) {
-                synthesis = '<b>Pathway active with strong functional dependency</b> (driver lesion present and the cell depends on PI3K/AKT by gene-effect).';
+                synthesis = '<b>Pathway active with strong functional dependency</b> (a driver mutation is present and the cell depends on PI3K/AKT in the CRISPR screen).';
                 color = '#059669';
             } else if ((pikMut || ptenLoss) && (pi3kGE !== null && pi3kGE < -0.2 || aktcombGE !== null && aktcombGE < -0.2)) {
                 synthesis = '<b>Pathway active with partial dependency.</b>';
@@ -45494,7 +45494,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 synthesis = 'No evidence of PI3K/AKT pathway dependency.';
                 color = '#6b7280';
             } else {
-                synthesis = 'Mixed signal between mutation status and dependency.';
+                synthesis = 'Mixed picture: mutation status and dependency do not agree.';
                 color = '#d97706';
             }
             pathwayStatuses.push({ name: 'PI3K / AKT survival pathway', lines, synthesis, color });
@@ -45523,14 +45523,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 pathwayStatuses.push({
                     name: 'BCR-ABL fusion',
                     lines,
-                    synthesis: ablGE !== null && ablGE < -0.5 ? '<b>BCR-ABL-addicted</b> by gene-effect.' : 'Fusion present but functional dependency limited.',
+                    synthesis: ablGE !== null && ablGE < -0.5 ? '<b>Depends on BCR-ABL</b> in the CRISPR screen.' : 'Fusion present, but the cell does not depend much on it.',
                     color: ablGE !== null && ablGE < -0.5 ? '#059669' : '#d97706'
                 });
             } else if (rawPartner) {
                 pathwayStatuses.push({
                     name: 'BCR / ABL1 rearrangement',
                     lines: ['<b>BCR or ABL1 appears in the raw fusion-caller output</b>',
-                            'This is not a BCR-ABL1 call. In rearranged genomes most raw fusion calls are passenger events, and the curated BCR-ABL1 check did not validate this one. See the Fusions section for the raw partners.'],
+                            'Not counted as a BCR-ABL1 fusion: the check that validates driver fusions did not confirm it, and in rearranged genomes most raw fusion calls are passengers. The raw partners are listed in the Fusions section.'],
                     synthesis: 'Not treated as a driver fusion.',
                     color: '#6b7280'
                 });
@@ -45551,10 +45551,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 }
                 let synthesis, color;
                 if (egfrMut && egfrGE !== null && egfrGE < -0.5) {
-                    synthesis = '<b>EGFR-addicted</b> (mutated and strongly depended on by gene-effect).';
+                    synthesis = '<b>Depends on EGFR</b> (mutated, and strongly required in the CRISPR screen).';
                     color = '#059669';
                 } else if (egfrMut) {
-                    synthesis = 'EGFR mutation present but cell may have escaped dependency.';
+                    synthesis = 'EGFR is mutated, but the cell no longer seems to depend on it.';
                     color = '#d97706';
                 } else {
                     synthesis = 'EGFR-dependent without an obvious activating mutation, possible amplification, autocrine ligand loop, or wild-type-driven dependency.';
@@ -45843,7 +45843,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             ? sortedClinicalFusions.map(c => {
                 const color = tierColor[c.tier] || '#6b7280';
                 const atypical = c.atypicalLineage
-                    ? ` <span style="color:#b45309; font-size:10px;" title="Atypical lineage for this fusion, kept by orthogonal evidence (partner expression and/or dependency)">⚠ atypical</span>`
+                    ? ` <span style="color:#b45309; font-size:10px;" title="Unusual tissue for this fusion; kept because the partner gene's expression or dependency supports it">⚠ atypical</span>`
                     : '';
                 return `<div style="margin:3px 0;"><b>${c.fusion}</b>`
                     + ` <span style="color:${color}; border:1px solid ${color}; border-radius:8px; padding:0 5px; font-size:10px; margin-left:4px;">${tierLabel[c.tier] || c.tier}</span>`
@@ -45905,7 +45905,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 // (e.g. BRCAness signatures, often co-occurring with WGD).
                 const desc = gs.LoHFraction < 0.15 ? 'low' :
                              gs.LoHFraction < 0.3 ? 'medium' : 'high';
-                return `${gs.LoHFraction.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; fraction of the genome where one parental copy has been lost; high tier &ge; 0.3, often seen in WGD-positive or HRD lines)</span>`;
+                return `${gs.LoHFraction.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; fraction of the genome where one parental copy has been lost; high tier is 0.3 and up, often seen in whole-genome-doubled lines and in lines with defective recombination repair)</span>`;
             })() : '';
             // Whether PureCN produced any structural call for this line. Some
             // lines have only an MSI score (PureCN ploidy / WGD / CIN / LoH /
@@ -46038,7 +46038,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const fusionAltRows = clinicalFusionCalls.map(c => {
             const partners = c.fusion.split(/--?/);
             const isTyp = partners.some(g => lookForSet.has(g));
-            const atyp = c.atypicalLineage ? ` <span style="color:#a16207; font-size:10px;" title="Atypical tissue for this fusion (kept on orthogonal evidence)">⚠ atypical lineage</span>` : '';
+            const atyp = c.atypicalLineage ? ` <span style="color:#a16207; font-size:10px;" title="Unusual tissue for this fusion; kept because the partner gene's expression or dependency supports it">⚠ atypical lineage</span>` : '';
             return `<div style="margin:3px 0; font-size:12px;">`
                 + `<span style="font-weight:700; color:#1e3a8a;">${c.fusion}</span> `
                 + `<span style="color:#4b5563;">driver fusion <span style="font-size:9px; color:#9ca3af;">[${c.tier}]</span></span>${typTag(isTyp)}${atyp}</div>`;
@@ -46344,7 +46344,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     .slice(0, 8);
                 const topUniqueHtml = topUniqueExpr.length > 0
                     ? topUniqueExpr.map(g => renderExprRow(g, { tagLineage: true })).join(', ')
-                    : '<em style="color:#9ca3af;">No genes with sufficient cohort variance to rank.</em>';
+                    : '<em style="color:#9ca3af;">No genes vary enough across cell lines to rank.</em>';
                 // Uniquely LOW. A gene silenced here but expressed across the
                 // cohort is as informative as one over-expressed: lost lineage
                 // markers, deleted tumor suppressors, immune-evasion losses.
@@ -46397,7 +46397,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const inactiveSig = sigResults.filter(s => s.meanZ < -0.75);
                 const inactiveSigHtml = inactiveSig.length > 0
                     ? `<div style="margin-top:6px; padding:6px 10px; background:#f9fafb; border-left:3px solid #6b7280; font-size:11px;">`
-                        + `<b style="color:#374151;">Gene programs expressed below average</b> <span style="color:#9ca3af; font-size:10px;">(same measure, mean panel z &lt; &minus;0.75: the program's mRNA is coordinately lower than in the average cell line)</span>`
+                        + `<b style="color:#374151;">Gene programs expressed below average</b> <span style="color:#9ca3af; font-size:10px;">(same measure, mean z below &minus;0.75: the program's genes are consistently lower than in the average line)</span>`
                         + inactiveSig.map(s => `<div style="margin:3px 0 3px 4px;">`
                             + `<span style="font-weight:600; color:#4b5563;" title="${s.info.note.replace(/"/g, '&quot;')}">${s.name}</span> `
                             + `<span style="color:#9ca3af; font-size:10px;">, mean z = ${fmtZ(s.meanZ)} across ${s.n}/${s.total} panel genes</span>`

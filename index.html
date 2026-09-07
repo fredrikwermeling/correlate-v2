@@ -2827,6 +2827,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.35 (2026-09-07)</strong></p>
+                <ul>
+                    <li><b>Wiki text, second pass over every branch.</b> The passages a given cell line may or may not show were reviewed as well: the pathway read-outs ("BCR-ABL-addicted by gene-effect" is now "Depends on BCR-ABL in the CRISPR screen", "mixed signal" is "mixed picture"), the sex check, the breast receptor note, the fusion and genome tooltips, the mutation-burden cards and the summary sentence at the top. Same rule throughout: plain words, and nothing that only makes sense to whoever built the page.</li>
+                </ul>
                 <p><strong>v.89.34 (2026-09-07)</strong></p>
                 <ul>
                     <li><b>Wiki text rewritten for any reader.</b> About thirty passages across the key alterations, pathways, fusions, genome, retroelement, CRISPR, expression and drug sections now use plain words and shorter sentences: "subverted" is "altered", "passenger noise" is "passengers", and notes that read like internal remarks ("these layers are deliberately narrow", "NaN-only across the matrix", "this app") are gone. The amber warning about a high fusion count, which applied to most cell lines, is now a neutral note explaining that such lists are normal. The Source footers say the same things in plainer terms.</li>
@@ -7604,7 +7608,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.34</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.35</a>
         </span>
     </div>
 
@@ -10717,6 +10721,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_34"></script>
+    <script src="app.js?v=v89_35"></script>
 </body>
 </html>
