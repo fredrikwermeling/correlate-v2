@@ -397,13 +397,9 @@ class CorrelationExplorer {
             try { this.openCellLineBrowser(); }
             catch (e) { console.warn('Could not open cell-line browser from #cell route:', e); }
         }
-        if (h === 'quiz') {
-            try { window.CorrelateQuiz?.open(); }
-            catch (e) { console.warn('Could not open the quiz from the #quiz route:', e); }
-        }
         if (h === 'tour') {
-            try { window.CorrelateQuiz?.tour(); }
-            catch (e) { console.warn('Could not start the tour from the #tour route:', e); }
+            try { window.CorrelateTour?.open(); }
+            catch (e) { console.warn('Could not open the tour from the #tour route:', e); }
         }
     }
 
@@ -40806,9 +40802,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('optionsOtherMenu')?.style.setProperty('display', 'none');
             this.openAIViewDialog();
         });
-        document.getElementById('openQuizBtn')?.addEventListener('click', () => {
+        document.getElementById('openTourBtn')?.addEventListener('click', () => {
             document.getElementById('optionsOtherMenu')?.style.setProperty('display', 'none');
-            window.CorrelateQuiz?.open();
+            window.CorrelateTour?.open();
+        });
+        document.getElementById('showTour')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.CorrelateTour?.open();
         });
         document.getElementById('showCorrelationDirect')?.addEventListener('click', () => {
             document.getElementById('inspectModal').classList.add('active');

@@ -6,7 +6,7 @@
     <title>Correlate V2</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Press+Start+2P&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js" integrity="sha384-Hl48Kq2HifOWdXEjMsKo6qxqvRLTYqIGbvlENBmkHAxZKIGCXv43H6W1jA671RzC" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js" integrity="sha384-rNlaE5fs9dGIjmxWDALQh/RBAaGRYT5ChrzHo6tRfgrZ36iRFAiquP5g41Jsv+0j" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://unpkg.com/vis-network@10.1.1/standalone/umd/vis-network.min.js" integrity="sha384-hQiS3pHN272vQg3Yxv+h9eJDB+peejHT2uA031YxhWTxH7miNr5arcgJD2Ytx3uS" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -17,7 +17,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.2.3/dist/svg2pdf.umd.min.js" integrity="sha384-HoxAKaOOcVifYbcey45SDVl9ja1q3b04qwykef9f6tzQAkkmNNGH3lclNdTquUX9" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Press+Start+2P&family=Roboto+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Roboto+Mono:wght@400;500&display=swap');
 
         /* Hide native number input spinners — use custom −/+ buttons */
         input[type=number]::-webkit-inner-spin-button,
@@ -2827,6 +2827,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.38 (2026-09-07)</strong></p>
+                <ul>
+                    <li><b>The quiz is replaced by a tour.</b> Tour, next to How it works, or Options, Other, Tour of the app, opens a short guided walk in the app's own style: twelve pages, one example per feature, each with a real chart drawn from the data (SOX10 across tissues, TP53 against MDM2, a scatter colored by BRAF mutation, the p53 pathway as a gene set, a cell line page, expression, the heatmap, drug response) and a button that opens that view for real. Back and Next, or the arrow keys; the tour reopens on the page it was left at. The game, its pixel look and its font are gone.</li>
+                </ul>
                 <p><strong>v.89.37 (2026-09-07)</strong></p>
                 <ul>
                     <li><b>Correlate Quest, round two: charts to read, and a guided tour.</b> Half of every game is now a real chart in the app&rsquo;s own style, drawn with Plotly inside the question: a correlation scatter with its regression line, the same scatter coloured by a hotspot mutation, gene effect and expression by tissue as box plots, a mutation-status strip plot, a wiki-style histogram with the cell line marked in red, and hotspot frequency bars. Each one links straight to the equivalent view in the app. Around it sits a hand-written bank of 137 questions on how to read gene effect, the big cancer genes, fusions and chromosomes, drugs and their targets, expression and copy number, statistics, the famous cell lines and how this app works, and the remaining data questions now only name genes, cell lines, fusions and drugs a reader would recognise. Repeat players get questions the last few games did not use.</li>
@@ -7608,6 +7612,7 @@
         <span class="nav-links">
             <span class="nav-side nav-side-l">
                 <a href="#" id="showInfoGraphic">How it works</a>
+                <a href="#" id="showTour" title="A short guided tour of the app, one example per feature">Tour</a>
                 <a href="#" id="showReferenceData">Reference Data</a>
             </span>
             <a href="https://greenlisted.cmm.se" target="_blank" rel="noopener noreferrer">Green Listed</a>
@@ -7617,7 +7622,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.37</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.38</a>
         </span>
     </div>
 
@@ -7645,7 +7650,7 @@
                                 <button class="options-menu-item" id="showGeneEffectDirect">Gene Effect</button>
                                 <button class="options-menu-item" id="showCorrelationDirect">Correlation</button>
                                 <button class="options-menu-item" id="showHeatmapDirect" title="Show a gene set across the cell lines currently listed, as a heatmap">Gene set heatmap</button>
-                                <button class="options-menu-item" id="openQuizBtn" title="A quick quiz built from the data in this app">Quiz</button>
+                                <button class="options-menu-item" id="openTourBtn" title="A short guided tour: one example per feature, with a button that opens each view">Tour of the app</button>
                                 <button class="options-menu-item" id="customAIExportBtn" title="Build a file for a language model with exactly the data you choose, including layers the standard export leaves out. An assistant reading a standard export can write the settings for you.">Custom export for AI</button>
                                 <button class="options-menu-item" id="openAIViewBtn" title="An assistant that has read an export can describe a plot to look at. Paste what it wrote and the app opens that view with those settings, instead of you rebuilding it by hand.">Open a view from AI</button>
                                 <label class="options-menu-item" for="restoreFromExportInput" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">Open saved figure</label>
@@ -10731,7 +10736,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_37"></script>
-    <script src="quiz.js?v=v89_37"></script>
+    <script src="app.js?v=v89_38"></script>
+    <script src="tour.js?v=v89_38"></script>
 </body>
 </html>
