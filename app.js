@@ -57741,6 +57741,18 @@ ${clone.innerHTML}
             }
         }
 
+        // Heading over the grid: what is drawn and which cell lines, the
+        // same words the exported picture carries.
+        {
+            const head = document.getElementById('hmHeading');
+            const cap = this._hmCaptionLines();
+            if (head && cap) {
+                document.getElementById('hmHeadingTitle').textContent = cap.line1 || cap.autoLine1;
+                document.getElementById('hmHeadingCohort').textContent = this._hmCohortPhrase(nCL);
+                head.style.display = 'block';
+            }
+        }
+
         // Hint line: what's drawn, plus anything that didn't resolve.
         const hint = document.getElementById('hmHint');
         if (hint) {
@@ -58433,6 +58445,8 @@ ${clone.innerHTML}
         if (el) el.style.display = 'none';
     }
     _hmClearCanvases() {
+        const head = document.getElementById('hmHeading');
+        if (head) head.style.display = 'none';
         ['hmLabelCanvas', 'hmGridCanvas', 'hmLegendCanvas', 'hmGroupLegendCanvas', 'hmAnn2LegendCanvas', 'hmDendroTopCanvas'].forEach(id => {
             const cv = document.getElementById(id);
             // Attributes AND CSS size: sizeCanvas sets both, and a leftover

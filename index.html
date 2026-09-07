@@ -2811,6 +2811,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.25 (2026-09-07)</strong></p>
+                <ul>
+                    <li><b>The heatmap carries a heading.</b> Above the grid it now names the gene set and measure, and under that which cell lines are shown: the cohort, the lineage, subtype or disease it was narrowed to, and any mutation, fusion or copy-number filter. The same words the exported picture already carried. On a phone, where the controls sit below the picture, this is the only place the filters were readable at a glance.</li>
+                </ul>
                 <p><strong>v.89.24 (2026-09-05)</strong></p>
                 <ul>
                     <li><b>Phone: the x on a labelled cell line can be pressed again.</b> The tap was reaching the hover engine first and never becoming a press. The chips now act on the tap itself. The mean/median line under the heading also breaks in two on a phone rather than running off the edge.</li>
@@ -7548,7 +7552,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.24</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.25</a>
         </span>
     </div>
 
@@ -9531,6 +9535,13 @@
                      hmScrollHint just below the grid. -->
                 <div id="hmSilencedNote" style="display:none; font-size:10px; color:#9ca3af; margin-bottom:4px;"></div>
                 <div id="hmPlotBlock">
+                    <!-- The same title and cohort sentence the export carries, on
+                         screen: the grid says nothing about which cell lines it
+                         covers, and on a phone the controls are below the fold. -->
+                    <div id="hmHeading" style="display:none; margin-bottom:8px; line-height:1.35;">
+                        <div id="hmHeadingTitle" style="font-size:13px; font-weight:700; color:#374151;"></div>
+                        <div id="hmHeadingCohort" style="font-size:11px; color:#6b7280;"></div>
+                    </div>
                     <div style="display:flex; align-items:flex-start; width:100%;">
                         <canvas id="hmLabelCanvas" style="flex:none; cursor:default;"></canvas>
                         <div id="hmGridScroll" style="flex:1 1 auto; min-width:0; overflow-x:auto; overflow-y:hidden;"><canvas id="hmDendroTopCanvas" style="display:block; cursor:default;"></canvas><canvas id="hmGridCanvas" style="display:block; cursor:default;"></canvas></div>
@@ -10654,6 +10665,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_24"></script>
+    <script src="app.js?v=v89_25"></script>
 </body>
 </html>
