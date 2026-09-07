@@ -10946,6 +10946,10 @@ class CorrelationExplorer {
                 `${tick1Label} (n=${data.mut1.length})`,
                 `${tick2Label} (n=${data.mut2.length})`
             ];
+        // The popout is shown BEFORE anything is measured: hidden, the plot
+        // div reads a width of 0 and the fallback (600px) let a phone's
+        // title run off the right edge unwrapped.
+        document.getElementById('geneEffectModal').style.display = 'flex';
         // Size the chart container to its width ratio BEFORE measuring, so the
         // y-axis label is positioned against the real plot width (it was computed
         // against a stale width, which pushed the rotated label off-screen on the
@@ -10961,7 +10965,11 @@ class CorrelationExplorer {
         // text within the plot area plus a ~right-margin gap, so it never touches
         // the SVG edge (the absolute clip ceiling would be + right-margin more).
         const geRightMargin = 30;
-        const geContainerW = document.getElementById('geneEffectPlot')?.clientWidth || 600;
+        // On a phone the popout is measured before its stacked layout has
+        // settled and reads wider than the screen, which centred the title
+        // off to the right and let it run past the edge: cap at the viewport.
+        const _geMeasuredW = document.getElementById('geneEffectPlot')?.clientWidth || 600;
+        const geContainerW = _gePhone ? Math.min(_geMeasuredW, window.innerWidth - 20) : _geMeasuredW;
         // On phones the wide y-axis left margin squeezed the heading into many
         // wrapped rows. Wrap to (almost) the full container width instead, and
         // recenter the title on the whole container so the wider text doesn't
@@ -11061,8 +11069,6 @@ class CorrelationExplorer {
             height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
-        // Show modal
-        document.getElementById('geneEffectModal').style.display = 'flex';
         document.getElementById('geneEffectTitle').textContent = `${gene} ${useExpr ? 'mRNA expression' : 'Gene Effect'} by ${hotspotGene} ${L.noun}`;
 
         // Populate tissue filter dropdown with ALL lineages (inspect can override analysis filters)
