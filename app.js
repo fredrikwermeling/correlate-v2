@@ -27528,13 +27528,39 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hlColor = '#dc2626';
         // Shorten the row label, keeping the full name on hover; names are
         // made unique afterwards so two shortened labels cannot share a row.
-        // On a phone the label competes with the plot for the same ~390px, so
-        // cut hard (9 chars): longer names left the boxes too narrow to
-        // compare, which is the whole point of the chart.
-        const LABEL_MAX = (window.innerWidth <= 640) ? 9 : 34;
+        // On a phone the label competes with the plot for the same ~390px.
+        // Cutting at 9 characters left "Renal Cl…", which names nothing, so
+        // there the name wraps on words onto two short rows in a smaller
+        // font, and only what will not fit two rows is cut.
+        const _gePhoneLabels = window.innerWidth <= 640;
+        const LABEL_MAX = _gePhoneLabels ? 30 : 34;
+        const PHONE_ROW_CHARS = 15;
         const seenLabels = new Map();
+        const wrapPhone = (name) => {
+            const lines = [];
+            let line = '';
+            for (const w of name.split(' ')) {
+                const cand = line ? `${line} ${w}` : w;
+                if (line && cand.length > PHONE_ROW_CHARS) { lines.push(line); line = w; }
+                else line = cand;
+                if (lines.length === 2) break;
+            }
+            if (lines.length < 2 && line) lines.push(line);
+            const fits = lines.join(' ') === name;
+            if (!fits) lines[lines.length - 1] = lines[lines.length - 1].slice(0, PHONE_ROW_CHARS - 1).trimEnd() + '…';
+            return { text: lines.join('<br>'), cut: !fits };
+        };
+        let anyTwoRow = false;
         const shortLabel = (group, count) => {
-            let base = group.length > LABEL_MAX ? group.slice(0, LABEL_MAX - 1).trimEnd() + '…' : group;
+            let base, cut;
+            if (_gePhoneLabels) {
+                const w = wrapPhone(group);
+                base = w.text; cut = w.cut;
+                if (base.includes('<br>')) anyTwoRow = true;
+            } else {
+                cut = group.length > LABEL_MAX;
+                base = cut ? group.slice(0, LABEL_MAX - 1).trimEnd() + '…' : group;
+            }
             const k = seenLabels.get(base) || 0;
             seenLabels.set(base, k + 1);
             if (k > 0) base = `${base} (${k + 1})`;
@@ -27596,8 +27622,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Calculate dynamic sizing
         const numEntries = stats.length;
-        const tickFontSize = numEntries > 25 ? 12 : numEntries > 15 ? 13 : 14;
-        const boxHeight = numEntries > 25 ? 22 : numEntries > 15 ? 26 : 32;
+        const tickFontSize = _gePhoneLabels ? 11 : (numEntries > 25 ? 12 : numEntries > 15 ? 13 : 14);
+        // Two-row labels need taller rows or they overlap their neighbours.
+        const boxHeight = (numEntries > 25 ? 22 : numEntries > 15 ? 26 : 32) + (anyTwoRow ? 8 : 0);
         const chartHeight = Math.max(400, numEntries * boxHeight + 100);
 
         // Determine data type label. Data type is set by openGeneEffectModal
@@ -27666,6 +27693,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         Plotly.newPlot('geneEffectPlot', traces, layout, { responsive: true, edits: { annotationPosition: true, annotationTail: true }, displaylogo: false, modeBarButtonsToRemove: ['lasso2d', 'select2d'] });
         this._attachGEGateHandler('geneEffectPlot');
         this._attachGECellInteractivity('geneEffectPlot');
+        this._attachGERowLabelTap('geneEffectPlot', filteredStats.map(s => ({ label: labelFor.get(s.group), group: s.group, n: s.n })));
 
         // Highlight cell line if requested (from CLB gene link or cell line search)
         const highlightCl = this._geHighlightCellLine;
@@ -34526,6 +34554,70 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     // Wire hover (exec summary) + click (label / double-click Wiki) on a GE dot plot.
+    // A press on a row label shows the whole group name in a card: the
+    // label is shortened to fit beside the plot, on a phone to two short
+    // rows, so the name itself is often not readable there. Plotly gives
+    // tick labels no events of their own, so the press is matched against
+    // the drawn labels' boxes instead, which also survives its re-renders.
+    _attachGERowLabelTap(plotId, rows) {
+        const el = document.getElementById(plotId);
+        if (!el) return;
+        el._geRowLabels = rows;
+        if (el._geRowTapWired) return;
+        el._geRowTapWired = true;
+        const showCard = (clientX, clientY) => {
+            const ticks = el.querySelectorAll('.ytick text');
+            let hit = null;
+            for (const t of ticks) {
+                const r = t.getBoundingClientRect();
+                if (clientY >= r.top - 4 && clientY <= r.bottom + 4 && clientX <= r.right + 8) { hit = t; break; }
+            }
+            if (!hit) return false;
+            const raw = hit.getAttribute('data-unformatted') || hit.textContent;
+            const row = (el._geRowLabels || []).find(r => r.label === raw);
+            if (!row) return false;
+            let card = document.getElementById('geRowLabelCard');
+            if (!card) {
+                card = document.createElement('div');
+                card.id = 'geRowLabelCard';
+                card.style.cssText = 'position:fixed; z-index:10002; background:#fff; border:1px solid var(--gray-200);'
+                    + ' border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.16); padding:10px 14px; max-width:calc(100vw - 16px);';
+                document.body.appendChild(card);
+            }
+            card.innerHTML = `<div style="font-size:16px; font-weight:700; color:#374151;">${this.esc(row.group)}</div>`
+                + `<div style="font-size:12px; color:#6b7280; margin-top:2px;">${row.n} cell line${row.n === 1 ? '' : 's'}. Tap anywhere to close.</div>`;
+            card.style.display = 'block';
+            const r = hit.getBoundingClientRect();
+            const m = card.getBoundingClientRect();
+            const top = (r.bottom + 6 + m.height > window.innerHeight - 8) ? Math.max(8, r.top - m.height - 6) : r.bottom + 6;
+            card.style.left = Math.round(Math.max(8, Math.min(r.left, window.innerWidth - m.width - 8))) + 'px';
+            card.style.top = Math.round(top) + 'px';
+            const openedAt = Date.now();
+            const dismiss = (e) => {
+                if (Date.now() - openedAt < 400) return;
+                card.style.display = 'none';
+                document.removeEventListener('click', dismiss, true);
+                document.removeEventListener('touchend', dismiss, true);
+            };
+            document.addEventListener('click', dismiss, true);
+            document.addEventListener('touchend', dismiss, true);
+            return true;
+        };
+        // Taken at touchend on a phone (see the scatter chips for why), with
+        // the click kept for a mouse.
+        let t0 = null;
+        el.addEventListener('touchstart', (e) => {
+            const t = e.changedTouches[0];
+            t0 = t ? { x: t.clientX, y: t.clientY } : null;
+        }, { passive: true });
+        el.addEventListener('touchend', (e) => {
+            const t = e.changedTouches[0];
+            if (!t0 || !t || Math.hypot(t.clientX - t0.x, t.clientY - t0.y) > 10) return;
+            if (showCard(t.clientX, t.clientY) && e.cancelable) e.preventDefault();
+        });
+        el.addEventListener('click', (e) => { showCard(e.clientX, e.clientY); });
+    }
+
     _attachGECellInteractivity(plotId) {
         this._attachDotHoverSummary(plotId, null, window.innerWidth <= 640
             ? 'Tap to name this cell line \u00b7 tap the named dot again to open it'

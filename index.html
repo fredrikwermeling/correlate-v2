@@ -2819,6 +2819,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.28 (2026-09-07)</strong></p>
+                <ul>
+                    <li><b>Phone: the group names beside the gene effect and expression box plots can be read.</b> They were cut to nine characters ("Renal Cl…"). Now the name wraps on words onto two short rows in a smaller font, so most names fit in full, and only what will not fit two rows is shortened. Two-row labels get a little more row height. A press on any row name shows the whole name and its cell-line count in a card, on phone and desktop alike.</li>
+                </ul>
                 <p><strong>v.89.27 (2026-09-07)</strong></p>
                 <ul>
                     <li><b>Phone: the wiki's drug histograms are no longer cut.</b> Each compound row indented its text and histogram by a desktop-sized 170px, which left a third of the screen for both. On a phone the rows now run full width, and the genome and retroelement histogram grids stack one per row.</li>
@@ -7568,7 +7572,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.27</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.28</a>
         </span>
     </div>
 
@@ -10681,6 +10685,6 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_27"></script>
+    <script src="app.js?v=v89_28"></script>
 </body>
 </html>
