@@ -6880,8 +6880,13 @@ class CorrelationExplorer {
         document.getElementById('enrichrDownloadBtn')?.addEventListener('click', () => this.downloadEnrichrCSV());
 
         // Infographic modal
-        document.getElementById('showInfoGraphic')?.addEventListener('click', () => {
-            document.getElementById('infographicModal').style.display = 'flex';
+        // The tour is the introduction; the long-form page it used to open
+        // is reached from the tour's last page, or directly if the tour is
+        // not loaded.
+        document.getElementById('showInfoGraphic')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (window.CorrelateTour) window.CorrelateTour.open();
+            else document.getElementById('infographicModal').style.display = 'flex';
         });
         document.getElementById('closeInfoGraphic')?.addEventListener('click', () => {
             document.getElementById('infographicModal').style.display = 'none';
@@ -40951,10 +40956,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             document.getElementById('optionsOtherMenu')?.style.setProperty('display', 'none');
             window.CorrelateTour?.open();
         });
-        document.getElementById('showTour')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.CorrelateTour?.open();
-        });
+
         document.getElementById('showCorrelationDirect')?.addEventListener('click', () => {
             document.getElementById('inspectModal').classList.add('active');
             // Set default plot size if empty

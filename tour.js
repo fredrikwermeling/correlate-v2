@@ -12,7 +12,6 @@
     const num = (n) => Number(n).toLocaleString('en-US');
     const phone = () => window.innerWidth <= 640;
     const hasPlotly = () => typeof window.Plotly !== 'undefined';
-    const reducedMotion = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
 
     // ------------------------------------------------------------ data layer
     const D = {
@@ -150,8 +149,12 @@
     const PAGES = [
         {
             title: 'Welcome',
-            body: () => `<p>Correlate is built on DepMap, the Broad Institute's map of what ${num(D.ids().length)} cancer cell lines
-                depend on. Every gene was knocked out with CRISPR in every line, and the app lets you ask what those results mean.</p>
+            body: () => `<p>Correlate is built mainly on DepMap, the Broad Institute's map of what ${num(D.ids().length)} cancer cell lines
+                depend on. Every gene was knocked out with CRISPR in every line, and the app lets you ask what those results mean.
+                DepMap also supplies each line's mutations, copy number, mRNA levels and the PRISM drug screen.</p>
+                <p>Other sources are layered on top: Cellosaurus for each line's identity, origin and history, Oncotree for how the cancers are
+                classified, curated lists of driver genes and driver fusions from the WHO classification, COSMIC and OncoKB, published breast
+                cancer subtypes, and a retroelement signal computed from public RNA-seq. Every page of a cell line's wiki says where its numbers come from.</p>
                 <p>This tour shows one example per feature. Each page has a real chart from the data and a button that opens
                 that view in the app, so you can try the same thing with your own genes.</p>
                 <ul>
@@ -207,7 +210,7 @@
             title: 'The same pair, split by TP53 mutation',
             need: () => !!D.row('TP53') && !!D.row('MDM2') && !!A().mutations?.geneData?.TP53,
             body: () => `<p>Here the dots are colored by TP53 mutation status: grey lines are wild-type, blue carry a hotspot mutation on one copy,
-                red on both, and the chart lights up each group in turn. The pattern from the last page falls into two groups. The wild-type lines are the ones far down the MDM2 axis:
+                red on both. Use the choices under the chart to look at one group at a time. The pattern from the last page falls into two groups. The wild-type lines are the ones far down the MDM2 axis:
                 they still have working p53 and need MDM2 to hold it back. The mutated lines sit near zero on both axes: with p53 already gone, MDM2 no longer matters.</p>
                 <p>In any scatter you can color the dots this way with the Hotspot overlay, or go one step further and keep only the wild-type or only the mutated lines
                 with the Hotspot filter, which recomputes the correlation on that group alone.</p>`,
@@ -222,42 +225,23 @@
                     b.x.push(x); b.y.push(y);
                 }
                 const nWT = g.wt.x.length, nMut = g.m1.x.length + g.m2.x.length;
-                const caption = (text, color) => [{
-                    text, xref: 'paper', yref: 'paper', x: 0.02, y: 0.02, xanchor: 'left', yanchor: 'bottom',
-                    showarrow: false, font: { size: phone() ? 10 : 12, color }, bgcolor: 'rgba(255,255,255,0.9)', borderpad: 4
-                }];
                 return Plotly.newPlot(div, [
-                    { x: g.wt.x, y: g.wt.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: dots, name: `WT (n=${nWT})` },
-                    { x: g.m1.x, y: g.m1.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: { color: '#3b82f6', size: 7, opacity: 0.8 }, name: `1 mut (n=${g.m1.x.length})` },
-                    { x: g.m2.x, y: g.m2.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: { color: '#dc2626', size: 7, opacity: 0.85 }, name: `2 mut (n=${g.m2.x.length})` }
+                    { x: g.wt.x, y: g.wt.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: { color: '#9ca3af', size: 6, opacity: 0.6 }, name: `TP53 wild-type (n=${nWT})` },
+                    { x: g.m1.x, y: g.m1.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: { color: '#3b82f6', size: 7, opacity: 0.8 }, name: `1 mutated copy (n=${g.m1.x.length})` },
+                    { x: g.m2.x, y: g.m2.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: { color: '#dc2626', size: 7, opacity: 0.85 }, name: `2 mutated copies (n=${g.m2.x.length})` }
                 ], layout({
                     title: title('TP53 vs MDM2', 'colored by TP53 hotspot mutation'),
                     xaxis: axis('TP53 Gene Effect'), yaxis: axis('MDM2 Gene Effect'),
-                    showlegend: true, legend: { x: 1, y: 0, xanchor: 'right', yanchor: 'bottom', bgcolor: 'rgba(255,255,255,0.85)', font: { size: phone() ? 9 : 10 } },
-                    annotations: caption('Grey: TP53 wild-type. Blue and red: TP53 mutated.', '#374151')
-                }), CFG).then(() => {
-                    // The two groups take turns lighting up, with a caption
-                    // saying what each one shows. Left still when the reader
-                    // has asked their device for less motion.
-                    if (reducedMotion()) return;
-                    const phases = [
-                        { op: [0.95, 0.08, 0.08], size: [7, 7, 7], cap: caption(`TP53 wild-type, ${num(nWT)} lines: p53 works, so these lines need MDM2`, '#374151') },
-                        { op: [0.08, 0.95, 0.95], size: [6, 8, 8], cap: caption(`TP53 mutated, ${num(nMut)} lines: p53 is gone, so MDM2 no longer matters`, '#b91c1c') },
-                        { op: [0.6, 0.8, 0.85], size: [6, 7, 7], cap: caption('Both groups together', '#374151') }
-                    ];
-                    let k = 0;
-                    const tick = () => {
-                        if (!div.isConnected || !div.data) return;
-                        const ph = phases[k % phases.length]; k++;
-                        try {
-                            Plotly.restyle(div, { 'marker.opacity': ph.op, 'marker.size': ph.size }, [0, 1, 2]);
-                            Plotly.relayout(div, { annotations: ph.cap });
-                        } catch (e) { }
-                    };
-                    tick();
-                    div._tourPulse = setInterval(tick, 1800);
-                });
+                    showlegend: true, legend: { orientation: 'h', x: 0.5, y: -0.28, xanchor: 'center', yanchor: 'top', font: { size: phone() ? 9 : 10 } },
+                    height: plotH() + 40, margin: { t: 44, r: 16, b: 84, l: phone() ? 48 : 60 }
+                }), CFG);
             },
+            // Which group to show, chosen by the reader rather than animated.
+            choices: [
+                { label: 'Both groups', run: (div) => Plotly.restyle(div, { visible: [true, true, true] }, [0, 1, 2]) },
+                { label: 'Wild-type only', run: (div) => Plotly.restyle(div, { visible: [true, 'legendonly', 'legendonly'] }, [0, 1, 2]) },
+                { label: 'Mutated only', run: (div) => Plotly.restyle(div, { visible: ['legendonly', true, true] }, [0, 1, 2]) }
+            ],
             actions: [
                 { label: 'Open with the TP53 overlay', run: (a) => openPairWithHotspot(a, 'TP53', 'MDM2', 'TP53', null) },
                 { label: 'Open only the TP53 wild-type lines', run: (a) => openPairWithHotspot(a, 'TP53', 'MDM2', 'TP53', '0') },
@@ -521,11 +505,12 @@
                     <li><b>Open a correlation</b> for two genes you know, and color it by a mutation.</li>
                 </ul>
                 <p>Every popout has an Export button for figures and data, and Export for AI packages the view for a language model to read.
-                The How it works page has the longer explanation of the statistics.</p>`,
+                The last button below opens the longer explanation of the statistics behind the app.</p>`,
             actions: [
                 { label: 'Run the p53 example', run: () => PAGES.find(p => p.title === 'Gene set analysis').action.run(A()) },
                 { label: 'Open the Cell Line Browser', run: (a) => a.openCellLineBrowser() },
-                { label: 'Open TP53 vs MDM2', run: (a) => a.openInspectByGenes('TP53', 'MDM2') }
+                { label: 'Open TP53 vs MDM2', run: (a) => a.openInspectByGenes('TP53', 'MDM2') },
+                { label: 'The statistics in more depth', run: () => { const m = document.getElementById('infographicModal'); if (m) m.style.display = 'flex'; } }
             ]
         }
     ];
@@ -540,8 +525,11 @@
 #tourModal .tour-text ul { margin: 0 0 10px 18px; padding: 0; }
 #tourModal .tour-text li { margin-bottom: 4px; }
 #tourModal .tour-chart { min-height: 120px; margin: 4px 0 12px; border: 1px solid var(--gray-200); border-radius: 6px; overflow: hidden; }
-#tourModal .tour-chart .scatterlayer .point { transition: opacity 0.6s ease; }
 #tourModal .tour-loading { padding: 40px 12px; text-align: center; color: #6b7280; font-size: 12px; }
+#tourModal .tour-choices { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 10px; }
+#tourModal .tour-choices:empty { display: none; }
+#tourModal .tour-choice { min-height: 34px; font-size: 12px; }
+#tourModal .tour-choice.on { background: var(--green-600); color: #fff; border-color: var(--green-600); }
 #tourModal .tour-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 6px; }
 #tourModal .tour-actions .btn { min-height: 40px; }
 #tourModal .modal-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 20px; border-top: 1px solid var(--gray-200); flex-shrink: 0; }
@@ -577,6 +565,7 @@
                 <div class="modal-body">
                     <div class="tour-text" id="tourText"></div>
                     <div class="tour-chart" id="tourChart" style="display:none;"></div>
+                    <div class="tour-choices" id="tourChoices"></div>
                     <div class="tour-actions" id="tourActions"></div>
                 </div>
                 <div class="modal-footer">
@@ -607,7 +596,6 @@
 
     function purgeChart() {
         const div = document.getElementById('tourChart');
-        if (div && div._tourPulse) { clearInterval(div._tourPulse); div._tourPulse = null; }
         if (div && hasPlotly()) { try { Plotly.purge(div); } catch (e) { } }
         if (div) { div.innerHTML = ''; div.style.display = 'none'; }
     }
@@ -641,6 +629,23 @@
                 chart.innerHTML = '';
                 return p.plot(chart);
             }).catch(e => { console.warn('Tour chart failed:', e); chart.innerHTML = '<div class="tour-loading">This chart could not be drawn.</div>'; });
+        }
+        const ch = document.getElementById('tourChoices');
+        ch.innerHTML = '';
+        if (p.choices) {
+            p.choices.forEach((c, k) => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'btn btn-outline btn-sm tour-choice' + (k === 0 ? ' on' : '');
+                b.textContent = c.label;
+                b.addEventListener('click', () => {
+                    ch.querySelectorAll('.tour-choice').forEach(x => x.classList.remove('on'));
+                    b.classList.add('on');
+                    const div = document.getElementById('tourChart');
+                    if (div && div.data) { try { c.run(div); } catch (e) { } }
+                });
+                ch.appendChild(b);
+            });
         }
         const acts = document.getElementById('tourActions');
         acts.innerHTML = '';

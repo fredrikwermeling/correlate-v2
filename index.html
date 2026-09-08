@@ -2827,6 +2827,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.41 (2026-09-08)</strong></p>
+                <ul>
+                    <li><b>How it works now opens the tour.</b> The tour is the introduction to the app; the longer explanation of the statistics is one button away on the tour's last page. The separate Tour link is gone.</li>
+                    <li><b>Tour: the TP53 page no longer pulses.</b> The chart stays still, with a legend under it, and three choices, Both groups, Wild-type only, Mutated only, let the reader look at one group at a time.</li>
+                    <li><b>Tour: the welcome page names the other sources.</b> Cellosaurus, Oncotree, the curated driver and fusion lists, published breast subtypes and the retroelement signal, layered on DepMap.</li>
+                </ul>
                 <p><strong>v.89.40 (2026-09-08)</strong></p>
                 <ul>
                     <li><b>Tour: the TP53 page pulses.</b> The scatter lights up the wild-type lines, then the mutated lines, then both, with a caption for each, so the two groups can be told apart at a glance. It stays still for readers who have asked their device for less motion.</li>
@@ -7620,8 +7626,7 @@
     <div class="nav-bar">
         <span class="nav-links">
             <span class="nav-side nav-side-l">
-                <a href="#" id="showInfoGraphic">How it works</a>
-                <a href="#" id="showTour" title="A short guided tour of the app, one example per feature">Tour</a>
+                <a href="#" id="showInfoGraphic" title="A short guided tour of the app, one example per feature">How it works</a>
                 <a href="#" id="showReferenceData">Reference Data</a>
             </span>
             <a href="https://greenlisted.cmm.se" target="_blank" rel="noopener noreferrer">Green Listed</a>
@@ -7631,7 +7636,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.40</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.41</a>
         </span>
     </div>
 
@@ -10761,7 +10766,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_40"></script>
-    <script src="tour.js?v=v89_40"></script>
+    <script src="app.js?v=v89_41"></script>
+    <script src="tour.js?v=v89_41"></script>
 </body>
 </html>
