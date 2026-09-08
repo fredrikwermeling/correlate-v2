@@ -12,6 +12,7 @@
     const num = (n) => Number(n).toLocaleString('en-US');
     const phone = () => window.innerWidth <= 640;
     const hasPlotly = () => typeof window.Plotly !== 'undefined';
+    const reducedMotion = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
 
     // ------------------------------------------------------------ data layer
     const D = {
@@ -206,7 +207,7 @@
             title: 'The same pair, split by TP53 mutation',
             need: () => !!D.row('TP53') && !!D.row('MDM2') && !!A().mutations?.geneData?.TP53,
             body: () => `<p>Here the dots are colored by TP53 mutation status: grey lines are wild-type, blue carry a hotspot mutation on one copy,
-                red on both. The pattern from the last page falls into two groups. The wild-type lines are the ones far down the MDM2 axis:
+                red on both, and the chart lights up each group in turn. The pattern from the last page falls into two groups. The wild-type lines are the ones far down the MDM2 axis:
                 they still have working p53 and need MDM2 to hold it back. The mutated lines sit near zero on both axes: with p53 already gone, MDM2 no longer matters.</p>
                 <p>In any scatter you can color the dots this way with the Hotspot overlay, or go one step further and keep only the wild-type or only the mutated lines
                 with the Hotspot filter, which recomputes the correlation on that group alone.</p>`,
@@ -220,15 +221,42 @@
                     const b = lvl >= 2 ? g.m2 : lvl === 1 ? g.m1 : g.wt;
                     b.x.push(x); b.y.push(y);
                 }
+                const nWT = g.wt.x.length, nMut = g.m1.x.length + g.m2.x.length;
+                const caption = (text, color) => [{
+                    text, xref: 'paper', yref: 'paper', x: 0.02, y: 0.02, xanchor: 'left', yanchor: 'bottom',
+                    showarrow: false, font: { size: phone() ? 10 : 12, color }, bgcolor: 'rgba(255,255,255,0.9)', borderpad: 4
+                }];
                 return Plotly.newPlot(div, [
-                    { x: g.wt.x, y: g.wt.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: dots, name: `WT (n=${g.wt.x.length})` },
+                    { x: g.wt.x, y: g.wt.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: dots, name: `WT (n=${nWT})` },
                     { x: g.m1.x, y: g.m1.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: { color: '#3b82f6', size: 7, opacity: 0.8 }, name: `1 mut (n=${g.m1.x.length})` },
                     { x: g.m2.x, y: g.m2.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: { color: '#dc2626', size: 7, opacity: 0.85 }, name: `2 mut (n=${g.m2.x.length})` }
                 ], layout({
                     title: title('TP53 vs MDM2', 'colored by TP53 hotspot mutation'),
                     xaxis: axis('TP53 Gene Effect'), yaxis: axis('MDM2 Gene Effect'),
-                    showlegend: true, legend: { x: 1, y: 0, xanchor: 'right', yanchor: 'bottom', bgcolor: 'rgba(255,255,255,0.85)', font: { size: phone() ? 9 : 10 } }
-                }), CFG);
+                    showlegend: true, legend: { x: 1, y: 0, xanchor: 'right', yanchor: 'bottom', bgcolor: 'rgba(255,255,255,0.85)', font: { size: phone() ? 9 : 10 } },
+                    annotations: caption('Grey: TP53 wild-type. Blue and red: TP53 mutated.', '#374151')
+                }), CFG).then(() => {
+                    // The two groups take turns lighting up, with a caption
+                    // saying what each one shows. Left still when the reader
+                    // has asked their device for less motion.
+                    if (reducedMotion()) return;
+                    const phases = [
+                        { op: [0.95, 0.08, 0.08], size: [7, 7, 7], cap: caption(`TP53 wild-type, ${num(nWT)} lines: p53 works, so these lines need MDM2`, '#374151') },
+                        { op: [0.08, 0.95, 0.95], size: [6, 8, 8], cap: caption(`TP53 mutated, ${num(nMut)} lines: p53 is gone, so MDM2 no longer matters`, '#b91c1c') },
+                        { op: [0.6, 0.8, 0.85], size: [6, 7, 7], cap: caption('Both groups together', '#374151') }
+                    ];
+                    let k = 0;
+                    const tick = () => {
+                        if (!div.isConnected || !div.data) return;
+                        const ph = phases[k % phases.length]; k++;
+                        try {
+                            Plotly.restyle(div, { 'marker.opacity': ph.op, 'marker.size': ph.size }, [0, 1, 2]);
+                            Plotly.relayout(div, { annotations: ph.cap });
+                        } catch (e) { }
+                    };
+                    tick();
+                    div._tourPulse = setInterval(tick, 1800);
+                });
             },
             actions: [
                 { label: 'Open with the TP53 overlay', run: (a) => openPairWithHotspot(a, 'TP53', 'MDM2', 'TP53', null) },
@@ -512,6 +540,7 @@
 #tourModal .tour-text ul { margin: 0 0 10px 18px; padding: 0; }
 #tourModal .tour-text li { margin-bottom: 4px; }
 #tourModal .tour-chart { min-height: 120px; margin: 4px 0 12px; border: 1px solid var(--gray-200); border-radius: 6px; overflow: hidden; }
+#tourModal .tour-chart .scatterlayer .point { transition: opacity 0.6s ease; }
 #tourModal .tour-loading { padding: 40px 12px; text-align: center; color: #6b7280; font-size: 12px; }
 #tourModal .tour-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 6px; }
 #tourModal .tour-actions .btn { min-height: 40px; }
@@ -578,6 +607,7 @@
 
     function purgeChart() {
         const div = document.getElementById('tourChart');
+        if (div && div._tourPulse) { clearInterval(div._tourPulse); div._tourPulse = null; }
         if (div && hasPlotly()) { try { Plotly.purge(div); } catch (e) { } }
         if (div) { div.innerHTML = ''; div.style.display = 'none'; }
     }
