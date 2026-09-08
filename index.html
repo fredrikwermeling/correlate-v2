@@ -2827,6 +2827,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.42 (2026-09-08)</strong></p>
+                <ul>
+                    <li><b>The tour and the Matrix tab no longer use Plotly.</b> Their charts are drawn directly, sized to the card, so a phone gets a steady picture that scrolls sideways when it is wider than the screen instead of being squeezed and re-squeezed as the page moves. Every gene label is shown, the color scale sits under the grid, and the matrix still shows r and n on hover, opens a pair's scatter on click, and exports as an image or a CSV.</li>
+                    <li><b>Matrix: "Above cutoff only".</b> Ticking it blanks every pair that did not clear the cutoff, leaving the pairs that are in the network.</li>
+                    <li><b>Tour reordered around gene set analysis.</b> After the welcome it opens with the network itself, nodes colored by gene effect or by your own statistics, then explains what one link means with a scatter, splits that scatter by TP53 mutation with three choices instead of a pulse, and shows the correlation matrix, before the gene effect score, mutations, cell lines, expression, the heatmap and drug response.</li>
+                    <li><b>Welcome page rewritten.</b> The app brings together what is known about the cell lines; DepMap's CRISPR screen is the core, and Cellosaurus, Oncotree, the curated driver and fusion lists, published breast subtypes and the retroelement signal sit alongside it.</li>
+                </ul>
                 <p><strong>v.89.41 (2026-09-08)</strong></p>
                 <ul>
                     <li><b>How it works now opens the tour.</b> The tour is the introduction to the app; the longer explanation of the statistics is one button away on the tour's last page. The separate Tour link is gone.</li>
@@ -7636,7 +7643,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.41</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.42</a>
         </span>
     </div>
 
@@ -8345,11 +8352,12 @@
                     <div class="table-controls">
                         <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;"><input type="checkbox" id="matrixShowValues" checked> Show values</label>
                         <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Order the genes by the network's clusters; unticked, they follow the order you entered them in"><input type="checkbox" id="matrixClusterOrder" checked> Cluster order</label>
+                        <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Blank every pair whose correlation did not clear the cutoff, so only the pairs in the network are colored"><input type="checkbox" id="matrixAboveCutoff"> Above cutoff only</label>
                         <button class="btn btn-outline btn-sm mobile-hide" id="matrixExportPng" title="Save the grid as a PNG image">Export image</button>
                         <button class="btn btn-outline btn-sm" id="matrixDownloadCsv" title="Download the grid of correlations as a CSV file">Download CSV</button>
                     </div>
                     <div id="matrixNote" style="font-size:11px; color:#6b7280; margin-bottom:6px;"></div>
-                    <div id="matrixPlot" style="width:100%; min-height:120px;"><div style="text-align:center; color:var(--gray-500); padding:40px;">Run analysis to see the matrix</div></div>
+                    <div id="matrixScroll" style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;"><div id="matrixPlot" style="min-height:120px;"><div style="text-align:center; color:var(--gray-500); padding:40px;">Run analysis to see the matrix</div></div></div>
                 </div>
 
                 <!-- Clusters Tab -->
@@ -10766,7 +10774,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_41"></script>
-    <script src="tour.js?v=v89_41"></script>
+    <script src="app.js?v=v89_42"></script>
+    <script src="tour.js?v=v89_42"></script>
 </body>
 </html>

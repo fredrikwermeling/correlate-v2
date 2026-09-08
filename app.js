@@ -6443,6 +6443,7 @@ class CorrelationExplorer {
         document.getElementById('downloadCorrelations').addEventListener('click', () => this.downloadCSV('correlations'));
         document.getElementById('matrixShowValues')?.addEventListener('change', () => this.displayCorrelationMatrix());
         document.getElementById('matrixClusterOrder')?.addEventListener('change', () => this.displayCorrelationMatrix());
+        document.getElementById('matrixAboveCutoff')?.addEventListener('change', () => this.displayCorrelationMatrix());
         document.getElementById('matrixExportPng')?.addEventListener('click', () => this.exportCorrelationMatrixImage());
         document.getElementById('matrixDownloadCsv')?.addEventListener('click', () => this.downloadCorrelationMatrixCSV());
         document.getElementById('downloadClusters').addEventListener('click', () => this.downloadCSV('clusters'));
@@ -11787,58 +11788,154 @@ class CorrelationExplorer {
         return { genes, r, n: nn, truncated, cohortN: idx.length, basis: this._runBasis, clusterOf };
     }
 
+    // A coloured grid drawn on canvas: row and column labels, a colour scale
+    // under it, values in the cells when asked, a hover tooltip and a click.
+    // Used by the Matrix tab and by the tour. Sized exactly as given, so a
+    // phone scrolls it sideways rather than squeezing it.
+    _drawCorrelationGrid(host, spec) {
+        const phone = window.innerWidth <= 640;
+        const rows = spec.rowLabels, cols = spec.colLabels, nR = rows.length, nC = cols.length;
+        const FONT = 'Arial, Helvetica, sans-serif';
+        const stops = spec.colorscale || [[0, '#2166ac'], [0.5, '#f7f7f7'], [1, '#b2182b']];
+        const hex = (c) => [1, 3, 5].map(k => parseInt(c.slice(k, k + 2), 16));
+        const lerp = (t) => {
+            t = Math.max(0, Math.min(1, t));
+            let a = stops[0], b = stops[stops.length - 1];
+            for (let k = 0; k < stops.length - 1; k++) if (t >= stops[k][0] && t <= stops[k + 1][0]) { a = stops[k]; b = stops[k + 1]; break; }
+            const f = b[0] === a[0] ? 0 : (t - a[0]) / (b[0] - a[0]);
+            const ca = hex(a[1]), cb = hex(b[1]);
+            return ca.map((v, k) => Math.round(v + (cb[k] - v) * f));
+        };
+        const rgb = (c) => `rgb(${c.join(',')})`;
+        const avail = Math.max(240, host.parentElement?.clientWidth || host.clientWidth || 360);
+        const probe = document.createElement('canvas').getContext('2d');
+        const lf = phone ? 10 : 11;
+        probe.font = `${lf}px ${FONT}`;
+        const left = Math.ceil(Math.max.apply(null, rows.map(r => probe.measureText(r).width))) + 12;
+        const showCols = spec.showColLabels !== false;
+        const colLabelW = showCols ? Math.ceil(Math.max.apply(null, cols.map(c => probe.measureText(c).width))) : 0;
+        const top = spec.title ? (spec.sub ? 44 : 30) : 6;
+        const cell = spec.cell || Math.max(phone ? 8 : 10, Math.min(44, Math.floor((avail - left - 24) / nC)));
+        const bottom = (showCols ? Math.ceil(colLabelW * 0.87) + 10 : (spec.xLabel ? 22 : 6)) + 40;
+        const W = Math.max(avail, left + nC * cell + 16), H = top + nR * cell + bottom;
+        host.innerHTML = '';
+        host.style.position = 'relative';
+        host.style.width = W + 'px';
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const c = document.createElement('canvas');
+        c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+        c.style.width = W + 'px'; c.style.height = H + 'px'; c.style.display = 'block';
+        host.appendChild(c);
+        const ctx = c.getContext('2d');
+        ctx.scale(dpr, dpr);
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+        if (spec.title) {
+            ctx.fillStyle = '#374151'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+            ctx.font = `bold ${phone ? 12 : 14}px ${FONT}`; ctx.fillText(spec.title, W / 2, 18);
+            if (spec.sub) { ctx.font = `10px ${FONT}`; ctx.fillStyle = '#6b7280'; ctx.fillText(spec.sub, W / 2, 33); }
+        }
+        const zmin = spec.zmin, zmax = spec.zmax;
+        const showValues = spec.showValues && cell >= 20;
+        ctx.font = `${Math.min(11, cell * 0.42)}px ${FONT}`;
+        for (let i = 0; i < nR; i++) {
+            for (let j = 0; j < nC; j++) {
+                const v = spec.z[i][j];
+                const x = left + j * cell, y = top + i * cell;
+                if (v == null || !isFinite(v)) { ctx.fillStyle = '#f3f4f6'; ctx.fillRect(x + 0.5, y + 0.5, cell - 1, cell - 1); continue; }
+                const t = (v - zmin) / (zmax - zmin);
+                const col = lerp(t);
+                ctx.fillStyle = rgb(col); ctx.fillRect(x + 0.5, y + 0.5, cell - 1, cell - 1);
+                if (showValues) {
+                    const lum = (0.299 * col[0] + 0.587 * col[1] + 0.114 * col[2]) / 255;
+                    ctx.fillStyle = lum < 0.55 ? '#ffffff' : '#374151';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText(v.toFixed(2), x + cell / 2, y + cell / 2);
+                }
+            }
+        }
+        ctx.fillStyle = '#374151'; ctx.font = `${lf}px ${FONT}`;
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        rows.forEach((r, i) => ctx.fillText(r, left - 6, top + i * cell + cell / 2));
+        const gridBottom = top + nR * cell;
+        if (showCols) {
+            cols.forEach((cl, j) => {
+                ctx.save(); ctx.translate(left + j * cell + cell / 2, gridBottom + 6); ctx.rotate(-Math.PI / 3);
+                ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(cl, 0, 0); ctx.restore();
+            });
+        } else if (spec.xLabel) {
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = `${phone ? 11 : 12}px ${FONT}`;
+            ctx.fillText(spec.xLabel, left + nC * cell / 2, gridBottom + 6);
+        }
+        // Colour scale under the grid.
+        const by = H - 24, bw = Math.min(180, W - left - 20), bx = left;
+        for (let k = 0; k < bw; k++) { ctx.fillStyle = rgb(lerp(k / bw)); ctx.fillRect(bx + k, by, 1, 10); }
+        ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, by + 0.5, bw, 10);
+        ctx.fillStyle = '#374151'; ctx.font = `10px ${FONT}`; ctx.textBaseline = 'top';
+        ctx.textAlign = 'left'; ctx.fillText(String(zmin), bx, by + 13);
+        ctx.textAlign = 'center'; ctx.fillText(String((zmin + zmax) / 2), bx + bw / 2, by + 13);
+        ctx.textAlign = 'right'; ctx.fillText(String(zmax), bx + bw, by + 13);
+        if (spec.colorbarTitle) { ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(spec.colorbarTitle, bx + bw + 8, by + 5); }
+        // Hover and click, by cell.
+        if (spec.hover || spec.onClick) {
+            const tip = document.createElement('div');
+            tip.style.cssText = 'display:none; position:absolute; z-index:5; background:#fff; border:1px solid #d1d5db; border-radius:4px; padding:4px 8px; font-size:11px; color:#374151; box-shadow:0 2px 8px rgba(0,0,0,0.12); pointer-events:none; white-space:nowrap;';
+            host.appendChild(tip);
+            const cellAt = (ev) => {
+                const r = c.getBoundingClientRect();
+                const x = ev.clientX - r.left, y = ev.clientY - r.top;
+                const j = Math.floor((x - left) / cell), i = Math.floor((y - top) / cell);
+                return (i >= 0 && i < nR && j >= 0 && j < nC) ? { i, j, x, y } : null;
+            };
+            c.style.cursor = spec.onClick ? 'pointer' : 'default';
+            c.addEventListener('mousemove', (ev) => {
+                const hit = cellAt(ev);
+                if (!hit || !spec.hover) { tip.style.display = 'none'; return; }
+                tip.innerHTML = spec.hover(hit.i, hit.j);
+                tip.style.display = 'block';
+                tip.style.left = Math.min(hit.x + 12, W - 160) + 'px';
+                tip.style.top = (hit.y + 14) + 'px';
+            });
+            c.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+            if (spec.onClick) c.addEventListener('click', (ev) => { const hit = cellAt(ev); if (hit) spec.onClick(hit.i, hit.j); });
+        }
+        return c;
+    }
+
     displayCorrelationMatrix() {
         const host = document.getElementById('matrixPlot');
         const note = document.getElementById('matrixNote');
         if (!host) return;
         const data = this._correlationMatrixData();
         if (!data) {
-            if (typeof Plotly !== 'undefined') { try { Plotly.purge(host); } catch (e) { } }
             host.innerHTML = '<div style="text-align:center; color:var(--gray-500); padding:40px;">Run analysis to see the matrix</div>';
+            host.style.width = '';
             if (note) note.textContent = '';
             return;
         }
         this._matrixData = data;
-        const showValues = document.getElementById('matrixShowValues')?.checked !== false && data.genes.length <= 15;
-        const phone = window.innerWidth <= 640;
         const n = data.genes.length;
-        const cell = Math.max(phone ? 18 : 22, Math.min(44, Math.floor((host.clientWidth - 120) / n)));
+        const phone = window.innerWidth <= 640;
+        const aboveOnly = document.getElementById('matrixAboveCutoff')?.checked === true;
+        const cutoff = Number(this.results?.cutoff) || 0;
+        const showValues = document.getElementById('matrixShowValues')?.checked !== false && n <= 15;
         const basisWord = data.basis === 'expr' ? 'mRNA expression' : 'gene effect';
         if (note) {
-            note.textContent = `${n} genes against each other, Pearson r of ${basisWord} over ${data.cohortN.toLocaleString()} cell lines`
+            note.textContent = `${n} genes against each other, Pearson r of ${basisWord} over ${data.cohortN.toLocaleString('en-US')} cell lines`
+                + (aboveOnly ? `, pairs below the cutoff of ${cutoff.toFixed(2)} left blank` : '')
                 + (data.truncated ? `. The network has more genes than fit here: the first sixty are shown, your own genes first.` : '.');
         }
-        const hoverText = data.r.map((row, i) => row.map((v, j) => i === j ? data.genes[i]
-            : `${data.genes[i]} vs ${data.genes[j]}<br>r = ${v == null ? 'n/a' : v.toFixed(3)}<br>n = ${data.n[i][j]}`));
-        const trace = {
-            type: 'heatmap', z: data.r, x: data.genes, y: data.genes, zmin: -1, zmax: 1,
+        // A cell that did not clear the cutoff is left blank when asked; the
+        // diagonal stays so the rows keep their place.
+        const z = data.r.map((row, i) => row.map((v, j) => (aboveOnly && i !== j && (v == null || Math.abs(v) < cutoff)) ? null : v));
+        const avail = document.getElementById('matrixScroll')?.clientWidth || 600;
+        const cell = phone ? 24 : Math.max(24, Math.min(44, Math.floor((avail - 130) / n)));
+        this._drawCorrelationGrid(host, {
+            rowLabels: data.genes, colLabels: data.genes, z, zmin: -1, zmax: 1,
             colorscale: [[0, '#2166ac'], [0.5, '#f7f7f7'], [1, '#b2182b']],
-            colorbar: { thickness: 12, len: 0.8, tickfont: { size: 10 }, title: { text: 'r', font: { size: 11 } } },
-            hoverinfo: 'text', text: hoverText, xgap: 1, ygap: 1
-        };
-        if (showValues) {
-            trace.text = data.r.map(row => row.map(v => v == null ? '' : v.toFixed(2)));
-            trace.texttemplate = '%{text}';
-            trace.textfont = { size: phone ? 9 : 11 };
-            trace.hovertext = hoverText;
-            trace.hoverinfo = 'text';
-        }
-        const tick = { size: phone ? 9 : (n > 30 ? 9 : 11) };
-        const layout = {
-            height: Math.max(320, n * cell + 130),
-            margin: { t: 20, r: 20, b: 20, l: 20 },
-            xaxis: { side: 'bottom', tickfont: tick, automargin: true, tickangle: n > 12 ? -60 : 0 },
-            yaxis: { tickfont: tick, automargin: true, autorange: 'reversed' },
-            paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff',
-            font: { family: 'Arial, Helvetica, sans-serif', color: '#374151' }
-        };
-        Plotly.react(host, [trace], layout, { responsive: true, displayModeBar: false, displaylogo: false }).then(el => {
-            el.removeAllListeners?.('plotly_click');
-            el.on('plotly_click', (ev) => {
-                const pt = ev.points?.[0];
-                if (!pt || pt.x === pt.y) return;
-                this.openInspectByGenes(String(pt.x), String(pt.y));
-            });
+            showValues, cell, colorbarTitle: 'r',
+            hover: (i, j) => i === j ? data.genes[i]
+                : `${data.genes[i]} vs ${data.genes[j]}<br>r = ${data.r[i][j] == null ? 'n/a' : data.r[i][j].toFixed(3)}, n = ${data.n[i][j]}`,
+            onClick: (i, j) => { if (i !== j) this.openInspectByGenes(data.genes[i], data.genes[j]); }
         });
     }
 
@@ -11854,14 +11951,17 @@ class CorrelationExplorer {
     }
 
     exportCorrelationMatrixImage() {
-        const host = document.getElementById('matrixPlot');
-        if (!host || !host.data || typeof Plotly === 'undefined') { this.showCopyNotification?.('Run an analysis first.'); return; }
-        Plotly.toImage(host, { format: 'png', width: host.clientWidth, height: host.clientHeight, scale: 3 }).then(url => {
+        const canvas = document.querySelector('#matrixPlot canvas');
+        if (!canvas) { this.showCopyNotification?.('Run an analysis first.'); return; }
+        canvas.toBlob((blob) => {
+            if (!blob) { this.showCopyNotification?.('The image could not be made.'); return; }
+            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = csvName('correlation_matrix').replace(/\.csv$/, '.png');
             document.body.appendChild(a); a.click(); a.remove();
-        }).catch(e => this.showCopyNotification?.('The image could not be made: ' + (e?.message || e)));
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+        }, 'image/png');
     }
 
     pearsonWithSlope(x, y) {
