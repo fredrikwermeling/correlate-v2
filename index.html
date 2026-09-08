@@ -2827,6 +2827,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.39 (2026-09-08)</strong></p>
+                <ul>
+                    <li><b>New Matrix tab in the gene set results.</b> Every gene in the set against every other as a colored grid of correlations, red positive and blue negative, computed on the same cell lines and the same basis (gene effect or mRNA) as the network, and including the pairs that fell below the cutoff. Rows follow the network's clusters, or the order you entered the genes. Values are printed in the cells for sets up to fifteen genes, hovering shows r and n for any pair, and clicking a cell opens that pair's scatter. Export as an image or a CSV. Large sets are capped at sixty genes, your own genes first.</li>
+                    <li><b>Tour: a page on splitting by TP53 mutation.</b> After the TP53 against MDM2 page, the same scatter colored by TP53 mutation status, with buttons that open it with the overlay, with only the wild-type lines, or with only the mutated lines. The correlation popout can now be opened with an overlay or a hotspot filter preset, which those buttons use.</li>
+                </ul>
                 <p><strong>v.89.38 (2026-09-07)</strong></p>
                 <ul>
                     <li><b>The quiz is replaced by a tour.</b> Tour, next to How it works, or Options, Other, Tour of the app, opens a short guided walk in the app's own style: twelve pages, one example per feature, each with a real chart drawn from the data (SOX10 across tissues, TP53 against MDM2, a scatter colored by BRAF mutation, the p53 pathway as a gene set, a cell line page, expression, the heatmap, drug response) and a button that opens that view for real. Back and Next, or the arrow keys; the tour reopens on the page it was left at. The game, its pixel look and its font are gone.</li>
@@ -7622,7 +7627,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.38</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.39</a>
         </span>
     </div>
 
@@ -8060,6 +8065,7 @@
                     <li><button class="nav-link active" data-tab="network">Network</button></li>
                     <li><button class="nav-link" data-tab="correlations" title="Every gene pair from your set whose correlation cleared the cutoff, with r, slope and n">Gene pairs</button></li>
                     <li><button class="nav-link" data-tab="clusters">Clusters</button></li>
+                    <li><button class="nav-link" data-tab="matrix" title="Every gene in the set against every other, as a colored grid of correlations, including the pairs below the cutoff">Matrix</button></li>
                     <li><button class="nav-link" data-tab="mutation" style="display: none;" id="mutationTab">Mutation analysis</button></li>
                     <li><button class="nav-link" data-tab="synonyms" style="display: none;" id="synonymsTab">Synonyms/Orthologs</button></li>
                     <li><button class="nav-link" data-tab="summary">Summary</button></li>
@@ -8320,6 +8326,21 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                <!-- Matrix Tab: the whole set against itself -->
+                <div class="tab-content" id="tab-matrix">
+                    <div class="tip-box">
+                        <strong>Tip:</strong> Every pair in the set, including the ones below the cutoff, on the same cell lines the network was built from. Click a cell to open that pair's scatter. Rows follow the network's clusters.
+                    </div>
+                    <div class="table-controls">
+                        <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;"><input type="checkbox" id="matrixShowValues" checked> Show values</label>
+                        <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Order the genes by the network's clusters; unticked, they follow the order you entered them in"><input type="checkbox" id="matrixClusterOrder" checked> Cluster order</label>
+                        <button class="btn btn-outline btn-sm mobile-hide" id="matrixExportPng" title="Save the grid as a PNG image">Export image</button>
+                        <button class="btn btn-outline btn-sm" id="matrixDownloadCsv" title="Download the grid of correlations as a CSV file">Download CSV</button>
+                    </div>
+                    <div id="matrixNote" style="font-size:11px; color:#6b7280; margin-bottom:6px;"></div>
+                    <div id="matrixPlot" style="width:100%; min-height:120px;"><div style="text-align:center; color:var(--gray-500); padding:40px;">Run analysis to see the matrix</div></div>
                 </div>
 
                 <!-- Clusters Tab -->
@@ -10736,7 +10757,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_38"></script>
-    <script src="tour.js?v=v89_38"></script>
+    <script src="app.js?v=v89_39"></script>
+    <script src="tour.js?v=v89_39"></script>
 </body>
 </html>

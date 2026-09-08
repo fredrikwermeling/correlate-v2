@@ -5905,6 +5905,9 @@ class CorrelationExplorer {
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 tab.classList.add('active');
                 document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+                // Drawn only when its tab is in front: Plotly sizes a chart to
+                // its container, and a hidden container has no width.
+                if (tab.dataset.tab === 'matrix') this.displayCorrelationMatrix();
                 // Close Aa text settings panel on tab switch
                 const tsPanel = document.getElementById('textSettingsPanel');
                 if (tsPanel) tsPanel.style.display = 'none';
@@ -6438,6 +6441,10 @@ class CorrelationExplorer {
 
         // Download buttons
         document.getElementById('downloadCorrelations').addEventListener('click', () => this.downloadCSV('correlations'));
+        document.getElementById('matrixShowValues')?.addEventListener('change', () => this.displayCorrelationMatrix());
+        document.getElementById('matrixClusterOrder')?.addEventListener('change', () => this.displayCorrelationMatrix());
+        document.getElementById('matrixExportPng')?.addEventListener('click', () => this.exportCorrelationMatrixImage());
+        document.getElementById('matrixDownloadCsv')?.addEventListener('click', () => this.downloadCorrelationMatrixCSV());
         document.getElementById('downloadClusters').addEventListener('click', () => this.downloadCSV('clusters'));
         document.getElementById('downloadSummary').addEventListener('click', () => this.downloadSummary());
 
@@ -8955,6 +8962,7 @@ class CorrelationExplorer {
                 // network later (the heatmap) can reuse the exact lines the
                 // analysis ran on instead of falling back to its own default.
                 this._resultsCellLines = cellLineIndices.map(i => this.metadata.cellLines[i]);
+                this._resultsCellLineIndices = cellLineIndices;
                 if (this.results.success) {
                     this.displayResults();
                     this.showStatus('success',
@@ -11728,6 +11736,129 @@ class CorrelationExplorer {
         };
     }
 
+    // The set against itself. Computed here rather than read from the
+    // results, which hold only the pairs above the cutoff, on the exact cell
+    // lines and basis of the run. Capped at sixty genes, the entered ones
+    // first, so an expanded network does not draw an unreadable grid.
+    _correlationMatrixData() {
+        const res = this.results;
+        if (!res || !res.success) return null;
+        const MAX = 60;
+        const usable = (g) => g !== '⚡ Growth Rate' && !String(g).startsWith('📊') && (this.geneIndex.has(g) || res.basis === 'expr');
+        const input = (res.geneList || []).filter(usable);
+        const inputSet = new Set(input);
+        const clusterOf = new Map((res.clusters || []).map(c => [c.gene, c.cluster]));
+        const extra = (res.clusters || []).map(c => c.gene).filter(g => !inputSet.has(g) && usable(g));
+        let genes = input.concat(extra);
+        const truncated = genes.length > MAX;
+        genes = genes.slice(0, MAX);
+        if (genes.length < 2) return null;
+        if (document.getElementById('matrixClusterOrder')?.checked !== false) {
+            const rank = (g) => { const c = clusterOf.get(g); return (typeof c === 'number' && c > 0) ? c : 1e9; };
+            genes = genes.map((g, i) => ({ g, i })).sort((a, b) => rank(a.g) - rank(b.g) || a.i - b.i).map(x => x.g);
+        }
+        const idx = (this._resultsCellLineIndices && this._resultsCellLineIndices.length)
+            ? this._resultsCellLineIndices : Array.from({ length: this.nCellLines }, (_, i) => i);
+        this._runBasis = res.basis || this._runBasis || 'ge';
+        const vec = genes.map(g => {
+            const full = this._analysisVector(g);
+            if (!full) return null;
+            const v = new Float32Array(idx.length);
+            for (let k = 0; k < idx.length; k++) v[k] = full[idx[k]];
+            return v;
+        });
+        const n = genes.length;
+        const r = Array.from({ length: n }, () => new Array(n).fill(null));
+        const nn = Array.from({ length: n }, () => new Array(n).fill(0));
+        for (let a = 0; a < n; a++) {
+            for (let b = a; b < n; b++) {
+                if (!vec[a] || !vec[b]) continue;
+                const st = this.pearsonWithSlope(vec[a], vec[b]);
+                const val = (a === b) ? 1 : (isNaN(st.correlation) ? null : st.correlation);
+                r[a][b] = val; r[b][a] = val;
+                nn[a][b] = st.n; nn[b][a] = st.n;
+            }
+        }
+        return { genes, r, n: nn, truncated, cohortN: idx.length, basis: this._runBasis, clusterOf };
+    }
+
+    displayCorrelationMatrix() {
+        const host = document.getElementById('matrixPlot');
+        const note = document.getElementById('matrixNote');
+        if (!host) return;
+        const data = this._correlationMatrixData();
+        if (!data) {
+            if (typeof Plotly !== 'undefined') { try { Plotly.purge(host); } catch (e) { } }
+            host.innerHTML = '<div style="text-align:center; color:var(--gray-500); padding:40px;">Run analysis to see the matrix</div>';
+            if (note) note.textContent = '';
+            return;
+        }
+        this._matrixData = data;
+        const showValues = document.getElementById('matrixShowValues')?.checked !== false && data.genes.length <= 15;
+        const phone = window.innerWidth <= 640;
+        const n = data.genes.length;
+        const cell = Math.max(phone ? 18 : 22, Math.min(44, Math.floor((host.clientWidth - 120) / n)));
+        const basisWord = data.basis === 'expr' ? 'mRNA expression' : 'gene effect';
+        if (note) {
+            note.textContent = `${n} genes against each other, Pearson r of ${basisWord} over ${data.cohortN.toLocaleString()} cell lines`
+                + (data.truncated ? `. The network has more genes than fit here: the first sixty are shown, your own genes first.` : '.');
+        }
+        const hoverText = data.r.map((row, i) => row.map((v, j) => i === j ? data.genes[i]
+            : `${data.genes[i]} vs ${data.genes[j]}<br>r = ${v == null ? 'n/a' : v.toFixed(3)}<br>n = ${data.n[i][j]}`));
+        const trace = {
+            type: 'heatmap', z: data.r, x: data.genes, y: data.genes, zmin: -1, zmax: 1,
+            colorscale: [[0, '#2166ac'], [0.5, '#f7f7f7'], [1, '#b2182b']],
+            colorbar: { thickness: 12, len: 0.8, tickfont: { size: 10 }, title: { text: 'r', font: { size: 11 } } },
+            hoverinfo: 'text', text: hoverText, xgap: 1, ygap: 1
+        };
+        if (showValues) {
+            trace.text = data.r.map(row => row.map(v => v == null ? '' : v.toFixed(2)));
+            trace.texttemplate = '%{text}';
+            trace.textfont = { size: phone ? 9 : 11 };
+            trace.hovertext = hoverText;
+            trace.hoverinfo = 'text';
+        }
+        const tick = { size: phone ? 9 : (n > 30 ? 9 : 11) };
+        const layout = {
+            height: Math.max(320, n * cell + 130),
+            margin: { t: 20, r: 20, b: 20, l: 20 },
+            xaxis: { side: 'bottom', tickfont: tick, automargin: true, tickangle: n > 12 ? -60 : 0 },
+            yaxis: { tickfont: tick, automargin: true, autorange: 'reversed' },
+            paper_bgcolor: '#ffffff', plot_bgcolor: '#ffffff',
+            font: { family: 'Arial, Helvetica, sans-serif', color: '#374151' }
+        };
+        Plotly.react(host, [trace], layout, { responsive: true, displayModeBar: false, displaylogo: false }).then(el => {
+            el.removeAllListeners?.('plotly_click');
+            el.on('plotly_click', (ev) => {
+                const pt = ev.points?.[0];
+                if (!pt || pt.x === pt.y) return;
+                this.openInspectByGenes(String(pt.x), String(pt.y));
+            });
+        });
+    }
+
+    downloadCorrelationMatrixCSV() {
+        const data = this._matrixData || this._correlationMatrixData();
+        if (!data) { this.showCopyNotification?.('Run an analysis first.'); return; }
+        const q = (s) => '"' + String(s).replace(/"/g, '""') + '"';
+        const lines = [[''].concat(data.genes).map(q).join(',')];
+        data.r.forEach((row, i) => lines.push([data.genes[i]].concat(row.map(v => v == null ? '' : v.toFixed(4))).map(q).join(',')));
+        lines.push('');
+        lines.push(q(`Pearson r of ${data.basis === 'expr' ? 'mRNA expression' : 'gene effect'} over ${data.cohortN} cell lines, DepMap ${DEPMAP_VERSION}`));
+        this.downloadFile(lines.join('\n'), csvName('correlation_matrix'), 'text/csv');
+    }
+
+    exportCorrelationMatrixImage() {
+        const host = document.getElementById('matrixPlot');
+        if (!host || !host.data || typeof Plotly === 'undefined') { this.showCopyNotification?.('Run an analysis first.'); return; }
+        Plotly.toImage(host, { format: 'png', width: host.clientWidth, height: host.clientHeight, scale: 3 }).then(url => {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = csvName('correlation_matrix').replace(/\.csv$/, '.png');
+            document.body.appendChild(a); a.click(); a.remove();
+        }).catch(e => this.showCopyNotification?.('The image could not be made: ' + (e?.message || e)));
+    }
+
     pearsonWithSlope(x, y) {
         let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0, n = 0;
 
@@ -11855,6 +11986,9 @@ class CorrelationExplorer {
         this.displayCorrelationsTable();
         this.displayClustersTable();
         this.displaySummary();
+        this._matrixDrawnFor = null;
+        const _mp = document.getElementById('matrixPlot');
+        if (_mp && document.getElementById('tab-matrix')?.classList.contains('active')) this.displayCorrelationMatrix();
 
         // A restored figure has its display toggles ticked but nothing has run
         // their handlers, so apply them now that the network exists.
@@ -18226,6 +18360,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('downloadTissuePNG').style.display = 'none';
         { const _c = document.getElementById('copyTissueChart'); if (_c) _c.style.display = 'none'; }
         document.getElementById('downloadTissueCSV').style.display = 'none';
+
+        // A caller may ask for the popout to open with an overlay or a
+        // hotspot filter already set (the tour does). Applied here, after
+        // the selects above were rebuilt, so the first draw already has it.
+        const pre = this._inspectPreset;
+        this._inspectPreset = null;
+        if (pre) {
+            const set = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+            if (pre.hotspotGene) { set('hotspotGene', pre.hotspotGene); set('hotspotMode', pre.hotspotMode || 'color'); }
+            if (pre.filterGene) { set('mutationFilterGene', pre.filterGene); set('mutationFilterLevel', pre.filterLevel || '1+2'); }
+        }
 
         this.updateInspectPlot();
     }

@@ -132,6 +132,14 @@
     }));
     const dots = { color: '#9ca3af', size: 6, opacity: 0.6 };
 
+    // Open a pair's scatter with the hotspot overlay, and optionally the
+    // hotspot filter, already set: the popout applies the preset itself
+    // just before its first draw.
+    function openPairWithHotspot(a, g1, g2, mutGene, filterLevel) {
+        a._inspectPreset = { hotspotGene: mutGene, hotspotMode: 'color', filterGene: filterLevel ? mutGene : null, filterLevel: filterLevel || null };
+        a.openInspectByGenes(g1, g2);
+    }
+
     const P53_SET = ['TP53', 'MDM2', 'MDM4', 'CDKN1A', 'PPM1D', 'USP7'];
     const setText = () => P53_SET.filter(g => A().geneIndex.has(g)).join('\n');
 
@@ -195,6 +203,40 @@
             action: { label: 'Open TP53 vs MDM2 in the app', run: (a) => a.openInspectByGenes('TP53', 'MDM2') }
         },
         {
+            title: 'The same pair, split by TP53 mutation',
+            need: () => !!D.row('TP53') && !!D.row('MDM2') && !!A().mutations?.geneData?.TP53,
+            body: () => `<p>Here the dots are colored by TP53 mutation status: grey lines are wild-type, blue carry a hotspot mutation on one copy,
+                red on both. The pattern from the last page falls into two groups. The wild-type lines are the ones far down the MDM2 axis:
+                they still have working p53 and need MDM2 to hold it back. The mutated lines sit near zero on both axes: with p53 already gone, MDM2 no longer matters.</p>
+                <p>In any scatter you can color the dots this way with the Hotspot overlay, or go one step further and keep only the wild-type or only the mutated lines
+                with the Hotspot filter, which recomputes the correlation on that group alone.</p>`,
+            plot: (div) => {
+                const ids = D.ids(), rx = D.row('TP53'), ry = D.row('MDM2');
+                const g = { wt: { x: [], y: [] }, m1: { x: [], y: [] }, m2: { x: [], y: [] } };
+                for (let i = 0; i < ids.length; i++) {
+                    const x = D.ge(rx, i), y = D.ge(ry, i);
+                    if (!isFinite(x) || !isFinite(y)) continue;
+                    const lvl = D.hotspot('TP53', ids[i]);
+                    const b = lvl >= 2 ? g.m2 : lvl === 1 ? g.m1 : g.wt;
+                    b.x.push(x); b.y.push(y);
+                }
+                return Plotly.newPlot(div, [
+                    { x: g.wt.x, y: g.wt.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: dots, name: `WT (n=${g.wt.x.length})` },
+                    { x: g.m1.x, y: g.m1.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: { color: '#3b82f6', size: 7, opacity: 0.8 }, name: `1 mut (n=${g.m1.x.length})` },
+                    { x: g.m2.x, y: g.m2.y, mode: 'markers', type: 'scatter', hoverinfo: 'skip', marker: { color: '#dc2626', size: 7, opacity: 0.85 }, name: `2 mut (n=${g.m2.x.length})` }
+                ], layout({
+                    title: title('TP53 vs MDM2', 'colored by TP53 hotspot mutation'),
+                    xaxis: axis('TP53 Gene Effect'), yaxis: axis('MDM2 Gene Effect'),
+                    showlegend: true, legend: { x: 1, y: 0, xanchor: 'right', yanchor: 'bottom', bgcolor: 'rgba(255,255,255,0.85)', font: { size: phone() ? 9 : 10 } }
+                }), CFG);
+            },
+            actions: [
+                { label: 'Open with the TP53 overlay', run: (a) => openPairWithHotspot(a, 'TP53', 'MDM2', 'TP53', null) },
+                { label: 'Open only the TP53 wild-type lines', run: (a) => openPairWithHotspot(a, 'TP53', 'MDM2', 'TP53', '0') },
+                { label: 'Open only the TP53 mutated lines', run: (a) => openPairWithHotspot(a, 'TP53', 'MDM2', 'TP53', '1+2') }
+            ]
+        },
+        {
             title: 'Gene set analysis',
             need: () => P53_SET.filter(g => D.row(g)).length >= 4,
             body: () => `<p>This is the app's main tool. Paste a set of genes, and the app correlates their gene effect profiles across all
@@ -252,20 +294,7 @@
                     xaxis: axis('BRAF Gene Effect'), yaxis: axis('MAPK1 Gene Effect')
                 }), CFG);
             },
-            action: {
-                label: 'Open this scatter with the overlay',
-                run: (a) => {
-                    a.openInspectByGenes('BRAF', 'MAPK1');
-                    setTimeout(() => {
-                        const hg = document.getElementById('hotspotGene'), hm = document.getElementById('hotspotMode');
-                        if (hg && hm) {
-                            if (![...hg.options].some(o => o.value === 'BRAF')) hg.add(new Option('BRAF', 'BRAF'));
-                            hg.value = 'BRAF'; hm.value = 'color';
-                            a.updateInspectPlot?.();
-                        }
-                    }, 900);
-                }
-            }
+            action: { label: 'Open this scatter with the overlay', run: (a) => openPairWithHotspot(a, 'BRAF', 'MAPK1', 'BRAF', null) }
         },
         {
             title: 'Mutation analysis',
@@ -466,7 +495,7 @@
                 <p>Every popout has an Export button for figures and data, and Export for AI packages the view for a language model to read.
                 The How it works page has the longer explanation of the statistics.</p>`,
             actions: [
-                { label: 'Run the p53 example', run: () => PAGES[3].action.run(A()) },
+                { label: 'Run the p53 example', run: () => PAGES.find(p => p.title === 'Gene set analysis').action.run(A()) },
                 { label: 'Open the Cell Line Browser', run: (a) => a.openCellLineBrowser() },
                 { label: 'Open TP53 vs MDM2', run: (a) => a.openInspectByGenes('TP53', 'MDM2') }
             ]
