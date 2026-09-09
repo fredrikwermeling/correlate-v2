@@ -2827,6 +2827,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.48 (2026-09-09)</strong></p>
+                <ul>
+                    <li><b>The tour is back, behind How it works only.</b> No separate Tour entry. Its text is shorter on every page, the network is drawn as the app draws it with no numbers on the links, the choices under the TP53 scatter sit on one row with short legend labels, and the matrix page's button runs the set and opens the Matrix tab.</li>
+                </ul>
                 <p><strong>v.89.47 (2026-09-09)</strong></p>
                 <ul>
                     <li><b>"Cell line" spelled out.</b> The cell line pages no longer say "this line" or "the mutated lines" where a chart's line could be meant; it is "this cell line" and "the mutated cell lines" throughout.</li>
@@ -7659,7 +7663,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.47</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.48</a>
         </span>
     </div>
 
@@ -10789,6 +10793,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_47"></script>
+    <script src="app.js?v=v89_48"></script>
+    <script src="tour.js?v=v89_48"></script>
 </body>
 </html>

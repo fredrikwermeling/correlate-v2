@@ -6877,8 +6877,12 @@ class CorrelationExplorer {
         document.getElementById('enrichrDownloadBtn')?.addEventListener('click', () => this.downloadEnrichrCSV());
 
         // Infographic modal
-        document.getElementById('showInfoGraphic')?.addEventListener('click', () => {
-            document.getElementById('infographicModal').style.display = 'flex';
+        // How it works opens the tour; the long-form page is a button on the
+        // tour's last page, or opens directly if the tour did not load.
+        document.getElementById('showInfoGraphic')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (window.CorrelateTour) window.CorrelateTour.open();
+            else document.getElementById('infographicModal').style.display = 'flex';
         });
         document.getElementById('closeInfoGraphic')?.addEventListener('click', () => {
             document.getElementById('infographicModal').style.display = 'none';
