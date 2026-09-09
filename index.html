@@ -2827,6 +2827,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.43 (2026-09-09)</strong></p>
+                <ul>
+                    <li><b>Tour: the welcome page opens with what the app is.</b> Correlate compiles data on the panel's cell lines from DepMap and other resources; the paragraph then lists what comes from DepMap and what from the other sources.</li>
+                </ul>
                 <p><strong>v.89.42 (2026-09-08)</strong></p>
                 <ul>
                     <li><b>The tour and the Matrix tab no longer use Plotly.</b> Their charts are drawn directly, sized to the card, so a phone gets a steady picture that scrolls sideways when it is wider than the screen instead of being squeezed and re-squeezed as the page moves. Every gene label is shown, the color scale sits under the grid, and the matrix still shows r and n on hover, opens a pair's scatter on click, and exports as an image or a CSV.</li>
@@ -7643,7 +7647,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.42</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.43</a>
         </span>
     </div>
 
@@ -10775,6 +10779,6 @@
     </div>
 
     <script src="app.js?v=v89_42"></script>
-    <script src="tour.js?v=v89_42"></script>
+    <script src="tour.js?v=v89_43"></script>
 </body>
 </html>

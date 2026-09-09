@@ -421,13 +421,13 @@
     const PAGES = [
         {
             title: 'Welcome',
-            body: () => `<p>Correlate brings together what is known about ${num(D.ids().length)} human cancer cell lines, so you can choose the
-                right lines for an experiment and understand what drives them.</p>
-                <p>The core is DepMap, from the Broad Institute: a genome-wide CRISPR screen that says which genes each line depends on, along with
-                its mutations, copy number, mRNA levels and responses to drugs. Alongside it sit Cellosaurus, for each line's identity, origin and
-                history; Oncotree, for how the cancers are classified; curated lists of driver genes and fusions from the WHO classification, COSMIC
-                and OncoKB; published breast cancer subtypes; and a retroelement signal computed from public RNA-seq. Each cell line has its own
-                page, and every number on it says where it came from.</p>
+            body: () => `<p>Correlate compiles data on ${num(D.ids().length)} human cancer cell lines from DepMap and other resources, so that the
+                right lines can be chosen for an experiment and the biology behind them understood.</p>
+                <p>From DepMap, the Broad Institute's cancer dependency map: a genome-wide CRISPR screen showing which genes each line depends on,
+                together with mutations, copy number, mRNA levels and drug response. From other resources: Cellosaurus for identity, origin and
+                history; Oncotree for classification; curated driver gene and fusion lists from the WHO classification, COSMIC and OncoKB; published
+                breast cancer subtypes; and a retroelement signal computed from public RNA-seq. Each cell line has its own page, with the source
+                stated for every value.</p>
                 <p>This tour shows one example per feature. Each page has a real chart from the data and a button that opens
                 that view in the app, so you can try the same thing with your own genes.</p>
                 <ul>
