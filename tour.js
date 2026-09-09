@@ -423,8 +423,8 @@
             title: 'Welcome',
             body: () => `<p>Correlate compiles data on ${num(D.ids().length)} human cancer cell lines from DepMap and other resources, so that the
                 right lines can be chosen for an experiment and the biology behind them understood.</p>
-                <p>From DepMap, the Broad Institute's cancer dependency map: a genome-wide CRISPR screen showing which genes each line depends on,
-                together with mutations, copy number, mRNA levels and drug response. From other resources: Cellosaurus for identity, origin and
+                <p>From DepMap, the Broad Institute's Cancer Dependency Map: genome-wide CRISPR knockout screens that show which genes each line
+                depends on, together with the mutations, copy number, mRNA levels and drug responses of the same lines. From other resources: Cellosaurus for identity, origin and
                 history; Oncotree for classification; curated driver gene and fusion lists from the WHO classification, COSMIC and OncoKB; published
                 breast cancer subtypes; and a retroelement signal computed from public RNA-seq. Each cell line has its own page, with the source
                 stated for every value.</p>
