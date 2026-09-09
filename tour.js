@@ -206,7 +206,7 @@
 
     // Scatter with an optional regression line and a legend for the groups.
     function scatter(div, s) {
-        const H = phone() ? 250 : 300;
+        const H = phone() ? 225 : 300;
         const { ctx, W } = setupCanvas(div, H);
         const top = drawHeader(ctx, W, s.title, s.sub);
         const legendH = s.groups.length > 1 ? 22 : 0;
@@ -229,8 +229,10 @@
             const den = n * aa - a * a;
             if (Math.abs(den) > 1e-9) {
                 const slope = (n * ab - a * b) / den, ic = (b - slope * a) / n;
+                ctx.save(); ctx.beginPath(); ctx.rect(ar.x, ar.y, ar.w, ar.h); ctx.clip();
                 ctx.strokeStyle = C.green; ctx.lineWidth = 3; ctx.beginPath();
                 ctx.moveTo(sx(xr[0]), sy(slope * xr[0] + ic)); ctx.lineTo(sx(xr[1]), sy(slope * xr[1] + ic)); ctx.stroke();
+                ctx.restore();
             }
         }
         if (legendH) drawLegend(ctx, ar.x, H - 10, s.groups.map(g => ({ name: g.name, color: g.color, hidden: g.hidden })));
@@ -239,7 +241,7 @@
     // Horizontal box plots, one row per group, every point shown.
     function boxes(div, s) {
         const rows = s.rows;
-        const rowH = phone() ? 26 : 30;
+        const rowH = phone() ? 22 : 30;
         const top = s.sub ? 44 : 30;
         const H = top + rows.length * rowH + 50;
         const { ctx, W } = setupCanvas(div, H);
@@ -271,7 +273,7 @@
 
     // Dots in rows, jittered, one row per mutation state, median as a bar.
     function strip(div, s) {
-        const rowH = phone() ? 40 : 46;
+        const rowH = phone() ? 34 : 46;
         const top = s.sub ? 44 : 30;
         const H = top + s.rows.length * rowH + 50;
         const { ctx, W } = setupCanvas(div, H);
@@ -294,7 +296,7 @@
 
     // Histogram of the panel with one line marked in red, as the cell line pages draw it.
     function hist(div, s) {
-        const H = phone() ? 220 : 250;
+        const H = phone() ? 195 : 250;
         const { ctx, W } = setupCanvas(div, H);
         const top = drawHeader(ctx, W, s.title, s.sub);
         const ar = { x: 24, y: top + 4, w: W - 36, h: H - top - 4 - 46 };
@@ -315,7 +317,7 @@
 
     // Horizontal bars, one per row.
     function hbars(div, s) {
-        const rowH = phone() ? 22 : 24;
+        const rowH = phone() ? 17 : 24;
         const top = s.sub ? 44 : 30;
         const H = top + s.rows.length * rowH + 50;
         const { ctx, W } = setupCanvas(div, H);
@@ -349,7 +351,7 @@
     // every pair above the cutoff, blue positive and red negative, wider the
     // stronger, and nodes colored by their mean gene effect.
     function network(div, s) {
-        const H = phone() ? 300 : 340;
+        const H = phone() ? 240 : 340;
         const { ctx, W } = setupCanvas(div, H);
         const top = drawHeader(ctx, W, s.title, s.sub);
         const cx = W / 2, cy = top + (H - top - 44) / 2;
@@ -430,14 +432,13 @@
         {
             title: 'Welcome',
             body: () => `<p>Correlate compiles data on ${num(D.ids().length)} human cancer cell lines from DepMap and other resources.</p>
-                <p>From DepMap, the Cancer Dependency Map: CRISPR knockout screens showing which genes each cell line depends on, plus mutations, copy number, mRNA levels and drug response. From other resources: Cellosaurus, Oncotree, curated driver gene and fusion lists, published breast cancer subtypes, and a retroelement signal from public RNA-seq.</p>
-                <p>Each page of this tour shows one feature with a real chart and a button that opens it in the app.</p>`,
+                <p>Each page shows one feature. The button opens it in the app.</p>`,
         },
         {
             title: 'Gene set analysis',
             need: () => P53_SET.filter(g => D.row(g)).length >= 4,
-            body: () => `<p>Gene set analysis is the central tool of Correlate. Paste a set of genes and the app correlates their dependency scores across all cell lines. Pairs above the cutoff become links, and the set becomes a network.</p>
-                <p>Here, the p53 pathway. Blue links are positive correlations, red negative. Nodes can be colored by gene effect, or by your own statistics with the "With Stats" input.</p>`,
+            body: () => `<p>Paste a set of genes. Genes whose dependency scores correlate across cell lines are linked, and the set becomes a network.</p>
+                <p>Adjust the cutoff, and color the nodes by gene effect or by your own statistics.</p>`,
             plot: (div) => {
                 const genes = P53_SET.filter(g => D.row(g));
                 const edges = [];
@@ -458,10 +459,10 @@
             }
         },
         {
-            title: 'What one link means',
+            title: 'A link is a correlation',
             need: () => !!D.row('TP53') && !!D.row('MDM2'),
-            body: () => `<p>One link is a scatter: each dot is a cell line, placed by its score for each gene. Here r = ${(() => { const st = pearson(D.row('TP53'), D.row('MDM2')); return st ? st.r.toFixed(2) : '?'; })()} across ${num(scatterXY('TP53', 'MDM2').xs.length)} cell lines.</p>
-                <p>Cell lines with working p53 need MDM2 to keep it in check; cell lines that have lost p53 do not. The correlation reveals that relationship.</p>`,
+            body: () => `<p>Each link is a scatter of two genes across all cell lines, one dot per cell line.</p>
+                <p>TP53 and MDM2 correlate at r = ${(() => { const st = pearson(D.row('TP53'), D.row('MDM2')); return st ? st.r.toFixed(2) : '?'; })()}.</p>`,
             plot: (div) => {
                 const { xs, ys } = scatterXY('TP53', 'MDM2');
                 scatter(div, { title: 'TP53 vs MDM2', sub: `n = ${num(xs.length)} cell lines`, xLabel: 'TP53 Gene Effect', yLabel: 'MDM2 Gene Effect',
@@ -470,10 +471,9 @@
             action: { label: 'Open TP53 vs MDM2 in the app', run: (a) => a.openInspectByGenes('TP53', 'MDM2') }
         },
         {
-            title: 'The same pair, split by TP53 mutation',
+            title: 'Color by mutation',
             need: () => !!D.row('TP53') && !!D.row('MDM2') && !!A().mutations?.geneData?.TP53,
-            body: () => `<p>The same scatter, colored by TP53 mutation: grey wild-type, blue one mutated copy, red both. The wild-type cell lines are the ones that depend on MDM2.</p>
-                <p>Any scatter can be colored this way with the Hotspot overlay, or limited to one group with the Hotspot filter.</p>`,
+            body: () => `<p>Color the dots by a mutation. Wild-type TP53 cell lines depend on MDM2; mutated ones do not.</p>`,
             plot: (div) => {
                 const g = scatterByMutation('TP53', 'MDM2', 'TP53');
                 const spec = { title: 'TP53 vs MDM2', sub: 'colored by TP53 hotspot mutation', xLabel: 'TP53 Gene Effect', yLabel: 'MDM2 Gene Effect',
@@ -491,22 +491,18 @@
                 { label: 'Wild-type only', run: (div) => { div._spec.groups.forEach((g, i) => g.hidden = i !== 0); scatter(div, div._spec); } },
                 { label: 'Mutated only', run: (div) => { div._spec.groups.forEach((g, i) => g.hidden = i === 0); scatter(div, div._spec); } }
             ],
-            actions: [
-                { label: 'Open with the TP53 overlay', run: (a) => openPairWithHotspot(a, 'TP53', 'MDM2', 'TP53', null) },
-                { label: 'Open only the TP53 wild-type lines', run: (a) => openPairWithHotspot(a, 'TP53', 'MDM2', 'TP53', '0') },
-                { label: 'Open only the TP53 mutated lines', run: (a) => openPairWithHotspot(a, 'TP53', 'MDM2', 'TP53', '1+2') }
-            ]
+            action: { label: 'Open TP53 vs MDM2 colored by TP53', run: (a) => openPairWithHotspot(a, 'TP53', 'MDM2', 'TP53', null) }
         },
         {
             title: 'The correlation matrix',
             need: () => P53_SET.filter(g => D.row(g)).length >= 4,
-            body: () => `<p>The Matrix tab shows every pair in the set, above or below the cutoff, as one grid: red positive, blue negative, the number is r.</p>
-                <p>Click a cell to open its scatter; blank the pairs below the cutoff; export as image or CSV.</p>`,
+            body: () => `<p>The Matrix tab shows r for every pair in the set, above or below the cutoff.</p>
+                <p>Click a cell to open its scatter.</p>`,
             plot: (div) => {
                 const genes = P53_SET.filter(g => D.row(g));
                 const z = genes.map(g1 => genes.map(g2 => g1 === g2 ? 1 : (pearson(D.row(g1), D.row(g2))?.r ?? null)));
                 grid(div, { title: 'Correlation of gene effects, p53 pathway', rowLabels: genes, colLabels: genes, z, zmin: -1, zmax: 1,
-                    colorscale: [[0, '#2166ac'], [0.5, '#f7f7f7'], [1, '#b2182b']], showValues: true, colorbarTitle: 'r' });
+                    colorscale: [[0, '#2166ac'], [0.5, '#f7f7f7'], [1, '#b2182b']], showValues: true, colorbarTitle: 'r', cell: phone() ? 30 : 44 });
             },
             action: {
                 label: 'Run this set and open the Matrix tab',
@@ -516,8 +512,8 @@
         {
             title: 'The gene effect score',
             need: () => !!D.row('SOX10'),
-            body: () => `<p>A gene effect score says how much a cell line needs a gene: 0 means no effect, about -1 is a typical essential gene, more negative is a stronger need.</p>
-                <p>SOX10 across tissues: skin cell lines sit far to the left, the others near zero.</p>`,
+            body: () => `<p>Gene effect: 0 is no effect, about -1 is a typical essential gene.</p>
+                <p>SOX10 is needed only by skin cell lines.</p>`,
             plot: (div) => {
                 const groups = tissueGroups('SOX10', false, 14).sort((a, b) => a.med - b.med);
                 const keep = groups.slice(0, 3).concat(groups.slice(-4));
@@ -526,10 +522,10 @@
             action: { label: 'Open SOX10 in the Gene Effect view', run: (a) => a.openGeneEffectModal('SOX10', 'tissue') }
         },
         {
-            title: 'Coloring a scatter by a mutation',
+            title: 'A dependency that follows a mutation',
             need: () => !!D.row('BRAF') && !!D.row('MAPK1') && !!A().mutations?.geneData?.BRAF,
-            body: () => `<p>BRAF against MAPK1, colored by BRAF mutation. The mutated cell lines sit low on both axes: they depend on BRAF and on the kinase below it.</p>
-                <p>A dependency that follows a mutation is what a targeted drug is built on.</p>`,
+            body: () => `<p>BRAF-mutated cell lines depend on BRAF and on MAPK1 below it.</p>
+                <p>A dependency that follows a mutation is a drug target.</p>`,
             plot: (div) => {
                 const g = scatterByMutation('BRAF', 'MAPK1', 'BRAF');
                 scatter(div, { title: 'BRAF vs MAPK1', sub: 'colored by BRAF hotspot mutation', xLabel: 'BRAF Gene Effect', yLabel: 'MAPK1 Gene Effect',
@@ -544,8 +540,8 @@
         {
             title: 'Mutation analysis',
             need: () => !!D.row('BRAF') && !!A().mutations?.geneData?.BRAF,
-            body: () => `<p>Mutation analysis splits the panel by one mutation and ranks the genes whose dependency differs most between the two groups.</p>
-                <p>The simplest case: BRAF's own score by BRAF mutation status. The thick mark is the median.</p>`,
+            body: () => `<p>Mutation analysis splits the panel by a mutation and ranks the genes whose dependency differs.</p>
+                <p>Here BRAF, by BRAF mutation status.</p>`,
             plot: (div) => {
                 const ids = D.ids(), row = D.row('BRAF');
                 const wt = [], m1 = [], m2 = [];
@@ -574,8 +570,7 @@
         },
         {
             title: 'The Cell Line Browser',
-            body: () => `<p>The browser finds the cell lines that fit a project: filter by tissue, subtype, disease, sex, mutation, fusion or copy number, tick the ones you want, and send them on to a heatmap, an export or a comparison.</p>
-                <p>The chart shows the panel by tissue.</p>`,
+            body: () => `<p>Filter the panel by tissue, disease, sex, mutation, fusion or copy number, then send the selection to a heatmap or an export.</p>`,
             plot: (div) => {
                 const counts = new Map();
                 D.ids().forEach(id => { const l = D.lineage(id); if (l) counts.set(l, (counts.get(l) || 0) + 1); });
@@ -587,8 +582,8 @@
         {
             title: 'A cell line\'s page',
             need: () => !!D.lineId('A375') && !!A().globalSignatures?.byCellLine,
-            body: () => `<p>Every cell line has a page: origin, drivers, copy number, fusions, dependencies, expression, drug response and how to authenticate a stock.</p>
-                <p>Charts on the page place the cell line among all others. Here: ploidy, with A375 in red.</p>`,
+            body: () => `<p>Each cell line has a page: origin, drivers, dependencies, expression, drug response, authentication.</p>
+                <p>Here A375's ploidy against the panel.</p>`,
             plot: (div) => {
                 const id = D.lineId('A375'), sig = A().globalSignatures.byCellLine;
                 const vals = []; D.ids().forEach(x => { const v = sig[x]?.Ploidy; if (typeof v === 'number') vals.push(v); });
@@ -599,8 +594,8 @@
         {
             title: 'Expression',
             need: () => !!A().loadExpressionData,
-            body: () => `<p>The app also carries mRNA levels, as log2(TPM+1). Every gene view and scatter can switch from gene effect to mRNA.</p>
-                <p>MITF, the melanocyte lineage factor, is expressed far above the rest in skin cell lines.</p>`,
+            body: () => `<p>mRNA levels are available for every gene and cell line.</p>
+                <p>MITF is expressed almost only in skin cell lines.</p>`,
             plot: async (div) => {
                 if (!A().expressionLoaded) {
                     div.innerHTML = '<div class="tour-loading">Loading expression data...</div>';
@@ -616,8 +611,8 @@
         {
             title: 'The gene set heatmap',
             need: () => P53_SET.filter(g => D.row(g)).length >= 4 && typeof A()._hmOpenModal === 'function',
-            body: () => `<p>The heatmap shows many genes across many cell lines at once. Each row is a gene, each column a cell line, colored by that cell line's score, z-scored per gene.</p>
-                <p>Here the p53 pathway across skin cell lines. Orange is a dependency, purple means the knockout helped growth.</p>`,
+            body: () => `<p>A gene set across many cell lines, z-scored per gene, grouped and sorted as you like.</p>
+                <p>Here the p53 set across skin cell lines.</p>`,
             plot: (div) => {
                 const genes = P53_SET.filter(g => D.row(g));
                 const ids = D.ids();
@@ -652,8 +647,8 @@
             title: 'Drug response',
             need: () => !!D.lineId('A375') && Array.isArray(A().drugResponse?.compounds)
                 && A().drugResponse.compounds.some(c => /vemurafenib/i.test(c.name || '')),
-            body: () => `<p>Each cell line's page carries its PRISM drug screen: AUC from 0 (all cells killed) to 1 (no effect).</p>
-                <p>Vemurafenib, the BRAF V600E inhibitor, across the panel, with A375 in red. A375 carries BRAF V600E and sits among the most sensitive.</p>`,
+            body: () => `<p>Each page also holds the PRISM drug screen.</p>
+                <p>A375, with BRAF V600E, is among the cell lines most sensitive to vemurafenib.</p>`,
             plot: (div) => {
                 const id = D.lineId('A375');
                 const cp = A().drugResponse.compounds.find(c => /vemurafenib/i.test(c.name || ''));
@@ -664,12 +659,10 @@
         },
         {
             title: 'Where to go next',
-            body: () => `<p>Three ways to start: run the p53 example and swap in your own genes; open the Cell Line Browser and filter to your tissue; open a correlation for two genes you know.</p>
-                <p>Every popout has Export buttons for figures and data. The last button opens the longer explanation of the statistics.</p>`,
+            body: () => `<p>Start with the p53 example, or with the Cell Line Browser.</p>`,
             actions: [
                 { label: 'Run the p53 example', run: () => runExampleSet(null) },
                 { label: 'Open the Cell Line Browser', run: (a) => a.openCellLineBrowser() },
-                { label: 'Open TP53 vs MDM2', run: (a) => a.openInspectByGenes('TP53', 'MDM2') },
                 { label: 'The statistics in more depth', run: () => { const m = document.getElementById('infographicModal'); if (m) m.style.display = 'flex'; } }
             ]
         }
@@ -699,7 +692,9 @@
 #tourModal .tour-dot.done { background: #9ecf82; }
 #tourModal .tour-nav { min-width: 84px; min-height: 40px; }
 @media (max-width: 640px) {
-  #tourModal .tour-text { font-size: 14px; }
+  #tourModal .tour-text { font-size: 14px; line-height: 1.45; }
+  #tourModal .tour-text p { margin: 0 0 6px; }
+  #tourModal .tour-chart { margin: 2px 0 8px; }
   #tourModal .tour-nav { min-width: 72px; min-height: 44px; font-size: 14px; }
   #tourModal .tour-actions .btn { flex: 1 1 100%; min-height: 44px; font-size: 14px; }
   #tourModal .tour-choice { font-size: 13px; min-height: 40px; }
