@@ -441,9 +441,9 @@
         {
             title: 'Gene set analysis',
             need: () => P53_SET.filter(g => D.row(g)).length >= 4,
-            body: () => `<p>This is the app's own tool and the place to start. Paste a set of genes, and the app compares how much each cell line
-                depends on each of them, across all cell lines at once. Every pair whose scores rise and fall together is drawn as a link, and the
-                genes become a network. Genes in one complex or pathway usually end up linked, and a gene you did not expect there is a lead.</p>
+            body: () => `<p>Gene set analysis is the central tool of Correlate. Paste a set of genes, and the app compares how strongly each cell
+                line depends on each of them, across the whole panel. Pairs whose dependency scores rise and fall together are drawn as links, and
+                the set becomes a network. Genes in one complex or pathway usually end up linked, and an unexpected gene among them is a lead worth following.</p>
                 <p>The picture shows the p53 pathway genes. A blue link is a positive correlation, red is negative, and the wider the link the stronger it is.
                 The node color is each gene's average score across the panel. With the "With Stats" input you can paste your own numbers instead,
                 a fold change or a hit score from your own experiment, and the nodes take those colors, so your results sit on top of the map.</p>
