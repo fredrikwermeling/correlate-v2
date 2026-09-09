@@ -45064,11 +45064,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             },
             'E2F / S-phase replication': {
                 genes: ['MCM2', 'MCM3', 'MCM4', 'MCM5', 'MCM6', 'MCM7', 'PCNA', 'TOP2A', 'TYMS', 'CDK2', 'RRM1', 'RRM2'],
-                note: 'Replication-fork licensing and DNA-synthesis machinery. High signature ≈ rapidly cycling line with active E2F.'
+                note: 'Replication-fork licensing and DNA-synthesis machinery. High signature ≈ rapidly cycling cell line with active E2F.'
             },
             'G2/M mitotic progression': {
                 genes: ['CDK1', 'CCNB1', 'CCNB2', 'AURKA', 'AURKB', 'PLK1', 'BIRC5', 'CENPF', 'TPX2', 'KIF20A'],
-                note: 'Mitotic kinases and spindle proteins. High signature ≈ actively dividing line (often co-elevated with E2F signature).'
+                note: 'Mitotic kinases and spindle proteins. High signature ≈ actively dividing cell line (often co-elevated with E2F signature).'
             },
             'IFN response (α/γ)': {
                 genes: ['ISG15', 'IFIT1', 'IFIT3', 'MX1', 'OAS1', 'STAT1', 'IRF7', 'IFI6', 'IFITM1', 'IFI44'],
@@ -45330,7 +45330,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 // the reader is better served knowing they part company here.
                 const conflictHtml = (_lehName && _measured && _measured !== 'triple-negative')
                     ? `<div style="margin:0 0 10px; padding:7px 10px; background:#fffbeb; border:1px solid #fcd34d; border-left:3px solid #d97706; border-radius:5px; font-size:11px; line-height:1.5; color:#92400e;">
-                        <b>The published call and this line's own data disagree.</b> The Lehmann panel classifies it as triple-negative, subtype <b>${this.esc(_lehName)}</b>, and that is the call shown above. Its own measurements read <b>${this.esc(_measured)}</b> instead${_measured === 'HER2+' ? ', from a focal ERBB2 amplification' : ', from the transcript levels below'}. Neither is the clinical test, so treat this line's receptor status as unresolved.
+                        <b>The published call and this cell line's own data disagree.</b> The Lehmann panel classifies it as triple-negative, subtype <b>${this.esc(_lehName)}</b>, and that is the call shown above. Its own measurements read <b>${this.esc(_measured)}</b> instead${_measured === 'HER2+' ? ', from a focal ERBB2 amplification' : ', from the transcript levels below'}. Neither is the clinical test, so treat this cell line's receptor status as unresolved.
                        </div>`
                     : '';
                 const targets = [
@@ -45341,7 +45341,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const panels = targets.map(t => {
                     const pc = (t.d.mine != null) ? pct(t.d.arr, t.d.mine) : null;
                     const sub = pc == null ? 'not measured'
-                        : `<b style="color:${callColor};">${t.d.mine.toFixed(1)}</b> log₂-TPM &nbsp;<span style="color:#9ca3af;">(${pc}th pct of breast lines)</span>`;
+                        : `<b style="color:${callColor};">${t.d.mine.toFixed(1)}</b> log₂-TPM &nbsp;<span style="color:#9ca3af;">(${pc}th pct of breast cell lines)</span>`;
                     return `<div style="flex:1; min-width:150px;">
                         <div style="font-size:11px; font-weight:600; color:#374151; margin-bottom:2px;">${t.label}</div>
                         <div style="font-size:10px; color:#6b7280; margin-bottom:2px;">${sub}</div>
@@ -45349,11 +45349,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     </div>`;
                 }).join('');
                 receptorHtml = `
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast lines; the <span style="color:#dc2626;">red line</span> marks this cell line. A published classification, where one exists, is the leading call; otherwise the measurement stands in, and where the two disagree both are shown. The rule used here: <b>HER2+</b> on focal <i>ERBB2</i> amplification, otherwise <b>HR+</b> at ESR1 &ge; 3.0 or PGR &ge; 1.0 log&#8322;-TPM, otherwise <b>triple-negative</b>. The ER and PR cutoffs are fixed levels, placed in the gap between the expressing and non-expressing groups visible in these histograms. <b>None of this is the clinical test.</b> Clinically, ER and PR are scored by immunohistochemistry on protein, and HER2 by immunohistochemistry with in-situ hybridization (FISH) counting <i>ERBB2</i> gene copies where the staining is equivocal. Transcript level and copy number stand in for those, and a cell line can read differently from the tumor it came from.</p>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Transcript levels of <b>ESR1</b> (ER), <b>PGR</b> (PR) and <b>ERBB2</b> (HER2) are a surrogate for clinical receptor status. Each histogram shows the distribution across all breast cell lines; the <span style="color:#dc2626;">red line</span> marks this cell line. A published classification, where one exists, is the leading call; otherwise the measurement stands in, and where the two disagree both are shown. The rule used here: <b>HER2+</b> on focal <i>ERBB2</i> amplification, otherwise <b>HR+</b> at ESR1 &ge; 3.0 or PGR &ge; 1.0 log&#8322;-TPM, otherwise <b>triple-negative</b>. The ER and PR cutoffs are fixed levels, placed in the gap between the expressing and non-expressing groups visible in these histograms. <b>None of this is the clinical test.</b> Clinically, ER and PR are scored by immunohistochemistry on protein, and HER2 by immunohistochemistry with in-situ hybridization (FISH) counting <i>ERBB2</i> gene copies where the staining is equivocal. Transcript level and copy number stand in for those, and a cell line can read differently from the tumor it came from.</p>
                     ${conflictHtml}
                     <div style="margin:0 0 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                         <span>Expression-surrogate call: <span style="display:inline-block; padding:1px 8px; border-radius:10px; background:${callColor}22; color:${callColor}; font-weight:600; font-size:11px;">${call}</span>${callBasis ? `<span style="color:#6b7280; font-size:10px; margin-left:6px;">${callBasis}</span>` : ''}</span>
-                        <button onclick="window.app.exportWikiBreastExpressionCSV()" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Export ESR1 / PGR / ERBB2 expression for every breast line (this line flagged) as a CSV, so you can make your own plot">Export .csv</button>
+                        <button onclick="window.app.exportWikiBreastExpressionCSV()" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Export ESR1 / PGR / ERBB2 expression for every breast cell line (this cell line flagged) as a CSV, so you can make your own plot">Export .csv</button>
                     </div>
                     <div style="display:flex; gap:14px; flex-wrap:wrap;">${panels}</div>`;
                 this._receptorHistPending = {
@@ -45376,7 +45376,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const _vHits = this._virusAgents(cellLineId);
         const virusRow = _vHits
             ? _vHits.map(h => `<b>${this.esc(h.name)}</b> (${this.esc(h.agent)})${h.note ? ` <span style="font-size:10px; color:#9ca3af;">, ${this.esc(h.note)}</span>` : ''}`).join('<br>')
-                + `<div style="font-size:10px; color:#9ca3af; margin-top:3px;">From Cellosaurus. A virus can switch off a pathway without any mutation: an HPV-transformed line behaves as if it had lost p53 and RB whatever its <i>TP53</i> and <i>RB1</i> sequence says, and an EBV-immortalised lymphoblastoid line is not a tumor line at all. A cell line without this row has no record on file, which is not the same as being virus-free.</div>`
+                + `<div style="font-size:10px; color:#9ca3af; margin-top:3px;">From Cellosaurus. A virus can switch off a pathway without any mutation: an HPV-transformed cell line behaves as if it had lost p53 and RB whatever its <i>TP53</i> and <i>RB1</i> sequence says, and an EBV-immortalised lymphoblastoid cell line is not a tumor cell line at all. A cell line without this row has no record on file, which is not the same as being virus-free.</div>`
             : '';
         const originHtml = `
             <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Clinical information about the patient the cell line was derived from, plus how it grows in the lab.</p>
@@ -45464,7 +45464,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const polePoldHits = ['POLE', 'POLD1'].filter(damHit);
         if (polePoldHits.length > 0 && damagingCount > 200) flagCards.push({
             title: `${polePoldHits.join(' / ')} proofreading-deficient (ultramutator)`,
-            body: `Damaging mutation in ${polePoldHits.join(', ')}, the proofreading part of the DNA polymerase. Copying errors go uncorrected, so these lines carry very many point mutations (often more than 100 per megabase) while the chromosomes themselves stay largely intact: near-diploid, little chromosomal instability, no whole-genome doubling, microsatellite-stable. This is the second main route to a very high mutation count, separate from mismatch-repair loss. With this many mutations, most individual damaging mutations are passengers rather than drivers.`,
+            body: `Damaging mutation in ${polePoldHits.join(', ')}, the proofreading part of the DNA polymerase. Copying errors go uncorrected, so these cell lines carry very many point mutations (often more than 100 per megabase) while the chromosomes themselves stay largely intact: near-diploid, little chromosomal instability, no whole-genome doubling, microsatellite-stable. This is the second main route to a very high mutation count, separate from mismatch-repair loss. With this many mutations, most individual damaging mutations are passengers rather than drivers.`,
             color: '#dc2626'
         });
         // POLE/POLD1 damaging mutation WITHOUT an elevated burden, surface it
@@ -45632,7 +45632,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 synthesis = '<b>CDK4/6 dependent</b> by gene-effect, with no obvious mutation driving it.';
                 color = '#059669';
             } else if (cdkGE !== null && cdkGE > -0.1) {
-                synthesis = '<b>Cell cycle not CDK4/6-driven</b> in this line.';
+                synthesis = '<b>Cell cycle not CDK4/6-driven</b> in this cell line.';
                 color = '#6b7280';
             } else {
                 synthesis = 'Mixed / insufficient signal.';
@@ -46015,7 +46015,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const headerColor = nHit > 0 ? '#4c782e' : '#991b1b';
             const headerBg = nHit > 0 ? '#f0fdf4' : '#fef2f2';
             const summaryNote = nHit === 0
-                ? ` <span style="font-weight:400; color:#991b1b; font-size:10px;">, none of the usual hallmark genes are altered. The driver may be an unusual one, a copy-number change outside the panel, or the line may not be what its label says (see Authentication below)</span>`
+                ? ` <span style="font-weight:400; color:#991b1b; font-size:10px;">, none of the usual hallmark genes are altered. The driver may be an unusual one, a copy-number change outside the panel, or the cell line may not be what its label says (see Authentication below)</span>`
                 : '';
             checklistHtml = `
                 <div style="padding:8px 12px; background:${headerBg}; border-left:3px solid ${headerColor}; margin-bottom:8px;">
@@ -46097,7 +46097,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }).join('')
             : '';
         const fusionHtml = `
-            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A gene fusion joins parts of two genes into one, usually after a chromosomal rearrangement such as a translocation, and the fused gene can drive the cancer. <b>Curated driver fusions</b> (green box) come from a list of about 50 well-known driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA and others), graded by how much independent evidence supports the call in this line: <b>high</b>, the partner gene's expression and its CRISPR dependency both agree; <b>medium</b>, one of the two, or a matching tissue; <b>low</b>, the fusion name alone, in a tissue where it is not expected. The <b>raw partner list</b> below is the unfiltered DepMap fusion-caller output; in rearranged genomes most of those are passengers or technical artifacts.</p>
+            <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A gene fusion joins parts of two genes into one, usually after a chromosomal rearrangement such as a translocation, and the fused gene can drive the cancer. <b>Curated driver fusions</b> (green box) come from a list of about 50 well-known driver fusions (BCR-ABL1, EWSR1-FLI1, EML4-ALK, PML-RARA and others), graded by how much independent evidence supports the call in this cell line: <b>high</b>, the partner gene's expression and its CRISPR dependency both agree; <b>medium</b>, one of the two, or a matching tissue; <b>low</b>, the fusion name alone, in a tissue where it is not expected. The <b>raw partner list</b> below is the unfiltered DepMap fusion-caller output; in rearranged genomes most of those are passengers or technical artifacts.</p>
             ${clinicalFusionHtml ? `<div style="margin-bottom:10px; padding:8px 10px; background:#f0fdf4; border-left:3px solid #5d9239;"><b style="color:#4c782e;">Curated driver fusions</b> <span style="font-size:10px; color:#6b7280;">(graded high / medium / low by how much independent evidence supports the call, see above)</span>${clinicalFusionHtml}</div>` : ''}
             ${row('Fusion partners (total, raw)', fusionCount > 0 ? fusionCount : '<span style="color:#9ca3af;">none called. The fusion table lists calls only, so this means no fusion was reported for this cell line, not that it was checked and found clean.</span>')}
             ${fusionPartners.length ? row('Raw partner genes', fusionPartners.slice(0, 20).map(g => `<span class="gene-hover clb-gene-link" data-gene="${g}" style="cursor:help;">${g}</span>`).join(', ') + (fusionPartners.length > 20 ? ` <span style="color:#9ca3af;">… +${fusionPartners.length - 20} more</span>` : '')) : ''}
@@ -46114,7 +46114,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // missing value must NOT render as "No", that wrongly implies the
             // line was tested and came back negative.
             const wgdLabel = gs.WGD === true
-                ? '<span style="color:#dc2626; font-weight:600;">Yes</span> <span style="font-size:10px; color:#6b7280;">, the full chromosome set was duplicated at some point in this line\'s evolution, so gains and losses are read against a roughly doubled genome. Common in cancer: about 73% of the lines with a call. Called by PureCN from sequencing coverage and allele ratios.</span>'
+                ? '<span style="color:#dc2626; font-weight:600;">Yes</span> <span style="font-size:10px; color:#6b7280;">, the full chromosome set was duplicated at some point in this cell line\'s evolution, so gains and losses are read against a roughly doubled genome. Common in cancer: about 73% of the cell lines with a call. Called by PureCN from sequencing coverage and allele ratios.</span>'
                 : gs.WGD === false
                     ? 'No <span style="font-size:10px; color:#6b7280;">, no whole-genome doubling detected: this genome was never duplicated wholesale, and its ploidy reflects individual chromosome gains and losses only.</span>'
                     : '';
@@ -46138,12 +46138,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const aneupLabel = gs.Aneuploidy != null ? (() => {
                 const desc = gs.Aneuploidy < 15 ? 'low' :
                              gs.Aneuploidy < 25 ? 'medium' : 'high';
-                return `${gs.Aneuploidy} / 39 <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; how many of the 39 chromosome arms are gained or lost as a whole, relative to this line's own overall ploidy. 0 means every arm is balanced, 39 means every arm is off. Whole-arm events only, so it complements the fine-scale instability measured by CIN below. Ben-David <i>et al.</i> 2021 scoring; high tier is 25 and up.)</span>`;
+                return `${gs.Aneuploidy} / 39 <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; how many of the 39 chromosome arms are gained or lost as a whole, relative to this cell line's own overall ploidy. 0 means every arm is balanced, 39 means every arm is off. Whole-arm events only, so it complements the fine-scale instability measured by CIN below. Ben-David <i>et al.</i> 2021 scoring; high tier is 25 and up.)</span>`;
             })() : '';
             const cinLabel = gs.CIN != null ? (() => {
                 const desc = gs.CIN < 0.45 ? 'low' :
                              gs.CIN < 0.72 ? 'medium' : 'high';
-                return `${gs.CIN.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; chromosomal instability: the fraction of the genome whose copy number deviates from this line's own baseline, capturing focal fragment-scale gains and losses rather than whole arms. A genome can look even at arm level and still be high here. High tier is 0.72 and up.)</span>`;
+                return `${gs.CIN.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; chromosomal instability: the fraction of the genome whose copy number deviates from this cell line's own baseline, capturing focal fragment-scale gains and losses rather than whole arms. A genome can look even at arm level and still be high here. High tier is 0.72 and up.)</span>`;
             })() : '';
             const lohLabel = gs.LoHFraction != null ? (() => {
                 // Loss-of-heterozygosity fraction. Typical diploid genome runs
@@ -46151,7 +46151,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 // (e.g. BRCAness signatures, often co-occurring with WGD).
                 const desc = gs.LoHFraction < 0.15 ? 'low' :
                              gs.LoHFraction < 0.3 ? 'medium' : 'high';
-                return `${gs.LoHFraction.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; fraction of the genome where one parental copy has been lost; high tier is 0.3 and up, often seen in whole-genome-doubled lines and in lines with defective recombination repair)</span>`;
+                return `${gs.LoHFraction.toFixed(2)} <span style="font-size:10px; color:#6b7280;">(<b>${desc}</b>; fraction of the genome where one parental copy has been lost; high tier is 0.3 and up, often seen in whole-genome-doubled cell lines and in cell lines with defective recombination repair)</span>`;
             })() : '';
             // Whether PureCN produced any structural call for this line. Some
             // lines have only an MSI score (PureCN ploidy / WGD / CIN / LoH /
@@ -46163,7 +46163,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const structuralNote = hasStructural ? '' :
                 `<div style="margin:6px 0; padding:6px 10px; background:#fffbeb; border-left:3px solid #f59e0b; font-size:11px; color:#92400e;"><b>Structural genome metrics not available</b> for this cell line: ploidy, whole-genome doubling, aneuploidy, chromosomal instability and loss of heterozygosity were not called. Only the MSI score below is available. A missing value does not mean the genome is normal.</div>`;
             genomeSigHtml = `
-                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Genome-wide <b>chromosomal</b> metrics: whole-genome doubling, arm-level aneuploidy, fine-scale chromosomal instability, loss of heterozygosity and microsatellite stability. Lines with a doubled genome or high microsatellite instability behave differently in many comparisons, so these are worth knowing before comparing lines. They describe chromosomes, not point mutations: a line can carry very many point mutations (<b>POLE / POLD1</b> or <b>MSI-high</b>) and still look calm here. The point-mutation view is in the <i>Driver mutations</i> section above.</p>
+                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Genome-wide <b>chromosomal</b> metrics: whole-genome doubling, arm-level aneuploidy, fine-scale chromosomal instability, loss of heterozygosity and microsatellite stability. Lines with a doubled genome or high microsatellite instability behave differently in many comparisons, so these are worth knowing before comparing lines. They describe chromosomes, not point mutations: a cell line can carry very many point mutations (<b>POLE / POLD1</b> or <b>MSI-high</b>) and still look calm here. The point-mutation view is in the <i>Driver mutations</i> section above.</p>
                 ${structuralNote}
                 ${row('Whole-genome doubling (WGD)', wgdLabel)}
                 ${row('Ploidy', ploidyLabel)}
@@ -46174,10 +46174,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 ${hasStructural ? `
                 <div style="margin-top:16px; padding-top:12px; border-top:1px dashed #e5e7eb;">
                     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-                        <div style="font-weight:600; color:#374151; font-size:12px;">Where this line sits in the cohort</div>
-                        <button onclick="app._downloadGenomeMetricsCSV('${cellLineId}')" style="font-size:10px; padding:3px 8px; background:#fff; color:#4c782e; border:1px solid #d1d5db; border-radius:4px; cursor:pointer;" title="Download cohort values for Ploidy, WGD, Aneuploidy, CIN as CSV (with this line flagged)">⤓ CSV</button>
+                        <div style="font-weight:600; color:#374151; font-size:12px;">Where this cell line sits in the cohort</div>
+                        <button onclick="app._downloadGenomeMetricsCSV('${cellLineId}')" style="font-size:10px; padding:3px 8px; background:#fff; color:#4c782e; border:1px solid #d1d5db; border-radius:4px; cursor:pointer;" title="Download cohort values for Ploidy, WGD, Aneuploidy, CIN as CSV (with this cell line flagged)">⤓ CSV</button>
                     </div>
-                    <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">Distribution of each metric across all cell lines with the value available. The dashed red line marks <b>this</b> cell line's position; for WGD (binary) the red bar is this line's category. Hover the Plotly toolbar (top-right of each plot) for PNG / SVG download per panel.</p>
+                    <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">Distribution of each metric across all cell lines with the value available. The dashed red line marks <b>this</b> cell line's position; for WGD (binary) the red bar is this cell line's category. Hover the Plotly toolbar (top-right of each plot) for PNG / SVG download per panel.</p>
                     <div class="wiki-hist-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                         <div id="clbWikiHistPloidy" style="height:170px;"></div>
                         <div id="clbWikiHistAneup" style="height:170px;"></div>
@@ -46205,7 +46205,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const pctRank = allVals.length ? Math.round((nBelow / allVals.length) * 100) : null;
                 const isHigh = cut != null && re.t >= cut;
                 retroWikiHtml = `
-                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">How much RNA 750 retroelements produce, measured from this line's public CCLE RNA-seq data. The panel covers full-length <b>LINE-1</b>, <b>HERV-K</b> and <b>SVA</b> copies that lie outside genes, so the reads reflect the elements' own promoter activity rather than a host gene's transcript. Only uniquely mapped reads are counted, summed per element and given as counts per million reads (CPM); an element counts as active above 0.5 CPM. 669 of the 1,208 lines have public data; the median total is about 40 CPM, and the top tenth (about 80 CPM and up) is called retroelement-high.</p>
+                <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">How much RNA 750 retroelements produce, measured from this cell line's public CCLE RNA-seq data. The panel covers full-length <b>LINE-1</b>, <b>HERV-K</b> and <b>SVA</b> copies that lie outside genes, so the reads reflect the elements' own promoter activity rather than a host gene's transcript. Only uniquely mapped reads are counted, summed per element and given as counts per million reads (CPM); an element counts as active above 0.5 CPM. 669 of the 1,208 cell lines have public data; the median total is about 40 CPM, and the top tenth (about 80 CPM and up) is called retroelement-high.</p>
                 ${row('Total signal', `${re.t.toFixed(1)} CPM <span style="font-size:10px; color:#6b7280;">(panel percentile ${pctRank}${pctRank !== null ? 'th' : ''}, panel median is about 40 CPM)</span>`)}
                 ${row('LINE-1 (L1)', `${re.l1.toFixed(1)} CPM`)}
                 ${row('HERV-K', `${re.hk.toFixed(1)} CPM`)}
@@ -46213,8 +46213,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 ${row('Active elements', `${re.a} / 750`)}
                 ${isHigh ? `<div style="margin-top:8px; padding:8px 10px; background:#fef3c7; border-left:3px solid #d97706; font-size:11px; color:#92400e;"><b>Retroelement-high:</b> top tenth of the measured panel.</div>` : ''}
                 <div style="margin-top:16px; padding-top:12px; border-top:1px dashed #e5e7eb;">
-                    <div style="font-weight:600; color:#374151; font-size:12px; margin-bottom:6px;">Where this line sits among the 669 measured lines</div>
-                    <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">Distribution of each measure across the measured lines; the dashed red line marks this cell line. The CPM axes are on a log2 scale because the signal is strongly skewed.</p>
+                    <div style="font-weight:600; color:#374151; font-size:12px; margin-bottom:6px;">Where this cell line sits among the 669 measured cell lines</div>
+                    <p style="margin:0 0 8px; font-size:10px; color:#6b7280;">Distribution of each measure across the measured cell lines; the dashed red line marks this cell line. The CPM axes are on a log2 scale because the signal is strongly skewed.</p>
                     <div class="wiki-hist-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
                         <div id="clbWikiHistRetroTotal" style="height:170px;"></div>
                         <div id="clbWikiHistRetroL1" style="height:170px;"></div>
@@ -46224,7 +46224,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                     </div>
                 </div>`;
             } else {
-                retroWikiHtml = `<p style="margin:0; font-size:11px; color:#6b7280;">Not measured: this line has no public hg19 RNA-seq alignment in the CCLE collection, so no retroelement signal can be computed. 669 of 1,208 lines are covered.</p>`;
+                retroWikiHtml = `<p style="margin:0; font-size:11px; color:#6b7280;">Not measured: this cell line has no public hg19 RNA-seq alignment in the CCLE collection, so no retroelement signal can be computed. 669 of 1,208 cell lines are covered.</p>`;
             }
         }
 
@@ -46240,7 +46240,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const typFor = subKey || pd || 'this subtype';
         const typTag = (isTypical) => isTypical
             ? ` <span style="color:#4c782e; font-size:10px; font-weight:600;" title="One of the canonical / recurrent drivers of ${typFor}">✓ typical ${typFor} driver</span>`
-            : (kb ? ` <span style="color:#9ca3af; font-size:10px;" title="Not among the handful of canonical ${typFor} hallmark genes. This is a short curated list, so 'not listed' does not necessarily mean rare, it may still be a real, even common, driver in this line.">not a canonical ${typFor} hallmark</span>` : '');
+            : (kb ? ` <span style="color:#9ca3af; font-size:10px;" title="Not among the handful of canonical ${typFor} hallmark genes. This is a short curated list, so 'not listed' does not necessarily mean rare, it may still be a real, even common, driver in this cell line.">not a canonical ${typFor} hallmark</span>` : '');
 
         // Merge hotspot + functional-loss + CN on the same gene into one row.
         const altByGene = new Map();
@@ -46327,7 +46327,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             <div style="margin-top:12px; padding-top:10px; border-top:1px solid #e5e7eb;">
                 <div class="wiki-sub-h">Pathways that may have contributed to transformation</div>
                 <p class="wiki-sub-p">Alterations in this cell line that fall in 25 pathways often altered in cancer. <b>These are hypotheses, not conclusions</b>: an alteration in a pathway does not prove that the pathway drove the cancer, and the pathway that mattered may not be listed here at all.
-                <br><br><b>What the labels mean.</b> <b>Driver active</b>: a growth-promoting gene carries an activating hotspot mutation or a focal amplification, or is part of a curated fusion. <b>Brake lost</b>: a tumor suppressor in the pathway carries a damaging mutation, an inferred loss of function, or a focal deletion. <b>Regulation lost, TP53 intact</b>: the only loss in the p53 pathway is CDKN2A/B. Its p14ARF product normally restrains MDM2, so p53 is held back upstream while TP53 itself is unaltered. Such lines usually still have working p53, and the CRISPR result below typically shows TP53 knockout helping growth and MDM2 knockout hurting it. All labels describe the <i>alteration</i> found, not a measurement of pathway activity.
+                <br><br><b>What the labels mean.</b> <b>Driver active</b>: a growth-promoting gene carries an activating hotspot mutation or a focal amplification, or is part of a curated fusion. <b>Brake lost</b>: a tumor suppressor in the pathway carries a damaging mutation, an inferred loss of function, or a focal deletion. <b>Regulation lost, TP53 intact</b>: the only loss in the p53 pathway is CDKN2A/B. Its p14ARF product normally restrains MDM2, so p53 is held back upstream while TP53 itself is unaltered. Such cell lines usually still have working p53, and the CRISPR result below typically shows TP53 knockout helping growth and MDM2 knockout hurting it. All labels describe the <i>alteration</i> found, not a measurement of pathway activity.
                 <br><br><b>What was checked.</b> Damaging mutations across about 8,900 genes, inferred loss of function, the curated focal copy-number panel, and curated driver fusions. Activating hotspots come from a 49-gene panel, so an activating point mutation in a gene outside that panel will not appear. Where a CRISPR knockout result exists it is shown underneath; that is a functional measurement: 0 = no effect, &minus;0.5 = selectively essential, &minus;1 &asymp; a typical strongly essential gene.</p>
                 ${pathwayStatusHtml}
             </div>`;
@@ -46435,7 +46435,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             if (hasFamily) {
                 const topFamily = familyZ.sort((a, b) => a.z - b.z).slice(0, 8);
                 familyDepHtml = topFamily.length > 0
-                    ? row(`Top essential vs same-lineage lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family, n=${familyIdx.length})</span>`, topFamily.map(g => renderEssRow(g, { familyScope: true })).join(', '))
+                    ? row(`Top essential vs same-lineage cell lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family, n=${familyIdx.length})</span>`, topFamily.map(g => renderEssRow(g, { familyScope: true })).join(', '))
                     : '';
             } else if (lin) {
                 familyDepHtml = `<div style="padding:6px 10px; background:#f9fafb; border-left:3px solid #9ca3af; font-size:11px; color:#6b7280; margin-top:4px;">Too few ${lin} cell lines (${familyIdx.length}) for a same-lineage &ldquo;cancer family&rdquo; comparison, only the whole-cohort view above is shown.</div>`;
@@ -46448,7 +46448,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
             const interpLines = [];
             if (essentialDrugTargets.length > 0) {
-                interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #4c782e; font-size:11px;"><b style="color:#4c782e;">Druggable dependencies unique to this line</b>, genes this cell line depends on more than typical AND for which approved or clinical-stage drugs exist: ${essentialDrugTargets.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;">(z ${fmtZ(g.z)})</span>`).join(', ')}.</div>`);
+                interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #4c782e; font-size:11px;"><b style="color:#4c782e;">Druggable dependencies unique to this cell line</b>, genes this cell line depends on more than typical AND for which approved or clinical-stage drugs exist: ${essentialDrugTargets.map(g => `<span class="gene-hover clb-gene-link" data-gene="${g.gene}" style="cursor:help;">${g.gene}</span> <span style="color:#9ca3af; font-size:10px;">(z ${fmtZ(g.z)})</span>`).join(', ')}.</div>`);
             }
             if (essentialPathwayHits.length > 0) {
                 const hitsByPathway = {};
@@ -46463,7 +46463,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 }
                 if (Object.keys(hitsByPathway).length > 0) {
                     const items = Object.entries(hitsByPathway).map(([pw, gs]) => `<li><b>${pw}</b>: ${gs.join(', ')}</li>`).join('');
-                    interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #5d9239; font-size:11px;"><b style="color:#4c782e;">Pathway dependencies unique to this line</b>, cancer-pathway genes this cell line depends on more than typical (z &lt; &minus;1.5):<ul style="margin:2px 0 0 18px; padding:0;">${items}</ul></div>`);
+                    interpLines.push(`<div style="padding:6px 10px; background:#f0fdf4; border-left:3px solid #5d9239; font-size:11px;"><b style="color:#4c782e;">Pathway dependencies unique to this cell line</b>, cancer-pathway genes this cell line depends on more than typical (z &lt; &minus;1.5):<ul style="margin:2px 0 0 18px; padding:0;">${items}</ul></div>`);
                 }
             }
 
@@ -46482,7 +46482,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 ? `<div style="padding:6px 10px; background:#fef2f2; border-left:3px solid #dc2626; font-size:11px; margin-top:4px;"><b style="color:#991b1b;">Tumor suppressors whose knockout boosts growth</b> (red above): ${tsHits.map(g => g.gene).join(', ')}. Removing these helps the cell grow, so they are <em>still functional</em> here and have <em>not</em> been inactivated in this cell line.</div>`
                 : '';
 
-            const introPara = `<p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks which genes this cell line cannot grow without. The interesting ones are <b>selective to this line</b>: genes it needs more than most cell lines, often downstream of its driver. <b>"More than most" is judged against all ${this.nCellLines.toLocaleString()} screened lines</b>, across every lineage, not only same-tissue lines. Genes every cell needs (ribosomal, RNA polymerase and the like) are left out, since they say nothing about this line. Rankings use the z-score against that whole set: below &minus;2, much more essential than typical; above +2, knockout helps growth much more than typical. A second list scores the same way <b>against same-lineage lines only</b>, so it shows what this line depends on beyond what its cancer family shares. <span style="display:inline-block; margin-left:6px;">💊 = an approved or clinical-stage drug targets this gene.</span></p>`;
+            const introPara = `<p style="margin:0 0 8px; font-size:11px; color:#6b7280;">A CRISPR knockout screen asks which genes this cell line cannot grow without. The interesting ones are <b>selective to this cell line</b>: genes it needs more than most cell lines, often downstream of its driver. <b>"More than most" is judged against all ${this.nCellLines.toLocaleString()} screened cell lines</b>, across every lineage, not only same-tissue lines. Genes every cell needs (ribosomal, RNA polymerase and the like) are left out, since they say nothing about this line. Rankings use the z-score against that whole set: below &minus;2, much more essential than typical; above +2, knockout helps growth much more than typical. A second list scores the same way <b>against same-lineage lines only</b>, so it shows what this cell line depends on beyond what its cancer family shares. <span style="display:inline-block; margin-left:6px;">💊 = an approved or clinical-stage drug targets this gene.</span></p>`;
             if (zScored.length === 0) {
                 // The cell line index is valid (we're in the clIdx >= 0
                 // branch) but no gene-effect values survived the per-gene
@@ -46490,7 +46490,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 // the metadata index but its CRISPR row is all-NaN in the
                 // current release. Surface that explicitly instead of leaving
                 // a silent void between the intro paragraph and the Source.
-                geSigHtml = `${introPara}<div style="padding:10px 12px; background:#fef2f2; border-left:3px solid #991b1b; font-size:11px;"><b style="color:#991b1b;">No usable CRISPR gene-effect data for this cell line.</b> The line is in the panel but has no measurable values in this release. That happens for a few lines each release, usually those screened too recently or removed during quality control. The other sections (mutations, copy number, fusions, expression, drug response) still show what is available.</div>`;
+                geSigHtml = `${introPara}<div style="padding:10px 12px; background:#fef2f2; border-left:3px solid #991b1b; font-size:11px;"><b style="color:#991b1b;">No usable CRISPR gene-effect data for this cell line.</b> The cell line is in the panel but has no measurable values in this release. That happens for a few cell lines each release, usually those screened too recently or removed during quality control. The other sections (mutations, copy number, fusions, expression, drug response) still show what is available.</div>`;
             } else {
                 geSigHtml = `${introPara}
                     ${row('Top essential vs whole cohort <span style="color:#9ca3af; font-weight:400;">(all lineages)</span>', topUniqueHtml)}
@@ -46609,8 +46609,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const topFamilyExpr = exprFamilyZ.sort((a, b) => b.z - a.z).slice(0, 8);
                 const topFamilyLow = [...exprFamilyZ].sort((a, b) => a.z - b.z).filter(g => g.z <= -1).slice(0, 8);
                 const exprFamilyHtml = hasFamilyE
-                    ? ((topFamilyExpr.length ? row(`Top uniquely high vs same-lineage lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family, n=${familyIdxE.length})</span>`, topFamilyExpr.map(g => renderExprRow(g, { familyScope: true })).join(', ')) : '')
-                       + (topFamilyLow.length ? row(`Top uniquely low vs same-lineage lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family)</span>`, topFamilyLow.map(g => renderExprRow(g, { familyScope: true })).join(', ')) : ''))
+                    ? ((topFamilyExpr.length ? row(`Top uniquely high vs same-lineage cell lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family, n=${familyIdxE.length})</span>`, topFamilyExpr.map(g => renderExprRow(g, { familyScope: true })).join(', ')) : '')
+                       + (topFamilyLow.length ? row(`Top uniquely low vs same-lineage cell lines only <span style="color:#9ca3af; font-weight:400;">(${lin} cancer family)</span>`, topFamilyLow.map(g => renderExprRow(g, { familyScope: true })).join(', ')) : ''))
                     : (lin ? `<div style="padding:6px 10px; background:#f9fafb; border-left:3px solid #9ca3af; font-size:11px; color:#6b7280; margin-top:4px;">Too few ${lin} cell lines (${familyIdxE.length}) for a same-lineage comparison.</div>` : '');
 
                 // 2) Pathway-activity signatures.
@@ -46643,7 +46643,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 const inactiveSig = sigResults.filter(s => s.meanZ < -0.75);
                 const inactiveSigHtml = inactiveSig.length > 0
                     ? `<div style="margin-top:6px; padding:6px 10px; background:#f9fafb; border-left:3px solid #6b7280; font-size:11px;">`
-                        + `<b style="color:#374151;">Gene programs expressed below average</b> <span style="color:#9ca3af; font-size:10px;">(same measure, mean z below &minus;0.75: the program's genes are consistently lower than in the average line)</span>`
+                        + `<b style="color:#374151;">Gene programs expressed below average</b> <span style="color:#9ca3af; font-size:10px;">(same measure, mean z below &minus;0.75: the program's genes are consistently lower than in the average cell line)</span>`
                         + inactiveSig.map(s => `<div style="margin:3px 0 3px 4px;">`
                             + `<span style="font-weight:600; color:#4b5563;" title="${s.info.note.replace(/"/g, '&quot;')}">${s.name}</span> `
                             + `<span style="color:#9ca3af; font-size:10px;">, mean z = ${fmtZ(s.meanZ)} across ${s.n}/${s.total} panel genes</span>`
@@ -46706,7 +46706,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 exprSigHtml = `
                     <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">What matters is <b>which genes are unusually on or off in this cell line</b>, not which have the highest expression; that list is always led by mitochondrial and ribosomal genes that are high in every line. "Unusual" is judged <b>against every cell line in the expression table</b> (${(this.expressionMetadata?.cellLines?.length || 0).toLocaleString()} lines across every lineage, not only same-tissue lines). Values are log₂(TPM+1), mRNA on a log scale where above 1 is clearly expressed, plus the gene's z-score against that whole set (above +2, much higher than in the typical cell line; below &minus;2, strongly silenced). Hits carry a <span style="color:#4c782e; font-weight:600;">✓ lineage-typical</span> flag when the whole cancer family also over-expresses them, common for the cancer type rather than specific to this line. A second list ranks genes unusually high <b>against same-lineage lines only</b>.</p>
                     ${row('Top uniquely high vs whole cohort <span style="color:#9ca3af; font-weight:400;">(all lineages)</span>', topUniqueHtml)}
-                    ${row('Top uniquely low vs whole cohort <span style="color:#9ca3af; font-weight:400;">(all lineages, genes the cohort expresses but this line does not)</span>', topLowHtml)}
+                    ${row('Top uniquely low vs whole cohort <span style="color:#9ca3af; font-weight:400;">(all lineages, genes the cohort expresses but this cell line does not)</span>', topLowHtml)}
                     ${exprFamilyHtml}
                     ${xist !== undefined
                         ? row('XIST', xist.toFixed(2) + (xist > 1.0 ? ', active (the normal silencing of the extra X chromosome is working)' : ', silenced (unusual; can re-activate X-linked genes)'))
@@ -46822,8 +46822,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
                 drugHtml = `
                     <div style="margin:0 0 8px;"><button onclick="window.app.exportWikiDrugResponseCSV()" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px; color:var(--earth-700); border-color:var(--earth-300);" title="Export every PRISM compound with this cell line's AUC, the cohort mean/SD and z-score, plus target / mechanism / indication, as a CSV so you can make your own plot">Export drug responses (.csv)</button></div>
-                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically relevant compounds). The <b>AUC viability score</b> runs from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. On its own it does not say whether this line is unusually responsive; for that it is compared with every other cell line tested with the same drug.<br><br>The <b>z-score</b> does that. <b>σ</b> is the standard deviation of the drug's AUC across all PRISM cell lines, so <b>&minus;1.4σ below average</b> means this line's AUC sits 1.4 standard deviations below the mean for that drug: the drug kills it clearly harder than it kills a typical line. Rough guide: beyond <b>1σ</b> is noteworthy, beyond <b>2σ</b> is a strong outlier. The &ldquo;of N tested&rdquo; count covers the lines that also have a CRISPR screen here. &ldquo;Standout sensitive&rdquo; lists compounds below &minus;1σ; &ldquo;standout resistant&rdquo; lists those above +1σ. The histogram under each compound shows the AUC across all tested lines, with the red line marking this cell line.<br><br>Each row gives the compound <b>name</b>, its <b>target &middot; mechanism of action</b>, and this line's viability score and z-score. The compound's approved clinical uses are in the CSV export; they describe the drug, not this cell line's cancer type.</p>
-                    <div style="margin:0 0 10px; padding:8px 12px; background:var(--earth-50); border-left:3px solid var(--earth-700); border-radius:0 4px 4px 0; font-size:11px; color:#5b4a2c;"><b>&ldquo;Standout sensitive&rdquo; means selective, not necessarily strong.</b> A line can be more sensitive than most others to a drug (low z-score) and still not very sensitive in absolute terms (high AUC, few cells killed). Read both: the <b>AUC</b> says how much the drug kills <i>this</i> line; the <b>z-score</b> says whether that is unusual.</div>
+                    <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Results from the DepMap PRISM Repurposing screen (${dr.panelSize} clinically relevant compounds). The <b>AUC viability score</b> runs from 0 to 1: <b>0 = all cells killed</b>, <b>1 = no killing</b>. On its own it does not say whether this cell line is unusually responsive; for that it is compared with every other cell line tested with the same drug.<br><br>The <b>z-score</b> does that. <b>σ</b> is the standard deviation of the drug's AUC across all PRISM cell lines, so <b>&minus;1.4σ below average</b> means this line's AUC sits 1.4 standard deviations below the mean for that drug: the drug kills it clearly harder than it kills a typical line. Rough guide: beyond <b>1σ</b> is noteworthy, beyond <b>2σ</b> is a strong outlier. The &ldquo;of N tested&rdquo; count covers the lines that also have a CRISPR screen here. &ldquo;Standout sensitive&rdquo; lists compounds below &minus;1σ; &ldquo;standout resistant&rdquo; lists those above +1σ. The histogram under each compound shows the AUC across all tested cell lines, with the red line marking this cell line.<br><br>Each row gives the compound <b>name</b>, its <b>target &middot; mechanism of action</b>, and this line's viability score and z-score. The compound's approved clinical uses are in the CSV export; they describe the drug, not this cell line's cancer type.</p>
+                    <div style="margin:0 0 10px; padding:8px 12px; background:var(--earth-50); border-left:3px solid var(--earth-700); border-radius:0 4px 4px 0; font-size:11px; color:#5b4a2c;"><b>&ldquo;Standout sensitive&rdquo; means selective, not necessarily strong.</b> A cell line can be more sensitive than most others to a drug (low z-score) and still not very sensitive in absolute terms (high AUC, few cells killed). Read both: the <b>AUC</b> says how much the drug kills <i>this</i> cell line; the <b>z-score</b> says whether that is unusual.</div>
                     ${sensitive.length ? `<div><b style="color:#4c782e;">Standout sensitive:</b><ul style="margin:4px 0 10px 18px; padding:0;">${sensitive.map(c => fmtCompound(c, 'sens')).join('')}</ul></div>` : '<div style="color:#6b7280; font-size:11px; margin-bottom:6px;">Nothing stands out as unusually sensitive.</div>'}
                     ${resistant.length ? `<div><b style="color:#991b1b;">Standout resistant:</b><ul style="margin:4px 0 10px 18px; padding:0;">${resistant.map(c => fmtCompound(c, 'res')).join('')}</ul></div>` : ''}`;
                 // Stash for the post-render histogram draw.
@@ -46889,7 +46889,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         </div>`;
         const authHtml = `
             <p style="margin:0 0 8px;">Before using a cell line you should confirm it really is what the label says. The standard method is <b>Short Tandem Repeat (STR) profiling</b>, a small panel of highly variable DNA regions (microsatellites) that act like a fingerprint. An authenticated cell line matches the reference profile at every marker.</p>
-            <p style="margin:0 0 8px;"><b>How to use this:</b> send your cells to a commercial authentication service (ATCC, DSMZ, and other vendors offer this), then compare their report to the table below. A perfect or one-marker mismatch is considered an authentic match; two or more mismatches typically means the line is misidentified or contaminated and should not be trusted for downstream experiments.</p>
+            <p style="margin:0 0 8px;"><b>How to use this:</b> send your cells to a commercial authentication service (ATCC, DSMZ, and other vendors offer this), then compare their report to the table below. A perfect or one-marker mismatch is considered an authentic match; two or more mismatches typically means the cell line is misidentified or contaminated and should not be trusted for downstream experiments.</p>
             ${_strLinksHtml}
             <p style="margin:0 0 6px;"><b>Reference profile for ${name}:</b></p>
             ${strTableHtml}`;
@@ -46926,7 +46926,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         body.innerHTML = summaryHtml + [
             // ── Identity ──────────────────────────────────────────────────
             this._wikiHistoryHtml(cellLineId, { rrid, name })
-                ? section('History and provenance <span style="font-size:11px; color:#6b7280;">, where this line came from and what it is a version of</span>',
+                ? section('History and provenance <span style="font-size:11px; color:#6b7280;">, where this cell line came from and what it is a version of</span>',
                     this._wikiHistoryHtml(cellLineId, { rrid, name }),
                     'Cellosaurus (SIB / ExPASy) for provenance, derivative relationships and misidentification history; DepMap Model table for the panel name.')
                 : '',
