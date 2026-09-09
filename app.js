@@ -397,10 +397,6 @@ class CorrelationExplorer {
             try { this.openCellLineBrowser(); }
             catch (e) { console.warn('Could not open cell-line browser from #cell route:', e); }
         }
-        if (h === 'tour') {
-            try { window.CorrelateTour?.open(); }
-            catch (e) { console.warn('Could not open the tour from the #tour route:', e); }
-        }
     }
 
     // Serialize a popout's recreate-metadata into a URL and open it in a new
@@ -6881,13 +6877,8 @@ class CorrelationExplorer {
         document.getElementById('enrichrDownloadBtn')?.addEventListener('click', () => this.downloadEnrichrCSV());
 
         // Infographic modal
-        // The tour is the introduction; the long-form page it used to open
-        // is reached from the tour's last page, or directly if the tour is
-        // not loaded.
-        document.getElementById('showInfoGraphic')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (window.CorrelateTour) window.CorrelateTour.open();
-            else document.getElementById('infographicModal').style.display = 'flex';
+        document.getElementById('showInfoGraphic')?.addEventListener('click', () => {
+            document.getElementById('infographicModal').style.display = 'flex';
         });
         document.getElementById('closeInfoGraphic')?.addEventListener('click', () => {
             document.getElementById('infographicModal').style.display = 'none';
@@ -41051,10 +41042,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('openAIViewBtn')?.addEventListener('click', () => {
             document.getElementById('optionsOtherMenu')?.style.setProperty('display', 'none');
             this.openAIViewDialog();
-        });
-        document.getElementById('openTourBtn')?.addEventListener('click', () => {
-            document.getElementById('optionsOtherMenu')?.style.setProperty('display', 'none');
-            window.CorrelateTour?.open();
         });
 
         document.getElementById('showCorrelationDirect')?.addEventListener('click', () => {
