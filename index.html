@@ -2387,7 +2387,6 @@
                serves a different job and only competes for the screen.
                - Export for AI: the file cannot be handed to an assistant from
                  a phone in any useful way.
-               - New tab: a second tab of a dense app is not a phone gesture.
                - Enrichr: hands off to an external site that is unusable here.
                - Select / Remove mode: precise node picking with a fingertip.
                - Compare all ...: wide tables that cannot be read at this width.
@@ -2732,10 +2731,6 @@
             #compareAllMutationsBtn, #compareAllTranslocationsBtn,
             #compareAllCnBtn, #compareAllCancerTypesBtn,
             .enrichrBtn, .js-help-export-ai { display: none !important; }
-            /* "New tab" opens a duplicate of a dense desktop view. */
-            #inspectModalInner .modal-header .btn-outline[onclick*="NewTab"],
-            #geneEffectModalInner .modal-header .btn-outline[onclick*="NewTab"],
-            #corrAnalysisModalInner .modal-header .btn-outline[onclick*="NewTab"] { display: none !important; }
             /* Network -> Heatmap, view-only on a phone: the grid scroller
                pans with a finger (default overflow-x:auto, nothing here sets
                touch-action:none to block it) and the footer's Close button
@@ -2827,6 +2822,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.50 (2026-09-11)</strong></p>
+                <ul>
+                    <li><b>The cell line inspect has New tab.</b> The comparison opened from the Cell Line Browser (selected vs the rest, or gate A vs gate B) can now be sent to a new browser tab like the other popouts, with its comparison group, cutoffs, sorting and gene search. New tab is also available on the phone now, in every popout.</li>
+                    <li><b>Fix: Find gene in the inspect froze the page.</b> Typing the first letter of a gene matched thousands of genes, and every one of them was labelled on both volcanoes, which locked the tab for a minute and looked like the box did nothing. The tables now redraw after a short pause, the gene typed comes first (exact name, then names starting with the text), and the volcano marks the genes at the top of the table only.</li>
+                    <li><b>Export for AI says when it fails.</b> An error during the export left the Export button stuck on "Exporting..." with nothing else happening. The dialog now reports the error and the button comes back. The status line also says when the picture of the view is being saved, which is the long, silent part, and a picture that does not finish is skipped after 25 seconds rather than holding the file.</li>
+                </ul>
                 <p><strong>v.89.49 (2026-09-09)</strong></p>
                 <ul>
                     <li><b>Tour: one screen per page.</b> Every page is now two short sentences, one chart and one button, sized to fit a phone screen without scrolling. The regression line stays inside the plot.</li>
@@ -7667,7 +7668,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.49</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.50</a>
         </span>
     </div>
 
@@ -9493,6 +9494,7 @@
                     <h3 id="selectionInspectTitle">Inspect selection</h3>
                     <div id="selectionInspectSubtitle" style="font-size:11px; color:var(--gray-500); margin-top:1px;"></div>
                 </div>
+                <button onclick="app.openSelectionInspectInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; margin-right:8px; flex:0 0 auto; color:var(--green-700); border-color:var(--green-400);" title="Open this comparison (same cell lines, comparison group and cutoffs) in a new browser tab so you can keep working here">New tab &#8599;</button>
                 <button id="selectionInspectClose" class="modal-close" title="Close">&times;</button>
             </div>
             <div class="modal-body" style="font-size:12px; color:#374151;">
@@ -10797,7 +10799,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_48"></script>
+    <script src="app.js?v=v89_50"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

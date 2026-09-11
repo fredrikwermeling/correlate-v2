@@ -456,7 +456,7 @@ class CorrelationExplorer {
         // gene box and the file-backed ones.
         const allowed = new Set([
             ...this._GE_NEWTAB_CONTROLS(), ...this._SCATTER_NEWTAB_CONTROLS(),
-            ...this._CA_NEWTAB_CONTROLS(), ...Object.keys(this._DEPENDENT_CONTROLS()),
+            ...this._CA_NEWTAB_CONTROLS(), ...this._SI_NEWTAB_CONTROLS(), ...Object.keys(this._DEPENDENT_CONTROLS()),
         ]);
         const oncScope = this._ONCOTREE_CONTROL_SCOPE();
         const setOne = (id, v) => {
@@ -497,6 +497,7 @@ class CorrelationExplorer {
     // reproduces the same view (not just the gene/pair).
     _GE_NEWTAB_CONTROLS() { return ['geDataType', 'geHotspotGeneSelect', 'geTissueFilter', 'geSubtypeFilter', 'geOncotreeFilter', 'geHotspotFilter', 'geHotspotLevel', 'geFusionFilter', 'geFusionLevel', 'geCnFilter', 'geCnLevel', 'geMinGroupSize', 'geCellLineSearch']; }
     _SCATTER_NEWTAB_CONTROLS() { return ['inspectGeneX', 'inspectGeneY', 'xAxisDataType', 'yAxisDataType', 'showCorrelationLine', 'showZeroLines', 'scatterDotColor', 'scatterXmin', 'scatterXmax', 'scatterYmin', 'scatterYmax', 'scatterCancerFilter', 'scatterSubtypeFilter', 'scatterOncotreeFilter', 'mutationFilterGene', 'mutationFilterLevel', 'translocationFilterGene', 'translocationFilterLevel', 'scatterCnFilter', 'scatterCnLevel', 'scatterFontSize', 'hotspotGene', 'hotspotMode', 'translocationGene', 'translocationMode', 'colorByCategory', 'colorByPicked', 'colorByLegendStat', 'scatterCellSearch', 'customCellLineFilter', 'scatterWhiteBg']; }
+    _SI_NEWTAB_CONTROLS() { return ['geLeftDeltaCutoff', 'geLeftQCutoff', 'geLeftN', 'geRightDeltaCutoff', 'geRightQCutoff', 'geRightN', 'geInspectSearch', 'geInspectHideThin']; }
     _CA_NEWTAB_CONTROLS() { return ['caTissueFilter', 'caSubtypeFilter', 'caOncotreeFilter', 'caHotspotFilter', 'caHotspotLevel', 'caFusionFilter', 'caFusionLevel', 'caCnFilter', 'caCnLevel', 'caCellLineSearch']; }
 
     // Snapshot the underlying analysis/network so a new tab can rebuild the
@@ -715,6 +716,25 @@ class CorrelationExplorer {
             };
         } else if (kind === 'correlation_analysis') {
             popout = { kind, gene1: this._caGene1, gene2: this._caGene2, view: this._caView || 'tissue', controls: this._captureControls(this._CA_NEWTAB_CONTROLS()), textSettings };
+        } else if (kind === 'selection_inspect') {
+            // The cell line inspect: the selected side, and either gate B or
+            // the rule that picks the comparison group (the group is derived
+            // again in the new tab, so its ids do not need to travel).
+            const gateAB = this._geInspectMode === 'gateAB' && this._geGateAB;
+            const grp = this._geInspectGroup;
+            popout = {
+                kind,
+                mode: gateAB ? 'gateAB' : 'rest',
+                selection: (gateAB ? this._geGateAB.aIds : (this._geInspectResults?.selected || [])).slice(),
+                comparison: gateAB ? this._geGateAB.bIds.slice() : null,
+                gateOrigin: gateAB ? (this._geGateABOrigin || 'clb') : null,
+                scope: this._geInspectScope || 'all',
+                group: grp ? { lineages: [...grp.lineages], sublineages: [...grp.sublineages], diseases: [...grp.diseases] } : null,
+                custom: this._geInspectCustom?.size ? [...this._geInspectCustom] : null,
+                needsExpr: !!this.expressionLoaded,
+                sort: this._geInspectSort ? JSON.parse(JSON.stringify(this._geInspectSort)) : null,
+                controls: this._captureControls(this._SI_NEWTAB_CONTROLS())
+            };
         } else {
             popout = { kind };
         }
@@ -741,6 +761,10 @@ class CorrelationExplorer {
     }
     openCorrelationInNewTab() { this.openPopoutInNewTab(this._buildPopoutMeta('scatter')); }
     openCorrAnalysisInNewTab() { this.openPopoutInNewTab(this._buildPopoutMeta('correlation_analysis')); }
+    openSelectionInspectInNewTab() {
+        if (!this._geInspectResults?.selected?.length) return;
+        this.openPopoutInNewTab(this._buildPopoutMeta('selection_inspect'));
+    }
 
     // Recreate-metadata for the Mutation-Inspect distribution. Mirrors what
     // _exportMutationInspectChart embeds in exported images, plus the inspect-level
@@ -816,6 +840,28 @@ class CorrelationExplorer {
         } else if (popout.kind === 'correlation_analysis' && popout.gene1 && popout.gene2) {
             this.openCorrelationAnalysisModal(popout.gene1, popout.gene2, popout.view || 'tissue');
             this._restorePopoutControls(popout.controls, 'caTissueFilter', () => { this._savedScatterTextSettings = ts; this.switchCorrAnalysisView(popout.view || 'tissue'); });
+        } else if (popout.kind === 'selection_inspect' && popout.selection?.length) {
+            if (popout.mode === 'gateAB' && popout.comparison?.length) {
+                this.inspectGateComparison(popout.selection, popout.comparison, { origin: popout.gateOrigin || 'clb' });
+            } else {
+                this._clbSelectedCellLines = new Set(popout.selection);
+                this._resetGEInspectScope();
+                this._geInspectScope = popout.scope || 'all';
+                if (popout.group) {
+                    this._geInspectGroup = { lineages: new Set(popout.group.lineages || []),
+                        sublineages: new Set(popout.group.sublineages || []), diseases: new Set(popout.group.diseases || []) };
+                }
+                if (popout.custom?.length) {
+                    this._geInspectCustom = new Set(popout.custom);
+                    this._geInspectCustomRaw = popout.custom.join('\n');
+                }
+                this._geInspectPanel = ['group', 'custom'].includes(this._geInspectScope) ? this._geInspectScope : null;
+                this.inspectSelectionGE();
+            }
+            // The cutoffs, search and sort live in controls the inspect
+            // builds as it opens, so they go back after it, then one redraw.
+            if (popout.sort) this._geInspectSort = popout.sort;
+            this._restorePopoutControls(popout.controls, null, () => this._renderGEInspectTables());
         } else if (popout.kind === 'scatter' && popout.gene1 && popout.gene2) {
             // Axis data types (GE / expression / growth) must be set BEFORE
             // openInspect reads them, otherwise both axes fall back to GE.
@@ -901,7 +947,7 @@ class CorrelationExplorer {
         // mutation_inspect (and other flat payloads) carry controls top-level,
         // not under .popout; without this the expr-view preload never fired.
         const pc = meta.popout?.controls || meta.controls || {};
-        const needsExpr = popoutDataType === 'expr' || pc.geDataType === 'expr' || pc.xAxisDataType === 'expr' || pc.yAxisDataType === 'expr' || meta.metric === 'expr' || meta.graphType === 'expr_correlate';
+        const needsExpr = popoutDataType === 'expr' || meta.popout?.needsExpr || pc.geDataType === 'expr' || pc.xAxisDataType === 'expr' || pc.yAxisDataType === 'expr' || meta.metric === 'expr' || meta.graphType === 'expr_correlate';
         const needsCn = pc.xAxisDataType === 'cn' || pc.yAxisDataType === 'cn';
         const run = () => this._doApplyRestoreMeta(meta);
         const pre = [];
@@ -7369,9 +7415,21 @@ class CorrelationExplorer {
             btn.innerHTML = 'Exporting...';
             btn.disabled = true;
             await new Promise(r => setTimeout(r, 50));
-            await this.exportFullAIAnalysis();
+            // A throw anywhere in the export used to leave the button dead
+            // on "Exporting..." with an empty status line, which reads as
+            // the export doing nothing. Say what went wrong and stay open.
+            let failed = false;
+            try {
+                await this.exportFullAIAnalysis();
+            } catch (e) {
+                failed = true;
+                console.error('Export for AI failed:', e);
+                const st = document.getElementById('aiExportStatus');
+                if (st) st.textContent = `Export failed: ${e?.message || e}. Try again; if it repeats, close and reopen the view.`;
+            }
             btn.innerHTML = orig;
             btn.disabled = false;
+            if (failed) return;
             // Auto-close on success (status pane shows "Compressing..." then
             // clears once the download fires; if there was an error the
             // status text persists and we keep the dialog open).
@@ -33743,6 +33801,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // The dialog offers the image and defaults it on; the custom dialog
         // has no checkbox and keeps its own rule below.
         const wantCompanionImage = custom ? true : (document.getElementById('aiIncludeImage')?.checked !== false);
+        // The picture is a courtesy; the data file is the export. A capture
+        // that never returns (a stalled chart render) must not hold the file
+        // hostage, so it is given a fixed time and then skipped.
+        const timed = (p, ms = 25000) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('picture timed out')), ms))]);
+        if (wantCompanionImage) setStatus('Saving a picture of the view...');
         try {
             // A custom export whose request replaced the cohort describes
             // nothing on screen: its context says so, and a screenshot of
@@ -33777,13 +33840,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 // mode it is in (selection vs rest, or gate A vs gate B). The
                 // gate export shipped no picture at all previously.
                 const el = document.getElementById('selectionInspectInner');
-                if (el && el.offsetParent !== null) _pngUrl = await this._domToPngUrl(el);
+                if (el && el.offsetParent !== null) _pngUrl = await timed(this._domToPngUrl(el));
             } else if (source === 'clb') {
                 const el = document.getElementById('clbModalCard');
-                if (el && el.offsetParent !== null) _pngUrl = await this._domToPngUrl(el);
+                if (el && el.offsetParent !== null) _pngUrl = await timed(this._domToPngUrl(el));
             } else if (source === 'wiki') {
                 const el = document.getElementById('clbWikiBody');
-                if (el && el.offsetParent !== null) _pngUrl = await this._domToPngUrl(el);
+                if (el && el.offsetParent !== null) _pngUrl = await timed(this._domToPngUrl(el));
             } else if (source === 'heatmap') {
                 // Also not a Plotly chart: the same composed canvas Export
                 // image / Copy use (labels + dendrogram, grid + group strip,
@@ -33803,11 +33866,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     : null;
                 const el = plotId && document.getElementById(plotId);
                 if (el && el.data && typeof Plotly !== 'undefined') {
-                    _pngUrl = await Plotly.toImage(el, {
+                    _pngUrl = await timed(Plotly.toImage(el, {
                         format: 'png',
                         width: (el._fullLayout?.width || el.clientWidth || 900) * 2,
                         height: (el._fullLayout?.height || el.clientHeight || 600) * 2
-                    });
+                    }));
                 }
             }
             // A question-less exprCorrelates table has no chart: plotId stays
@@ -47815,9 +47878,18 @@ ${clone.innerHTML}
         document.getElementById('geInspectHideThin')?.addEventListener('change', () => renderSides());
         const searchEl = document.getElementById('geInspectSearch');
         if (searchEl) {
+            // Redrawn after a short pause, not on every keystroke: each redraw
+            // is two volcanoes over the whole genome.
+            let searchTimer = null;
             searchEl.addEventListener('input', () => {
                 const clr = document.getElementById('geInspectSearchClear');
                 if (clr) clr.style.display = searchEl.value.trim() ? '' : 'none';
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(renderSides, 300);
+            });
+            searchEl.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter') return;
+                clearTimeout(searchTimer);
                 renderSides();
             });
             document.getElementById('geInspectSearchClear')?.addEventListener('click', () => {
@@ -49437,11 +49509,15 @@ ${clone.innerHTML}
         // Start from the offsets the annotations were built with, in pixels
         // relative to the dot, then move only in y: moving in x would carry a
         // label across the zero line and read as the wrong side.
+        // A redraw that lands while this one's promise is still pending
+        // leaves fewer annotations than labels; those labels are skipped.
+        const anns = el.layout?.annotations || [];
         const items = lab.map((r, i) => {
             const left = r.delta < 0;
+            if (!anns[i]) return { i, left, px: NaN, py: NaN };
             return {
                 i, left,
-                px: xa.d2p(r.delta), py: ya.d2p(el.layout.annotations[i].y),
+                px: xa.d2p(r.delta), py: ya.d2p(anns[i].y),
                 w: String(r.gene).length * FONT * 0.62 + 4,
                 ax: left ? -14 : 14,
                 ay: -10
@@ -50001,15 +50077,28 @@ ${clone.innerHTML}
         const terms = (document.getElementById('geInspectSearch')?.value || '')
             .split(/[\s,;]+/).map(t => t.trim().toUpperCase()).filter(Boolean);
         const matches = (r) => terms.some(t => r.gene.toUpperCase().includes(t));
+        // A single typed letter matches most of the genome. The gene asked
+        // for by name comes first, then names starting with the text, then
+        // the rest, so the table's top is the answer while the user is still
+        // typing.
+        const rank = (r) => {
+            const g = r.gene.toUpperCase();
+            return terms.some(t => g === t) ? 0 : terms.some(t => g.startsWith(t)) ? 1 : 2;
+        };
+        const searchSort = (list, sort) => {
+            const byRank = [[], [], []];
+            list.forEach(r => byRank[rank(r)].push(r));
+            return byRank.flatMap(b => applySort(b, sort));
+        };
 
         const leftRows = terms.length
-            ? applySort(rows.filter(matches), this._geInspectSort.left).slice(0, leftN)
+            ? searchSort(rows.filter(matches), this._geInspectSort.left).slice(0, leftN)
             : applySort(
                 rows.filter(r => Math.abs(r.delta) >= leftCut && passQ(r, leftQ) && passCov(r, 'left')),
                 this._geInspectSort.left
             ).slice(0, leftN);
         const rightRows = terms.length
-            ? applySort(exprRows.filter(matches), this._geInspectSort.right).slice(0, rightN)
+            ? searchSort(exprRows.filter(matches), this._geInspectSort.right).slice(0, rightN)
             : applySort(
                 exprRows.filter(r => Math.abs(r.delta) >= rightCut && passQ(r, rightQ) && passCov(r, 'right')),
                 this._geInspectSort.right
@@ -50025,8 +50114,12 @@ ${clone.innerHTML}
         // up adds it to the picture instead of emptying the picture.
         const cutLeft = applySort(rows.filter(r => Math.abs(r.delta) >= leftCut && passQ(r, leftQ) && passCov(r, 'left')), this._geInspectSort.left).slice(0, leftN);
         const cutRight = applySort(exprRows.filter(r => Math.abs(r.delta) >= rightCut && passQ(r, rightQ) && passCov(r, 'right')), this._geInspectSort.right).slice(0, rightN);
-        const foundLeft = terms.length ? rows.filter(matches) : [];
-        const foundRight = terms.length ? exprRows.filter(matches) : [];
+        // Marked on the volcano: the rows the table shows, capped. Marking
+        // and labelling every match froze the tab for a minute on a
+        // one-letter search (thousands of labels to spread).
+        const MARK_CAP = 12;
+        const foundLeft = terms.length ? leftRows.slice(0, MARK_CAP) : [];
+        const foundRight = terms.length ? rightRows.slice(0, MARK_CAP) : [];
         // "selection - comparison" ordinarily; "A - B" for Inspect A vs B,
         // so the axis title names the two sides actually charted.
         const deltaSuffix = this._geInspectSideWords().deltaSuffix;
