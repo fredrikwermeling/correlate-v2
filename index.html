@@ -2731,10 +2731,6 @@
             #compareAllMutationsBtn, #compareAllTranslocationsBtn,
             #compareAllCnBtn, #compareAllCancerTypesBtn,
             .enrichrBtn, .js-help-export-ai { display: none !important; }
-            /* The gene (i) buttons take a row of their own under the title;
-               beside it they squeezed the title into a 100px column. */
-            #inspectModalInner .modal-header, #geneEffectModalInner .modal-header { flex-wrap: wrap !important; }
-            #inspectGeneInfoBtns, #geGeneInfoBtns { order: 10; flex: 1 1 100% !important; margin-top: 2px; }
             /* Network -> Heatmap, view-only on a phone: the grid scroller
                pans with a finger (default overflow-x:auto, nothing here sets
                touch-action:none to block it) and the footer's Close button
@@ -2826,10 +2822,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.52 (2026-09-11)</strong></p>
+                <ul>
+                    <li><b>Gene descriptions without extra buttons.</b> The ⓘ buttons from v.89.51 are gone. Instead the gene names in the heading of the Correlation and Gene Effect views are clickable: a click pins the gene card (full name, description, links), a second click closes it, and hovering still previews it.</li>
+                </ul>
                 <p><strong>v.89.51 (2026-09-11)</strong></p>
                 <ul>
                     <li><b>Opening a scatter or gene effect view is several times faster.</b> Each open counted every one of the 9,642 fusion genes against every cell line to fill the fusion dropdowns, which took 5 to 10 seconds on a clicked network edge. The count now walks each gene's own fusion calls, and the dropdowns are only rebuilt when the cohort changes. A scatter opens in about a second.</li>
-                    <li><b>Gene descriptions in the Gene Effect and Correlation views.</b> The header carries a small button per gene (<i>TP53</i> ⓘ). Click it for the same card the network shows on hover: full name, a short description and links to NCBI, Protein Atlas, GeneCards, UniProt, DepMap and HGNC. Works on the phone by tapping.</li>
+                    <li><b>Gene descriptions in the Gene Effect and Correlation views</b> (reworked in v.89.52): the same card the network shows on hover, with full name, a short description and links to NCBI, Protein Atlas, GeneCards, UniProt, DepMap and HGNC.</li>
                 </ul>
                 <p><strong>v.89.50 (2026-09-11)</strong></p>
                 <ul>
@@ -7677,7 +7677,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.51</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.52</a>
         </span>
     </div>
 
@@ -8582,7 +8582,6 @@
         <div class="modal" id="inspectModalInner">
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="inspectTitle" style="flex:1; margin:0;">Correlation: Gene1 vs Gene2</h3>
-                <span id="inspectGeneInfoBtns" style="display:none; gap:4px; flex:0 0 auto;" title="What this gene is: its full name, a short description and links, the same card the network shows"></span>
                 <button onclick="app.openCorrelationInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same genes, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
                 <button class="modal-close" id="closeInspect">&times;</button>
             </div>
@@ -8888,7 +8887,6 @@
         <div class="modal" id="geneEffectModalInner" style="max-width: 95vw; width: 1300px;">
             <div class="modal-header" style="display:flex; align-items:center; gap:10px;">
                 <h3 id="geneEffectTitle" style="flex:1; margin:0;">Gene Effect Analysis</h3>
-                <span id="geGeneInfoBtns" style="display:none; gap:4px; flex:0 0 auto;" title="What this gene is: its full name, a short description and links, the same card the network shows"></span>
                 <button onclick="app.openGeneEffectInNewTab()" class="btn btn-outline btn-sm" style="font-size:11px; padding:3px 8px; color:var(--green-700); border-color:var(--green-400);" title="Open this view (same gene, filters and settings) in a new browser tab so you can keep working here">New tab &#8599;</button>
                 <button class="modal-close" id="closeGeneEffect" title="Close the Gene Effect view">&times;</button>
             </div>
@@ -10810,7 +10808,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_51"></script>
+    <script src="app.js?v=v89_52"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

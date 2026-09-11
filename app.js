@@ -11158,8 +11158,7 @@ class CorrelationExplorer {
             height: Math.round(400 * (this.geChartHeightRatio || 1))
         };
 
-        document.getElementById('geneEffectTitle').textContent = `${gene} ${useExpr ? 'mRNA expression' : 'Gene Effect'} by ${hotspotGene} ${L.noun}`;
-        this._renderGeneInfoButtons('geGeneInfoBtns', [gene, hotspotGene]);
+        this._setGeneEffectTitle(gene, ` ${useExpr ? 'mRNA expression' : 'Gene Effect'} by ${hotspotGene} ${L.noun}`);
 
         // Populate tissue filter dropdown with ALL lineages (inspect can override analysis filters)
         const tissueFilterEl = document.getElementById('geTissueFilter');
@@ -21780,29 +21779,34 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Keep the "Open in Gene Effect" buttons naming the genes actually on the
     // axes, and make the gene names in the heading hoverable for their
     // description, the same as gene names anywhere else in the app.
-    // Small "TP53 (i)" buttons in a popout header. Click pins the same gene
-    // card the network shows on hover (name, summary, links); hover previews
-    // it on a mouse. Genes not in any matrix get no button.
-    _renderGeneInfoButtons(containerId, genes) {
-        const box = document.getElementById(containerId);
-        if (!box) return;
-        const known = (g) => g && (this.geneIndex?.has(String(g).toUpperCase()) || this.expressionGeneIndex?.has(String(g).toUpperCase()));
-        const list = [...new Set((genes || []).filter(known).map(g => String(g).toUpperCase()))];
-        box.innerHTML = list.map(g =>
-            `<button type="button" class="btn btn-outline btn-sm gene-hover gene-info-btn" data-gene="${this.esc(g)}" style="font-size:11px; padding:3px 8px;">${this.esc(g)} <span style="display:inline-block; width:13px; height:13px; line-height:12px; border:1px solid currentColor; border-radius:50%; font-size:9px; text-align:center; vertical-align:1px;">i</span></button>`
-        ).join('');
-        box.style.display = list.length ? 'inline-flex' : 'none';
-        box.querySelectorAll('.gene-info-btn').forEach(b => {
-            b.addEventListener('click', (e) => {
+    // A gene name in a popout heading: hover previews the gene card the
+    // network shows, click pins it (click again closes it).
+    _geneChipHtml(gene) {
+        return `<span class="gene-hover gene-title-chip" data-gene="${this.esc(gene)}" style="text-decoration:underline dotted; text-underline-offset:2px; cursor:pointer;">${this.esc(gene)}</span>`;
+    }
+
+    _wireGeneTitleChips(root) {
+        if (!root) return;
+        this.attachGeneTooltips?.(root);
+        root.querySelectorAll('.gene-title-chip').forEach(el => {
+            el.addEventListener('click', (e) => {
                 e.preventDefault();
-                const gene = b.dataset.gene;
+                const gene = el.dataset.gene;
                 const cur = document.getElementById('geneTooltip');
                 if (cur && cur.dataset.pinned === '1' && cur.dataset.gene === gene) { this.hideGeneTooltip(true); return; }
-                const r = b.getBoundingClientRect();
+                const r = el.getBoundingClientRect();
                 this.showGeneTooltip({ clientX: r.left - 10, clientY: r.bottom - 4, shiftKey: true }, gene);
             });
         });
-        this.attachGeneTooltips?.(box);
+    }
+
+    // Gene Effect heading with the gene name as a chip; the rest stays text.
+    _setGeneEffectTitle(gene, rest) {
+        const t = document.getElementById('geneEffectTitle');
+        if (!t) return;
+        const known = gene && (this.geneIndex?.has(String(gene).toUpperCase()) || this.expressionGeneIndex?.has(String(gene).toUpperCase()));
+        t.innerHTML = (known ? this._geneChipHtml(String(gene).toUpperCase()) : this.esc(gene || '')) + this.esc(rest || '');
+        if (known) this._wireGeneTitleChips(t);
     }
 
     _syncInspectAxisTools() {
@@ -21844,7 +21848,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Gene names in the heading, hoverable.
         const t = document.getElementById('inspectTitle');
         if (t && ci.gene1 && ci.gene2) {
-            const chip = (g) => `<span class="gene-hover" data-gene="${this.esc(g)}" style="text-decoration:underline dotted; text-underline-offset:2px; cursor:help;">${this.esc(g)}</span>`;
+            const chip = (g) => this._geneChipHtml(g);
             // Only the two gene names become chips; everything else in the
             // heading (the r, the n, the filter note) is left exactly as it
             // was. The heading comes in a few shapes, so match the pair
@@ -21856,10 +21860,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 t.innerHTML = this.esc(plain.slice(0, at))
                     + `${chip(ci.gene1)} vs ${chip(ci.gene2)}`
                     + this.esc(plain.slice(at + marker.length));
-                this.attachGeneTooltips?.(t);
+                this._wireGeneTitleChips(t);
             }
         }
-        this._renderGeneInfoButtons('inspectGeneInfoBtns', ci ? [ci.gene1, ci.gene2] : []);
     }
 
     showCompareAllCancerTypes() {
@@ -26762,8 +26765,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Update UI
         const geMetric = this._geMetric();
-        document.getElementById('geneEffectTitle').textContent = `${geneUpper} - ${geMetric.full} Analysis`;
-        this._renderGeneInfoButtons('geGeneInfoBtns', [geneUpper]);
+        this._setGeneEffectTitle(geneUpper, ` - ${geMetric.full} Analysis`);
         document.getElementById('geneEffectSearch').value = geneUpper;
         document.getElementById('geneEffectCurrentGene').textContent = '';
         const geCellLineSearch = document.getElementById('geCellLineSearch');
@@ -27264,8 +27266,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         this.currentGeneEffectGene = label;
 
         // Update UI
-        document.getElementById('geneEffectTitle').textContent = `${label} - By Tissue`;
-        this._renderGeneInfoButtons('geGeneInfoBtns', [label]);
+        this._setGeneEffectTitle(label, ' - By Tissue');
         document.getElementById('geneEffectSearch').value = '';
         document.getElementById('geneEffectCurrentGene').textContent = label;
 
@@ -41089,7 +41090,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.currentGeneEffect = null;
             document.getElementById('geneEffectModal').style.display = 'flex';
             document.getElementById('geneEffectTitle').textContent = `${this._geMetric().full} Analysis`;
-            this._renderGeneInfoButtons('geGeneInfoBtns', []);
             document.getElementById('geneEffectSearch').value = '';
             document.getElementById('geneEffectCurrentGene').textContent = '';
             document.getElementById('geneEffectSummary').style.display = 'none';
