@@ -1432,6 +1432,46 @@ class CorrelationExplorer {
         }
     }
 
+    // Fused cell lines of one gene that are also in `inSet`. Walks the
+    // gene's own (sparse) call list, not the whole cohort: 9,642 fusion
+    // genes times 1,208 cell lines was several seconds per popout open.
+    _countFusedIn(gene, inSet) {
+        const td = this.translocations?.geneData?.[gene]?.translocations;
+        if (!td) return 0;
+        let n = 0;
+        for (const cl in td) { if (td[cl] > 0 && inSet.has(cl)) n++; }
+        return n;
+    }
+
+    // The two fusion datalists (overlay gene and filter gene), one option
+    // per fusion gene with its count in `inSet`, priority genes first. Every
+    // fusion gene has at least one call, so this is ~9,600 options; the
+    // lists are only rebuilt when the cohort actually changed.
+    _fillFusionDatalists(inSet) {
+        const a = document.getElementById('translocationGeneList');
+        const b = document.getElementById('translocationFilterGeneList');
+        if (!a || !this.translocations?.genes?.length) return;
+        let h = 0;
+        for (const cl of inSet) { for (let i = 0; i < cl.length; i++) h = (h * 31 + cl.charCodeAt(i)) | 0; }
+        const key = `${inSet.size}:${h}`;
+        if (this._fusionDatalistKey === key && a.options.length) return;
+        this._fusionDatalistKey = key;
+        const geneCounts = [];
+        for (const g of this.translocations.genes) {
+            const count = this._countFusedIn(g, inSet);
+            if (count > 0) geneCounts.push({ gene: g, count });
+        }
+        const PRIO = CorrelationExplorer.PRIORITY_FUSION_GENES;
+        geneCounts.sort((x, y) => {
+            const xp = PRIO.has(x.gene) ? 1 : 0, yp = PRIO.has(y.gene) ? 1 : 0;
+            if (xp !== yp) return yp - xp;
+            return y.count - x.count;
+        });
+        const html = geneCounts.map(({ gene, count }) => `<option value="${gene}">${gene} (${count} fused)</option>`).join('');
+        a.innerHTML = html;
+        if (b) b.innerHTML = html;
+    }
+
     updateScatterHotspotFilterCounts() {
         if (!this.currentInspect?.data) return;
 
@@ -1466,9 +1506,8 @@ class CorrelationExplorer {
         if (hotspotSelect && this.mutations?.genes?.length > 0) {
             const hotspotVal = hotspotSelect.value;
             const mutFilterVal = mutFilterGeneSelect?.value || '';
-            hotspotSelect.innerHTML = '<option value="">Select gene...</option>';
-            if (mutFilterGeneSelect) mutFilterGeneSelect.innerHTML = '<option value="">No filter</option>';
-
+            let hotHtml = '<option value="">Select gene...</option>';
+            let filtHtml = '<option value="">No filter</option>';
             this.mutations.genes.forEach(g => {
                 // Skip polymorphic loci (HLA / MIC / KIR), their hotspot calls
                 // are germline allelic divergence, not somatic hotspots, and
@@ -1477,11 +1516,11 @@ class CorrelationExplorer {
                 const mutData = this.mutations.geneData?.[g]?.mutations || {};
                 let count = 0;
                 filteredCellLines.forEach(cl => { if (mutData[cl] > 0) count++; });
-                hotspotSelect.innerHTML += `<option value="${g}"${g === hotspotVal ? ' selected' : ''}>${g} (${count} mut)</option>`;
-                if (mutFilterGeneSelect) {
-                    mutFilterGeneSelect.innerHTML += `<option value="${g}"${g === mutFilterVal ? ' selected' : ''}>${g} (${count} mut)</option>`;
-                }
+                hotHtml += `<option value="${g}"${g === hotspotVal ? ' selected' : ''}>${g} (${count} mut)</option>`;
+                filtHtml += `<option value="${g}"${g === mutFilterVal ? ' selected' : ''}>${g} (${count} mut)</option>`;
             });
+            hotspotSelect.innerHTML = hotHtml;
+            if (mutFilterGeneSelect) mutFilterGeneSelect.innerHTML = filtHtml;
         }
 
         // Update translocation/fusion datalists
@@ -1489,28 +1528,7 @@ class CorrelationExplorer {
         const transFilterGeneDatalist = document.getElementById('translocationFilterGeneList');
 
         if (transGeneDatalist && this.translocations?.genes?.length > 0) {
-            const geneCounts = [];
-            for (const g of this.translocations.genes) {
-                const transData = this.translocations.geneData?.[g]?.translocations || {};
-                let count = 0;
-                for (const cl of filteredCellLines) {
-                    if (transData[cl] && transData[cl] > 0) count++;
-                }
-                if (count > 0) geneCounts.push({ gene: g, count });
-            }
-            geneCounts.sort((a, b) => {
-                const aPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(a.gene) ? 1 : 0;
-                const bPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(b.gene) ? 1 : 0;
-                if (aPri !== bPri) return bPri - aPri;
-                return b.count - a.count;
-            });
-
-            let transHtml = '';
-            geneCounts.forEach(({ gene, count }) => {
-                transHtml += `<option value="${gene}">${gene} (${count} fused)</option>`;
-            });
-            transGeneDatalist.innerHTML = transHtml;
-            if (transFilterGeneDatalist) transFilterGeneDatalist.innerHTML = transHtml;
+            this._fillFusionDatalists(filteredCellLines);
         }
     }
 
@@ -11141,6 +11159,7 @@ class CorrelationExplorer {
         };
 
         document.getElementById('geneEffectTitle').textContent = `${gene} ${useExpr ? 'mRNA expression' : 'Gene Effect'} by ${hotspotGene} ${L.noun}`;
+        this._renderGeneInfoButtons('geGeneInfoBtns', [gene, hotspotGene]);
 
         // Populate tissue filter dropdown with ALL lineages (inspect can override analysis filters)
         const tissueFilterEl = document.getElementById('geTissueFilter');
@@ -18441,34 +18460,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Populate translocation/fusion selectors (datalists, sorted by count desc)
         const transGeneInput = document.getElementById('translocationGene');
         const transFilterGeneInput = document.getElementById('translocationFilterGene');
-        const transGeneDatalist = document.getElementById('translocationGeneList');
-        const transFilterGeneDatalist = document.getElementById('translocationFilterGeneList');
 
         if (this.translocations?.genes?.length > 0) {
             transGeneInput.value = '';
             transFilterGeneInput.value = '';
-            const geneCounts = [];
-            for (const g of this.translocations.genes) {
-                const transData = this.translocations.geneData?.[g]?.translocations || {};
-                let count = 0;
-                for (const cl of cellLinesInPlot) {
-                    if (transData[cl] && transData[cl] > 0) count++;
-                }
-                if (count > 0) geneCounts.push({ gene: g, count });
-            }
-            geneCounts.sort((a, b) => {
-                const aPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(a.gene) ? 1 : 0;
-                const bPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(b.gene) ? 1 : 0;
-                if (aPri !== bPri) return bPri - aPri;
-                return b.count - a.count;
-            });
-
-            let transHtml = '';
-            geneCounts.forEach(({ gene, count }) => {
-                transHtml += `<option value="${gene}">${gene} (${count} fused)</option>`;
-            });
-            transGeneDatalist.innerHTML = transHtml;
-            transFilterGeneDatalist.innerHTML = transHtml;
+            this._fillFusionDatalists(cellLinesInPlot instanceof Set ? cellLinesInPlot : new Set(cellLinesInPlot));
             document.getElementById('translocationBox').style.display = 'block';
             document.getElementById('translocationFilterBox').style.display = 'block';
             document.getElementById('compareAllTranslocationsBtn').style.display = '';
@@ -21784,6 +21780,31 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Keep the "Open in Gene Effect" buttons naming the genes actually on the
     // axes, and make the gene names in the heading hoverable for their
     // description, the same as gene names anywhere else in the app.
+    // Small "TP53 (i)" buttons in a popout header. Click pins the same gene
+    // card the network shows on hover (name, summary, links); hover previews
+    // it on a mouse. Genes not in any matrix get no button.
+    _renderGeneInfoButtons(containerId, genes) {
+        const box = document.getElementById(containerId);
+        if (!box) return;
+        const known = (g) => g && (this.geneIndex?.has(String(g).toUpperCase()) || this.expressionGeneIndex?.has(String(g).toUpperCase()));
+        const list = [...new Set((genes || []).filter(known).map(g => String(g).toUpperCase()))];
+        box.innerHTML = list.map(g =>
+            `<button type="button" class="btn btn-outline btn-sm gene-hover gene-info-btn" data-gene="${this.esc(g)}" style="font-size:11px; padding:3px 8px;">${this.esc(g)} <span style="display:inline-block; width:13px; height:13px; line-height:12px; border:1px solid currentColor; border-radius:50%; font-size:9px; text-align:center; vertical-align:1px;">i</span></button>`
+        ).join('');
+        box.style.display = list.length ? 'inline-flex' : 'none';
+        box.querySelectorAll('.gene-info-btn').forEach(b => {
+            b.addEventListener('click', (e) => {
+                e.preventDefault();
+                const gene = b.dataset.gene;
+                const cur = document.getElementById('geneTooltip');
+                if (cur && cur.dataset.pinned === '1' && cur.dataset.gene === gene) { this.hideGeneTooltip(true); return; }
+                const r = b.getBoundingClientRect();
+                this.showGeneTooltip({ clientX: r.left - 10, clientY: r.bottom - 4, shiftKey: true }, gene);
+            });
+        });
+        this.attachGeneTooltips?.(box);
+    }
+
     _syncInspectAxisTools() {
         const word = (t) => t === 'expr' ? 'mRNA' : t === 'cn' ? 'CN' : t === 'growth' ? 'growth' : t === 'geneset' ? 'set' : 'GE';
         const ci = this.currentInspect || {};
@@ -21838,6 +21859,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 this.attachGeneTooltips?.(t);
             }
         }
+        this._renderGeneInfoButtons('inspectGeneInfoBtns', ci ? [ci.gene1, ci.gene2] : []);
     }
 
     showCompareAllCancerTypes() {
@@ -26428,34 +26450,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Populate translocation/fusion selectors (datalists, sorted by count desc)
         const transGeneInput2 = document.getElementById('translocationGene');
         const transFilterGeneInput2 = document.getElementById('translocationFilterGene');
-        const transGeneDatalist2 = document.getElementById('translocationGeneList');
-        const transFilterGeneDatalist2 = document.getElementById('translocationFilterGeneList');
 
         if (this.translocations?.genes?.length > 0) {
             transGeneInput2.value = '';
             transFilterGeneInput2.value = '';
-            const geneCounts2 = [];
-            for (const g of this.translocations.genes) {
-                const transData = this.translocations.geneData?.[g]?.translocations || {};
-                let count = 0;
-                for (const cl of cellLinesInPlot) {
-                    if (transData[cl] && transData[cl] > 0) count++;
-                }
-                if (count > 0) geneCounts2.push({ gene: g, count });
-            }
-            geneCounts2.sort((a, b) => {
-                const aPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(a.gene) ? 1 : 0;
-                const bPri = CorrelationExplorer.PRIORITY_FUSION_GENES.has(b.gene) ? 1 : 0;
-                if (aPri !== bPri) return bPri - aPri;
-                return b.count - a.count;
-            });
-
-            let transHtml2 = '';
-            geneCounts2.forEach(({ gene, count }) => {
-                transHtml2 += `<option value="${gene}">${gene} (${count} fused)</option>`;
-            });
-            transGeneDatalist2.innerHTML = transHtml2;
-            transFilterGeneDatalist2.innerHTML = transHtml2;
+            this._fillFusionDatalists(cellLinesInPlot instanceof Set ? cellLinesInPlot : new Set(cellLinesInPlot));
             document.getElementById('translocationBox').style.display = 'block';
             document.getElementById('translocationFilterBox').style.display = 'block';
             document.getElementById('compareAllTranslocationsBtn').style.display = '';
@@ -26764,6 +26763,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Update UI
         const geMetric = this._geMetric();
         document.getElementById('geneEffectTitle').textContent = `${geneUpper} - ${geMetric.full} Analysis`;
+        this._renderGeneInfoButtons('geGeneInfoBtns', [geneUpper]);
         document.getElementById('geneEffectSearch').value = geneUpper;
         document.getElementById('geneEffectCurrentGene').textContent = '';
         const geCellLineSearch = document.getElementById('geCellLineSearch');
@@ -27265,6 +27265,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Update UI
         document.getElementById('geneEffectTitle').textContent = `${label} - By Tissue`;
+        this._renderGeneInfoButtons('geGeneInfoBtns', [label]);
         document.getElementById('geneEffectSearch').value = '';
         document.getElementById('geneEffectCurrentGene').textContent = label;
 
@@ -35291,11 +35292,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const tData = this.translocations.geneData[tGene];
             if (!tData) continue;
             // Quick check: does this gene have any fused cells in our base set?
-            let hasFused = false;
-            for (const cl of baseCellIds) {
-                if (tData.translocations[cl] && tData.translocations[cl] > 0) { hasFused = true; break; }
-            }
-            if (!hasFused) continue;
+            if (!this._countFusedIn(tGene, baseCellIds)) continue;
             const filtered = baseCells.filter(c => (tData.translocations[c.cellLine] || 0) >= 1);
             const wtGE = filtered.filter(c => c.mainMut === 0).map(c => c.ge);
             const mutGE = filtered.filter(c => c.mainMut >= 1).map(c => c.ge);
@@ -41092,6 +41089,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.currentGeneEffect = null;
             document.getElementById('geneEffectModal').style.display = 'flex';
             document.getElementById('geneEffectTitle').textContent = `${this._geMetric().full} Analysis`;
+            this._renderGeneInfoButtons('geGeneInfoBtns', []);
             document.getElementById('geneEffectSearch').value = '';
             document.getElementById('geneEffectCurrentGene').textContent = '';
             document.getElementById('geneEffectSummary').style.display = 'none';
