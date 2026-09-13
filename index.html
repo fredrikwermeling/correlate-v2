@@ -2822,6 +2822,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.53 (2026-09-13)</strong></p>
+                <ul>
+                    <li><b>Sex chromosomes in the cell line browser.</b> Every line with expression data now carries the numbers behind its sex call: the mean expression of six Y-linked genes, XIST, and the copy number over the X chromosome. From these each line gets a state: Y-linked genes expressed, <b>functional loss of Y</b> (an annotated male line with the Y-linked genes silent; an expression call, not a DNA one), XIST expressed, or XIST silenced with either one X copy (the inactive X is lost) or two (eroded or duplicated). The card shows the numbers, the Wiki explains the state in a paragraph, and the short summary mentions a lost Y or a lost inactive X.</li>
+                    <li><b>Filters and sorts for it.</b> The sex filter has a new "Sex chromosomes (measured)" group, the quick filters have a Sex chromosomes category with four entries, and the list can be sorted by Y-linked expression or by XIST expression. Export for AI ships the same fields with their definitions.</li>
+                    <li>Fix: a line with no expression data was described as "likely Y-chromosome loss" or "likely XIST silencing"; it now says the check could not be run.</li>
+                </ul>
                 <p><strong>v.89.52 (2026-09-11)</strong></p>
                 <ul>
                     <li><b>Gene descriptions without extra buttons.</b> The ⓘ buttons from v.89.51 are gone. Instead the gene names in the heading of the Correlation and Gene Effect views are clickable: a click pins the gene card (full name, description, links), a second click closes it, and hovering still previews it.</li>
@@ -7677,7 +7683,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.52</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.53</a>
         </span>
     </div>
 
@@ -10173,6 +10179,12 @@
                   <option value="exp_female">Female</option>
                   <option value="exp_unknown">Unknown</option>
                 </optgroup>
+                <optgroup label="Sex chromosomes (measured)">
+                  <option value="chr_y_loss">Functional loss of Y</option>
+                  <option value="chr_xist_off">XIST silenced (any)</option>
+                  <option value="chr_xi_lost">Inactive X lost (one X)</option>
+                  <option value="chr_xist_silenced">XIST silenced, two X</option>
+                </optgroup>
               </select>
               <span class="clb-sep"></span>
               <select id="clbSortBy" style="width:172px;" title="Sort the cell line list">
@@ -10182,6 +10194,8 @@
                 <option value="drug">Sort: Drug response (PRISM AUC)</option>
                 <option value="ifn">Sort: Interferon score (ISG)</option>
                 <option value="retro">Sort: Retroelement signal (CPM)</option>
+                <option value="ychr">Sort: Y-linked expression</option>
+                <option value="xist">Sort: XIST expression</option>
               </select>
               <button id="clbSortDir" title="Switch the sort direction" class="btn btn-outline btn-sm" style="width:32px;">&#x25B2;</button>
               <div id="clbSortGeneWrap" class="clb-anchor" style="visibility:hidden;">
@@ -10808,7 +10822,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_52"></script>
+    <script src="app.js?v=v89_53"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

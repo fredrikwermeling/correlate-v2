@@ -32115,6 +32115,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (M.sampleCollectionSite?.[cl]) donor.collectionSite = M.sampleCollectionSite[cl];
                 if (Object.keys(donor).length) entry.donor = donor;
                 if (M.rrid?.[cl]) entry.rrid = M.rrid[cl];
+                const sc = M.sexChromosomes?.[cl];
+                if (sc) entry.sexChromosomes = { status: sc.status, yLinkedExpr: sc.y, xistExpr: sc.xist, ...(sc.xcn != null ? { chrXCn: sc.xcn } : {}) };
             }
             // Proliferation is the standard alternative explanation for a
             // dependency of modest size, so it belongs in the file rather than
@@ -33151,7 +33153,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             nTotal: cellLines.length,
             dataStructure: {
                 cellLineOrder: 'Array of DepMap cell line IDs. Defines column order for geneEffect and expression matrices. Length = nTotal.',
-                cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2 where 0 = wild type, 1 = one copy carries the hotspot, 2 = both copies or multiple hits; damaging: bool, a likely loss-of-function variant; caveat?: "polymorphic_locus"}. The list per line is every call DepMap makes for it, not a top N, so its length varies by line because mutational burden does; a gene absent from a line was called wild type), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes, specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi. Every field in `inferred` is emitted ONLY when it is true or non-empty, so absence means the call was not made and never means it was made negative. functionalLoss covers exactly eight tumour suppressors and no others (TP53, CDKN2A, MTAP, APC, PTEN, NF1, RB1, VHL): a gene outside those eight is never listed here however deleted it is, so absence for any other gene says nothing at all. It is an integrated copy-number + mutation + expression call, so a line can be listed with no damaging coding mutation anywhere, deletion alone being enough), signatures, whose numbers are useless without their scales, so: ploidy (average copies per locus, ~2 is diploid, ~4 after a whole-genome doubling), wgd (boolean, whole-genome doubled), cin (chromosomal instability, 0 to 1, higher is more rearranged), lohFraction (fraction of the genome under loss of heterozygosity, 0 to 1), msiScore (continuous microsatellite-instability score; it is NOT a percentage and has no fixed ceiling. Do not invent a threshold for it: use inferred.msi as the call, and read msiScore only as a severity gradient underneath that call), aneuploidy (count of chromosome arms called aneuploid, out of 39). These are emitted only where DepMap computed them, so a line missing them was not measured rather than measured as normal; the boolean flags among them are emitted only when true, so an absent flag means not called rather than called negative, cnEvents ({ amplifications: [{gene, cn, tier}], deletions: [{gene, cn, tier}] }, curated focal CN events from a clinically actionable panel; amp tier is "amp" (CN ≥ 3.0) or "strong_amp" (≥ 5.0); deletion tier is "del" (CN ≤ 0.5) or "deep_del" (≤ 0.3) on DepMap relative-CN scale where 1.0 = diploid; the 8 TSGs in inferred.functionalLoss are NOT duplicated here), lehmannTnbc ({ tnbcType6, tnbcType4 }, Lehmann TNBC subtype assignments from JCI 2011 / PLOS ONE 2016 for the ~22 panel cell lines that overlap DepMap; six-class: BL1, BL2, IM, M, MSL, LAR; four-class collapses IM/MSL as immune/stromal contamination), class1AntigenPresentation (ABSENT on a line means either not compromised or never assessed, and the two cannot be told apart here; { status: "reduced" | "likely_lost", reasons: [...], evidence: { b2mDamaging?, classOneExprMeanZ?, classOneCn? } }, functional inference combining B2M damaging mutations + HLA-A/B/C expression z-score vs cohort + B2M-normalized HLA copy number; only emitted when class-I presentation looks compromised; NOT allele-specific LOH detection). Also per cell line where available: donor ({ age in years, ageCategory, sex, primaryOrMetastasis, collectionSite } describing the patient the line came from, not how the line behaves in culture) and rrid (the Cellosaurus accession, the unambiguous identifier to quote when ordering or citing a line), oncotreeSubtype / oncotreeCode (finer than `subtype`, which is the Oncotree disease GROUP and cannot separate CLL from DLBCL or myeloma), retroelements ({ totalCpm, line1Cpm, hervkCpm, svaCpm, activeElements, retroelementHigh }, RNA-seq reads over 750 full-length intergenic LINE-1 / HERV-K / SVA elements, unique reads only, counts per million, from public CCLE hg19 alignments; retroelementHigh marks the top decile of MEASURED lines, a runtime cutoff around 80 CPM. Emitted ONLY for lines with a public alignment: 669 of the 1,208 panel lines are covered, so a line without this field was never measured and that is NOT a value of zero. The distribution is heavily right-skewed (median around 40 CPM, maximum 856), so read it as a percentile rather than a z-score. This is element TRANSCRIPTION, not retrotransposition: new genomic insertions cannot be seen in RNA, and poly-A selected RNA-seq cannot assign reads to individual loci, so treat it as an aggregate signal. If a group in this file was built by sorting on this measure, this is the axis that produced it), interferonScore (mean z-score across a curated interferon-stimulated-gene panel, computed across the whole expression cohort, so 0 is the panel average and +1 is a standard deviation high; emitted only where at least 60 % of the panel genes are measured in that line. Higher retroelement signal is associated with greater ADAR1 dependency (r = -0.18, p = 2.6e-06, n = 669), and that association survives controlling for this score (partial r = -0.15), so the two are related but not interchangeable), growthRate (CRISPR-inferred proliferation, on a relative scale where 1.0 is a typical line in the panel and higher is faster, NOT doublings per day; the standard alternative explanation for a modest dependency, so compare it between your groups before crediting a difference in dependency), meanGeneEffect + meanGeneEffectPercentile (that line\'s mean across the whole gene-effect matrix, and where that mean ranks among EVERY screened cell line in the release, not just the ones in this file; the "is this screen globally sick" control, so a percentile near 0 means the line looks sensitive to almost any knockout and a strong-looking dependency in it deserves less weight) and focalGeneZWithinLine (the focal gene\'s z against that line\'s OWN dependency distribution, the "is this gene unusual for this line" control). The `caveat: "polymorphic_locus"` flag marks HLA / MIC / KIR genes, calls in these highly polymorphic regions typically reflect germline allelic divergence from GRCh38, not somatic events.',
+                cellLineMetadata: 'Object keyed by cell line ID. Per cell line: name, tissue, subtype, mutations (gene → {hotspot: 0|1|2 where 0 = wild type, 1 = one copy carries the hotspot, 2 = both copies or multiple hits; damaging: bool, a likely loss-of-function variant; caveat?: "polymorphic_locus"}. The list per line is every call DepMap makes for it, not a top N, so its length varies by line because mutational burden does; a gene absent from a line was called wild type), clinicalFusions (curated driver fusion calls with tier), inferred (DepMap inferred subtypes, specificVariants like KRAS p.G12D, namedFusions, functionalLoss, msi. Every field in `inferred` is emitted ONLY when it is true or non-empty, so absence means the call was not made and never means it was made negative. functionalLoss covers exactly eight tumour suppressors and no others (TP53, CDKN2A, MTAP, APC, PTEN, NF1, RB1, VHL): a gene outside those eight is never listed here however deleted it is, so absence for any other gene says nothing at all. It is an integrated copy-number + mutation + expression call, so a line can be listed with no damaging coding mutation anywhere, deletion alone being enough), signatures, whose numbers are useless without their scales, so: ploidy (average copies per locus, ~2 is diploid, ~4 after a whole-genome doubling), wgd (boolean, whole-genome doubled), cin (chromosomal instability, 0 to 1, higher is more rearranged), lohFraction (fraction of the genome under loss of heterozygosity, 0 to 1), msiScore (continuous microsatellite-instability score; it is NOT a percentage and has no fixed ceiling. Do not invent a threshold for it: use inferred.msi as the call, and read msiScore only as a severity gradient underneath that call), aneuploidy (count of chromosome arms called aneuploid, out of 39). These are emitted only where DepMap computed them, so a line missing them was not measured rather than measured as normal; the boolean flags among them are emitted only when true, so an absent flag means not called rather than called negative, cnEvents ({ amplifications: [{gene, cn, tier}], deletions: [{gene, cn, tier}] }, curated focal CN events from a clinically actionable panel; amp tier is "amp" (CN ≥ 3.0) or "strong_amp" (≥ 5.0); deletion tier is "del" (CN ≤ 0.5) or "deep_del" (≤ 0.3) on DepMap relative-CN scale where 1.0 = diploid; the 8 TSGs in inferred.functionalLoss are NOT duplicated here), lehmannTnbc ({ tnbcType6, tnbcType4 }, Lehmann TNBC subtype assignments from JCI 2011 / PLOS ONE 2016 for the ~22 panel cell lines that overlap DepMap; six-class: BL1, BL2, IM, M, MSL, LAR; four-class collapses IM/MSL as immune/stromal contamination), class1AntigenPresentation (ABSENT on a line means either not compromised or never assessed, and the two cannot be told apart here; { status: "reduced" | "likely_lost", reasons: [...], evidence: { b2mDamaging?, classOneExprMeanZ?, classOneCn? } }, functional inference combining B2M damaging mutations + HLA-A/B/C expression z-score vs cohort + B2M-normalized HLA copy number; only emitted when class-I presentation looks compromised; NOT allele-specific LOH detection). Also per cell line where available: donor ({ age in years, ageCategory, sex, primaryOrMetastasis, collectionSite } describing the patient the line came from, not how the line behaves in culture), sexChromosomes ({ status, yLinkedExpr, xistExpr, chrXCn? }: the measured sex-chromosome state of the line in culture, as opposed to donor.sex. yLinkedExpr is the mean log-TPM of six Y-linked genes, xistExpr the XIST log-TPM, chrXCn the median relative copy number over non-pseudoautosomal chrX genes where 1.0 is the line\'s own modal baseline so one X in a diploid line reads about 0.5. status is one of y_present, y_loss (annotated male with Y-linked expression below 1: FUNCTIONAL loss of Y, an expression call that cannot separate a missing Y from a silent one), xist_present, xi_lost (annotated female, XIST below 1, chrXCn below 0.75: the inactive X is gone and X-linked genes are haploid), xist_silenced (annotated female, XIST below 1, two X copies retained: the inactive X eroded or the active X was duplicated, both transcribed), both_low (no Y-linked expression and no XIST, annotation cannot split it). Emitted ONLY for lines with expression data, so an absent field means not measured, never a normal result) and rrid (the Cellosaurus accession, the unambiguous identifier to quote when ordering or citing a line), oncotreeSubtype / oncotreeCode (finer than `subtype`, which is the Oncotree disease GROUP and cannot separate CLL from DLBCL or myeloma), retroelements ({ totalCpm, line1Cpm, hervkCpm, svaCpm, activeElements, retroelementHigh }, RNA-seq reads over 750 full-length intergenic LINE-1 / HERV-K / SVA elements, unique reads only, counts per million, from public CCLE hg19 alignments; retroelementHigh marks the top decile of MEASURED lines, a runtime cutoff around 80 CPM. Emitted ONLY for lines with a public alignment: 669 of the 1,208 panel lines are covered, so a line without this field was never measured and that is NOT a value of zero. The distribution is heavily right-skewed (median around 40 CPM, maximum 856), so read it as a percentile rather than a z-score. This is element TRANSCRIPTION, not retrotransposition: new genomic insertions cannot be seen in RNA, and poly-A selected RNA-seq cannot assign reads to individual loci, so treat it as an aggregate signal. If a group in this file was built by sorting on this measure, this is the axis that produced it), interferonScore (mean z-score across a curated interferon-stimulated-gene panel, computed across the whole expression cohort, so 0 is the panel average and +1 is a standard deviation high; emitted only where at least 60 % of the panel genes are measured in that line. Higher retroelement signal is associated with greater ADAR1 dependency (r = -0.18, p = 2.6e-06, n = 669), and that association survives controlling for this score (partial r = -0.15), so the two are related but not interchangeable), growthRate (CRISPR-inferred proliferation, on a relative scale where 1.0 is a typical line in the panel and higher is faster, NOT doublings per day; the standard alternative explanation for a modest dependency, so compare it between your groups before crediting a difference in dependency), meanGeneEffect + meanGeneEffectPercentile (that line\'s mean across the whole gene-effect matrix, and where that mean ranks among EVERY screened cell line in the release, not just the ones in this file; the "is this screen globally sick" control, so a percentile near 0 means the line looks sensitive to almost any knockout and a strong-looking dependency in it deserves less weight) and focalGeneZWithinLine (the focal gene\'s z against that line\'s OWN dependency distribution, the "is this gene unusual for this line" control). The `caveat: "polymorphic_locus"` flag marks HLA / MIC / KIR genes, calls in these highly polymorphic regions typically reflect germline allelic divergence from GRCh38, not somatic events.',
                 geneEffect: 'Object keyed by gene name. Each value is an array of CRISPR gene effect scores aligned to cellLineOrder. Negative = essential. null = missing. READ THIS BEFORE CONCLUDING ANYTHING FROM A GENE YOU CANNOT FIND: this matrix is VARIANCE-FILTERED and carries a fraction of the release, so a gene missing from it was DROPPED FOR LOW VARIANCE ACROSS THE PANEL, which is not the same as scoring near zero and is never evidence that it is not a partner. `matrixCoverage` says how many genes of the release survived the filter here. If your question turns on a specific gene that is absent, say so and ask for it by name in a Custom export (see notIncluded.howToAskForMore); naming genes disables the filter for them. Always included regardless of the variance threshold: the focal gene, every gene named in topCoessentials, and every gene the user typed into a multi-gene view, so any precomputed number about them can be recomputed from this file.',
                 expression: 'Object keyed by gene name. Each value is an array of log2(TPM+1) RNA expression values aligned to cellLineOrder. null = missing. Variance-filtered in the same way as geneEffect, with the same warning: a gene absent from here was dropped for low variance, not measured as flat, and `matrixCoverage` gives the counts. Always included regardless of the variance threshold: the focal gene where there is one, the genes surfaced in topCorrelates, the focal gene\'s pathway / complex partners, and every gene the user typed into a multi-gene view. Partner sources are layered: hand-curated high-value complexes (NEDD8/CRL, Proteasome, Hippo, MYC, TP53, BRCA, mTOR, BCL2, splicing) → CORUM physical protein complexes (~5000 human genes) → wiki cancer pathways (RAS/MAPK, PI3K, RTK family, etc.) → Reactome pathway / signaling-cascade co-members (~10000 human genes; broad parents filtered out, only pathways with 5-100 genes kept). So for SMARCA4 you get the BAF subunits via CORUM; for MCM4 the MCM2-7 helicase; for IL4R the JAK/STAT cascade via Reactome; for arbitrary genes you typically get something useful from at least one of the four layers.',
                 topCorrelates: 'Optional. Top 30 expression-vs-GE correlates of the focal gene: { gene, r (Pearson, focal-gene GE vs partner expression across the cohort), n }. Gated at n >= max(50, 0.6 * cohortSize) to drop partial-coverage genes. Polarity: positive r means high partner expression covaries with weaker focal-gene dependency (less negative GE).',
@@ -33628,6 +33630,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         say(has(m => m?.meanGeneEffectPercentile != null), 'how globally sensitive that line\'s whole screen is, at cellLineMetadata[id].meanGeneEffectPercentile'),
                         say(has(m => m?.meanGeneEffect != null), 'the raw mean gene effect behind that percentile, at cellLineMetadata[id].meanGeneEffect'),
                         say(has(m => m?.donor), 'donor age, age category, sex, primary-vs-metastasis and collection site, at cellLineMetadata[id].donor'),
+                        say(has(m => m?.sexChromosomes), 'the measured sex-chromosome state of the line in culture (functional loss of Y, XIST silenced with one or two X copies, with the numbers behind the call), at cellLineMetadata[id].sexChromosomes; absent means not measured'),
                         say(has(m => m?.oncotreeCode), 'the Oncotree disease CODE, at cellLineMetadata[id].oncotreeCode'),
                         say(has(m => m?.rrid), 'the Cellosaurus RRID identifier, at cellLineMetadata[id].rrid'),
                         say(has(m => m?.signatures?.wgd != null), 'whole-genome doubling status, at cellLineMetadata[id].signatures.wgd'),
@@ -34576,6 +34579,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (lin && lin.toLowerCase() !== String(lineageTxt).toLowerCase()) s1 += ` <span style="color:#6b7280;">(${this.esc(lin)})</span>`;
         if (originParts.length) s1 += ` <span style="color:#6b7280;">(${originParts.join(', ')})</span>`;
         s1 += '.';
+        {
+            // Only the states that change what the line is: a lost Y or a
+            // lost / silenced inactive X. The ordinary states say nothing.
+            const st = this._getSexChromosomes(cellLineId)?.status;
+            if (st === 'y_loss') s1 += ' The Y chromosome is functionally lost (no Y-linked expression).';
+            else if (st === 'xi_lost') s1 += ' XIST is off and one X copy remains, so the inactive X is lost.';
+            else if (st === 'xist_silenced') s1 += ' XIST is off although two X copies remain.';
+        }
         if ((lin || '').toLowerCase().includes('breast')) {
             // A published classification leads. Where this line's own data says
             // something else, that is stated next to it rather than either one
@@ -37588,6 +37599,26 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 category: 'Breast, receptor subtype (measured)',
                 description: '<b>Selects:</b> breast lines the Lehmann panels classified as triple-negative whose own expression or copy number reads HR+ or HER2+ instead. <b>Use for:</b> spotting lines whose receptor status is unsettled, worth checking against the receptor histograms in the Wiki before relying on either call. Elsewhere in the app the published call is the one shown, with the measured reading given alongside it. Neither is the clinical test, which is done on protein.'
             },
+            y_functional_loss: {
+                label: 'Functional loss of Y (male lines)',
+                category: 'Sex chromosomes',
+                description: '<b>Inclusion:</b> lines annotated male whose six Y-linked marker genes (RPS4Y1, DDX3Y, EIF1AY, KDM5D, UTY, USP9Y) average below 1 log-TPM. <b>Why:</b> loss of the Y chromosome is one of the commonest events in male cancers and in ageing blood, and it removes the Y copies of the X-Y gene pairs (KDM6A/UTY, KDM5C/KDM5D, DDX3X/DDX3Y, ZFX/ZFY and others), which is where the dependency consequences sit. <b>Method:</b> expression only, which is why the filter says <i>functional</i>: a Y that is present but transcriptionally silent would also land here, and DNA copy number for chrY in the DepMap gene-level file is not reliable enough to use instead. <b>Caveat:</b> about a third of annotated male lines qualify; lines with no expression data can never appear here.'
+            },
+            xist_loss: {
+                label: 'XIST silenced (female lines, any X copy number)',
+                category: 'Sex chromosomes',
+                description: '<b>Inclusion:</b> lines annotated female with XIST below 1 log-TPM and no Y-linked expression. <b>Why:</b> XIST is the RNA that keeps the inactive X silent, and its loss in cultured female cells is common. It has two very different causes, split into the two filters below: the inactive X is physically gone (one X left), or the inactive X has eroded and reactivated, or the active X was duplicated (two X copies, both transcribed). <b>Method:</b> XIST from the DepMap all-genes expression file; the X copy number is the median relative CN over chrX genes outside the pseudoautosomal regions. <b>Caveat:</b> expression calls only; lines with no expression data can never appear here.'
+            },
+            xi_lost: {
+                label: 'Inactive X lost (female, XIST off, one X copy)',
+                category: 'Sex chromosomes',
+                description: '<b>Inclusion:</b> the XIST-silenced female lines whose median chrX relative copy number is below 0.75, i.e. about one X copy against a diploid baseline. <b>Why:</b> with the inactive X gone there is nothing to silence, so XIST is off for a trivial reason, and the line carries a single active X: X-linked genes are effectively haploid, the same state as a male line that has lost its Y. <b>Method:</b> XIST expression plus chrX copy number. <b>Caveat:</b> the copy-number median can be pulled toward 1.0 by partial X gains, so a line with a complex X karyotype may land in the neighbouring filter instead.'
+            },
+            xist_silenced: {
+                label: 'XIST silenced, two X copies retained (female)',
+                category: 'Sex chromosomes',
+                description: '<b>Inclusion:</b> the XIST-silenced female lines whose median chrX relative copy number is at or above 0.75, i.e. two X copies are still there. <b>Why:</b> two copies without XIST means both are likely transcribed: either the inactive X eroded and reactivated in culture, or the active X was duplicated after the inactive one was lost. Either way, escape from X inactivation is in play, and X-linked dosage is doubled relative to the group above. <b>Method:</b> XIST expression plus chrX copy number. <b>Caveat:</b> expression cannot separate erosion from duplication; an allele-specific analysis can.'
+            },
             ifn_high: {
                 label: 'Interferon-high (type I ISG signature)',
                 category: 'Immunology',
@@ -38175,6 +38206,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             'pdl1_high', 'likely_immunogenic',
             'ifn_high', 'ifn_low',
             'retro_high', 'retro_l1_high', 'retro_hervk_high', 'retro_sva_high',
+            // Sex chromosomes
+            'y_functional_loss', 'xist_loss', 'xi_lost', 'xist_silenced',
             // Key focal copy-number events
             // cdkn2a_del / rb1_del / pten_del removed: the curated deletion panel
             // deliberately excludes CDKN2A, RB1 and PTEN (functional loss already
@@ -38754,6 +38787,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Interferon-high and -low lines, from the cell-intrinsic ISG score.
         // Thresholds are on the mean z-score, so they read directly: half a
         // standard deviation above or below the panel, per gene on average.
+        // Sex-chromosome states, precomputed in cellLineMetadata.sexChromosomes
+        // (expression calls: functional loss of Y, XIST off with one or two X).
+        mem.y_functional_loss = new Set();
+        mem.xist_loss = new Set();
+        mem.xi_lost = new Set();
+        mem.xist_silenced = new Set();
+        for (const cl of clLines) {
+            const st = this._getSexChromosomes(cl)?.status;
+            if (st === 'y_loss') mem.y_functional_loss.add(cl);
+            else if (st === 'xi_lost') { mem.xi_lost.add(cl); mem.xist_loss.add(cl); }
+            else if (st === 'xist_silenced') { mem.xist_silenced.add(cl); mem.xist_loss.add(cl); }
+        }
+
         mem.ifn_high = new Set();
         mem.ifn_low = new Set();
         {
@@ -39519,6 +39565,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Lehmann TNBC subtypes, all publication-curated
             tnbc_bl1: 'Lehmann publication', tnbc_bl2: 'Lehmann publication',
             tnbc_m:   'Lehmann publication', tnbc_lar: 'Lehmann publication',
+            // Sex chromosomes
+            y_functional_loss: 'expression (Y-linked genes)',
+            xist_loss: 'expression (XIST)',
+            xi_lost: 'expression + copy number',
+            xist_silenced: 'expression + copy number',
             // Immunology
             ifn_high: 'ISG expression score',
             ifn_low: 'ISG expression score',
@@ -41013,15 +41064,41 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         };
     }
 
+    // Measured sex-chromosome state: { y, xist, xcn?, status } or null when
+    // the line has no expression data. y = mean log-TPM of six Y-linked
+    // genes, xist = XIST log-TPM, xcn = median relative CN over non-PAR chrX
+    // genes (one X in a diploid line reads ~0.5). All calls are expression
+    // based, so "loss of Y" here is FUNCTIONAL loss, not a DNA result.
+    _getSexChromosomes(cl) {
+        return this.cellLineMetadata?.sexChromosomes?.[cl] || null;
+    }
+
+    _sexChromosomeStatusLabel(status) {
+        return ({
+            y_present: 'Y-linked genes expressed',
+            y_loss: 'Functional loss of Y',
+            xist_present: 'XIST expressed (inactive X present)',
+            xi_lost: 'XIST silenced, inactive X lost (one X copy)',
+            xist_silenced: 'XIST silenced, two X copies retained',
+            both_low: 'No Y-linked expression and no XIST',
+        })[status] || 'Not measured';
+    }
+
+    _sexChromosomeNumbers(rec) {
+        if (!rec) return 'not measured';
+        const parts = [`Y-linked ${rec.y.toFixed(2)}`, `XIST ${rec.xist.toFixed(2)} log-TPM`];
+        if (rec.xcn != null) parts.push(`chrX CN ${rec.xcn.toFixed(2)}`);
+        return parts.join(' \u00b7 ');
+    }
+
     // Expanded, human-readable "Sex (expression)" string combining both axes.
-    // When expression is unknown, infer reason from annotation.
     _getSexExpressionDisplay(cl) {
-        const { annotation, byExpression } = this._getCellLineSex(cl);
-        if (byExpression === 'male') return 'Male';
-        if (byExpression === 'female') return 'Female';
-        if (annotation === 'Male') return 'Unknown (likely Y-chromosome loss)';
-        if (annotation === 'Female') return 'Unknown (likely XIST silencing)';
-        return 'Unknown';
+        const { byExpression } = this._getCellLineSex(cl);
+        const rec = this._getSexChromosomes(cl);
+        if (!rec) return 'Not measured (no expression data)';
+        if (byExpression === 'male') return 'Male (Y-linked genes expressed)';
+        if (byExpression === 'female') return 'Female (XIST expressed)';
+        return this._sexChromosomeStatusLabel(rec.status);
     }
 
     // Single symbol (♂ / ♀ / ?) + color + tooltip for list display.
@@ -41073,6 +41150,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             case 'exp_male':     return byExpression === 'male';
             case 'exp_female':   return byExpression === 'female';
             case 'exp_unknown':  return byExpression === 'unknown' || byExpression === '' || byExpression == null;
+            case 'chr_y_loss':        return this._getSexChromosomes(cl)?.status === 'y_loss';
+            case 'chr_xist_off':      { const st = this._getSexChromosomes(cl)?.status; return st === 'xi_lost' || st === 'xist_silenced'; }
+            case 'chr_xi_lost':       return this._getSexChromosomes(cl)?.status === 'xi_lost';
+            case 'chr_xist_silenced': return this._getSexChromosomes(cl)?.status === 'xist_silenced';
             default: return true;
         }
     }
@@ -42437,6 +42518,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
                 return (va - vb) * dir;
             };
+        } else if (mode === 'ychr' || mode === 'xist') {
+            // Y-linked expression or XIST, from the precomputed sex-chromosome
+            // record. Unmeasured lines have no value and go to the end.
+            countMap = new Map();
+            for (const [cl, rec] of Object.entries(this.cellLineMetadata?.sexChromosomes || {})) countMap.set(cl, mode === 'ychr' ? rec.y : rec.xist);
+            geGenesLabel = mode === 'ychr' ? 'six Y-linked genes' : 'XIST';
+            secondaryCmp = (a, b) => {
+                const va = countMap.get(a);
+                const vb = countMap.get(b);
+                if (va == null && vb == null) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+                if (va == null) return 1;
+                if (vb == null) return -1;
+                if (va === vb) return this.getCellLineName(a).localeCompare(this.getCellLineName(b));
+                return (va - vb) * dir;
+            };
         } else if (mode === 'retro') {
             // Retroelement signal. Lines without public RNA-seq have no
             // score and go to the end, same as the other measured sorts.
@@ -42513,6 +42609,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                       : mode === 'cn' ? `Copy number of <b>${geGenesLabel || '(no gene picked)'}</b>, DepMap relative scale (1.0 = diploid). Tier shown next to each line: <b>deep del</b> &lt; 0.3, <b>het loss</b> 0.3&ndash;0.7, <b>WT</b> 0.7&ndash;1.3, <b>low gain</b> 1.3&ndash;2.0, <b>gain</b> 2.0&ndash;3.0, <b>amp</b> 3.0&ndash;5.0, <b>strong amp</b> &ge; 5.0. Hybrid source: WGS-derived calls (latest, cleanest) by default; lines tagged <code>wes</code> are filled from DepMap's 24Q4 OmicsCNGene fallback for lines never WGS'd (Jurkat, K562, etc.), slightly noisier for focal events. ${cnScope}; lines without CN data show &ldquo;&mdash;&rdquo;.`
                       : mode === 'drug' ? `Drug-response AUC for <b>${geGenesLabel || '(no compound matched)'}</b>, 0 = all cells killed, 1 = no killing; ascending = most sensitive first`
                       : mode === 'ifn' ? `Interferon score: the average of ${geGenesLabel || '34 ISGs'}, each expressed as how far the line sits from the panel average for that gene (a z-score). 0 is typical, +1 means the line runs a standard deviation high on these genes, &minus;1 a standard deviation low. Lines with no expression data, or measured on under 60% of the genes, are unscored and sit at the end.`
+                      : mode === 'ychr' ? `Y-linked expression: the mean log-TPM of six Y-linked genes (RPS4Y1, DDX3Y, EIF1AY, KDM5D, UTY, USP9Y). Below 1 in an annotated male line is called <b>functional loss of Y</b>; an expression call, not a DNA one. Female lines sit near 0 by nature. Lines with no expression data are unscored and sit at the end.`
+                      : mode === 'xist' ? `XIST expression (log-TPM), the RNA that keeps the inactive X silent. Below 1 in an annotated female line means XIST is silenced, with the inactive X either lost (one X copy) or eroded / duplicated (two copies), see the card. Male lines sit near 0 by nature. Lines with no expression data are unscored and sit at the end.`
                       : mode === 'retro' ? `Retroelement signal, ${retroMeasureLabels[retroMeasure]}: ${retroMeasure === 'a' ? 'how many of the 750 measured full-length elements are switched on (above 0.5 CPM) in each line'
                           : `summed RNA-seq reads (counts per million), unique reads only, over the ${retroMeasure === 't' ? '750 full-length LINE-1, HERV-K and SVA' : 'full-length ' + retroMeasureLabels[retroMeasure]} elements outside genes`}.${retroMeasure === 't' ? ' The panel median is about 40 CPM and the top tenth, about 80 CPM and up, counts as retroelement-high.' : ''} 669 of 1,208 lines have a public alignment to measure; unscored lines sit at the end.`
                       : mode;
@@ -42554,6 +42652,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     : mode === 'cn' ? `Copy number${geGenesLabel ? ` for ${geGenesLabel}` : ''}`
                     : mode === 'drug' ? `Drug response AUC${geGenesLabel ? ` for ${geGenesLabel}` : ''}`
                     : mode === 'ifn' ? 'Interferon score (mean ISG z-score)'
+                    : mode === 'ychr' ? 'Y-linked expression (mean log-TPM, six genes)'
+                    : mode === 'xist' ? 'XIST expression (log-TPM)'
                     : mode === 'retro' ? (retroMeasure === 'a' ? 'Active elements (count)' : `Retroelement signal, ${retroMeasureLabels[retroMeasure]} (CPM)`)
                     : String(mode))
                 : '';
@@ -42601,6 +42701,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                                   : mode === 'cin' ? 'CIN'
                                   : mode === 'cn' ? 'CN'
                                   : mode === 'drug' ? 'AUC'
+                                  : mode === 'ychr' ? 'Y'
+                                  : mode === 'xist' ? 'XIST'
                                   : '';
                     // For drug-response, color AUC by sensitivity at a glance.
                     // Thresholds match the dropdown's v/p categories and the
@@ -42945,6 +43047,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const m = {
                 ann_male: 'Male (annotation)', ann_female: 'Female (annotation)', ann_unknown: 'Sex unknown (annotation)',
                 exp_male: 'Male (by expression)', exp_female: 'Female (by expression)', exp_unknown: 'Sex unclear (by expression)',
+                chr_y_loss: 'Functional loss of Y', chr_xist_off: 'XIST silenced', chr_xi_lost: 'Inactive X lost (one X)', chr_xist_silenced: 'XIST silenced, two X',
             };
             parts.push(chip('sex', m[val(spec.sex)] || val(spec.sex), 'background:#eef2ff;color:#3730a3;', 'Click to change or remove this filter'));
         }
@@ -43057,6 +43160,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 { label: 'Female (annotation)', active: cur === 'ann_female', act: () => setVal(spec.sex, 'ann_female') },
                 { label: 'Male (by expression)', active: cur === 'exp_male', act: () => setVal(spec.sex, 'exp_male') },
                 { label: 'Female (by expression)', active: cur === 'exp_female', act: () => setVal(spec.sex, 'exp_female') },
+                { label: 'Functional loss of Y', active: cur === 'chr_y_loss', act: () => setVal(spec.sex, 'chr_y_loss') },
+                { label: 'XIST silenced', active: cur === 'chr_xist_off', act: () => setVal(spec.sex, 'chr_xist_off') },
                 { label: 'Remove this filter', danger: true, act: () => setVal(spec.sex, '') },
             ], after);
         }
@@ -43198,6 +43303,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const opts = [
                 ['ann_male', 'Male (annotation)'], ['ann_female', 'Female (annotation)'],
                 ['exp_male', 'Male (by expression)'], ['exp_female', 'Female (by expression)'],
+                ['chr_y_loss', 'Functional loss of Y'], ['chr_xist_off', 'XIST silenced'],
             ].map(([v, label]) => ({ label, active: el?.value === v, act: () => { if (el) el.value = v; } }));
             opts.push({ label: 'Remove this filter', danger: true, act: () => { if (el) el.value = ''; } });
             return this._simpleChipMenu(anchorEl, opts);
@@ -43297,6 +43403,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const sexLabel = {
                 ann_male: 'Male (annotation)', ann_female: 'Female (annotation)', ann_unknown: 'Sex unknown (annotation)',
                 exp_male: 'Male (by expression)', exp_female: 'Female (by expression)', exp_unknown: 'Sex unclear (by expression)',
+                chr_y_loss: 'Functional loss of Y', chr_xist_off: 'XIST silenced', chr_xi_lost: 'Inactive X lost (one X)', chr_xist_silenced: 'XIST silenced, two X',
             }[sexVal] || sexVal;
             parts.push(`<span class="clb-chip" data-chip="sex" title="Click to change or remove this filter" style="background:#eef2ff;color:#3730a3;padding:1px 6px;border-radius:10px;">${sexLabel} &#9662;</span>`);
         }
@@ -43414,7 +43521,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // by expression. Having "Unknown" for each axis separately makes
         // that gap explicit.
         const sexBase = getBaseSet('sex');
-        const sexCounts = { ann_male: 0, ann_female: 0, ann_unknown: 0, exp_male: 0, exp_female: 0, exp_unknown: 0 };
+        const sexCounts = { ann_male: 0, ann_female: 0, ann_unknown: 0, exp_male: 0, exp_female: 0, exp_unknown: 0,
+            chr_y_loss: 0, chr_xist_off: 0, chr_xi_lost: 0, chr_xist_silenced: 0 };
         for (const cl of sexBase) {
             for (const key of Object.keys(sexCounts)) {
                 if (this._cellLineMatchesSexFilter(cl, key)) sexCounts[key]++;
@@ -43434,6 +43542,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     `<option value="exp_male">Male (n=${sexCounts.exp_male})</option>` +
                     `<option value="exp_female">Female (n=${sexCounts.exp_female})</option>` +
                     `<option value="exp_unknown">Unknown (n=${sexCounts.exp_unknown})</option>` +
+                `</optgroup>` +
+                `<optgroup label="Sex chromosomes (measured)">` +
+                    `<option value="chr_y_loss">Functional loss of Y (n=${sexCounts.chr_y_loss})</option>` +
+                    `<option value="chr_xist_off">XIST silenced, any (n=${sexCounts.chr_xist_off})</option>` +
+                    `<option value="chr_xi_lost">Inactive X lost, one X (n=${sexCounts.chr_xi_lost})</option>` +
+                    `<option value="chr_xist_silenced">XIST silenced, two X (n=${sexCounts.chr_xist_silenced})</option>` +
                 `</optgroup>`;
             sexSelect.value = prev;
         }
@@ -43855,6 +43969,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Subtype</span><span class="clb-stat-value">${sublineage || '-'}${lehmannChip}</span></div>`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Sex (annotation)</span><span class="clb-stat-value">${sexAnn}</span></div>`;
         top += `<div class="clb-stat-row"><span class="clb-stat-label">Sex (expression)</span><span class="clb-stat-value"${expStyle}>${expDisplay}</span></div>`;
+        {
+            const rec = this._getSexChromosomes(cellLineId);
+            if (rec) {
+                top += `<div class="clb-stat-row"><span class="clb-stat-label">Sex chromosomes</span><span class="clb-stat-value" style="color:#6b7280;" title="Mean log-TPM of six Y-linked genes (RPS4Y1, DDX3Y, EIF1AY, KDM5D, UTY, USP9Y), XIST log-TPM, and the median relative copy number over chrX genes outside the pseudoautosomal regions (one X in a diploid line reads about 0.5). Expression calls, not DNA sequencing.">${this._sexChromosomeNumbers(rec)}</span></div>`;
+            }
+        }
         // Genome-wide signatures (PureCN ploidy + WGD, Ben-David aneuploidy,
         // chromosomal instability). Rendered as one row per metric with a
         // plain-English descriptor (near-diploid / high / etc.) so the user
@@ -45460,32 +45580,35 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // --- Sex analysis ---
         const sexInfo = this._getCellLineSex(cellLineId);
         const sexExpDisplay = this._getSexExpressionDisplay(cellLineId);
+        const sexRec = this._getSexChromosomes(cellLineId);
         let sexNarrative = '';
-        if (sexInfo.annotation === 'Male' && sexInfo.byExpression === 'male') {
-            sexNarrative = 'Annotated male, and the cell line still expresses Y-chromosome genes normally. Everything consistent.';
-        } else if (sexInfo.annotation === 'Female' && sexInfo.byExpression === 'female') {
-            sexNarrative = 'Annotated female, and the cell line expresses XIST (the gene that silences the extra X chromosome in females). Everything consistent.';
-        } else if (sexInfo.annotation === 'Male' && sexInfo.byExpression === 'unknown') {
-            sexNarrative = this._hasWikiExpression(cellLineId)
-                ? 'Annotated male, but the Y-chromosome marker genes are not clearly expressed here. The usual explanation is <b>loss of the Y chromosome</b>, common in cancer and especially in older male donors, though low expression alone does not prove the chromosome is gone.'
-                : 'Annotated male. This cell line has no expression data, so the expression check could not be run and nothing can be said either way.';
-        } else if (sexInfo.annotation === 'Female' && sexInfo.byExpression === 'unknown') {
-            sexNarrative = this._hasWikiExpression(cellLineId)
-                ? 'Annotated female, and neither the Y markers nor XIST reach the expression threshold here. <b>XIST silencing</b> is well documented in many cancers (breast, blood, some epithelial) and is thought to re-activate genes on the silent X chromosome, but the call is not certain from expression alone.'
-                : 'Annotated female. This cell line has no expression data, so the expression check could not be run and nothing can be said either way.';
-        } else if (sexInfo.annotation !== 'Unknown' && sexInfo.annotation.toLowerCase() !== sexInfo.byExpression) {
+        const st = sexRec?.status;
+        if (!sexRec) {
+            sexNarrative = sexInfo.annotation === 'Unknown'
+                ? 'Sex is not annotated and this cell line has no expression data, so neither check could be run.'
+                : `Annotated ${sexInfo.annotation.toLowerCase()}. This cell line has no expression data, so the expression check could not be run and nothing can be said either way.`;
+        } else if (sexInfo.annotation === 'Male' && st === 'y_present') {
+            sexNarrative = `Annotated male, and the cell line still expresses Y-linked genes. Everything consistent.`;
+        } else if (sexInfo.annotation === 'Female' && st === 'xist_present') {
+            sexNarrative = `Annotated female, and the cell line expresses XIST, the RNA that keeps the second X chromosome silent. Everything consistent.`;
+        } else if (st === 'y_loss') {
+            sexNarrative = `Annotated male, but the six Y-linked marker genes are essentially silent. This is <b>functional loss of Y</b>: the call comes from expression, not from DNA sequencing, so it cannot separate a Y chromosome that is physically gone (common in cancer, and in the blood of older men) from one that is present but not transcribed. About a third of the annotated male lines in the panel look like this.`;
+        } else if (st === 'xi_lost') {
+            sexNarrative = `Annotated female with XIST switched off, and the X chromosome sits at half the autosomal copy number (one X per diploid genome set; in a whole-genome-doubled line that is two identical copies). The simplest reading is that the <b>inactive X was lost</b>: there is nothing left to silence, so XIST is no longer needed. This is the more common of the two XIST-negative patterns in the panel and it leaves the line with a single, active X, so X-linked genes are effectively haploid here.`;
+        } else if (st === 'xist_silenced') {
+            sexNarrative = `Annotated female with XIST switched off, yet the X chromosome still sits at the autosomal copy number, so two X per diploid genome set. Either the silent X has eroded and reactivated (documented in cultured female cells, breast and blood lines especially), or the active X was duplicated after the inactive one was lost. Both leave two transcribed X copies. Expression alone cannot tell them apart; an allele-specific analysis would.`;
+        } else if (sexInfo.annotation !== 'Unknown' && sexInfo.byExpression !== 'unknown' && sexInfo.annotation.toLowerCase() !== sexInfo.byExpression) {
             sexNarrative = `<span style="color:#b45309;"><b>Disagreement.</b> The annotation does not match what the cell-line expression pattern suggests. This can happen with cell-line mix-ups or contamination, re-authentication (see Authentication section below) is recommended.</span>`;
         } else if (sexInfo.annotation === 'Unknown' && sexInfo.byExpression !== 'unknown') {
             sexNarrative = `Sex is not annotated, but the expression pattern points to <b>${sexInfo.byExpression === 'male' ? 'male' : 'female'}</b> origin.`;
         } else {
-            sexNarrative = this._hasWikiExpression(cellLineId)
-                ? 'Neither the annotation nor the expression pattern gives a confident call. Usually means both the Y markers and XIST are below threshold, which happens in aggressive tumors.'
-                : 'Sex is not annotated and this cell line has no expression data, so neither check could be run.';
+            sexNarrative = `Neither the Y-linked genes nor XIST reach the expression threshold, and the annotation does not say which side the line started from. With no annotation the two explanations, functional loss of Y in a male line and loss of the inactive X in a female line, cannot be told apart from expression.`;
         }
         const sexHtml = `
             <p style="margin:0 0 8px; font-size:11px; color:#6b7280;">Two independent views: the sex <b>annotation</b> supplied with the cell line (usually traced back to the donor's clinical record), and what the cell line's own <b>gene expression pattern</b> suggests. Disagreements can indicate chromosomal loss, epigenetic silencing, or cell-line misidentification.</p>
             ${row('From annotation', sexInfo.annotation)}
             ${row('From gene expression', sexExpDisplay)}
+            ${row('Measured values', this._sexChromosomeNumbers(sexRec))}
             <div style="margin-top:6px; padding:8px 10px; background:#f9fafb; border-left:3px solid #10b981; font-size:11px;">${sexNarrative}</div>`;
 
         // --- Mutation profile + pathway scan ---
@@ -47006,7 +47129,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 'DepMap 26Q1 Model table, donor demographics and tissue collection metadata.'),
             section('Sex (annotation vs expression)',
                 sexHtml,
-                'Annotation: DepMap Model table. Expression check: Y-chromosome marker genes (RPS4Y1, DDX3Y, EIF1AY, KDM5D, UTY, USP9Y) and XIST, expressed above 1.0 log-TPM+1. XIST is a non-coding RNA, so it is not in the protein-coding expression table shown elsewhere on this page.'),
+                'Annotation: DepMap Model table. Expression check: Y-chromosome marker genes (RPS4Y1, DDX3Y, EIF1AY, KDM5D, UTY, USP9Y) and XIST, expressed above 1.0 log-TPM+1. XIST is a non-coding RNA, so it is not in the protein-coding expression table shown elsewhere on this page. chrX copy number: median relative CN over chrX genes outside the pseudoautosomal regions, 1.0 = the line\'s own modal baseline, so one X per diploid genome set reads about 0.5 and 0.75 is the cut between one and two. All three are expression or copy-number readings, not a karyotype.'),
 
             // ── Genome state ──────────────────────────────────────────────
             section('Genome signatures',

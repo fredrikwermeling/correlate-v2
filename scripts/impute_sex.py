@@ -18,6 +18,22 @@ Output: web_data/cellLineMetadata.json gets two independent fields keyed by ACH-
   - sex:             DepMap annotation ('Male' | 'Female' | 'Unknown')
   - sexByExpression: expression-based call ('male' | 'female' | 'unknown') — computed
                      for every cell line, independent of annotation.
+  - sexChromosomes:  per line with expression data only (absent = never measured):
+                       y      mean log-TPM of the six Y-linked markers
+                       xist   XIST log-TPM
+                       xcn    median relative copy number over non-PAR chrX genes
+                              (from web_data/cn.bin.gz, 1.0 = the line's modal baseline;
+                              one X in a diploid line reads ~0.5), omitted when no CN
+                       status one of:
+                         y_present      Y-linked genes expressed
+                         y_loss         annotated male, Y-linked genes silent: FUNCTIONAL loss
+                                        of Y (an expression call, not a DNA one)
+                         xist_present   no Y, XIST expressed (inactive X present)
+                         xi_lost        annotated female, XIST off, chrX CN < 0.75: the
+                                        inactive X was lost, one X left
+                         xist_silenced  annotated female, XIST off, chrX CN >= 0.75: two X
+                                        copies but no XIST (Xi erosion, or Xa duplicated)
+                         both_low       no Y, no XIST, and annotation or CN cannot split it
 
 Classifier (two-rule, independent thresholds):
   - Y_mean > Y_THR           -> 'male'    (Y presence is unambiguous; takes precedence)
@@ -51,6 +67,53 @@ XIST = "XIST"
 # Classifier thresholds (log-TPM units). See tuning in commit history.
 Y_THR = 1.0
 X_THR = 1.0
+# chrX relative CN below this = one X copy against a diploid baseline (0.5 is
+# the ideal; 0.75 is the midpoint to two copies).
+XCN_THR = 0.75
+# GRCh38 PAR1 ends at 2.78 Mb, PAR2 starts at 155.7 Mb; both are present on Y
+# and are excluded from the chrX measurement.
+PAR1_END = 2_800_000
+PAR2_START = 155_700_000
+CN_BIN = os.path.join(HERE, "..", "web_data", "cn.bin.gz")
+CN_META = os.path.join(HERE, "..", "web_data", "cn_metadata.json")
+GENE_LOC = os.path.join(HERE, "..", "web_data", "gene_locations.json")
+
+
+def chrx_median_cn():
+    """Per-line median relative CN over non-PAR chrX genes, from the shipped matrix."""
+    import gzip
+    cm = json.load(open(CN_META))
+    loc = json.load(open(GENE_LOC))["genes"]
+    cn = np.frombuffer(gzip.open(CN_BIN).read(), dtype=np.int16)
+    cn = cn.reshape(cm["nGenes"], cm["nCellLines"]).astype(float)
+    cn[cn == cm["naValue"]] = np.nan
+    cn /= cm["scaleFactor"]
+    rows = [i for i, g in enumerate(cm["genes"])
+            if loc.get(g, {}).get("chr") == "X"
+            and PAR1_END < (loc[g].get("start") or 0) < PAR2_START]
+    sub = cn[rows, :]
+    out = {}
+    with np.errstate(all="ignore"):
+        med = np.nanmedian(sub, axis=0)
+    for ci, cl in enumerate(cm["cellLines"]):
+        if not np.isnan(med[ci]):
+            out[cl] = float(med[ci])
+    print(f"  chrX CN: {len(rows)} non-PAR genes, {len(out)} lines")
+    return out
+
+
+def chromosome_status(y, x, xcn, annotation):
+    if np.isnan(y) or np.isnan(x):
+        return None
+    if y > Y_THR:
+        return "y_present"
+    if x > X_THR:
+        return "xist_present"
+    if annotation == "Male":
+        return "y_loss"
+    if annotation == "Female" and xcn is not None:
+        return "xi_lost" if xcn < XCN_THR else "xist_silenced"
+    return "both_low"
 
 
 def parse_gene_name(col_header):
@@ -167,6 +230,22 @@ def main():
 
     meta["sex"] = sex_map
     meta["sexByExpression"] = exp_map
+
+    xcn_map = chrx_median_cn()
+    chrom = {}
+    for cl in meta["cellLines"]:
+        if cl not in scores:
+            continue
+        y, x = scores[cl]
+        if np.isnan(y) or np.isnan(x):
+            continue
+        xcn = xcn_map.get(cl)
+        d = {"y": round(y, 3), "xist": round(x, 3),
+             "status": chromosome_status(y, x, xcn, sex_map[cl])}
+        if xcn is not None:
+            d["xcn"] = round(xcn, 3)
+        chrom[cl] = d
+    meta["sexChromosomes"] = chrom
     # Remove any previous field name
     meta.pop("sexImputed", None)
 
@@ -176,6 +255,7 @@ def main():
     print("\nFinal distribution in cellLineMetadata.json:")
     print("  sex (annotation):    ", dict(Counter(sex_map.values())))
     print("  sexByExpression:     ", dict(Counter(exp_map.values())))
+    print("  sexChromosomes:      ", len(chrom), "lines,", dict(Counter(d["status"] for d in chrom.values())))
 
     # Agreement crosstab
     ct = Counter((sex_map[cl], exp_map[cl]) for cl in meta["cellLines"])
