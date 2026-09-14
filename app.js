@@ -733,6 +733,9 @@ class CorrelationExplorer {
                 custom: this._geInspectCustom?.size ? [...this._geInspectCustom] : null,
                 needsExpr: !!this.expressionLoaded,
                 sort: this._geInspectSort ? JSON.parse(JSON.stringify(this._geInspectSort)) : null,
+                // Names clicked on or off, hidden genes and the auto count, per volcano.
+                volcanoLabels: this._geVolcanoLabels ? Object.fromEntries(Object.entries(this._geVolcanoLabels).map(([k, v]) =>
+                    [k, { added: [...v.added], removed: [...v.removed], hidden: [...v.hidden], autoN: v.autoN }])) : null,
                 controls: this._captureControls(this._SI_NEWTAB_CONTROLS())
             };
         } else {
@@ -861,6 +864,13 @@ class CorrelationExplorer {
             // The cutoffs, search and sort live in controls the inspect
             // builds as it opens, so they go back after it, then one redraw.
             if (popout.sort) this._geInspectSort = popout.sort;
+            if (popout.volcanoLabels) {
+                this._geVolcanoLabels = {};
+                for (const [k, v] of Object.entries(popout.volcanoLabels)) {
+                    this._geVolcanoLabels[k] = { added: new Set(v.added || []), removed: new Set(v.removed || []),
+                        hidden: new Set(v.hidden || []), autoN: v.autoN ?? 4 };
+                }
+            }
             this._restorePopoutControls(popout.controls, null, () => this._renderGEInspectTables());
         } else if (popout.kind === 'scatter' && popout.gene1 && popout.gene2) {
             // Axis data types (GE / expression / growth) must be set BEFORE
@@ -47949,14 +47959,17 @@ ${clone.innerHTML}
         // level however long the notes run; without subgrid support the
         // columns still sit side by side, just without row alignment.
         const col = (side, title, note) => `
-            <div style="display:grid; grid-template-rows:subgrid; grid-row:span 5; min-width:0;">
+            <div style="display:grid; grid-template-rows:subgrid; grid-row:span 6; min-width:0;">
                 <div style="font-weight:700; color:#4c782e; font-size:13px;">${title}</div>
                 <div style="font-size:10px; color:#9ca3af; margin:2px 0 5px;">${note}</div>
                 <div id="ge${side}Volcano" style="width:100%; max-width:330px; aspect-ratio:1/1; border:1px solid #e5e7eb; border-radius:4px; margin:0 auto 6px;"></div>
+                <div id="ge${side}Labeled" style="width:100%; max-width:330px; margin:0 auto 6px; min-height:22px;"></div>
                 <div id="ge${side}Hint" style="font-size:10px; color:#9ca3af; margin-bottom:5px;"></div>
                 <div id="ge${side}Body" style="max-height:40vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px; align-self:start; width:100%;"></div>
             </div>`;
 
+        // A fresh inspect starts with clean charts: no clicked names, nothing hidden.
+        this._geVolcanoLabels = null;
         document.getElementById('selectionInspectBody').innerHTML = `
             <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); column-gap:16px;">
                 ${col('Left', 'CRISPR gene effect',
@@ -49626,71 +49639,154 @@ ${clone.innerHTML}
     // data-to-pixel mapping is only known after Plotly resolves its axis
     // ranges, so this runs on the render's promise. Each moved label keeps a
     // thin leader line back to its dot.
-    _spreadVolcanoLabels(el, lab) {
+    _spreadVolcanoLabels(el) {
         const fl = el && el._fullLayout;
         if (!fl || !fl.xaxis || !Array.isArray(fl.annotations) || !fl.annotations.length) return;
         const xa = fl.xaxis, ya = fl.yaxis;
         if (typeof xa.d2p !== 'function' || typeof ya.d2p !== 'function') return;
-
-        const FONT = 8, LH = 11;
-        // Start from the offsets the annotations were built with, in pixels
-        // relative to the dot, then move only in y: moving in x would carry a
-        // label across the zero line and read as the wrong side.
-        // A redraw that lands while this one's promise is still pending
-        // leaves fewer annotations than labels; those labels are skipped.
+        const pw = fl.width - fl.margin.l - fl.margin.r;
+        const ph = fl.height - fl.margin.t - fl.margin.b;
+        // Every gene label on the chart, automatic or clicked on, measured at
+        // the size it is actually drawn in (Settings can change it), so
+        // labels made bigger there are spread by their real height.
         const anns = el.layout?.annotations || [];
-        const items = lab.map((r, i) => {
-            const left = r.delta < 0;
-            if (!anns[i]) return { i, left, px: NaN, py: NaN };
-            return {
-                i, left,
-                px: xa.d2p(r.delta), py: ya.d2p(anns[i].y),
-                w: String(r.gene).length * FONT * 0.62 + 4,
-                ax: left ? -14 : 14,
-                ay: -10
-            };
-        }).filter(it => isFinite(it.px) && isFinite(it.py));
-        if (items.length < 2) { return; }
-
+        const items = [];
+        anns.forEach((a, i) => {
+            if (!a._dotLabel) return;
+            const px = xa.d2p(a.x), py = ya.d2p(a.y);
+            if (!isFinite(px) || !isFinite(py)) return;
+            const fs = a.font?.size || 8;
+            const text = String(a.text || '').replace(/<[^>]+>/g, '');
+            items.push({ i, left: a.x < 0, px, py, fs,
+                w: text.length * fs * 0.7 + 6, h: fs * 1.35,
+                ax: a.x < 0 ? -14 : 14, ay: -10 });
+        });
+        if (!items.length) return;
+        // A label that would run out past the plot's edge is put on the other
+        // side of its dot instead. It still sits on the same side of zero, so
+        // it cannot read as the wrong direction.
+        for (const it of items) {
+            if (it.left && it.px + it.ax - it.w < 2) { it.left = false; it.ax = 14; }
+            else if (!it.left && it.px + it.ax + it.w > pw - 2) { it.left = true; it.ax = -14; }
+        }
         const overlaps = (a, b) => {
             const ax1 = a.px + a.ax - (a.left ? a.w : 0), ax2 = ax1 + a.w;
             const bx1 = b.px + b.ax - (b.left ? b.w : 0), bx2 = bx1 + b.w;
             if (ax2 < bx1 - 2 || bx2 < ax1 - 2) return false;
-            return Math.abs((a.py + a.ay) - (b.py + b.ay)) < LH;
+            return Math.abs((a.py + a.ay) - (b.py + b.ay)) < (a.h + b.h) / 2;
         };
         // A few passes of "if these two collide, move them apart" settles a
-        // handful of labels; there are at most eight.
-        for (let pass = 0; pass < 24; pass++) {
+        // handful of labels. Only y moves, so a label never crosses zero.
+        // Clamping is part of every pass: two labels pushed against the top
+        // edge would otherwise be clamped back onto each other after the
+        // spreading had finished. With the upper one stuck at the edge, the
+        // lower one keeps stepping down until they clear.
+        const clamp = (it) => {
+            const y = it.py + it.ay;
+            if (y < it.h / 2 + 2) it.ay += it.h / 2 + 2 - y;
+            if (y > ph - it.h / 2 - 2) it.ay -= y - (ph - it.h / 2 - 2);
+        };
+        items.forEach(clamp);
+        for (let pass = 0; pass < 60; pass++) {
             let moved = false;
             for (let a = 0; a < items.length; a++) {
                 for (let b = a + 1; b < items.length; b++) {
                     if (!overlaps(items[a], items[b])) continue;
                     const up = (items[a].py + items[a].ay) <= (items[b].py + items[b].ay) ? items[a] : items[b];
                     const dn = up === items[a] ? items[b] : items[a];
-                    up.ay -= LH / 2; dn.ay += LH / 2;
+                    const step = Math.max(up.h, dn.h) / 2;
+                    up.ay -= step; dn.ay += step;
+                    clamp(up); clamp(dn);
                     moved = true;
                 }
             }
             if (!moved) break;
         }
-        // Keep every label inside the plot area, then let the leader lines do
-        // the rest of the work.
-        const h = fl.height - fl.margin.t - fl.margin.b;
         const upd = {};
         for (const it of items) {
-            const y = it.py + it.ay;
-            if (y < 6) it.ay += 6 - y;
-            if (y > h - 6) it.ay -= y - (h - 6);
             upd[`annotations[${it.i}].ax`] = it.ax;
             upd[`annotations[${it.i}].ay`] = it.ay;
+            upd[`annotations[${it.i}].xanchor`] = it.left ? 'right' : 'left';
         }
         Plotly.relayout(el, upd).catch(() => {});
+    }
+
+    // Per-side label curation on the inspect volcanos: names clicked on or
+    // off, genes hidden from the chart, and how many are labelled
+    // automatically in each direction. Survives cutoff redraws; reset when
+    // the inspect is opened afresh.
+    _geVolcanoState(side) {
+        const all = (this._geVolcanoLabels ||= {});
+        return all[side] ||= { added: new Set(), removed: new Set(), hidden: new Set(), autoN: 4 };
+    }
+
+    _redrawGEVolcano(side) {
+        const el = document.getElementById(`ge${side}Volcano`);
+        if (el?._lastDrawArgs) this._drawGEVolcano(...el._lastDrawArgs);
+    }
+
+    _toggleGEVolcanoLabel(side, gene) {
+        const st = this._geVolcanoState(side);
+        const el = document.getElementById(`ge${side}Volcano`);
+        const has = (el?.layout?.annotations || []).some(a => a._dotLabel === gene);
+        if (has) { st.added.delete(gene); st.removed.add(gene); }
+        else { st.removed.delete(gene); st.added.add(gene); }
+        this._redrawGEVolcano(side);
+    }
+
+    // The names on each volcano, listed under it so they can be read, removed
+    // one by one or copied; the hidden genes beside them so they can be put
+    // back. Always rendered, so the row never appears and shoves the table.
+    _renderGEVolcanoChips(side) {
+        const host = document.getElementById(`ge${side}Labeled`);
+        if (!host) return;
+        const st = this._geVolcanoState(side);
+        const el = document.getElementById(`ge${side}Volcano`);
+        const labelled = (el?.layout?.annotations || []).filter(a => a._dotLabel && a._dotLabel !== true).map(a => a._dotLabel);
+        const hidden = [...st.hidden];
+        const chip = (g, kind) => `<span class="clb-chip" data-${kind}="${this.esc(g)}" title="${kind === 'lbl' ? 'Click to remove this label' : 'Click to show this gene again'}" `
+            + `style="background:${kind === 'lbl' ? '#eef2ff' : '#f3f4f6'}; color:${kind === 'lbl' ? '#3730a3' : '#6b7280'}; border:1px solid ${kind === 'lbl' ? '#c7d2fe' : '#e5e7eb'}; padding:1px 7px; border-radius:10px; font-size:10px; font-weight:600; cursor:pointer;${kind === 'hid' ? ' text-decoration:line-through;' : ''}">`
+            + `${this.esc(g)} &times;</span>`;
+        host.innerHTML = `
+            <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center; font-size:10px; color:#6b7280;">
+                <span style="font-weight:600;">Labels (${labelled.length}):</span>
+                ${labelled.map(g => chip(g, 'lbl')).join(' ')}
+                <label style="display:inline-flex; align-items:center; gap:3px; margin-left:auto; white-space:nowrap;" title="How many genes are named automatically in each direction, the strongest first. Click any dot to name it whatever this says.">auto per side
+                    <input type="number" class="js-auto-n" min="0" max="12" value="${st.autoN}" style="width:38px; font-size:10px; padding:1px 3px; border:1px solid #d1d5db; border-radius:3px;"></label>
+                <button type="button" class="btn btn-outline btn-sm js-clear" style="font-size:9px; padding:1px 6px;" title="Remove every label from this chart">Clear</button>
+                <button type="button" class="btn btn-outline btn-sm js-copy" style="font-size:9px; padding:1px 6px;" title="Copy the labelled gene names, one per line"${labelled.length ? '' : ' disabled'}>Copy</button>
+            </div>
+            ${hidden.length ? `<div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center; font-size:10px; color:#6b7280; margin-top:3px;">
+                <span style="font-weight:600;">Hidden (${hidden.length}):</span> ${hidden.map(g => chip(g, 'hid')).join(' ')}
+                <button type="button" class="btn btn-outline btn-sm js-unhide" style="font-size:9px; padding:1px 6px;" title="Show every hidden gene again">Show all</button>
+            </div>` : ''}`;
+        host.querySelectorAll('[data-lbl]').forEach(c => c.addEventListener('click', () => this._toggleGEVolcanoLabel(side, c.dataset.lbl)));
+        host.querySelectorAll('[data-hid]').forEach(c => c.addEventListener('click', () => { st.hidden.delete(c.dataset.hid); this._redrawGEVolcano(side); }));
+        host.querySelector('.js-unhide')?.addEventListener('click', () => { st.hidden.clear(); this._redrawGEVolcano(side); });
+        host.querySelector('.js-clear')?.addEventListener('click', () => {
+            st.added.clear(); for (const g of labelled) st.removed.add(g); this._redrawGEVolcano(side);
+        });
+        host.querySelector('.js-copy')?.addEventListener('click', () => {
+            navigator.clipboard?.writeText(labelled.join('\n'));
+            this.showCopyNotification?.(`Copied ${labelled.length} gene name${labelled.length === 1 ? '' : 's'}`);
+        });
+        host.querySelector('.js-auto-n')?.addEventListener('change', (e) => {
+            st.autoN = Math.max(0, Math.min(12, parseInt(e.target.value, 10) || 0));
+            this._redrawGEVolcano(side);
+        });
     }
 
     _drawGEVolcano(side, allRows, shownRows, cut, qCut, anyQ, measure, xTitle, searchRows) {
         const el = document.getElementById(`ge${side}Volcano`);
         if (!el || typeof Plotly === 'undefined') return;
+        el._lastDrawArgs = [side, allRows, shownRows, cut, qCut, anyQ, measure, xTitle, searchRows];
         if (!allRows || !allRows.length) { el.innerHTML = ''; return; }
+        const st = this._geVolcanoState(side);
+        if (st.hidden.size) {
+            allRows = allRows.filter(r => !st.hidden.has(r.gene));
+            shownRows = shownRows.filter(r => !st.hidden.has(r.gene));
+            searchRows = (searchRows || []).filter(r => !st.hidden.has(r.gene));
+        }
         // Gene effect gets its own palette: orange for a negative
         // delta, purple for positive, so it never reuses the red/blue this
         // same function draws for the expression volcano on the other side.
@@ -49725,12 +49821,23 @@ ${clone.innerHTML}
             found.t.push(`${r.gene}<br>Δ ${r.delta.toFixed(2)}${anyQ && r.q != null ? `<br>q ${r.q < 0.001 ? r.q.toExponential(1) : r.q.toFixed(3)}` : ''}`);
             foundLab.push(r);
         }
-        const labelable = shownRows.filter(r => isFinite(r.delta) && yOf(r) != null);
-        const lab = [...labelable.filter(r => r.delta < 0).slice(0, 4),
-                     ...labelable.filter(r => r.delta > 0).slice(0, 4)];
+        // The automatic labels, the strongest few each way minus any the
+        // user took off, plus every gene the user clicked a name onto.
+        const labelable = shownRows.filter(r => isFinite(r.delta) && yOf(r) != null && !st.removed.has(r.gene));
+        const lab = [...labelable.filter(r => r.delta < 0).slice(0, st.autoN),
+                     ...labelable.filter(r => r.delta > 0).slice(0, st.autoN)];
         // Searched genes are always labelled, and never twice.
         const labNames = new Set(lab.map(r => r.gene));
         for (const r of foundLab) if (!labNames.has(r.gene)) { lab.push(r); labNames.add(r.gene); }
+        if (st.added.size) {
+            const byGene = new Map(allRows.map(r => [r.gene, r]));
+            for (const g of st.added) {
+                const r = byGene.get(g);
+                if (r && !labNames.has(g) && isFinite(r.delta) && yOf(r) != null) { lab.push(r); labNames.add(g); }
+            }
+        }
+        // A size set in Settings survives a cutoff redraw.
+        const prevLabelSize = (el.layout?.annotations || []).find(a => a._dotLabel && !a._found)?.font?.size;
         const traces = [
             { x: bg.x, y: bg.y, text: bg.t, type: 'scattergl', mode: 'markers', name: 'below cutoff',
               hoverinfo: 'text', marker: { size: 4, color: '#d1d5db', opacity: 0.55 } },
@@ -49819,26 +49926,40 @@ ${clone.innerHTML}
             // The gene labels come first so their indices line up with `lab`
             // in _spreadVolcanoLabels; the heading annotations sit after them.
             // _dotLabel is what gives them a size control in Settings.
-            annotations: lab.map((r) => ({
-                x: r.delta, y: yOf(r), text: r.gene,
-                font: { size: foundLab.some(f => f.gene === r.gene) ? 10 : 8,
-                        color: foundLab.some(f => f.gene === r.gene) ? '#b45309' : '#374151' },
-                showarrow: true, arrowhead: 0, arrowwidth: 0.7, arrowcolor: '#b8bec9',
-                standoff: 3,
-                ax: r.delta < 0 ? -14 : 14, ay: -10,
-                xanchor: r.delta < 0 ? 'right' : 'left', yanchor: 'middle',
-                _dotLabel: true
-            })).concat(headerAnns),
+            annotations: lab.map((r) => {
+                const isFound = foundLab.some(f => f.gene === r.gene);
+                return {
+                    x: r.delta, y: yOf(r), text: r.gene,
+                    font: { size: isFound ? Math.max(10, prevLabelSize || 0) : (prevLabelSize || 8),
+                            color: isFound ? '#b45309' : '#374151' },
+                    showarrow: true, arrowhead: 0, arrowwidth: 0.7, arrowcolor: '#b8bec9',
+                    standoff: 3,
+                    ax: r.delta < 0 ? -14 : 14, ay: -10,
+                    xanchor: r.delta < 0 ? 'right' : 'left', yanchor: 'middle',
+                    captureevents: true, hovertext: 'Click to remove this label',
+                    _dotLabel: r.gene, _found: isFound || undefined
+                };
+            }).concat(headerAnns),
             paper_bgcolor: '#fff', plot_bgcolor: '#fff'
         };
         Plotly.react(el, traces, layout, { displayModeBar: false, responsive: true })
-            .then(() => this._spreadVolcanoLabels(el, lab));
+            .then(() => { this._spreadVolcanoLabels(el); this._renderGEVolcanoChips(side); });
         if (!el.dataset.wired) {
             el.dataset.wired = '1';
+            // Click names a gene, as on the correlation scatter; Shift+click
+            // opens it; Alt+click takes it off the chart (the table keeps it).
             el.on('plotly_click', (ev) => {
                 const t = ev.points?.[0]?.text || '';
                 const gene = t.split('<br>')[0];
-                if (gene) this._openGeneFromInspect?.(gene, side === 'Right');
+                if (!gene) return;
+                const e = ev.event || {};
+                if (e.shiftKey || e.metaKey || e.ctrlKey) return this._openGeneFromInspect?.(gene, side === 'Right');
+                if (e.altKey) { this._geVolcanoState(side).hidden.add(gene); this._redrawGEVolcano(side); return; }
+                this._toggleGEVolcanoLabel(side, gene);
+            });
+            el.on('plotly_clickannotation', (ev) => {
+                const g = ev.annotation?._dotLabel;
+                if (g && g !== true) { ev.event?.preventDefault?.(); this._toggleGEVolcanoLabel(side, g); }
             });
         }
         // The layout gives the plot a fixed pixel size, so a window resize
@@ -50300,8 +50421,9 @@ ${clone.innerHTML}
         // table looked like an answer rather than a cutoff to loosen.
         const leftMsg = hint(leftRows.length, leftCut, leftQ, rows, 'left');
         const rightMsg = hint(rightRows.length, rightCut, rightQ, exprRows, 'right');
-        document.getElementById('geLeftHint').textContent = leftRows.length ? leftMsg : '';
-        document.getElementById('geRightHint').textContent = rightRows.length ? rightMsg : '';
+        const clickHint = ' Click a dot to name it, Shift+click to open the gene, Alt+click to hide it.';
+        document.getElementById('geLeftHint').textContent = leftRows.length ? leftMsg + clickHint : '';
+        document.getElementById('geRightHint').textContent = rightRows.length ? rightMsg + clickHint : '';
         document.getElementById('geLeftBody').innerHTML = this._buildGEInspectTable(leftRows, 'left', leftMsg);
         document.getElementById('geRightBody').innerHTML = this._buildGEInspectTable(rightRows, 'right', rightMsg);
 
@@ -54103,7 +54225,7 @@ ${clone.innerHTML}
             <div style="border-top:1px solid #e5e7eb;margin:6px 0;"></div>
             <div style="font-weight:600;margin-bottom:4px;color:#1f2937;font-size:11px;">Cell line dots</div>
             ${sizeRow('Size', 'ts_marker', markerSize, 1, 40, null, true)}
-            ${nDotLabels ? `<div style="font-weight:600;margin:8px 0 4px;color:#1f2937;font-size:11px;">Cell line names <span style="font-weight:400;color:#6b7280;">, the ${nDotLabels} you clicked onto the plot</span></div>`
+            ${nDotLabels ? `<div style="font-weight:600;margin:8px 0 4px;color:#1f2937;font-size:11px;">${/Volcano$/.test(plotDivId || '') ? 'Gene names' : 'Cell line names'} <span style="font-weight:400;color:#6b7280;">, the ${nDotLabels} on the plot</span></div>`
                 + sizeRow('Size', 'ts_dotLabel', dotLabelSize, 5, 30, null, true) : ''}
             ${plotDivId === 'scatterPlot' ? `
             <div style="display:flex;align-items:center;margin-bottom:5px;gap:4px;">
@@ -54751,7 +54873,11 @@ ${clone.innerHTML}
             (plotEl.layout?.annotations || []).forEach((ann, i) => {
                 if (ann._dotLabel) dotUpdates[`annotations[${i}].font.size`] = dotLabelSize;
             });
-            if (Object.keys(dotUpdates).length) Plotly.relayout(plotEl, dotUpdates);
+            if (Object.keys(dotUpdates).length) {
+                const p = Plotly.relayout(plotEl, dotUpdates);
+                // Bigger names on a volcano need spreading again.
+                if (/Volcano$/.test(plotEl.id || '')) p.then(() => this._spreadVolcanoLabels(plotEl));
+            }
         }
 
         const markerSize = getVal('ts_marker');
