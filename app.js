@@ -15416,8 +15416,11 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
                 const weight = lbl.bold ? ' font-weight: bold;' : '';
                 const italic = lbl.italic ? ' font-style: italic;' : '';
                 const labelLines = lbl.text.split('\n');
+                // The label hangs from the node's lower edge, as vis draws it
+                // on screen: the baseline is one text ascent below the edge,
+                // so a big font over a small node never climbs into the circle.
                 labelLines.forEach((line, i) => {
-                    const yOffset = pos.y + nodeRadius + 14 * scale + (i * nodeFontSize);
+                    const yOffset = pos.y + nodeRadius + 3 * scale + nodeFontSize * 0.8 + (i * nodeFontSize * 1.15);
                     svg += `  <text x="${pos.x}" y="${yOffset}" text-anchor="middle" style="font-family: ${node.font?.face || 'Arial'}; font-size: ${nodeFontSize}px;${weight}${italic} fill: ${node.font?.color || '#333'};">${this.escapeXml(line)}</text>\n`;
                 });
             }
@@ -17744,8 +17747,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const weight = lbl.bold ? ' font-weight: bold;' : '';
                 const italic = lbl.italic ? ' font-style: italic;' : '';
                 const labelLines = lbl.text.split('\n');
+                // The label hangs from the node's lower edge, as vis draws it
+                // on screen: the baseline is one text ascent below the edge,
+                // so a big font over a small node never climbs into the circle.
                 labelLines.forEach((line, i) => {
-                    const yOffset = pos.y + nodeRadius + 14 * scale + (i * nodeFontSize);
+                    const yOffset = pos.y + nodeRadius + 3 * scale + nodeFontSize * 0.8 + (i * nodeFontSize * 1.15);
                     svg += `  <text x="${pos.x}" y="${yOffset}" text-anchor="middle" style="font-family: ${node.font?.face || 'Arial'}; font-size: ${nodeFontSize}px;${weight}${italic} fill: ${node.font?.color || '#333'};">${this.escapeXml(line)}</text>\n`;
                 });
             }
