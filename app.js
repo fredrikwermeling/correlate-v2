@@ -18108,46 +18108,48 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     }
 
     _computeInspectFilteredIdsFromDOM() {
-        // Mirror the filter stack in updateInspectPlot, but applied from
-        // scratch to all cell lines. Used when the inspect plot hasn't
-        // been built yet but the user wants Find correlates to honour the
-        // tissue / mutation / fusion / custom-CL filters they set.
+        // The scatter's own filter chain, run over every cell line, so Find
+        // correlates scores exactly the cohort the plot would show. A separate
+        // copy of the rules drifted (fusion pairs, the CN wild-type switch,
+        // the default mutation level, the gate filter) and the list then
+        // disagreed with the plot it feeds.
         const cells = this.metadata?.cellLines || [];
+        const items = cells.map(cl => ({ cellLineId: cl, lineage: this.cellLineMetadata?.lineage?.[cl] }));
+        return this._applyScatterFilters(items).map(d => d.cellLineId);
+    }
+
+    // The cohort filters active on the scatter, as short phrases. One list
+    // serves the plot title, the chip strip's summary and Find correlates,
+    // so they can never describe different cohorts.
+    _scatterFilterParts() {
+        const parts = [];
         const cancerFilter = document.getElementById('scatterCancerFilter')?.value || '';
         const subtypeFilter = document.getElementById('scatterSubtypeFilter')?.value || '';
+        if (cancerFilter) parts.push(`Cancer: ${cancerFilter}${subtypeFilter ? ` / ${subtypeFilter}` : ''}`);
+        const onc = document.getElementById('scatterOncotreeFilter');
+        if (onc?.value) parts.push(`Disease: ${onc.selectedOptions?.[0]?.textContent?.trim() || onc.value}`);
         const mutFilterGene = document.getElementById('mutationFilterGene')?.value || '';
-        const mutFilterLevel = document.getElementById('mutationFilterLevel')?.value || 'all';
-        const transFilterGene = document.getElementById('translocationFilterGene')?.value || '';
-        const transFilterLevel = document.getElementById('translocationFilterLevel')?.value || 'all';
-        const mutData = mutFilterGene ? (this.mutations?.geneData?.[mutFilterGene]?.mutations || this.damagingMutations?.geneData?.[mutFilterGene]?.mutations || {}) : null;
-        const transData = transFilterGene ? (this.translocations?.geneData?.[transFilterGene]?.translocations || {}) : null;
-        const out = [];
-        const cnFilterVal = document.getElementById('scatterCnFilter')?.value || '';
-        const oncActive = !!document.getElementById('scatterOncotreeFilter')?.value;
-        for (const cl of cells) {
-            if (cancerFilter && this.cellLineMetadata?.lineage?.[cl] !== cancerFilter) continue;
-            if (subtypeFilter && this.cellLineMetadata?.primaryDisease?.[cl] !== subtypeFilter) continue;
-            if (oncActive && !this._passesOncotree(cl, 'scatterOncotreeFilter')) continue;
-            if (mutData && mutFilterLevel !== 'all') {
-                const ml = mutData[cl] || 0;
-                if (mutFilterLevel === '0' && ml !== 0) continue;
-                if (mutFilterLevel === '1' && ml !== 1) continue;
-                if (mutFilterLevel === '2' && ml < 2) continue;
-                if (mutFilterLevel === '1+2' && ml < 1) continue;
-            }
-            if (transData && transFilterLevel !== 'all') {
-                const fl = transData[cl] || 0;
-                if (transFilterLevel === '0' && fl !== 0) continue;
-                if (transFilterLevel === '1+2' && fl < 1) continue;
-            }
-            if (cnFilterVal && !this._cellLinePassesCnFilter(cl, cnFilterVal)) continue;
-            // Grid picks: the shared set and the scatter's own, same as the plot.
-            if (this._activeOncoprintFilters?.length && !this._cellLinePassesOncoprintFilters(cl)) continue;
-            if (this._scatterGridActive?.length && !this._cellLinePassesOncoprintFilters(cl, this._scatterGridActive)) continue;
-            if (this._customCellLineFilter && !this._customCellLineFilter.has(cl)) continue;
-            out.push(cl);
+        if (mutFilterGene) {
+            const lvl = document.getElementById('mutationFilterLevel')?.value || '1+2';
+            const levelText = lvl === '0' ? 'hotspot WT' : lvl === '1' ? 'hotspot mut (1 copy)' : lvl === '2' ? 'hotspot mut (2 copies)' : 'hotspot mut (1+2)';
+            parts.push(`${mutFilterGene}: ${levelText}`);
         }
-        return out;
+        const transFilterGene = document.getElementById('translocationFilterGene')?.value || '';
+        if (transFilterGene) {
+            const lvl = document.getElementById('translocationFilterLevel')?.value || '1+2';
+            parts.push(`${this._stripFusionFilterDecoration(transFilterGene)}: ${lvl === '0' ? 'no fusion' : 'fused'}`);
+        }
+        const cnFilterVal = document.getElementById('scatterCnFilter')?.value || '';
+        if (cnFilterVal) {
+            const cnLvl = document.getElementById('scatterCnLevel')?.value || 'altered';
+            const cnLabel = this._stripCnFilterDecoration(cnFilterVal).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' deep-del');
+            parts.push(`${cnLabel}${cnLvl === 'wt' ? ' (WT)' : ''}`);
+        }
+        (this._activeOncoprintFilters || []).forEach(f => parts.push(`${f.gene} ${this._gridStateWord(f.state)} (from the analysis)`));
+        (this._scatterGridActive || []).forEach(f => parts.push(`${f.gene} ${this._gridStateWord(f.state)}`));
+        if (this._gateFilter) parts.push(`Gate ${this._gateFilter.gate} (${this._gateFilter.n} cell lines)`);
+        else if (this._customCellLineFilter?.size) parts.push(`Pasted list (${this._customCellLineFilter.size} cell lines)`);
+        return parts;
     }
 
     _prepopulateInspectFiltersStandalone() {
@@ -19199,34 +19201,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             translocationPartners: translocationPartnersMap.get(d.cellLineId) || []
         }));
 
-        // Build filter description for title
-        let filterParts = [];
-        if (cancerFilter) {
-            let cancerText = cancerFilter;
-            if (subtypeFilter) cancerText += ` / ${subtypeFilter}`;
-            filterParts.push(`Cancer: ${cancerText}`);
-        }
-        if (mutFilterGene) {
-            const lvl = mutFilterLevel || '1+2';
-            const levelText = lvl === '0' ? 'hotspot WT' : lvl === '1' ? 'hotspot mut (1 copy)' : lvl === '2' ? 'hotspot mut (2 copies)' : 'hotspot mut (1+2)';
-            filterParts.push(`${mutFilterGene}: ${levelText}`);
-        }
-        if (transFilterGene) {
-            const lvl = transFilterLevel || '1+2';
-            filterParts.push(`${this._stripFusionFilterDecoration(transFilterGene)}: ${lvl === '0' ? 'no fusion' : 'fused'}`);
-        }
-        const cnFilterVal = document.getElementById('scatterCnFilter')?.value || '';
-        if (cnFilterVal) {
-            const cnLvl = document.getElementById('scatterCnLevel')?.value || 'altered';
-            const cnLabel = this._stripCnFilterDecoration(cnFilterVal).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' deep-del');
-            filterParts.push(`${cnLabel}${cnLvl === 'wt' ? ' (WT)' : ''}`);
-        }
-        // The scatter's own grid picks are cohort filters too, so the title
-        // names them alongside the rest.
-        (this._scatterGridActive || []).forEach(f => filterParts.push(`${f.gene} ${this._gridStateWord(f.state)}`));
-        // A gate used as a filter is a cohort filter like the rest, so the
-        // line above the plot names it too.
-        if (this._gateFilter) filterParts.push(`Gate ${this._gateFilter.gate} (${this._gateFilter.n} cell lines)`);
+        const filterParts = this._scatterFilterParts();
         const filterDesc = filterParts.length > 0 ? filterParts.join(' | ') : '';
 
         // Show/hide plot and table based on mode
@@ -21307,11 +21282,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // (Using _inspectFilteredCellLineIds here would bias the set by
         // whichever Y gene was previously displayed, making Find correlates'
         // r differ from the scatter's r after a click.)
+        const filterParts = this._scatterFilterParts();
         let clIds = this._computeInspectFilteredIdsFromDOM();
-        if (!Array.isArray(clIds) || clIds.length < 3) clIds = this.metadata.cellLines.slice();
+        if (!Array.isArray(clIds)) clIds = this.metadata.cellLines.slice();
         const clIndexOf = new Map(this.metadata.cellLines.map((cl, i) => [cl, i]));
         const clIdxs = clIds.map(cl => clIndexOf.get(cl)).filter(i => i !== undefined);
-        if (clIdxs.length < 3) { alert('Need ≥ 3 cell lines after filters.'); return; }
+        if (clIdxs.length < 3) {
+            alert(`Only ${clIdxs.length} cell line${clIdxs.length === 1 ? '' : 's'} pass the scatter's filters (${filterParts.join(' | ') || 'none'}). Widen the filters to find correlates.`);
+            return;
+        }
 
         // Build the X-vector from the selected data type.
         const xIdx = xType === 'ge'
@@ -21400,10 +21379,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Stash hits so the threshold input and Enrichr buttons can re-filter
         // without re-computing correlations.
-        this._inspectCorrelatesState = { geHits, exprHits, xGene, xType, xN, expressionLoaded: this.expressionLoaded };
+        this._inspectCorrelatesState = { geHits, exprHits, xGene, xType, xN, filterParts, expressionLoaded: this.expressionLoaded };
 
-        document.getElementById('inspectCorrelatesTitle').textContent = `Correlates of ${xGene} (${xType === 'ge' ? 'GE' : 'Expression'})`;
-        document.getElementById('inspectCorrelatesSubtitle').textContent = `n = ${xN} cell lines (after the inspect modal's current filters). Click a gene to put it on the Y axis, or send the filtered list to Enrichr for pathway enrichment.`;
+        const panelN = (this.metadata?.cellLines || []).length;
+        document.getElementById('inspectCorrelatesTitle').textContent = `Correlates of ${xGene} (${xType === 'ge' ? 'GE' : 'Expression'})${filterParts.length ? ', filtered cohort' : ''}`;
+        document.getElementById('inspectCorrelatesSubtitle').textContent = filterParts.length
+            ? `n = ${xN} of ${panelN.toLocaleString()} cell lines, the scatter's filters applied (listed below). Click a gene to put it on the Y axis, or send the list to Enrichr.`
+            : `n = ${xN} cell lines, the whole panel, no filters. Click a gene to put it on the Y axis, or send the list to Enrichr.`;
+        // The filters are what make this list differ from the same gene's list
+        // on the whole panel, so they are named in a banner of their own, in
+        // the same chips the scatter shows, rather than left to a sentence.
+        const filterBanner = filterParts.length
+            ? `<div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; padding:7px 10px; background:#fffbeb; border:1px solid #fcd34d; border-radius:6px; margin-bottom:10px; font-size:11px; color:#92400e;">
+                <b>Filtered cohort:</b> ${filterParts.map(t => `<span style="background:#fff; border:1px solid #fcd34d; color:#92400e; padding:1px 7px; border-radius:10px; font-weight:600;">${this.esc(t)}</span>`).join(' ')}
+                <span style="color:#b45309;">Correlations computed on these ${xN} cell lines only. Change the filters on the scatter and press Find correlates again to redo the scan.</span>
+              </div>`
+            : '';
 
         // Hard display cap guards the DOM when the user drops the threshold
         // near zero, Enrichr still receives the full thresholded list.
@@ -21421,6 +21412,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const thStyle = 'padding:6px 8px; border-bottom:2px solid #d1d5db; cursor:pointer; user-select:none;';
 
         document.getElementById('inspectCorrelatesBody').innerHTML = `
+            ${filterBanner}
             <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:8px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:10px;">
                 <label style="font-weight:600; color:#374151;" title="Cutoff for the GE correlate list">GE |r| ≥
                     <input type="text" inputmode="decimal" id="icThreshold" value="${defaultThresholdGe}" min="0" max="1" step="0.05" style="width:52px; margin-left:6px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
@@ -21641,7 +21633,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const modal = document.getElementById('enrichrModal');
         const content = document.getElementById('enrichrContent');
         const title = document.getElementById('enrichrTitle');
-        title.textContent = `Enrichr / ${genes.length} ${kind === 'ge' ? 'GE' : 'Expression'} correlates of ${st.xGene}`;
+        title.textContent = `Enrichr / ${genes.length} ${kind === 'ge' ? 'GE' : 'Expression'} correlates of ${st.xGene}${st.filterParts?.length ? ` (${st.filterParts.join(' | ')})` : ''}`;
         content.innerHTML = '<div style="text-align:center; padding:60px; color:#aaa;"><div style="font-size:24px; margin-bottom:12px;">⏳</div>Submitting to Enrichr...</div>';
         modal.style.display = 'block';
         try {

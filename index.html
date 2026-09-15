@@ -2822,6 +2822,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.56 (2026-09-15)</strong></p>
+                <ul>
+                    <li><b>Find correlates uses the scatter's filters, and says so.</b> The correlate scan now runs through the same filter chain as the plot, so tissue, disease, hotspot, fusion, copy-number, grid, gate and pasted-list filters all apply exactly as drawn. An amber banner at the top of the list names every active filter and the number of cell lines scored, the heading says "filtered cohort", and the Enrichr title carries the filters too. Before, the scan kept its own copy of the rules (fusion pairs, the copy-number WT switch, the default mutation level and the gate filter had drifted) and fell back to the whole panel without saying so when few lines passed.</li>
+                </ul>
                 <p><strong>v.89.55 (2026-09-14)</strong></p>
                 <ul>
                     <li><b>The inspect volcanos can be curated like the correlation scatter.</b> Click a dot to name it, click the name (or its chip under the chart) to take it off, Shift+click to open the gene, Alt+click to hide a gene from the chart. A row under each volcano lists the names with Clear and Copy, sets how many genes are named automatically in each direction, and lists hidden genes so they can be put back. Names, hidden genes and the auto count travel with New tab.</li>
@@ -7692,7 +7696,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.55</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.56</a>
         </span>
     </div>
 
@@ -10831,7 +10835,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_55"></script>
+    <script src="app.js?v=v89_56"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
