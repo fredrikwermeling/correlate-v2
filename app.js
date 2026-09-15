@@ -5978,6 +5978,7 @@ class CorrelationExplorer {
                 // Drawn only when its tab is in front: Plotly sizes a chart to
                 // its container, and a hidden container has no width.
                 if (tab.dataset.tab === 'matrix') this.displayCorrelationMatrix();
+                if (tab.dataset.tab !== 'network') this._closeEnrichrIfFloating();
                 // Close Aa text settings panel on tab switch
                 const tsPanel = document.getElementById('textSettingsPanel');
                 if (tsPanel) tsPanel.style.display = 'none';
@@ -6949,6 +6950,7 @@ class CorrelationExplorer {
             }
         });
         document.getElementById('enrichrDownloadBtn')?.addEventListener('click', () => this.downloadEnrichrCSV());
+        document.getElementById('enrichrExportAIBtn')?.addEventListener('click', () => this.exportEnrichrForAI());
 
         // Infographic modal
         // How it works opens the tour; the long-form page is a button on the
@@ -13076,12 +13078,14 @@ class CorrelationExplorer {
             if (params.nodes.length > 0) {
                 // Node double-clicked - open Gene Effect analysis
                 const nodeId = params.nodes[0];
+                this._closeEnrichrIfFloating();
                 this.openGeneEffectFromNetwork(nodeId);
             } else {
                 // Edge double-clicked - open correlation inspect
                 const edgeId = edgeNear(params);
                 const edge = edgeId != null ? this.networkData.edges.get(edgeId) : null;
                 if (edge) {
+                    this._closeEnrichrIfFloating();
                     this.openInspectByGenes(edge.from, edge.to);
                     this._revealScatterPlot();
                 }
@@ -17971,8 +17975,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
             c = { gene1, gene2, correlation: null };
         }
+        // Arriving from the network (an edge, the matrix, the pairs table)
+        // always starts from a clean scatter: a filter set on a previous
+        // visit does not linger, and the analysis's own cohort filters are
+        // then put on, so the plot shows the cell lines the network was run on.
+        this._resetInspectSettings();
         this.openInspect(c);
-        // Apply current network filters to the scatter inspect
         this._applyNetworkFiltersToInspect();
     }
 
@@ -17996,24 +18004,37 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this._prefillOncotreeSelect('scatterOncotreeFilter', lineage,
                 document.getElementById('scatterSubtypeFilter')?.value, paramOnc);
         }
-        // Apply param hotspot as scatter hotspot overlay
+        // The analysis's alteration filters become the scatter's own filters,
+        // so the cohort is the one the network was run on. Setting them only
+        // as a colour overlay, as before, left every cell line on the plot.
+        // A value the scatter's control cannot hold (a select without that
+        // option) is left unset rather than half-applied.
+        const carry = (fromId, toId, levelFrom, levelTo, defLevel) => {
+            const gene = document.getElementById(fromId)?.value || '';
+            const lvl = document.getElementById(levelFrom)?.value || defLevel;
+            if (!gene || lvl === 'all') return false;
+            const to = document.getElementById(toId);
+            if (!to) return false;
+            to.value = gene;
+            if (to.value !== gene) { to.value = ''; return false; }
+            const lt = document.getElementById(levelTo);
+            if (lt) { lt.value = lvl; if (lt.value !== lvl) lt.value = defLevel; }
+            return true;
+        };
+        const hotOn = carry('paramHotspotGene', 'mutationFilterGene', 'paramHotspotLevel', 'mutationFilterLevel', '1+2');
+        // Colouring by the same gene still says which copies are hit among
+        // the mutated lines; among wild-type lines it would say nothing.
         const paramHotspot = document.getElementById('paramHotspotGene')?.value;
         const paramLevel = document.getElementById('paramHotspotLevel')?.value;
-        if (paramHotspot && paramLevel !== 'all') {
+        if (hotOn && paramLevel !== '0') {
             const hotspotSelect = document.getElementById('hotspotGene');
             const hotspotMode = document.getElementById('hotspotMode');
             if (hotspotSelect) hotspotSelect.value = paramHotspot;
             if (hotspotMode) hotspotMode.value = 'color';
         }
-        // Apply param translocation as scatter translocation overlay
-        const paramTrans = document.getElementById('paramTranslocationGene')?.value;
-        const paramTransLevel = document.getElementById('paramTranslocationLevel')?.value;
-        if (paramTrans && paramTransLevel !== 'all') {
-            const transSelect = document.getElementById('translocationGene');
-            const transMode = document.getElementById('translocationMode');
-            if (transSelect) transSelect.value = paramTrans;
-            if (transMode) transMode.value = 'color';
-        }
+        carry('paramTranslocationGene', 'translocationFilterGene', 'paramTranslocationLevel', 'translocationFilterLevel', '1+2');
+        carry('paramCnFilter', 'scatterCnFilter', 'paramCnLevel', 'scatterCnLevel', 'altered');
+        this._renderFilterChips?.('scatter');
         // Re-render with filters
         setTimeout(() => this.updateInspectPlot(), 100);
     }
@@ -18145,8 +18166,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const cnLabel = this._stripCnFilterDecoration(cnFilterVal).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' deep-del');
             parts.push(`${cnLabel}${cnLvl === 'wt' ? ' (WT)' : ''}`);
         }
-        (this._activeOncoprintFilters || []).forEach(f => parts.push(`${f.gene} ${this._gridStateWord(f.state)} (from the analysis)`));
-        (this._scatterGridActive || []).forEach(f => parts.push(`${f.gene} ${this._gridStateWord(f.state)}`));
+        // A grid pick inherited from the analysis usually arrives together
+        // with the same gene in the scatter's own hotspot / fusion / CN
+        // selector, so a gene already named above is not named twice.
+        const named = new Set([mutFilterGene, this._stripFusionFilterDecoration(transFilterGene), this._stripCnFilterDecoration(cnFilterVal).replace(/_(amp|del)$/, '')].filter(Boolean).map(g => g.toUpperCase()));
+        const gridWord = (f) => `${f.gene} ${this._gridStateWord(f.state)}`;
+        (this._activeOncoprintFilters || []).forEach(f => { if (!named.has(String(f.gene).toUpperCase())) { parts.push(gridWord(f)); named.add(String(f.gene).toUpperCase()); } });
+        (this._scatterGridActive || []).forEach(f => { if (!named.has(String(f.gene).toUpperCase())) { parts.push(gridWord(f)); named.add(String(f.gene).toUpperCase()); } });
         if (this._gateFilter) parts.push(`Gate ${this._gateFilter.gate} (${this._gateFilter.n} cell lines)`);
         else if (this._customCellLineFilter?.size) parts.push(`Pasted list (${this._customCellLineFilter.size} cell lines)`);
         return parts;
@@ -36757,6 +36783,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         modal.classList.toggle('enrichr-floating', !!on);
     }
 
+    // The window that floats beside the network is about the network; once
+    // the user leaves it (a double-click opening a gene or a pair, another
+    // results tab) it would sit over the new view, so it goes.
+    _closeEnrichrIfFloating() {
+        const modal = document.getElementById('enrichrModal');
+        if (!modal || modal.style.display === 'none' || !this._enrichrFromNetwork) return;
+        modal.style.display = 'none';
+    }
+
     // Enrichr from the network. Three sets, because they answer different
     // questions: everything asked about, the part of the picture that is
     // actually connected, and the whole picture. Whether a gene was typed in or
@@ -37233,7 +37268,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         this._enrichrData = { genes, results, libraries };
         this._enrichrSortState = {};
+        this._enrichrFocus = { gene: '', only: false };
         this.renderEnrichrResults(libraries[0].key);
+    }
+
+    // Does this term's overlap include the gene of interest?
+    _enrichrRowHasFocus(row, focus) {
+        if (!focus) return false;
+        const genes = Array.isArray(row.genes) ? row.genes : (Array.isArray(row[5]) ? row[5] : []);
+        return genes.some(g => String(g).toUpperCase() === focus);
     }
 
     renderEnrichrResults(activeLibrary) {
@@ -37242,11 +37285,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const contentEl = document.getElementById('enrichrContent');
 
         // Render tabs
+        const focus = (this._enrichrFocus?.gene || '').toUpperCase();
+        const onlyFocus = !!this._enrichrFocus?.only;
         tabsEl.innerHTML = libraries.map(lib => {
             const active = lib.key === activeLibrary;
             const total = results[lib.key]?.length || 0;
-            const sig = (results[lib.key] || []).filter(r => r[6] < 0.05).length;
-            return `<button data-lib="${lib.key}" style="padding:5px 12px; font-size:12px; border:1px solid ${active ? '#6ba544' : 'var(--gray-200)'}; background:${active ? '#6ba544' : '#fff'}; color:${active ? '#fff' : '#374151'}; border-radius:4px; cursor:pointer;">${lib.label} (${sig}/${total})</button>`;
+            const sigRows = (results[lib.key] || []).filter(r => r[6] < 0.05);
+            const sig = sigRows.length;
+            // With a gene of interest set, each tab also says how many of its
+            // significant sets contain that gene, so the right library can
+            // be picked without opening each one.
+            const withFocus = focus ? sigRows.filter(r => this._enrichrRowHasFocus(r, focus)).length : 0;
+            const focusNote = focus ? ` <span style="opacity:0.85;">· ${withFocus} with ${this.esc(focus)}</span>` : '';
+            return `<button data-lib="${lib.key}" style="padding:5px 12px; font-size:12px; border:1px solid ${active ? '#6ba544' : 'var(--gray-200)'}; background:${active ? '#6ba544' : '#fff'}; color:${active ? '#fff' : '#374151'}; border-radius:4px; cursor:pointer;">${lib.label} (${sig}/${total})${focusNote}</button>`;
         }).join('');
 
         tabsEl.querySelectorAll('button').forEach(btn => {
@@ -37285,6 +37336,35 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (typeof va === 'string') return sortState.asc ? va.localeCompare(vb) : vb.localeCompare(va);
             return sortState.asc ? va - vb : vb - va;
         });
+        // Gene of interest: the sets that contain it come first, in the
+        // current sort order, or are the only ones shown. The sort itself is
+        // untouched, so the column headers still mean what they say within
+        // each block.
+        const nSigAll = parsed.length;
+        let nWithFocus = 0;
+        if (focus) {
+            parsed.forEach(r => { r.hasFocus = this._enrichrRowHasFocus(r, focus); if (r.hasFocus) nWithFocus++; });
+            parsed = onlyFocus ? parsed.filter(r => r.hasFocus) : [...parsed.filter(r => r.hasFocus), ...parsed.filter(r => !r.hasFocus)];
+        }
+        const submitted = (this._enrichrData.genes || []).slice().sort();
+        const focusRow = `<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 0 8px; padding:6px 10px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; font-size:11px; color:#374151;">
+            <label style="font-weight:600;" title="Sets that contain this gene are listed first, in the current sort order. Type any gene symbol; the suggestions are the genes that were sent.">Gene of interest
+                <input type="text" id="enrichrFocusGene" list="enrichrFocusList" value="${this.esc(this._enrichrFocus?.gene || '')}" placeholder="e.g. TP53" autocomplete="off" style="width:110px; margin-left:6px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; font-size:11px; text-transform:uppercase;">
+                <datalist id="enrichrFocusList">${submitted.map(g => `<option value="${this.esc(g)}">`).join('')}</datalist>
+            </label>
+            <label style="display:inline-flex; align-items:center; gap:4px;${focus ? '' : ' opacity:0.5;'}" title="Hide the sets that do not contain the gene of interest">
+                <input type="checkbox" id="enrichrFocusOnly"${onlyFocus ? ' checked' : ''}${focus ? '' : ' disabled'} style="margin:0;"> only sets with it
+            </label>
+            <span style="color:#6b7280;">${focus
+                ? (nWithFocus ? `<b style="color:#4c782e;">${nWithFocus}</b> of ${nSigAll} significant sets in this library contain ${this.esc(focus)}${onlyFocus ? '' : ', listed first and tinted'}.`
+                    : `No significant set in this library contains ${this.esc(focus)}${submitted.some(g => g.toUpperCase() === focus) ? '' : ' (it was not among the genes sent)'}.`)
+                : 'Type a gene to bring the sets that contain it to the top.'}</span>
+        </div>`;
+        if (focus && onlyFocus && !parsed.length) {
+            contentEl.innerHTML = focusRow + `<div style="text-align:center; padding:40px; color:#aaa;">No significant set in this library contains ${this.esc(focus)}.</div>`;
+            this._wireEnrichrFocus(activeLibrary);
+            return;
+        }
 
         const columns = [
             { key: 'rank', label: '#' },
@@ -37319,7 +37399,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // Each gene as its own item, so the column flow breaks between
             // genes instead of wherever the text happens to reach the edge.
             const geneHtml = _genes.length
-                ? _genes.map(g => `<span class="eg">${this.esc(g)}</span>`).join('')
+                ? _genes.map(g => `<span class="eg"${focus && String(g).toUpperCase() === focus ? ' style="font-weight:700; color:#4c782e;"' : ''}>${this.esc(g)}</span>`).join('')
                 : this.esc(String(row.genes));
             const geneCount = _genes.length;
             // The cell is wider than it was, so more rows fit whole; and cut at
@@ -37336,7 +37416,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 + ` data-enrichr-term="${this.esc(row.term)}" data-enrichr-q="${row.adjPValue}" data-enrichr-n="${geneCount}"`
                 + ` title="Highlight these genes in the network"`
                 : '';
-            html += `<tr${_gsAttr} style="border-bottom:1px solid #333;${_clickable ? ' cursor:pointer;' : ''}">`;
+            html += `<tr${_gsAttr} style="border-bottom:1px solid #333;${_clickable ? ' cursor:pointer;' : ''}${row.hasFocus ? ' background:#f0fdf4;' : ''}">`;
             html += `<td style="padding:5px 8px; color:#9ca3af;">${row.rank}</td>`;
             html += `<td style="padding:5px 8px; max-width:350px; overflow:hidden; text-overflow:ellipsis;" title="${this.esc(row.term)}">${this.esc(row.term)}</td>`;
             html += `<td style="padding:5px 8px; font-family:monospace; font-size:11px;">${this.formatPValue(row.pValue)}</td>`;
@@ -37377,7 +37457,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                  + `<input type="color" id="enrichrHlColor" value="${_co}" title="Mark colour, shared with the network's Settings panel" style="width:30px; height:22px; padding:0; border:1px solid #d1d5db; border-radius:4px; background:none; cursor:pointer;" oninput="app.setNetworkHighlightLook({color:this.value})">`
                  + '</div>' + html;
         }
-        contentEl.innerHTML = html;
+        contentEl.innerHTML = focusRow + html;
+        this._wireEnrichrFocus(activeLibrary);
 
         if (this._enrichrFromNetwork) {
             contentEl.querySelectorAll('tr[data-enrichr-hl]').forEach(tr => {
@@ -37444,6 +37525,85 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 td.title = isExpanded ? 'Click to expand' : 'Click to collapse';
             });
         });
+    }
+
+    _wireEnrichrFocus(activeLibrary) {
+        const inp = document.getElementById('enrichrFocusGene');
+        const only = document.getElementById('enrichrFocusOnly');
+        const apply = () => {
+            const gene = (inp?.value || '').trim().toUpperCase();
+            const st = (this._enrichrFocus ||= { gene: '', only: false });
+            if (gene === st.gene && (only?.checked ?? false) === st.only) return;
+            st.gene = gene;
+            st.only = !!only?.checked && !!gene;
+            this.renderEnrichrResults(activeLibrary);
+            // Re-rendering replaces the input; keep the caret where it was.
+            const again = document.getElementById('enrichrFocusGene');
+            if (again && document.activeElement !== again && gene) again.focus();
+        };
+        inp?.addEventListener('change', apply);
+        inp?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); apply(); } });
+        only?.addEventListener('change', apply);
+    }
+
+    // The enrichment as a text file for a language model: what was sent, the
+    // significant sets per library with their genes, and the gene of
+    // interest if one is set. Numbers are Enrichr's own; the file says what
+    // each is so they are not misread.
+    exportEnrichrForAI() {
+        const d = this._enrichrData;
+        if (!d) { this.showCopyNotification?.('Run Enrichr first.'); return; }
+        const ver = document.getElementById('versionBadge')?.textContent?.trim() || 'unknown';
+        const title = document.getElementById('enrichrTitle')?.textContent?.trim() || 'Enrichr';
+        const focus = (this._enrichrFocus?.gene || '').toUpperCase();
+        const CAP = 40;
+        const fmt = (v) => (v == null || !isFinite(v)) ? 'n/a' : (Math.abs(v) < 0.001 ? v.toExponential(2) : v.toFixed(4));
+        const lines = [
+            `# Correlate ${ver}, Enrichr pathway enrichment`,
+            '',
+            `**What was sent:** ${title}.`,
+            'Exported from Correlate, a browser tool for exploring DepMap CRISPR screen,',
+            'expression, mutation, fusion and copy-number data across human cancer cell',
+            'lines. The gene list below was sent to Enrichr (maayanlab.cloud/Enrichr), which',
+            'tests it against each gene-set library with a Fisher exact test on the overlap.',
+            'Answer using this text; where it does not say, say so rather than guessing.',
+            '',
+            '## How to read the numbers',
+            '- Adjusted p-value: Benjamini-Hochberg over the terms of one library. Only terms with adjusted p below 0.05 are listed here; a library with none says so.',
+            '- Z-score: Enrichr\'s deviation from the expected rank of the term, more negative is a stronger result.',
+            '- Combined score: ln(p) times z, Enrichr\'s own ranking score, larger is stronger.',
+            '- Overlap: the genes from the sent list that are in the term. "Total" is how many significant terms the library had; at most the top ' + CAP + ' by adjusted p are written out per library.',
+            '- Background: Enrichr\'s default background of all annotated genes, NOT the DepMap panel, so a gene set that is over-represented among screened genes can look enriched for that reason alone.',
+            '- These are gene lists chosen inside Correlate (correlates, gate contents, a network), so the enrichment describes the list, not any single cell line, and it does not carry the effect direction of the genes.',
+            '',
+            `## Genes sent (${d.genes.length})`,
+            d.genes.slice().sort().join(', '),
+            ''
+        ];
+        if (focus) {
+            lines.push(`## Gene of interest: ${focus}`);
+            lines.push(d.genes.some(g => g.toUpperCase() === focus)
+                ? 'Sets whose overlap includes this gene are marked [contains ' + focus + '] below and listed first within each library.'
+                : 'This gene was NOT among the genes sent, so no set can contain it; it is recorded here only because it was typed in.');
+            lines.push('');
+        }
+        for (const lib of d.libraries) {
+            const rows = (d.results[lib.key] || []).filter(r => r[6] < 0.05)
+                .map(r => ({ rank: r[0], term: r[1], p: r[2], z: r[3], combined: r[4], genes: Array.isArray(r[5]) ? r[5] : [], adj: r[6] }))
+                .sort((a, b) => a.adj - b.adj);
+            lines.push(`## ${lib.label} (${lib.key})`);
+            if (!rows.length) { lines.push('No term reached adjusted p < 0.05.', ''); continue; }
+            const withFocus = focus ? rows.filter(r => this._enrichrRowHasFocus(r, focus)) : [];
+            lines.push(`Total significant terms: ${rows.length}${focus ? `, of which ${withFocus.length} contain ${focus}` : ''}. Listed: top ${Math.min(CAP, rows.length)} by adjusted p${focus ? ', sets containing the gene of interest first' : ''}.`, '');
+            const ordered = focus ? [...withFocus, ...rows.filter(r => !this._enrichrRowHasFocus(r, focus))] : rows;
+            for (const r of ordered.slice(0, CAP)) {
+                const mark = focus && this._enrichrRowHasFocus(r, focus) ? ` [contains ${focus}]` : '';
+                lines.push(`- **${r.term}**${mark}: adjusted p ${fmt(r.adj)}, p ${fmt(r.p)}, z ${r.z.toFixed(2)}, combined ${r.combined.toFixed(1)}, overlap ${r.genes.length}: ${r.genes.slice().sort().join(', ')}`);
+            }
+            lines.push('');
+        }
+        this.downloadFile(lines.join('\n'), 'correlate_enrichr_for_ai.md', 'text/markdown');
+        this.showCopyNotification?.('Enrichment exported. Paste the file into an LLM to ask about it.');
     }
 
     downloadEnrichrCSV() {

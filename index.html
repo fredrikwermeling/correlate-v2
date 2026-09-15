@@ -2822,6 +2822,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.58 (2026-09-15)</strong></p>
+                <ul>
+                    <li><b>Enrichr: gene of interest.</b> A box above the results takes a gene symbol; the sets that contain it move to the top (tinted, gene in bold) in whatever sort is on, or, with "only sets with it" ticked, are the only ones shown. Each library tab says how many of its significant sets contain the gene.</li>
+                    <li><b>The correlation view starts clean from the network, with the analysis filters on.</b> Opening a pair from an edge, the matrix or the pairs table no longer keeps a tissue, hotspot or other filter left over from an earlier visit. It does put on the filters the analysis was run with (tissue, subtype, disease, hotspot, fusion, copy number), as real filters rather than a colouring, so the plot shows the cell lines behind the network. Changing genes or measures inside the view still keeps whatever you set there.</li>
+                    <li>Fix: the Find correlates banner named the same gene twice ("TP53 WT (from the analysis)" and "TP53 WT") when a hotspot filter set on the first page was carried into the scatter. One chip per gene now.</li>
+                    <li><b>Enrichr closes when you leave the network.</b> The window that floats beside the network goes away when a double-click on a node or edge opens a gene or a pair, or when another results tab is chosen, instead of sitting over the new view.</li>
+                    <li><b>Enrichr: Export for AI.</b> A button in the header writes a text file with the genes sent, the significant sets of every library with their genes and scores, the gene of interest, and how to read Enrichr's numbers (including that the background is not the DepMap panel).</li>
+                </ul>
                 <p><strong>v.89.57 (2026-09-15)</strong></p>
                 <ul>
                     <li><b>The Active filters chips on the first page open a menu.</b> Clicking a hotspot, fusion or copy-number chip beside the Run button now offers the same choices as the chips elsewhere in the app (mutated either copy, one copy, both copies, wild-type; fused or not; event present or absent) plus Remove, so a filter can be flipped to WT without finding its selector. The chips also spell out the level (one copy, both copies) instead of a flat "mutated".</li>
@@ -7700,7 +7708,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.57</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.58</a>
         </span>
     </div>
 
@@ -10030,7 +10038,8 @@
           </div>
           <div style="display:flex; gap:8px; align-items:center;">
 
-            <button id="enrichrDownloadBtn" class="btn btn-outline btn-sm">Download CSV</button>
+            <button id="enrichrExportAIBtn" class="btn btn-outline btn-sm" title="Download the enrichment as a text file for a language model: the genes sent, the significant sets in every library with their genes and scores, and the gene of interest if one is set">Export for AI</button>
+            <button id="enrichrDownloadBtn" class="btn btn-outline btn-sm" title="The active library's full result table as CSV">Download CSV</button>
             <button id="enrichrCloseBtn" style="background:none; border:none; color:#6b7280; font-size:24px; cursor:pointer; padding:0 4px; line-height:1;">&times;</button>
           </div>
         </div>
@@ -10839,7 +10848,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_57"></script>
+    <script src="app.js?v=v89_58"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
