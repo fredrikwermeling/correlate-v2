@@ -18719,7 +18719,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const chips = [];
         const val = (id) => document.getElementById(id)?.value || '';
         const fire = (id) => { const e = document.getElementById(id); if (e) e.dispatchEvent(new Event('change', { bubbles: true })); };
-        const add = (label, clear, title) => chips.push({ label, clear, title });
+        // `menu` names a filter kind whose chip opens the shared level menu
+        // (mutated / one copy / wild-type ...) the other panels' chips have,
+        // so the state can be changed here without hunting for the selector.
+        const add = (label, clear, title, menu) => chips.push({ label, clear, title, menu });
 
         // Tissue, subtype and disease are one nested choice, not three. Three
         // chips reading "Lung", "Non-Small Cell Lung Cancer" and "Lung
@@ -18739,14 +18742,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             add(label, () => this._clearLocationFilters(), `Tissue split: ${label}`);
         }
         const hs = val('paramHotspotGene');
-        if (hs) add(`${hs} ${val('paramHotspotLevel') === '0' ? 'WT' : 'mutated'}`,
-            () => { const e = document.getElementById('paramHotspotGene'); e.value = ''; fire('paramHotspotGene'); }, 'Mutation');
+        if (hs) {
+            const lvl = val('paramHotspotLevel') || '1+2';
+            const word = { '0': 'WT', '1': 'mutated (one copy)', '2': 'mutated (both copies)' }[lvl] || 'mutated';
+            add(`${hs} ${word}`,
+                () => { const e = document.getElementById('paramHotspotGene'); e.value = ''; fire('paramHotspotGene'); },
+                'Mutation. Click to change which cell lines are kept, or to remove this filter', 'hotspot');
+        }
         const tg = val('paramTranslocationGene');
-        if (tg) add(`${tg} ${val('paramTranslocationLevel') === '0' ? 'not fused' : 'fused'}`,
-            () => { const e = document.getElementById('paramTranslocationGene'); e.value = ''; fire('paramTranslocationGene'); }, 'Fusion');
+        if (tg) add(`${this._stripFusionFilterDecoration(tg)} ${val('paramTranslocationLevel') === '0' ? 'not fused' : 'fused'}`,
+            () => { const e = document.getElementById('paramTranslocationGene'); e.value = ''; fire('paramTranslocationGene'); },
+            'Fusion. Click to change which cell lines are kept, or to remove this filter', 'fusion');
         const cn = val('paramCnFilter');
-        if (cn) add(`${cn} ${val('paramCnLevel') || 'altered'}`,
-            () => { const e = document.getElementById('paramCnFilter'); e.value = ''; fire('paramCnFilter'); }, 'Copy number');
+        if (cn) add(`${this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' del')} ${(val('paramCnLevel') || 'altered') === 'wt' ? 'absent' : 'present'}`,
+            () => { const e = document.getElementById('paramCnFilter'); e.value = ''; fire('paramCnFilter'); },
+            'Copy number. Click to change which cell lines are kept, or to remove this filter', 'cn');
         if (this.excludedTissues?.size) add(`${this.excludedTissues.size} tissue${this.excludedTissues.size > 1 ? 's' : ''} excluded`,
             () => { this.excludedTissues = new Set(); document.querySelectorAll('#tissueExcludeList input[type="checkbox"]').forEach(cb => { cb.checked = false; }); this._markMutationRunStale?.(); }, 'Excluded');
         // Picks made from an alteration grid, when they apply to the analysis.
@@ -18770,7 +18780,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             + `<button type="button" id="activeFiltersClearAll" style="border:none; background:none; padding:0; font-size:10px; color:var(--green-700); text-decoration:underline; cursor:pointer;">Remove all</button></div>`
             + `<div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">`
             + chips.map((c, i) => `<span title="${this.esc(c.title)}" style="display:inline-flex; align-items:center; gap:5px; font-size:11px; background:#f0fdf4; border:1px solid #86c26f; color:#4c782e; border-radius:12px; padding:2px 4px 2px 10px;">`
-                + `${this.esc(c.label)}`
+                + (c.menu
+                    ? `<span data-chip-menu="${c.menu}" style="cursor:pointer;">${this.esc(c.label)} &#9662;</span>`
+                    : `${this.esc(c.label)}`)
                 + `<button type="button" data-chip="${i}" title="Remove" style="border:none; background:#dcfce7; color:#4c782e; border-radius:50%; width:16px; height:16px; line-height:1; cursor:pointer; font-size:12px; padding:0;">&times;</button>`
                 + `</span>`).join('')
             + `</div>`;
@@ -18779,6 +18791,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const c = chips[parseInt(b.dataset.chip, 10)];
                 if (c?.clear) { c.clear(); this._renderAnalysisSubsetChip(); }
             });
+        });
+        // The same level menu the chips in every other panel open; its
+        // "after" step re-renders these chips through the params context.
+        box.querySelectorAll('[data-chip-menu]').forEach(el => {
+            el.addEventListener('click', () => this._showFilterChipMenu('params', el.dataset.chipMenu, el));
         });
         box.querySelector('#activeFiltersClearAll')?.addEventListener('click', () => {
             chips.forEach(c => { try { c.clear(); } catch (e) {} });
@@ -42886,7 +42903,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 hotspot: { geneId: 'paramHotspotGene', levelId: 'paramHotspotLevel', options: opts(HOT, ['1+2', '1', '2', '0']) },
                 fusion:  { geneId: 'paramTranslocationGene', levelId: 'paramTranslocationLevel', options: opts(FUS, ['1+2', '0']) },
                 cn:      { geneId: 'paramCnFilter', levelId: 'paramCnLevel', options: opts(CN, ['altered', 'wt']) },
-                apply: () => { this._updateLineageFilterCounts?.(); this._refreshParamFilterDependents?.(); },
+                apply: () => { this._updateLineageFilterCounts?.(); this._refreshParamFilterDependents?.(); this._renderAnalysisSubsetChip?.(); },
             },
             scatter: {
                 tissue: 'scatterCancerFilter', subtype: 'scatterSubtypeFilter', oncotree: 'scatterOncotreeFilter', chips: 'scatterActiveFilters',
