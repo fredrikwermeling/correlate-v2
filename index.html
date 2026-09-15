@@ -2822,6 +2822,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.59 (2026-09-15)</strong></p>
+                <ul>
+                    <li><b>Enrichr: several genes of interest, picked from a ranked list.</b> The box takes any number of genes (typed with commas or spaces, or added one at a time from a dropdown of the sent genes ranked by how many significant sets in the open library contain each). Each chosen gene shows as a chip with that count. Sets containing any of them come first; "must contain all" narrows to sets holding every one, and "only those sets" hides the rest. Export for AI carries the same list and rule.</li>
+                </ul>
                 <p><strong>v.89.58 (2026-09-15)</strong></p>
                 <ul>
                     <li><b>Enrichr: gene of interest.</b> A box above the results takes a gene symbol; the sets that contain it move to the top (tinted, gene in bold) in whatever sort is on, or, with "only sets with it" ticked, are the only ones shown. Each library tab says how many of its significant sets contain the gene.</li>
@@ -7708,7 +7712,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.58</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.59</a>
         </span>
     </div>
 
@@ -10848,7 +10852,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_58"></script>
+    <script src="app.js?v=v89_59"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
