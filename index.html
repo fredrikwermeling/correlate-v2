@@ -2822,6 +2822,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.60 (2026-09-17)</strong></p>
+                <ul>
+                    <li><b>A link can open one named cell line.</b> <code>#cell=A-375</code> (or <code>A375</code>, or the DepMap id) opens the Cell Line Browser on that line with its Wiki on top, instead of the browser and 1,900 lines to find it in again. Green Listed links here from its copy-number output, where the user has just chosen the line.</li>
+                </ul>
                 <p><strong>v.89.59 (2026-09-15)</strong></p>
                 <ul>
                     <li><b>Enrichr: several genes of interest, picked from a ranked list.</b> The box takes any number of genes (typed with commas or spaces, or added one at a time from a dropdown of the sent genes ranked by how many significant sets in the open library contain each). Each chosen gene shows as a chip with that count. Sets containing any of them come first; "must contain all" narrows to sets holding every one, and "only those sets" hides the rest. Export for AI carries the same list and rule.</li>
@@ -7712,7 +7716,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.59</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.60</a>
         </span>
     </div>
 
