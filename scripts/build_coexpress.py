@@ -35,7 +35,7 @@ ASSETS = ["network_example.svg", "scatter_example.svg", "tsc_pathway.svg",
 REPLACEMENTS = [
     # branding
     ('<title>Correlate</title>', '<title>CoExpress</title>'),
-    ('src="web_data/correlate_logo.png?v=2" alt="Correlate - a CRISPR-based analysis tool"',
+    ('src="web_data/correlate_logo.png?v=3" alt="Correlate - a CRISPR-based analysis tool"',
      'src="web_data/coexpress_logo.png" alt="CoExpress - an Expression Analysis Tool"'),
     ('<p>Correlate | Part of the', '<p>CoExpress | Part of the'),
     # ---- AI-export sign conventions -------------------------------------
