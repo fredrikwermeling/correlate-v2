@@ -2810,7 +2810,7 @@
 
     <!-- Logo Header -->
     <div class="logo-header">
-        <img src="web_data/correlate_logo.png" alt="Correlate - a Gene Effect Analysis Tool">
+        <img src="web_data/correlate_logo.png?v=2" alt="Correlate - a CRISPR-based analysis tool">
         <div class="logo-tagline" style="font-size:14px; font-style:italic; color:#6b9e5a; letter-spacing:2px; font-family:'Georgia',serif; margin-top:-14px; margin-bottom:12px;">— extended version —</div>
     </div>
 
@@ -2822,6 +2822,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.62 (2026-09-17)</strong></p>
+                <ul>
+                    <li><b>New tagline in the logo: "a CRISPR-based analysis tool".</b> "Screen" is gone from it, since the app mines DepMap's screens rather than analysing one of yours. The line is redrawn in the logo image in the same green; "extended version" stays under it in this version only.</li>
+                </ul>
                 <p><strong>v.89.61 (2026-09-17)</strong></p>
                 <ul>
                     <li><b>A link can open one gene across the panel.</b> <code>#gene=RAN</code> opens the Cell Line Browser with all 1,208 lines ranked by that gene's effect, and <code>#genes=TP53,BRCA1</code> runs the analysis on a set. Green Listed links here from the genes it marks as essential in nearly every cell line.</li>
@@ -7720,7 +7724,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.61</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.62</a>
         </span>
     </div>
 
@@ -10860,7 +10864,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_59"></script>
+    <script src="app.js?v=v89_62"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
