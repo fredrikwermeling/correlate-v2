@@ -1640,21 +1640,10 @@ class CorrelationExplorer {
         if (hotspotSelect && this.mutations?.genes?.length > 0) {
             const hotspotVal = hotspotSelect.value;
             const mutFilterVal = mutFilterGeneSelect?.value || '';
-            let hotHtml = '<option value="">Select gene...</option>';
-            let filtHtml = '<option value="">No filter</option>';
-            this.mutations.genes.forEach(g => {
-                // Skip polymorphic loci (HLA / MIC / KIR), their hotspot calls
-                // are germline allelic divergence, not somatic hotspots, and
-                // would otherwise top the list with an inflated mutation count.
-                if (this._isPolymorphicLocus(g)) return;
-                const mutData = this.mutations.geneData?.[g]?.mutations || {};
-                let count = 0;
-                filteredCellLines.forEach(cl => { if (mutData[cl] > 0) count++; });
-                hotHtml += `<option value="${g}"${g === hotspotVal ? ' selected' : ''}>${g} (${count} mut)</option>`;
-                filtHtml += `<option value="${g}"${g === mutFilterVal ? ' selected' : ''}>${g} (${count} mut)</option>`;
-            });
-            hotspotSelect.innerHTML = hotHtml;
-            if (mutFilterGeneSelect) mutFilterGeneSelect.innerHTML = filtHtml;
+            const optsHtml = this._mutOverlayOptionsHtml(filteredCellLines, hotspotVal);
+            hotspotSelect.innerHTML = '<option value="">Select gene...</option>' + optsHtml;
+            if (mutFilterGeneSelect) mutFilterGeneSelect.innerHTML = '<option value="">No filter</option>'
+                + this._mutOverlayOptionsHtml(filteredCellLines, mutFilterVal);
         }
 
         // Update translocation/fusion datalists
@@ -1790,8 +1779,7 @@ class CorrelationExplorer {
         const transLevel = document.getElementById('paramTranslocationLevel')?.value || 'all';
         const cnVal = document.getElementById('paramCnFilter')?.value || '';
         const cnLevel = document.getElementById('paramCnLevel')?.value || 'altered';
-        const hsMuts = (hotspotGene && hotspotLevel !== 'all')
-            ? (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations) : null;
+        const hsMuts = (hotspotGene && hotspotLevel !== 'all') ? this._mutCalls(hotspotGene) : null;
         const fusionActive = transGene && transLevel !== 'all';
         const set = new Set();
         for (const cl of this.metadata.cellLines) {
@@ -1819,7 +1807,8 @@ class CorrelationExplorer {
         const lineageFilter = document.getElementById('lineageFilter').value;
         const subLineageFilter = document.getElementById('subLineageFilter')?.value;
 
-        if (!gene || !this.mutations?.geneData?.[gene]) {
+        const geneCalls = this._mutCalls(gene);
+        if (!gene || !geneCalls) {
             levelSelect.innerHTML = `
                 <option value="1+2" selected>Mutated</option>
                 <option value="1">1 mut</option>
@@ -1830,7 +1819,7 @@ class CorrelationExplorer {
         }
 
         // Count mutations for selected gene (respecting lineage filter)
-        const mutations = this.mutations.geneData[gene].mutations;
+        const mutations = geneCalls;
         const cellLines = this.metadata.cellLines;
         let n0 = 0, n1 = 0, n2 = 0;
 
@@ -1855,12 +1844,16 @@ class CorrelationExplorer {
         const total = n0 + n1 + n2;
 
         const prev = levelSelect.value;
-        levelSelect.innerHTML = `
-            <option value="1+2">Mutated (${nMut})</option>
+        // Functional loss is lost-or-intact; "any mutation" keeps the copy
+        // counts but calls the wild-type side "no call".
+        const kind = this._parseMutFilter(gene).kind;
+        levelSelect.innerHTML = kind === 'lof'
+            ? `<option value="1+2">Functionally lost (${nMut})</option>
+            <option value="0">Functionally intact (${n0})</option>`
+            : `<option value="1+2">${kind === 'any' ? 'Mutated, any call' : 'Mutated'} (${nMut})</option>
             <option value="1">1 mut (${n1})</option>
             <option value="2">2 mut (${n2})</option>
-            <option value="0">WT (${n0})</option>
-        `;
+            <option value="0">${kind === 'any' ? 'No call' : 'WT'} (${n0})</option>`;
         // Default to "mutated 1+2"; keep an explicit prior non-default pick.
         levelSelect.value = (prev && prev !== 'all') ? prev : '1+2';
     }
@@ -2171,7 +2164,12 @@ class CorrelationExplorer {
         if (v('clbTissueFilter')) bits.push(`tissue = ${v('clbTissueFilter')}`);
         if (v('clbSubtypeFilter')) bits.push(`subtype = ${v('clbSubtypeFilter')}`);
         if (v('clbOncotreeFilter')) bits.push(`disease = ${v('clbOncotreeFilter')}`);
-        if (v('clbHotspotFilter')) bits.push(`hotspot mutation in ${v('clbHotspotFilter')}`);
+        if (v('clbHotspotFilter')) {
+            const mk = this._parseMutFilter(v('clbHotspotFilter'));
+            bits.push(mk.kind === 'hotspot' ? `hotspot mutation in ${mk.gene}`
+                : mk.kind === 'any' ? `any mutation call in ${mk.gene}`
+                : `functional loss of ${mk.gene}`);
+        }
         if (v('clbTranslocationFilter')) bits.push(`fusion ${v('clbTranslocationFilter')}`);
         if (v('clbCnFilter')) bits.push(`copy-number event in ${v('clbCnFilter')}`);
         for (const f of (this._activeOncoprintFilters || [])) bits.push(`${f.gene} ${this._gridStateWord(f.state)}`);
@@ -3379,7 +3377,7 @@ class CorrelationExplorer {
             const paramTransLevel = document.getElementById('paramTranslocationLevel')?.value || 'all';
             const paramCn = document.getElementById('paramCnFilter')?.value || '';
             const paramCnLevel = document.getElementById('paramCnLevel')?.value || 'altered';
-            const paramHotspotMuts = paramHotspot && paramHotspotLevel !== 'all' ? (this.mutations?.geneData?.[paramHotspot]?.mutations || this.damagingMutations?.geneData?.[paramHotspot]?.mutations) : null;
+            const paramHotspotMuts = paramHotspot && paramHotspotLevel !== 'all' ? this._mutCalls(paramHotspot) : null;
             const paramFusionActive = paramTrans && paramTransLevel !== 'all';
             filteredCLs = this.metadata.cellLines.filter(cl => {
                 if (lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== lineageFilter) return false;
@@ -5287,6 +5285,124 @@ class CorrelationExplorer {
         return raw.replace(/^[▲▼]\s+/, '').replace(/\s*\(n=\d+\)\s*$/, '').trim();
     }
 
+    // --- Mutation filter kinds -------------------------------------------
+    // A mutation filter value carries its kind in the value itself, so a pick
+    // travels unchanged through saved state, New tab, chips and exports:
+    //   "TP53"                    hotspot copies (damaging matrix as fallback)
+    //   "TP53 (any mutation)"     hotspot OR likely loss-of-function variant
+    //   "TP53 (functional loss)"  DepMap's integrated TSG call (8 genes)
+
+    _parseMutFilter(raw) {
+        const s = String(raw == null ? '' : raw).trim();
+        if (!s) return { gene: '', kind: 'hotspot' };
+        const m = s.match(/^(.*?)\s*\(\s*(any\s+mutation|functional\s+loss)\s*\)$/i);
+        if (!m || !m[1].trim()) return { gene: s, kind: 'hotspot' };
+        return { gene: m[1].trim(), kind: /^f/i.test(m[2]) ? 'lof' : 'any' };
+    }
+
+    // The gene symbol alone, for display and for gene-level table lookups.
+    _stripMutDecoration(raw) { return this._parseMutFilter(raw).gene; }
+
+    _mutKindWord(kind) { return kind === 'any' ? 'any mutation' : kind === 'lof' ? 'functional loss' : ''; }
+
+    // {cellLine: level} for a mutation filter value, or null when the gene has
+    // no data of that kind. `hotspotOnly` drops the damaging fallback, for the
+    // callers that have always read the hotspot matrix alone.
+    _mutCalls(raw, opts = {}) {
+        const { gene, kind } = this._parseMutFilter(raw);
+        if (!gene) return null;
+        if (kind === 'lof') return this.functionalLoss?.geneData?.[gene]?.mutations || null;
+        if (kind === 'any') {
+            const hot = this.mutations?.geneData?.[gene]?.mutations || null;
+            const dmg = this.damagingMutations?.geneData?.[gene]?.mutations || null;
+            if (!hot && !dmg) return null;
+            const cache = (this._anyMutCallsCache ||= new Map());
+            if (cache.has(gene)) return cache.get(gene);
+            // max(hotspot copies, damaging ? 1 : 0), so the copy-count levels
+            // still mean what they mean and a damaging-only line counts as 1.
+            const out = {};
+            if (hot) for (const cl in hot) { const v = hot[cl] || 0; if (v > 0) out[cl] = v; }
+            if (dmg) for (const cl in dmg) { if ((dmg[cl] || 0) >= 1 && !(out[cl] >= 1)) out[cl] = 1; }
+            cache.set(gene, out);
+            return out;
+        }
+        const hot = this.mutations?.geneData?.[gene]?.mutations;
+        if (hot) return hot;
+        return opts.hotspotOnly ? null : (this.damagingMutations?.geneData?.[gene]?.mutations || null);
+    }
+
+    // Same resolve, shaped like a geneData entry for the callers that keep the
+    // object around and read `.mutations` from it.
+    _mutSource(raw, opts) {
+        const calls = this._mutCalls(raw, opts);
+        return calls ? { mutations: calls } : null;
+    }
+
+    // The words for each level, per kind. _FILTER_BAR_SPEC's HOT map is the
+    // hotspot row, so the chip menus and these stay in step.
+    _MUT_LEVEL_WORDS() {
+        return {
+            hotspot: {
+                '1+2': 'Mutated (either copy)', '1': 'One copy mutated',
+                '2': 'Both copies mutated', '0': 'Wild-type',
+                altered: 'Mutated', wt: 'Wild-type',
+            },
+            any: {
+                '1+2': 'Mutated (any call)', '1': 'Mutated, one copy',
+                '2': 'Mutated, both copies', '0': 'No mutation call',
+                altered: 'Mutated (any call)', wt: 'No mutation call',
+            },
+            lof: {
+                '1+2': 'Functionally lost', '0': 'Functionally intact',
+                altered: 'Functionally lost', wt: 'Functionally intact',
+            },
+        };
+    }
+
+    // How one level reads inside a chip or a caption. Returns null for plain
+    // hotspot values, where each caller keeps its own established wording.
+    _mutLevelWord(kind, level) {
+        if (kind !== 'any' && kind !== 'lof') return null;
+        const lvl = String(level == null || level === '' ? '1+2' : level);
+        if (kind === 'lof') return (lvl === '0' || lvl === 'wt') ? 'functionally intact' : 'functionally lost';
+        return { '0': 'no mutation call', wt: 'no mutation call', '1': 'mutated, one copy', '2': 'mutated, both copies' }[lvl]
+            || 'mutated (any call)';
+    }
+
+    // Legend / hover / panel wording for a mutation overlay, per kind.
+    // `hasTwo` is false for functional loss, which is lost-or-intact: its
+    // "two copies" trace would always be empty.
+    _mutOverlayWords(raw) {
+        const { gene, kind } = this._parseMutFilter(raw);
+        if (kind === 'lof') {
+            return { gene, kind, hasTwo: false, legend: ['Intact', 'Lost', 'Lost (2)'],
+                hover: ['Functionally intact', 'Functionally lost', 'Functionally lost'],
+                panel: ['Intact', 'Lost', 'Not applicable'],
+                typeWord: 'Functional loss', refWord: 'Intact', altWord: 'Lost',
+                refDesc: `${gene} functionally intact`, altDesc: `${gene} functionally lost` };
+        }
+        if (kind === 'any') {
+            return { gene, kind, hasTwo: true, legend: ['No call', 'Mutated (1)', 'Mutated (2)'],
+                hover: ['No mutation call', 'Mutated, one copy', 'Mutated, both copies'],
+                panel: ['No call', 'Mutated (1)', 'Mutated (2)'],
+                typeWord: 'Mutation (any call)', refWord: 'No call', altWord: 'Mutated',
+                refDesc: `no ${gene} mutation call`, altDesc: `${gene} mutated (any call)` };
+        }
+        return { gene, kind, hasTwo: true, legend: ['WT', '1 mut', '2 mut'],
+            hover: ['WT', '1 mutation', '2 mutations'],
+            panel: ['WT', '1 mut', '2 mut'],
+            typeWord: 'Mutation', refWord: 'WT', altWord: 'Mut',
+            refDesc: `0 ${gene} mutations`, altDesc: `2+ ${gene} mutations` };
+    }
+
+    // One phrase for a mutation filter, e.g. "TP53 functionally lost". Plain
+    // hotspot values fall back to the caller's own word for the level.
+    _mutFilterPhrase(raw, level, hotspotWord) {
+        const { gene, kind } = this._parseMutFilter(raw);
+        const w = this._mutLevelWord(kind, level);
+        return `${gene} ${w || hotspotWord || 'hotspot-mutated'}`;
+    }
+
     // Apply the CN filter to a single cell line. Decoded value is e.g.
     // "MYC_amp" or "BAP1_del", see _populateCnFilterItems for the encoding.
     _cellLinePassesCnFilter(cl, rawValue) {
@@ -5615,15 +5731,7 @@ class CorrelationExplorer {
     _ensureGlobalFilterItems() {
         if (this._globalFilterItems) return this._globalFilterItems;
         // Hotspot genes (this.mutations.genes already excludes polymorphic loci).
-        const hotspot = [];
-        if (this.mutations?.geneData && Array.isArray(this.mutations.genes)) {
-            for (const gene of this.mutations.genes) {
-                const muts = this.mutations.geneData[gene]?.mutations || {};
-                let n = 0; for (const cl in muts) if (muts[cl] >= 1) n++;
-                if (n > 0) hotspot.push({ value: gene, primary: gene, count: n, secondary: 'hotspot mutation' });
-            }
-            hotspot.sort((a, b) => b.count - a.count);
-        }
+        const hotspot = this._buildHotspotFilterItems(null);
         // Fusions: only curated clinical driver pairs (★). The broad per-gene
         // "any fusion involving this gene" list was mostly noise, so it's dropped.
         const fusion = [];
@@ -5663,7 +5771,7 @@ class CorrelationExplorer {
     // identically. Empty values are ignored.
     _cellLinePassesMutFilters(cl, f) {
         if (f.hotspot) {
-            const m = this.mutations?.geneData?.[f.hotspot]?.mutations || this.damagingMutations?.geneData?.[f.hotspot]?.mutations;
+            const m = this._mutCalls(f.hotspot);
             if (!m || !(m[cl] >= 1)) return false;
         }
         if (f.fusion && !this._geFusionPasses(cl, f.fusion)) return false;
@@ -5678,17 +5786,84 @@ class CorrelationExplorer {
     // given cohort (Set of cell-line ids) and ordered by count, so the options
     // reflect the other active filters (e.g. with Melanoma selected, BRAF rises
     // to the top of the hotspot list).
-    _buildFilterItems(kind, cohortSet) {
-        if (kind === 'hotspot') {
+    // Hotspot-filter options: each gene, then the two extra kinds it offers,
+    // so "TP53", "TP53 (any mutation)" and "TP53 (functional loss)" read as one
+    // group. "any mutation" is only offered where it actually adds cell lines
+    // over the hotspot call; functional loss only for the TSGs DepMap calls it
+    // for. `cohortSet` null counts the whole panel.
+    _buildHotspotFilterItems(cohortSet) {
+        const countIn = (calls) => {
+            if (!calls) return 0;
+            let n = 0;
+            for (const cl in calls) if (calls[cl] >= 1 && (!cohortSet || cohortSet.has(cl))) n++;
+            return n;
+        };
+        const lofGenes = new Set(this.functionalLoss?.geneData ? Object.keys(this.functionalLoss.geneData) : []);
+        const groups = [];
+        const seen = new Set();
+        for (const gene of (this.mutations?.genes || [])) {
+            const hotN = countIn(this.mutations.geneData?.[gene]?.mutations);
             const items = [];
-            for (const gene of (this.mutations?.genes || [])) {
-                const muts = this.mutations.geneData?.[gene]?.mutations || {};
-                let n = 0; for (const cl in muts) if (muts[cl] >= 1 && cohortSet.has(cl)) n++;
-                if (n > 0) items.push({ value: gene, primary: gene, count: n, secondary: 'hotspot mutation' });
+            if (hotN > 0) items.push({ value: gene, primary: gene, count: hotN, secondary: 'hotspot mutation' });
+            const anyVal = `${gene} (any mutation)`;
+            const anyN = countIn(this._mutCalls(anyVal));
+            if (anyN > hotN) items.push({ value: anyVal, primary: anyVal, count: anyN, secondary: 'hotspot or damaging call, DepMap' });
+            if (lofGenes.has(gene)) {
+                const lofVal = `${gene} (functional loss)`;
+                const lofN = countIn(this._mutCalls(lofVal));
+                if (lofN > 0) items.push({ value: lofVal, primary: lofVal, count: lofN, secondary: 'integrated functional-loss call: deep deletion, LoF mutation or silenced expression' });
             }
-            items.sort((a, b) => b.count - a.count);
-            return items;
+            if (items.length) { groups.push({ key: Math.max(hotN, items[0].count), items }); seen.add(gene); }
         }
+        // A TSG with no hotspot entry of its own still gets its functional-loss
+        // pick, or the gene would be missing from the menu entirely.
+        for (const gene of lofGenes) {
+            if (seen.has(gene)) continue;
+            const lofVal = `${gene} (functional loss)`;
+            const lofN = countIn(this._mutCalls(lofVal));
+            if (lofN > 0) groups.push({ key: lofN, items: [{ value: lofVal, primary: lofVal, count: lofN, secondary: 'integrated functional-loss call: deep deletion, LoF mutation or silenced expression' }] });
+        }
+        groups.sort((a, b) => b.key - a.key);
+        return groups.flatMap(g => g.items);
+    }
+
+    // Options for the scatter's overlay gene <select>: every hotspot gene in
+    // its usual order, each followed by the extra kinds that gene offers.
+    _mutOverlayOptionsHtml(cohort, selected) {
+        const set = cohort instanceof Set ? cohort : new Set(cohort || []);
+        const countIn = (calls) => {
+            if (!calls) return 0;
+            let n = 0;
+            for (const cl in calls) if (calls[cl] >= 1 && set.has(cl)) n++;
+            return n;
+        };
+        const sel = (v) => (selected && v === selected) ? ' selected' : '';
+        const opt = (v, text) => `<option value="${v}"${sel(v)}>${text}</option>`;
+        const lofGenes = new Set(this.functionalLoss?.geneData ? Object.keys(this.functionalLoss.geneData) : []);
+        let html = '';
+        for (const g of (this.mutations?.genes || [])) {
+            if (this._isPolymorphicLocus(g)) continue;
+            const hotN = countIn(this.mutations.geneData?.[g]?.mutations);
+            html += opt(g, `${g} (${hotN} mut)`);
+            const anyVal = `${g} (any mutation)`;
+            const anyN = countIn(this._mutCalls(anyVal));
+            if (anyN > hotN) html += opt(anyVal, `${g} (any mutation, ${anyN})`);
+            if (lofGenes.has(g)) {
+                const lofVal = `${g} (functional loss)`;
+                html += opt(lofVal, `${g} (functional loss, ${countIn(this._mutCalls(lofVal))})`);
+            }
+            lofGenes.delete(g);
+        }
+        // A TSG with no hotspot entry of its own still gets its loss pick.
+        for (const g of lofGenes) {
+            const lofVal = `${g} (functional loss)`;
+            html += opt(lofVal, `${g} (functional loss, ${countIn(this._mutCalls(lofVal))})`);
+        }
+        return html;
+    }
+
+    _buildFilterItems(kind, cohortSet) {
+        if (kind === 'hotspot') return this._buildHotspotFilterItems(cohortSet);
         if (kind === 'fusion') {
             const pairs = [];
             const curated = this._curatedFusionLinesByPair();
@@ -5776,7 +5951,7 @@ class CorrelationExplorer {
                 if (scOnc && (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') !== scOnc) continue;
             }
             if (kind !== 'hotspot' && mfg) {
-                const mm = (this.mutations?.geneData?.[mfg] || this.damagingMutations?.geneData?.[mfg])?.mutations;
+                const mm = this._mutCalls(mfg);
                 if (mm) { const l = mm[cl] || 0; if (mfl === '0' && l !== 0) continue; if (mfl === '1' && l !== 1) continue; if (mfl === '2' && l < 2) continue; if ((mfl === '1+2' || !mfl) && l < 1) continue; }
             }
             if (kind !== 'fusion' && tfg) {
@@ -5940,7 +6115,7 @@ class CorrelationExplorer {
             const cl = p.cellLineId;
             if (kind !== 'tissue' && tissue && p.lineage !== tissue) continue;
             if (kind !== 'tissue' && caOnc && (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') !== caOnc) continue;
-            if (kind !== 'hotspot' && hot) { const mm = this.mutations?.geneData?.[hot]?.mutations || this.damagingMutations?.geneData?.[hot]?.mutations; const l = mm ? (mm[cl] || 0) : 0; if (hotLvl === '0' ? l !== 0 : hotLvl === '1' ? l !== 1 : hotLvl === '2' ? l < 2 : l < 1) continue; }
+            if (kind !== 'hotspot' && hot) { const mm = this._mutCalls(hot); const l = mm ? (mm[cl] || 0) : 0; if (hotLvl === '0' ? l !== 0 : hotLvl === '1' ? l !== 1 : hotLvl === '2' ? l < 2 : l < 1) continue; }
             if (kind !== 'fusion' && fus) { const has = this._geFusionPasses(cl, fus); if (fusLvl === '0' ? has : !has) continue; }
             if (kind !== 'cn' && cn) { const has = this._cellLinePassesCnFilter(cl, cn); if (cnLvl === 'wt' ? has : !has) continue; }
             set.add(cl);
@@ -5971,7 +6146,7 @@ class CorrelationExplorer {
             }
             const wantWT = (id) => document.getElementById(id)?.value === 'wt';
             if (kind !== 'hotspot' && hotspot) {
-                const hs = this.mutations?.geneData?.[hotspot] || this.damagingMutations?.geneData?.[hotspot];
+                const hs = this._mutSource(hotspot);
                 if (hs && !this._mutLevelPasses(document.getElementById('geHotspotLevel')?.value || '1+2', hs.mutations[cl] || 0)) continue;
             }
             if (kind !== 'fusion' && fus && this._geFusionPasses(cl, fus) === wantWT('geFusionLevel')) continue;
@@ -8797,14 +8972,7 @@ class CorrelationExplorer {
         const cnLevel = document.getElementById('paramCnLevel')?.value || 'altered';
 
         // Get mutation data for hotspot/damaging filter
-        let mutationData = null;
-        if (hotspotGene) {
-            if (this.mutations?.geneData?.[hotspotGene]) {
-                mutationData = this.mutations.geneData[hotspotGene].mutations;
-            } else if (this.damagingMutations?.geneData?.[hotspotGene]) {
-                mutationData = this.damagingMutations.geneData[hotspotGene].mutations;
-            }
-        }
+        let mutationData = hotspotGene ? this._mutCalls(hotspotGene) : null;
 
         // Fusion filter now uses curated ★ clinical driver pairs (via
         // _geFusionPasses), WT vs with-fusion.
@@ -9564,7 +9732,7 @@ class CorrelationExplorer {
         }
 
         // Get additional hotspot mutation data if specified
-        const additionalMutData = additionalHotspot ? this.mutations.geneData[additionalHotspot] : null;
+        const additionalMutData = additionalHotspot ? this._mutSource(additionalHotspot, { hotspotOnly: true }) : null;
 
         // Additional fusion filter now uses curated ★ driver pairs.
         const additionalFusionActive = additionalTransGene && additionalTransLevel !== 'all';
@@ -9777,7 +9945,7 @@ class CorrelationExplorer {
             throw new Error(`No translocation data for ${hotspotGene}`);
         }
 
-        const additionalMutData = additionalHotspot ? this.mutations?.geneData?.[additionalHotspot] : null;
+        const additionalMutData = additionalHotspot ? this._mutSource(additionalHotspot, { hotspotOnly: true }) : null;
         const additionalFusionActive = additionalTransGene && additionalTransGene !== hotspotGene && additionalTransLevel !== 'all';
 
         const cellLines = this.metadata.cellLines;
@@ -10352,8 +10520,8 @@ class CorrelationExplorer {
         if (mr.hotspotGene) shownGenes.add(mr.hotspotGene);
         if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
             const ll = { '0': 'WT', '1': 'Mut', '2': 'Mut', '1+2': 'Mut' };
-            mutFilterParts.push(`${mr.additionalHotspot} ${ll[mr.additionalHotspotLevel] || mr.additionalHotspotLevel}`);
-            shownGenes.add(mr.additionalHotspot);
+            mutFilterParts.push(this._mutFilterPhrase(mr.additionalHotspot, mr.additionalHotspotLevel, ll[mr.additionalHotspotLevel] || mr.additionalHotspotLevel));
+            shownGenes.add(this._stripMutDecoration(mr.additionalHotspot));
         }
         if (mr.additionalTransGene && mr.additionalTransLevel !== 'all') {
             const ll = { '0': 'WT', '1': 'Fused', '2': 'Fused', '1+2': 'Fused' };
@@ -10652,10 +10820,10 @@ class CorrelationExplorer {
         const allMutFilters = [];
         if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
             const ll = { '0': 'WT', '1': 'Mut', '2': 'Mut', '1+2': 'Mut' };
-            allMutFilters.push(`${mr.additionalHotspot} ${ll[mr.additionalHotspotLevel] || mr.additionalHotspotLevel}`);
+            allMutFilters.push(this._mutFilterPhrase(mr.additionalHotspot, mr.additionalHotspotLevel, ll[mr.additionalHotspotLevel] || mr.additionalHotspotLevel));
         }
         if (this._activeOncoprintFilters) {
-            const shown = new Set([mr.hotspotGene, mr.additionalHotspot].filter(Boolean));
+            const shown = new Set([mr.hotspotGene, this._stripMutDecoration(mr.additionalHotspot)].filter(Boolean));
             for (const f of this._activeOncoprintFilters) {
                 if (!shown.has(f.gene)) {
                     allMutFilters.push(`${f.gene} ${this._gridStateWord(f.state)}`);
@@ -10852,7 +11020,7 @@ class CorrelationExplorer {
             // hotspot filter overrides it, so setting one in inspect mode replaces
             // the conserved analysis filter instead of stacking with it.
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all' && !inspectHotspot) {
-                const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
+                const addMutData = this._mutSource(mr.additionalHotspot, { hotspotOnly: true });
                 if (addMutData) {
                     const addMutLevel = addMutData.mutations[cellLine] || 0;
                     if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
@@ -10877,8 +11045,7 @@ class CorrelationExplorer {
 
             // Check inspect-level additional hotspot/damaging filter
             if (inspectHotspot) {
-                const inspHotData = this.mutations?.geneData?.[inspectHotspot]
-                    || this.damagingMutations?.geneData?.[inspectHotspot];
+                const inspHotData = this._mutSource(inspectHotspot);
                 if (inspHotData) {
                     const inspMutLevel = inspHotData.mutations[cellLine] || 0;
                     if (inspMutLevel === 0) return;
@@ -11096,14 +11263,14 @@ class CorrelationExplorer {
         }
         if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
             const ll = { '0': 'WT', '1': 'Mut', '2': 'Mut', '1+2': 'Mut' };
-            filterInfo.push(`${mr.additionalHotspot} ${ll[mr.additionalHotspotLevel] || mr.additionalHotspotLevel}`);
+            filterInfo.push(this._mutFilterPhrase(mr.additionalHotspot, mr.additionalHotspotLevel, ll[mr.additionalHotspotLevel] || mr.additionalHotspotLevel));
         }
         if (mr.additionalTransGene && mr.additionalTransLevel !== 'all') {
             const ll = { '0': 'WT', '1': 'Fused', '2': 'Fused', '1+2': 'Fused' };
             filterInfo.push(`${mr.additionalTransGene} ${ll[mr.additionalTransLevel] || mr.additionalTransLevel}`);
         }
         if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
-            const shown = new Set([mr.hotspotGene, mr.additionalHotspot, mr.additionalTransGene].filter(Boolean));
+            const shown = new Set([mr.hotspotGene, this._stripMutDecoration(mr.additionalHotspot), mr.additionalTransGene].filter(Boolean));
             for (const f of this._activeOncoprintFilters) {
                 if (!shown.has(f.gene)) {
                     filterInfo.push(`${f.gene} ${this._gridStateWord(f.state)}`);
@@ -11111,7 +11278,10 @@ class CorrelationExplorer {
             }
         }
         if (inspectHotspot) {
-            filterInfo.push(`Also ${inspectHotspot}-mutated`);
+            const mk = this._parseMutFilter(inspectHotspot);
+            filterInfo.push(mk.kind === 'lof' ? `Also ${mk.gene} functionally lost`
+                : mk.kind === 'any' ? `Also ${mk.gene}-mutated (any call)`
+                : `Also ${mk.gene}-mutated`);
         }
         if (inspectFusion) {
             filterInfo.push(`Also ${this._stripFusionFilterDecoration(inspectFusion)}-fused`);
@@ -14475,7 +14645,9 @@ ${this.genesNotFound.join(', ')}
         const paramHotspotGene = document.getElementById('paramHotspotGene')?.value;
         const paramHotspotLevel = document.getElementById('paramHotspotLevel')?.value;
         if (paramHotspotGene) {
-            hotspotFilterText = `\nHotspot Mutation Filter: ${paramHotspotGene} (${paramHotspotLevel || 'all'})`;
+            const mk = this._parseMutFilter(paramHotspotGene);
+            const kindWord = this._mutKindWord(mk.kind);
+            hotspotFilterText = `\nMutation Filter: ${mk.gene}${kindWord ? `, ${kindWord}` : ''} (${paramHotspotLevel || 'all'})`;
         }
         const paramTranslocGene = document.getElementById('paramTranslocationGene')?.value;
         const paramTranslocLevel = document.getElementById('paramTranslocationLevel')?.value;
@@ -14742,7 +14914,7 @@ Results:
         const hotspotLevel = document.getElementById('paramHotspotLevel')?.value;
         if (hotspotGene) {
             const levelLabel = hotspotLevel === '1+2' ? 'mut' : hotspotLevel === '0' ? 'WT' : `level ${hotspotLevel}`;
-            parts.push(`${hotspotGene} ${levelLabel}`);
+            parts.push(this._mutFilterPhrase(hotspotGene, hotspotLevel, levelLabel));
         }
         const translocGene = document.getElementById('paramTranslocationGene')?.value;
         const translocLevel = document.getElementById('paramTranslocationLevel')?.value;
@@ -14753,7 +14925,7 @@ Results:
         // Include oncoprint multi-gene filters
         if (this._activeOncoprintFilters && this._activeOncoprintFilters.length > 0) {
             const shown = new Set();
-            if (hotspotGene) shown.add(hotspotGene);
+            if (hotspotGene) shown.add(this._stripMutDecoration(hotspotGene));
             if (translocGene) shown.add(translocGene);
             for (const f of this._activeOncoprintFilters) {
                 if (!shown.has(f.gene)) {
@@ -18276,8 +18448,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const mutFilterGene = document.getElementById('mutationFilterGene')?.value || '';
         if (mutFilterGene) {
             const lvl = document.getElementById('mutationFilterLevel')?.value || '1+2';
-            const levelText = lvl === '0' ? 'hotspot WT' : lvl === '1' ? 'hotspot mut (1 copy)' : lvl === '2' ? 'hotspot mut (2 copies)' : 'hotspot mut (1+2)';
-            parts.push(`${mutFilterGene}: ${levelText}`);
+            const mk = this._parseMutFilter(mutFilterGene);
+            const levelText = this._mutLevelWord(mk.kind, lvl)
+                || (lvl === '0' ? 'hotspot WT' : lvl === '1' ? 'hotspot mut (1 copy)' : lvl === '2' ? 'hotspot mut (2 copies)' : 'hotspot mut (1+2)');
+            parts.push(`${mk.gene}: ${levelText}`);
         }
         const transFilterGene = document.getElementById('translocationFilterGene')?.value || '';
         if (transFilterGene) {
@@ -18293,7 +18467,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // A grid pick inherited from the analysis usually arrives together
         // with the same gene in the scatter's own hotspot / fusion / CN
         // selector, so a gene already named above is not named twice.
-        const named = new Set([mutFilterGene, this._stripFusionFilterDecoration(transFilterGene), this._stripCnFilterDecoration(cnFilterVal).replace(/_(amp|del)$/, '')].filter(Boolean).map(g => g.toUpperCase()));
+        const named = new Set([this._stripMutDecoration(mutFilterGene), this._stripFusionFilterDecoration(transFilterGene), this._stripCnFilterDecoration(cnFilterVal).replace(/_(amp|del)$/, '')].filter(Boolean).map(g => g.toUpperCase()));
         const gridWord = (f) => `${f.gene} ${this._gridStateWord(f.state)}`;
         (this._activeOncoprintFilters || []).forEach(f => { if (!named.has(String(f.gene).toUpperCase())) { parts.push(gridWord(f)); named.add(String(f.gene).toUpperCase()); } });
         (this._scatterGridActive || []).forEach(f => { if (!named.has(String(f.gene).toUpperCase())) { parts.push(gridWord(f)); named.add(String(f.gene).toUpperCase()); } });
@@ -18343,13 +18517,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const hotspotSelect = document.getElementById('hotspotGene');
             if (hotspotSelect) {
                 const prevHot = hotspotSelect.value;
-                hotspotSelect.innerHTML = '<option value="">Select gene...</option>' +
-                    this.mutations.genes.map(g => {
-                        const mutData = this.mutations.geneData?.[g]?.mutations || {};
-                        let count = 0;
-                        for (const cl of cells) if (mutData[cl] > 0) count++;
-                        return `<option value="${g}">${g} (${count} mut)</option>`;
-                    }).join('');
+                hotspotSelect.innerHTML = '<option value="">Select gene...</option>'
+                    + this._mutOverlayOptionsHtml(cells);
                 if (prevHot) hotspotSelect.value = prevHot;
             }
             document.getElementById('mutationBox').style.display = 'block';
@@ -18600,21 +18769,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const keptHotspot = hotspotSelect?.value || '';
 
         if (this.mutations?.genes?.length > 0) {
-            hotspotSelect.innerHTML = '<option value="">Select gene...</option>';
-            mutFilterGeneSelect.innerHTML = '<option value="">No filter</option>';
-            this.mutations.genes.forEach(g => {
-                const mutData = this.mutations.geneData?.[g]?.mutations || {};
-                let count = 0;
-                cellLinesInPlot.forEach(cl => { if (mutData[cl] > 0) count++; });
-                hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
-                mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
-            });
+            const overlayOpts = this._mutOverlayOptionsHtml(cellLinesInPlot);
+            hotspotSelect.innerHTML = '<option value="">Select gene...</option>' + overlayOpts;
+            mutFilterGeneSelect.innerHTML = '<option value="">No filter</option>' + overlayOpts;
             // Pre-select the hotspot gene from parameters, but again only when
             // arriving fresh: on an in-place Update the user's own choice, or
             // their choice to have none, wins.
-            if (keep && keptHotspot && this.mutations.genes.includes(keptHotspot)) {
+            const overlayHas = (v) => !!v && [...hotspotSelect.options].some(o => o.value === v);
+            if (keep && overlayHas(keptHotspot)) {
                 hotspotSelect.value = keptHotspot;
-            } else if (!keep && paramHotspotGene && this.mutations.genes.includes(paramHotspotGene)) {
+            } else if (!keep && overlayHas(paramHotspotGene)) {
                 hotspotSelect.value = paramHotspotGene;
             }
             document.getElementById('mutationBox').style.display = 'block';
@@ -18895,7 +19059,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (hs) {
             const lvl = val('paramHotspotLevel') || '1+2';
             const word = { '0': 'WT', '1': 'mutated (one copy)', '2': 'mutated (both copies)' }[lvl] || 'mutated';
-            add(`${hs} ${word}`,
+            add(this._mutFilterPhrase(hs, lvl, word),
                 () => { const e = document.getElementById('paramHotspotGene'); e.value = ''; fire('paramHotspotGene'); },
                 'Mutation. Click to change which cell lines are kept, or to remove this filter', 'hotspot');
         }
@@ -19246,8 +19410,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // filters (default level = mutated 1+2); clear the gene to turn it off.
         const mutFilterGene = document.getElementById('mutationFilterGene')?.value || '';
         const mutFilterLevel = document.getElementById('mutationFilterLevel')?.value || '1+2';
-        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])) {
-            const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
+        const _scatterFilterCalls = this._mutCalls(mutFilterGene);
+        if (mutFilterGene && _scatterFilterCalls) {
+            const filterMutations = _scatterFilterCalls;
             const lvl = mutFilterLevel || '1+2';
             filteredData = filteredData.filter(d => {
                 const mutLevel = filterMutations[d.cellLineId] || 0;
@@ -19338,7 +19503,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Get mutation info for overlay (separate gene, hotspot or damaging)
         let mutationMap = new Map();
-        const overlayMutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
+        const overlayMutSource = hotspotGene && this._mutSource(hotspotGene);
         if (overlayMutSource) {
             Object.entries(overlayMutSource.mutations).forEach(([cellLine, mutLevel]) => {
                 mutationMap.set(cellLine, mutLevel);
@@ -19436,46 +19601,50 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                        this.getInputNum('scatterYmax')];
 
         if (hotspotMode === 'color' && hotspotGene) {
-            // Color by mutation (0/1/2) mode with separate traces for legend
+            // Color by mutation level, one trace per level so the legend reads
+            // as a key. The words follow the pick's kind (hotspot copies /
+            // any call / functional loss).
+            const ow = this._mutOverlayWords(hotspotGene);
             const pctOf = (k) => filteredData.length > 0 ? (k / filteredData.length * 100).toFixed(1) : '0.0';
             const wtPct = pctOf(wt.length);
             const mut1Pct = pctOf(mut1.length);
             const mut2Pct = pctOf(mut2.length);
 
-            // WT trace (gray)
+            // Reference trace (gray)
             traces.push({
                 x: wt.map(d => d.x),
                 y: wt.map(d => d.y),
                 mode: 'markers',
                 type: 'scatter',
-                text: wt.map(d => `${d.cellLineName}<br>${d.lineage}<br>WT`),
+                text: wt.map(d => `${d.cellLineName}<br>${d.lineage}<br>${ow.hover[0]}`),
                 hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                 marker: { color: '#9ca3af', size: 10, opacity: 0.6 },
-                name: `WT (n=${wt.length}, ${wtPct}%)`
+                name: `${ow.legend[0]} (n=${wt.length}, ${wtPct}%)`
             });
 
-            // 1 mut trace (blue)
+            // One-copy / carrier trace (blue)
             traces.push({
                 x: mut1.map(d => d.x),
                 y: mut1.map(d => d.y),
                 mode: 'markers',
                 type: 'scatter',
-                text: mut1.map(d => `${d.cellLineName}<br>${d.lineage}<br>1 mutation`),
+                text: mut1.map(d => `${d.cellLineName}<br>${d.lineage}<br>${ow.hover[1]}`),
                 hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                 marker: { color: '#3b82f6', size: 10, opacity: 0.7 },
-                name: `1 mut (n=${mut1.length}, ${mut1Pct}%)`
+                name: `${ow.legend[1]} (n=${mut1.length}, ${mut1Pct}%)`
             });
 
-            // 2 mut trace (red)
-            traces.push({
+            // Both-copies trace (red). Functional loss has no second level, so
+            // it gets two legend entries rather than an empty third.
+            if (ow.hasTwo) traces.push({
                 x: mut2.map(d => d.x),
                 y: mut2.map(d => d.y),
                 mode: 'markers',
                 type: 'scatter',
-                text: mut2.map(d => `${d.cellLineName}<br>${d.lineage}<br>2 mutations`),
+                text: mut2.map(d => `${d.cellLineName}<br>${d.lineage}<br>${ow.hover[2]}`),
                 hovertemplate: '%{text}<br>x: %{x:.3f}<br>y: %{y:.3f}<extra></extra>',
                 marker: { color: '#dc2626', size: 10, opacity: 0.8 },
-                name: `2 mut (n=${mut2.length}, ${mut2Pct}%)`
+                name: `${ow.legend[2]} (n=${mut2.length}, ${mut2Pct}%)`
             });
         } else if (transOverlayMode === 'color' && transOverlayGene) {
             // Color by translocation/fusion level (purple tones)
@@ -19814,11 +19983,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             return out;
         };
         if (hotspotMode === 'color' && hotspotGene) {
+            const ow = this._mutOverlayWords(hotspotGene);
             const segs = [
-                `<b>${hotspotGene}:</b> WT n=${wt.length} r=${this.formatNum(wtStats.correlation)}`,
-                `1mut n=${mut1.length} r=${this.formatNum(mut1Stats.correlation)}`,
-                `2mut n=${mut2.length} r=${this.formatNum(mut2Stats.correlation)}`,
+                `<b>${ow.gene}${ow.kind === 'hotspot' ? '' : ` (${this._mutKindWord(ow.kind)})`}:</b> ${ow.legend[0]} n=${wt.length} r=${this.formatNum(wtStats.correlation)}`,
+                `${ow.legend[1]} n=${mut1.length} r=${this.formatNum(mut1Stats.correlation)}`,
             ];
+            if (ow.hasTwo) segs.push(`${ow.legend[2]} n=${mut2.length} r=${this.formatNum(mut2Stats.correlation)}`);
             for (const ln of _wrapStatLine(segs)) {
                 titleLines.push(`<span style="font-size:${subSize}px;">${ln}</span>`);
             }
@@ -20247,7 +20417,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Panel labels
         const panelLabels = isFusion
             ? ['No fusion', '1 partner', '2+ partners']
-            : ['WT', '1 mut', '2 mut'];
+            : this._mutOverlayWords(hotspotGene).panel;
 
         // Build category map for color-by mode (shared across panels)
         let categoryOrder = null;
@@ -20396,8 +20566,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         addHighlights(mut2, 'x3', 'y3');
 
         // Build title with filter info
-        const stratLabel = isFusion ? 'fusion stratification' : 'hotspot mutation stratification';
-        let titleText = `<b>${gene1} vs ${gene2} - ${hotspotGene} ${stratLabel}</b>`;
+        const _ow3 = isFusion ? null : this._mutOverlayWords(hotspotGene);
+        const stratLabel = isFusion ? 'fusion stratification'
+            : _ow3.kind === 'lof' ? 'functional-loss stratification'
+            : _ow3.kind === 'any' ? 'mutation stratification (any call)'
+            : 'hotspot mutation stratification';
+        let titleText = `<b>${gene1} vs ${gene2} - ${isFusion ? hotspotGene : _ow3.gene} ${stratLabel}</b>`;
         if (filterDesc) {
             titleText += `<br><span style="font-size: 11px; color: #666;">Filter: ${filterDesc}</span>`;
         }
@@ -20405,7 +20579,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Annotation labels for panels
         const annotLabels = isFusion
             ? [`<b>No fusion</b>`, `<b>1 partner</b>`, `<b>2+ partners</b>`]
-            : [`<b>WT (0 mut)</b>`, `<b>1 mutation</b>`, `<b>2 mutations</b>`];
+            : _ow3.kind === 'hotspot'
+                ? [`<b>WT (0 mut)</b>`, `<b>1 mutation</b>`, `<b>2 mutations</b>`]
+                : _ow3.panel.map(w => `<b>${w}</b>`);
 
         // Title annotation (draggable)
         const titleAnnotation = {
@@ -20715,6 +20891,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     renderCompareTable(filteredData, gene1, gene2, hotspotGene, filterDesc = '', isFusion = false) {
         // Group by cancer type (lineage) - comparing 0 vs 2+ level only
         const levelField = isFusion ? 'translocationLevel' : 'mutationLevel';
+        // Hotspot copies compare 0 against both copies; the binary kinds (any
+        // call, functional loss) have nothing to exclude, so they compare at 1.
+        const ow = isFusion ? null : this._mutOverlayWords(hotspotGene);
+        const mutMin = isFusion ? 1 : (ow.kind === 'hotspot' ? 2 : 1);
         const lineageGroups = {};
         filteredData.forEach(d => {
             if (!d.lineage) return;
@@ -20723,10 +20903,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             }
             if (d[levelField] === 0) {
                 lineageGroups[d.lineage].wt.push(d);
-            } else if (d[levelField] >= (isFusion ? 1 : 2)) {
+            } else if (d[levelField] >= mutMin) {
                 lineageGroups[d.lineage].mut.push(d);
             }
-            // Note: for hotspot, mutationLevel === 1 is excluded from comparison
         });
 
         // Calculate stats for each lineage
@@ -20772,19 +20951,20 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         tableData.sort((a, b) => a.pR - b.pR);
 
         // Build HTML table
-        const typeLabel = isFusion ? 'Fusion' : 'Mutation';
-        const wtLabel = isFusion ? 'No fusion' : 'WT';
-        const mutLabel = isFusion ? 'Fused (1+)' : 'Mut';
+        const geneLabel = isFusion ? hotspotGene : ow.gene;
+        const typeLabel = isFusion ? 'Fusion' : ow.typeWord;
+        const wtLabel = isFusion ? 'No fusion' : ow.refWord;
+        const mutLabel = isFusion ? 'Fused (1+)' : ow.altWord;
         const filterInfo = filterDesc ? `<p style="font-size: 11px; color: #333; margin-bottom: 8px; background: #f0f9ff; padding: 4px 8px; border-radius: 4px;"><b>Filter:</b> ${filterDesc}</p>` : '';
-        const exclusionNote = isFusion ? '' : ' Note: Cells with exactly 1 mutation are excluded from this comparison.';
-        const wtDesc = isFusion ? `no ${hotspotGene} fusions` : `0 ${hotspotGene} mutations`;
-        const mutDesc = isFusion ? `${hotspotGene} fused (1+)` : `2+ ${hotspotGene} mutations`;
+        const exclusionNote = (isFusion || mutMin < 2) ? '' : ' Note: Cells with exactly 1 mutation are excluded from this comparison.';
+        const wtDesc = isFusion ? `no ${hotspotGene} fusions` : ow.refDesc;
+        const mutDesc = isFusion ? `${hotspotGene} fused (1+)` : ow.altDesc;
         let html = `
-            <h4 style="margin-bottom: 8px;">Effect of <span style="color: #0066cc;">${hotspotGene}</span> ${typeLabel} on ${gene1} vs ${gene2} Correlation</h4>
+            <h4 style="margin-bottom: 8px;">Effect of <span style="color: #0066cc;">${geneLabel}</span> ${typeLabel} on ${gene1} vs ${gene2} Correlation</h4>
             ${filterInfo}
             <p style="font-size: 11px; color: #666; margin-bottom: 8px;">
                 Comparing correlation between ${wtLabel} (${wtDesc}) vs ${mutLabel} (${mutDesc}) cells, stratified by cancer type.${exclusionNote}
-                <strong>Click a cancer type</strong> to view its scatter plot with the ${hotspotGene} ${typeLabel.toLowerCase()} overlay.
+                <strong>Click a cancer type</strong> to view its scatter plot with the ${geneLabel} ${typeLabel.toLowerCase()} overlay.
             </p>
             <p style="font-size: 10px; color: #0c4a6e; background: #f0f9ff; padding: 4px 8px; border-radius: 4px; margin-bottom: 12px;">
                 <b>Statistics:</b> p(Δr) uses Fisher z-transformation to compare correlations. p(Δslope) is an approximation based on correlation difference.
@@ -20915,8 +21095,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Apply mutation filter
-        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
-            const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
+        const _mutFilterCalls = this._mutCalls(mutFilterGene);
+        if (mutFilterGene && _mutFilterCalls && mutFilterLevel !== 'all') {
+            const filterMutations = _mutFilterCalls;
             filteredData = filteredData.filter(d => {
                 const mutLevel = filterMutations[d.cellLineId] || 0;
                 if (mutFilterLevel === '0') return mutLevel === 0;
@@ -21124,7 +21305,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let fd = cancerFilter ? data.filter(d => d.lineage === cancerFilter) : data.slice();
         if (subtypeFilter && this.cellLineMetadata?.primaryDisease) fd = fd.filter(d => this.cellLineMetadata.primaryDisease[d.cellLineId] === subtypeFilter);
         if (mutFilterGene && mutFilterLevel !== 'all') {
-            const mm = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
+            const mm = this._mutCalls(mutFilterGene);
             if (mm) fd = fd.filter(d => { const l = mm[d.cellLineId] || 0; if (mutFilterLevel === '0') return l === 0; if (mutFilterLevel === '1') return l === 1; if (mutFilterLevel === '2') return l >= 2; if (mutFilterLevel === '1+2') return l >= 1; return true; });
         }
         if (transFilterGene) {
@@ -21146,7 +21327,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const parts = [];
         if (cancerFilter) parts.push(`Cancer: ${cancerFilter}${subtypeFilter ? ` (${subtypeFilter})` : ''}`);
         if (oncVal) parts.push(`Disease: ${oncVal === '__mr_multi__' ? (this.mutationResults?.oncotreeFilterMulti || []).join(' + ') : oncVal}`);
-        if (mutFilterGene && mutFilterLevel !== 'all') parts.push(`${mutFilterGene}: ${mutFilterLevel}`);
+        if (mutFilterGene && mutFilterLevel !== 'all') {
+            const mk = this._parseMutFilter(mutFilterGene);
+            parts.push(`${mk.gene}: ${this._mutLevelWord(mk.kind, mutFilterLevel) || mutFilterLevel}`);
+        }
         if (transFilterGene) parts.push(`Fusion: ${this._stripFusionFilterDecoration(transFilterGene)}`);
         if (cnFilterVal) parts.push(`CN: ${this._stripCnFilterDecoration(cnFilterVal)}`);
         (this._scatterGridActive || []).forEach(f => parts.push(`${f.gene} ${this._gridStateWord(f.state)}`));
@@ -22052,8 +22236,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         let filteredData = [...data];
 
         // Apply mutation filter
-        if (mutFilterGene && (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene]) && mutFilterLevel !== 'all') {
-            const filterMutations = (this.mutations?.geneData?.[mutFilterGene] || this.damagingMutations?.geneData?.[mutFilterGene])?.mutations;
+        const _mutFilterCalls = this._mutCalls(mutFilterGene);
+        if (mutFilterGene && _mutFilterCalls && mutFilterLevel !== 'all') {
+            const filterMutations = _mutFilterCalls;
             filteredData = filteredData.filter(d => {
                 const mutLevel = filterMutations[d.cellLineId] || 0;
                 if (mutFilterLevel === '0') return mutLevel === 0;
@@ -25402,7 +25587,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (deepest) parts.push(deepest);
             if (val('clbSexFilter')) parts.push(val('clbSexFilter'));
             const hs = val('clbHotspotFilter');
-            if (hs) parts.push(`${hs} ${val('clbHotspotLevel') === '0' ? 'WT' : 'mutated'}`);
+            if (hs) parts.push(this._mutFilterPhrase(hs, val('clbHotspotLevel'), val('clbHotspotLevel') === '0' ? 'WT' : 'mutated'));
             const fu = val('clbTranslocationFilter');
             if (fu) parts.push(`${this._stripFusionFilterDecoration?.(fu) || fu} fused`);
             const cn = val('clbCnFilter');
@@ -25420,7 +25605,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 parts.push(incl.length <= 4 ? incl.join(', ') : `${incl.length} tissues`);
             }
             const hs = val('paramHotspotGene');
-            if (hs) parts.push(`${hs} ${val('paramHotspotLevel') === '0' ? 'WT' : 'mutated'}`);
+            if (hs) parts.push(this._mutFilterPhrase(hs, val('paramHotspotLevel'), val('paramHotspotLevel') === '0' ? 'WT' : 'mutated'));
         }
         return parts.join(' · ');
     }
@@ -25923,9 +26108,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Hotspot filter (mutated 1+2 by default), with WT / 1 / 2 / 1+2 levels.
         const hotspotVal = document.getElementById('caHotspotFilter')?.value;
         if (hotspotVal) {
-            const mutData = this.mutations?.geneData?.[hotspotVal]?.mutations
-                || this.damagingMutations?.geneData?.[hotspotVal]?.mutations
-                || {};
+            const mutData = this._mutCalls(hotspotVal) || {};
             const lvl = document.getElementById('caHotspotLevel')?.value || '1+2';
             filtered = filtered.filter(p => {
                 const l = mutData[p.cellLineId] || 0;
@@ -26017,7 +26200,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hot = document.getElementById('caHotspotFilter')?.value;
         if (hot) {
             const lvl = document.getElementById('caHotspotLevel')?.value || '1+2';
-            parts.push(`${hot}: ${lvl === '0' ? 'hotspot WT' : lvl === '1' ? 'hotspot mut (1 copy)' : lvl === '2' ? 'hotspot mut (2 copies)' : 'hotspot mut (1+2)'}`);
+            const mk = this._parseMutFilter(hot);
+            parts.push(`${mk.gene}: ${this._mutLevelWord(mk.kind, lvl)
+                || (lvl === '0' ? 'hotspot WT' : lvl === '1' ? 'hotspot mut (1 copy)' : lvl === '2' ? 'hotspot mut (2 copies)' : 'hotspot mut (1+2)')}`);
         }
         const fus = document.getElementById('caFusionFilter')?.value;
         if (fus) {
@@ -26433,7 +26618,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             };
         } else {
             // Hotspot: scatter with WT (blue) vs Mut (red)
-            const mutData = (this.mutations?.geneData?.[group] || this.damagingMutations?.geneData?.[group])?.mutations || {};
+            const mutData = this._mutCalls(group) || {};
             const wtPts = d.data.filter(p => (mutData[p.cellLineId] || 0) === 0);
             const mutPts = d.data.filter(p => (mutData[p.cellLineId] || 0) > 0);
 
@@ -26609,15 +26794,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const cellLinesInPlot = new Set(data.map(d => d.cellLineId));
 
         if (this.mutations?.genes?.length > 0) {
-            hotspotSelect.innerHTML = '<option value="">Select gene...</option>';
-            mutFilterGeneSelect.innerHTML = '<option value="">No filter</option>';
-            this.mutations.genes.forEach(g => {
-                const mutData = this.mutations.geneData?.[g]?.mutations || {};
-                let count = 0;
-                cellLinesInPlot.forEach(cl => { if (mutData[cl] > 0) count++; });
-                hotspotSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
-                mutFilterGeneSelect.innerHTML += `<option value="${g}">${g} (${count} mut)</option>`;
-            });
+            const overlayOpts = this._mutOverlayOptionsHtml(cellLinesInPlot);
+            hotspotSelect.innerHTML = '<option value="">Select gene...</option>' + overlayOpts;
+            mutFilterGeneSelect.innerHTML = '<option value="">No filter</option>' + overlayOpts;
             document.getElementById('mutationBox').style.display = 'block';
             document.getElementById('mutationFilterBox').style.display = 'block';
         } else {
@@ -26737,9 +26916,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const gX = this.currentInspect?.gene1 || 'GeneX';
         const gY = this.currentInspect?.gene2 || 'GeneY';
         let header = `CellLine,CellLineID,Lineage,Subtype,${gX}_${colSuffix(xType)}_xAxis,${gY}_${colSuffix(yType)}_yAxis`;
-        const csvMutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
+        const csvMutSource = hotspotGene && this._mutSource(hotspotGene);
         if (csvMutSource) {
-            header += `,${hotspotGene}_mutation`;
+            const mk = this._parseMutFilter(hotspotGene);
+            header += `,${mk.gene}_${mk.kind === 'lof' ? 'functional_loss' : mk.kind === 'any' ? 'any_mutation' : 'mutation'}`;
         }
         if (hasGates) {
             header += ',Gate_A,Gate_B';
@@ -26773,7 +26953,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         });
 
         const csvTissue = document.getElementById('scatterCancerFilter')?.value || '';
-        const suffix = (hotspotGene ? `_${hotspotGene}` : '') + this._csvSlug(csvTissue);
+        const _hk = this._parseMutFilter(hotspotGene);
+        const suffix = (hotspotGene ? `_${_hk.gene}${_hk.kind === 'lof' ? '_functional_loss' : _hk.kind === 'any' ? '_any_mutation' : ''}` : '')
+            + this._csvSlug(csvTissue);
         this.downloadFile(csv,
             csvName(`scatter_${this.currentInspect.gene1}_vs_${this.currentInspect.gene2}${suffix}`),
             'text/csv');
@@ -27844,7 +28026,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         } else if (geOnc) parts.push(geOnc);
         // Say which side of each filter is in view, now that WT can be chosen.
         const isWT = (id) => document.getElementById(id)?.value === 'wt';
-        if (hotspot) parts.push(`${hotspot} ${isWT('geHotspotLevel') ? 'WT' : 'mutated'}`);
+        if (hotspot) parts.push(this._mutFilterPhrase(hotspot, document.getElementById('geHotspotLevel')?.value, isWT('geHotspotLevel') ? 'WT' : 'mutated'));
         if (fusion) parts.push(`${this._stripFusionFilterDecoration(fusion)} ${isWT('geFusionLevel') ? 'not fused' : 'fused'}`);
         if (cn) {
             const label = this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' del');
@@ -27895,7 +28077,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Hotspot / fusion / CN filters, each with its own carrier-vs-WT choice.
         const wantWT = (id) => document.getElementById(id)?.value === 'wt';
         const hotspotGene = document.getElementById('geHotspotFilter')?.value;
-        const geFilterMutSource = hotspotGene && (this.mutations?.geneData?.[hotspotGene] || this.damagingMutations?.geneData?.[hotspotGene]);
+        const geFilterMutSource = hotspotGene && this._mutSource(hotspotGene);
         if (geFilterMutSource) {
             const mutData = geFilterMutSource.mutations || {};
             const lvl = document.getElementById('geHotspotLevel')?.value || '1+2';
@@ -30272,7 +30454,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // run with a TP53 filter exported 20 extra TP53-WT lines and
             // reported their split as the analysis result).
             const addMutData = mr.additionalHotspot && mr.additionalHotspotLevel !== 'all'
-                ? this.mutations?.geneData?.[mr.additionalHotspot]?.mutations : null;
+                ? this._mutCalls(mr.additionalHotspot, { hotspotOnly: true }) : null;
             const addFusionActive = !!(mr.additionalTransGene && mr.additionalTransLevel !== 'all');
             this.metadata.cellLines.forEach(cl => {
                 if (mr.lineageFilter && this.cellLineMetadata?.lineage?.[cl] !== mr.lineageFilter) return;
@@ -31419,7 +31601,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 tissueGroups: mr?.tissueGroups || null,
                 excludedTissues: excludedList,
                 additionalHotspot: mr?.additionalHotspot && mr?.additionalHotspotLevel !== 'all'
-                    ? `${mr.additionalHotspot} ${mr.additionalHotspotLevel}` : '',
+                    ? this._mutFilterPhrase(mr.additionalHotspot, mr.additionalHotspotLevel, mr.additionalHotspotLevel) : '',
                 oncoprintFilters: this._activeOncoprintFilters?.map(f => `${f.gene} ${f.state}`) || [],
                 customCellLineListCount: this._customCellLineFilter?.size || 0,
                 measure: mr?.metric === 'expr' ? 'mRNA expression' : 'gene effect'
@@ -31457,7 +31639,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (this.excludedTissues?.size > 0) filterParts.push(`Excluded tissues: ${[...this.excludedTissues].join(', ')}`);
             const hotspotGene = document.getElementById('paramHotspotGene')?.value;
             const hotspotLevel = document.getElementById('paramHotspotLevel')?.value;
-            if (hotspotGene) filterParts.push(`Hotspot: ${hotspotGene} ${hotspotLevel === '1+2' ? 'Mut' : hotspotLevel === '0' ? 'WT' : `level ${hotspotLevel}`}`);
+            if (hotspotGene) filterParts.push(`Mutation: ${this._mutFilterPhrase(hotspotGene, hotspotLevel, hotspotLevel === '1+2' ? 'Mut' : hotspotLevel === '0' ? 'WT' : `level ${hotspotLevel}`)}`);
             const transGene = document.getElementById('paramTranslocationGene')?.value;
             const transLevel = document.getElementById('paramTranslocationLevel')?.value;
             if (transGene) filterParts.push(`Fusion: ${transGene} ${transLevel === '1+2' ? 'Fused' : transLevel === '0' ? 'Not fused' : `level ${transLevel}`}`);
@@ -35228,7 +35410,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
             if (!this._passesOncotree(cellLine, 'geOncotreeFilter')) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-                const addMutData = this.mutations.geneData[mr.additionalHotspot];
+                const addMutData = this._mutSource(mr.additionalHotspot, { hotspotOnly: true });
                 if (addMutData) {
                     const addMutLevel = addMutData.mutations[cellLine] || 0;
                     if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
@@ -35238,7 +35420,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
             }
             if (inspectHotspot) {
-                const inspHotData = this.mutations?.geneData?.[inspectHotspot] || this.damagingMutations?.geneData?.[inspectHotspot];
+                const inspHotData = this._mutSource(inspectHotspot);
                 if (inspHotData) {
                     const inspMutLevel = inspHotData.mutations[cellLine] || 0;
                     if (inspMutLevel === 0) return;
@@ -35338,7 +35520,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
             if (!this._passesOncotree(cellLine, 'geOncotreeFilter')) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-                const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
+                const addMutData = this._mutSource(mr.additionalHotspot, { hotspotOnly: true });
                 if (addMutData) {
                     const addMutLevel = addMutData.mutations[cellLine] || 0;
                     if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
@@ -35444,7 +35626,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
             if (!this._passesOncotree(cellLine, 'geOncotreeFilter')) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-                const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
+                const addMutData = this._mutSource(mr.additionalHotspot, { hotspotOnly: true });
                 if (addMutData) {
                     const addMutLevel = addMutData.mutations[cellLine] || 0;
                     if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
@@ -35549,7 +35731,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (inspectSubtype && this.cellLineMetadata?.primaryDisease?.[cellLine] !== inspectSubtype) return;
             if (!this._passesOncotree(cellLine, 'geOncotreeFilter')) return;
             if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-                const addMutData = this.mutations?.geneData?.[mr.additionalHotspot];
+                const addMutData = this._mutSource(mr.additionalHotspot, { hotspotOnly: true });
                 if (addMutData) {
                     const addMutLevel = addMutData.mutations[cellLine] || 0;
                     if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
@@ -36272,7 +36454,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (geSub && this.cellLineMetadata?.primaryDisease?.[cellLine] !== geSub) return;
             if (!this._passesOncotree(cellLine, 'geOncotreeFilter')) return;
             if (mr?.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-                const addMutData = this.mutations.geneData[mr.additionalHotspot];
+                const addMutData = this._mutSource(mr.additionalHotspot, { hotspotOnly: true });
                 if (addMutData) {
                     const addMutLevel = addMutData.mutations[cellLine] || 0;
                     if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) return;
@@ -36551,7 +36733,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
                 // Still apply additional hotspot filter
                 if (mr?.additionalHotspot && mr.additionalHotspotLevel !== 'all') {
-                    const addMutData = this.mutations.geneData[mr.additionalHotspot];
+                    const addMutData = this._mutSource(mr.additionalHotspot, { hotspotOnly: true });
                     if (addMutData) {
                         const addMutLevel = addMutData.mutations[cellLine] || 0;
                         if (mr.additionalHotspotLevel === '0' && addMutLevel !== 0) continue;
@@ -42402,7 +42584,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hotspotLvl = document.getElementById('clbHotspotLevel')?.value || '1+2';
         const fusionLvl = document.getElementById('clbFusionLevel')?.value || '1+2';
         const cnLvl = document.getElementById('clbCnLevel')?.value || 'altered';
-        const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
+        const hotspotMuts = hotspotGene && this._mutCalls(hotspotGene);
         const collectionStates = this._clbCollectionStates;
         const collectionMem = this._collectionMembership || {};
         const set = new Set();
@@ -42618,7 +42800,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hotspotLvl = document.getElementById('clbHotspotLevel')?.value || '1+2';
         const fusionLvl = document.getElementById('clbFusionLevel')?.value || '1+2';
         const cnLvl = document.getElementById('clbCnLevel')?.value || 'altered';
-        const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
+        const hotspotMuts = hotspotGene && this._mutCalls(hotspotGene);
         const cnFilterValue = document.getElementById('clbCnFilter')?.value || '';
         const oncotree = opts.skipOncotree ? '' : (document.getElementById('clbOncotreeFilter')?.value || '');
         return this.metadata.cellLines.filter(cl => {
@@ -43203,11 +43385,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     _FILTER_BAR_SPEC() {
         // The words for each alteration state, shared by every context so the
         // same filter never reads two different ways.
-        const HOT = {
-            '1+2': 'Mutated (either copy)', '1': 'One copy mutated',
-            '2': 'Both copies mutated', '0': 'Wild-type',
-            altered: 'Mutated', wt: 'Wild-type',
-        };
+        const HOT = this._MUT_LEVEL_WORDS().hotspot;
         const FUS = { '1+2': 'Fused', altered: 'Fused', '0': 'Not fused', wt: 'Not fused', nocall: 'Not callable' };
         const CN = { altered: 'Event present', wt: 'No event' };
         const opts = (map, vals) => vals.map(v => ({ v, label: map[v] }));
@@ -43405,8 +43583,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (hotGene) {
             const lvl = val(spec.hotspot.levelId) || spec.hotspot.options[0].v;
             const wt = this._filterIsWildType('hotspot', lvl);
-            const word = { '1+2': 'hotspot-mutated', altered: 'hotspot-mutated', '1': 'hotspot-mutated (one copy)', '2': 'hotspot-mutated (both copies)', '0': 'hotspot WT', wt: 'hotspot WT' }[lvl] || 'hotspot-mutated';
-            parts.push(chip('hotspot', `${this.esc(hotGene)} ${word}`, wt ? gray : 'background:#e6efde;color:#5a7d35;', editTitle));
+            const hotWord = { '1+2': 'hotspot-mutated', altered: 'hotspot-mutated', '1': 'hotspot-mutated (one copy)', '2': 'hotspot-mutated (both copies)', '0': 'hotspot WT', wt: 'hotspot WT' }[lvl] || 'hotspot-mutated';
+            parts.push(chip('hotspot', this.esc(this._mutFilterPhrase(hotGene, lvl, hotWord)), wt ? gray : 'background:#e6efde;color:#5a7d35;', editTitle));
         }
         const fusGene = this._stripFusionFilterDecoration(val(spec.fusion?.geneId));
         if (fusGene) {
@@ -43425,8 +43603,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
         // Genes picked out of an alteration grid. These are how more than one
         // gene of the same kind is filtered on at once.
+        const hotGenePlain = this._stripMutDecoration(hotGene);
         for (const f of (this._activeOncoprintFilters || [])) {
-            if (f.gene === hotGene || f.gene === fusGene) continue;
+            if (f.gene === hotGenePlain || f.gene === fusGene) continue;
             // A pick can name a copy count, so the chip reads its state rather
             // than testing for one particular value.
             const on = !this._gridStateIsWT(f.state);
@@ -43437,7 +43616,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // The scatter's own grid picks, scoped to that plot alone.
         if (ctxName === 'scatter') {
             for (const f of (this._scatterGridActive || [])) {
-                if (f.gene === hotGene || f.gene === fusGene) continue;
+                if (f.gene === hotGenePlain || f.gene === fusGene) continue;
                 const on = !this._gridStateIsWT(f.state);
                 parts.push(`<span class="clb-chip" data-chip="sgrid" data-grid-gene="${this.esc(f.gene)}" title="Grid pick for this scatter only. Click to change which cell lines are kept, or to remove"`
                     + ` style="background:${on ? '#dcfce7' : '#fef2f2'};color:${on ? '#5d9239' : '#dc2626'};padding:1px 6px;border-radius:10px;cursor:pointer;">`
@@ -43479,6 +43658,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             const el = document.getElementById(id);
             if (!el) return;
             el.value = v;
+            // A <select> silently drops a value it has no option for. The
+            // mutated / wild-type sides have two spellings ('altered'/'1+2',
+            // 'wt'/'0'), so fall back to the other one rather than clearing.
+            if (el.value !== v) {
+                const alt = { altered: '1+2', '1+2': 'altered', wt: '0', '0': 'wt' }[v];
+                if (alt) el.value = alt;
+            }
             el.dispatchEvent(new Event('change', { bubbles: true }));
         };
 
@@ -43563,7 +43749,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const unit = spec[kind];
         if (!unit) return;
         const cur = document.getElementById(unit.levelId)?.value;
-        const rows = unit.options.map(o => ({
+        let options = unit.options;
+        if (kind === 'hotspot') {
+            // The pick carries its own kind, so the level choices follow it:
+            // functional loss is lost-or-intact, "any mutation" keeps the four
+            // copy-count choices with its own words.
+            const mk = this._parseMutFilter(document.getElementById(unit.geneId)?.value);
+            if (mk.kind !== 'hotspot') {
+                const words = this._MUT_LEVEL_WORDS()[mk.kind];
+                options = unit.options.filter(o => words[o.v]).map(o => ({ v: o.v, label: words[o.v] }));
+            }
+        }
+        const rows = options.map(o => ({
             label: o.label, active: cur === o.v, act: () => setVal(unit.levelId, o.v),
         }));
         rows.push({
@@ -43577,12 +43774,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return {
             hotspot: {
                 geneId: 'clbHotspotFilter', levelId: 'clbHotspotLevel',
-                options: [
-                    { v: '1+2', label: 'Mutated (either copy)' },
-                    { v: '1', label: 'One copy mutated' },
-                    { v: '2', label: 'Both copies mutated' },
-                    { v: '0', label: 'Wild-type' },
-                ],
+                options: ['1+2', '1', '2', '0'].map(v => ({ v, label: this._MUT_LEVEL_WORDS().hotspot[v] })),
             },
             fusion: {
                 geneId: 'clbTranslocationFilter', levelId: 'clbFusionLevel',
@@ -43685,13 +43877,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         const spec = this._CLB_CHIP_SPEC()[kind];
         if (!spec) return;
+        let specOptions = spec.options;
+        if (kind === 'hotspot') {
+            const mk = this._parseMutFilter(document.getElementById(spec.geneId)?.value);
+            if (mk.kind !== 'hotspot') {
+                const words = this._MUT_LEVEL_WORDS()[mk.kind];
+                specOptions = spec.options.filter(o => words[o.v]).map(o => ({ v: o.v, label: words[o.v] }));
+            }
+        }
         const level = document.getElementById(spec.levelId);
         const menu = document.createElement('div');
         menu.id = 'clbChipMenu';
         menu.className = 'select-proxy-panel';
         menu.style.cssText = 'position:fixed; z-index:1450; width:210px; padding:4px; background:#fff; border:1px solid #d1d5db; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,0.14); font-size:11px;';
         const rowCss = 'display:block; width:100%; text-align:left; padding:5px 8px; border:none; background:none; cursor:pointer; border-radius:4px; font-size:11px;';
-        menu.innerHTML = spec.options.map(o =>
+        menu.innerHTML = specOptions.map(o =>
             `<button type="button" data-lvl="${o.v}" style="${rowCss}${o.v === level?.value ? 'font-weight:700; background:#f0fdf4; color:#4c782e;' : 'color:#374151;'}">${o.label}</button>`
         ).join('')
             + `<div style="border-top:1px solid #e5e7eb; margin:4px 0;"></div>`
@@ -43757,7 +43957,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         const hotLvl = document.getElementById('clbHotspotLevel')?.value || '1+2';
         const hotWord = { '1+2': 'mutated', '1': 'one copy mutated', '2': 'both copies mutated', '0': 'WT' }[hotLvl] || 'mutated';
-        if (hotspot) parts.push(`<span class="clb-chip" data-chip="hotspot" title="Click to change which cell lines are kept, or to remove this filter" style="${wtHot ? grayChip : 'background:#e6efde;color:#5a7d35;'}padding:1px 6px;border-radius:10px;">${this.esc(hotspot)} ${hotWord} &#9662;</span>`);
+        if (hotspot) parts.push(`<span class="clb-chip" data-chip="hotspot" title="Click to change which cell lines are kept, or to remove this filter" style="${wtHot ? grayChip : 'background:#e6efde;color:#5a7d35;'}padding:1px 6px;border-radius:10px;">${this.esc(this._mutFilterPhrase(hotspot, hotLvl, hotWord))} &#9662;</span>`);
         if (trans) parts.push(`<span class="clb-chip" data-chip="fusion" title="Click to change which cell lines are kept, or to remove this filter" style="${wtFus ? grayChip : 'background:#efe7ec;color:#7d5a66;'}padding:1px 6px;border-radius:10px;">${this.esc(trans)} ${wtFus ? 'not fused' : 'fused'} &#9662;</span>`);
         if (cn) {
             const label = this._stripCnFilterDecoration(cn).replace(/_(amp|del)$/, (_, k) => k === 'amp' ? ' amp' : ' del');
@@ -43774,7 +43974,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 + ` <a href="#" data-clear-collection="${id}" style="color:${color}; text-decoration:none; margin-left:2px; font-weight:700;" title="Remove this filter">×</a></span>`);
         }
         if (this._activeOncoprintFilters) {
-            const shown = new Set([hotspot, trans].filter(Boolean));
+            const shown = new Set([this._stripMutDecoration(hotspot), trans].filter(Boolean));
             for (const f of this._activeOncoprintFilters) {
                 if (!shown.has(f.gene)) {
                     const bg = !this._gridStateIsWT(f.state) ? '#dcfce7' : '#fef2f2';
@@ -43823,7 +44023,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const hotspotGene = document.getElementById('clbHotspotFilter').value;
         const transGene = document.getElementById('clbTranslocationFilter').value;
 
-        const hotspotMuts = hotspotGene && (this.mutations?.geneData?.[hotspotGene]?.mutations || this.damagingMutations?.geneData?.[hotspotGene]?.mutations);
+        const hotspotMuts = hotspotGene && this._mutCalls(hotspotGene);
         const cnFilterValue = document.getElementById('clbCnFilter')?.value || '';
         const hotspotLvl = document.getElementById('clbHotspotLevel')?.value || '1+2';
         const fusionLvl = document.getElementById('clbFusionLevel')?.value || '1+2';
@@ -44711,10 +44911,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const transVal = this._stripFusionFilterDecoration(document.getElementById('clbTranslocationFilter').value);
             if (tissueVal) filterParts.push(tissueVal);
             if (subtypeVal) filterParts.push(subtypeVal);
-            if (hotspotVal) filterParts.push(hotspotVal + ' Mut');
+            if (hotspotVal) filterParts.push(this._mutFilterPhrase(hotspotVal, document.getElementById('clbHotspotLevel')?.value, 'Mut'));
             if (transVal) filterParts.push(transVal + ' Fused');
             if (this._activeOncoprintFilters) {
-                const shown = new Set([hotspotVal, transVal].filter(Boolean));
+                const shown = new Set([this._stripMutDecoration(hotspotVal), transVal].filter(Boolean));
                 for (const f of this._activeOncoprintFilters) {
                     if (!shown.has(f.gene)) filterParts.push(`${f.gene} ${this._gridStateWord(f.state)}`);
                 }
@@ -51238,7 +51438,7 @@ ${clone.innerHTML}
             const transVal = this._stripFusionFilterDecoration(document.getElementById('clbTranslocationFilter').value);
             if (tissueVal) filterParts.push(tissueVal);
             if (subtypeVal) filterParts.push(subtypeVal);
-            if (hotspotVal) filterParts.push(hotspotVal + ' mut');
+            if (hotspotVal) filterParts.push(this._mutFilterPhrase(hotspotVal, document.getElementById('clbHotspotLevel')?.value, 'mut'));
             if (transVal) filterParts.push(transVal + ' fus');
             const filterLabel = filterParts.length > 0 ? filterParts.join(' / ') : `all (n=${filteredIndices.length})`;
 
@@ -51587,7 +51787,7 @@ ${clone.innerHTML}
         const subtype = document.getElementById('geSubtypeFilter')?.value;
         if (subtype) lines.push(`Subtype filter: ${subtype}`);
         const hotspot = document.getElementById('geHotspotFilter')?.value;
-        if (hotspot) lines.push(`Additional hotspot filter: ${hotspot}`);
+        if (hotspot) lines.push(`Additional mutation filter: ${this._mutFilterPhrase(hotspot, document.getElementById('geHotspotLevel')?.value, 'mutated')}`);
         if (this._geGateA) lines.push(`Gate A: ${this._geGateA.length} cells`);
         if (this._geGateB) lines.push(`Gate B: ${this._geGateB.length} cells`);
         return lines;
@@ -52569,7 +52769,7 @@ ${clone.innerHTML}
         const fmtP = (p) => this.formatPValue(p);
 
         if (type === 'mutation') {
-            let mutData = this.mutations?.geneData?.[gene]?.mutations || this.damagingMutations?.geneData?.[gene]?.mutations;
+            let mutData = this._mutCalls(gene);
             if (!mutData) { plotDiv.innerHTML = `<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px;">No mutation data for ${gene}</div>`; return; }
             const mutA = this._umapGateA.filter(cl => (mutData[cl] || 0) > 0).length;
             const mutB = this._umapGateB.filter(cl => (mutData[cl] || 0) > 0).length;
@@ -56556,7 +56756,7 @@ ${clone.innerHTML}
         const hot = document.getElementById('hmHotspotFilter')?.value;
         if (hot) {
             const lvl = document.getElementById('hmHotspotLevel')?.value || '1+2';
-            parts.push(`${hot} ${this._filterIsWildType('hotspot', lvl) ? 'wild-type' : 'hotspot-mutated'}`);
+            parts.push(this._mutFilterPhrase(hot, lvl, this._filterIsWildType('hotspot', lvl) ? 'wild-type' : 'hotspot-mutated'));
         }
         const fus = this._stripFusionFilterDecoration(document.getElementById('hmFusionFilter')?.value || '');
         if (fus) {
@@ -56588,7 +56788,7 @@ ${clone.innerHTML}
         if (!hot && !fus && !cn) return cohort;
         return cohort.filter(cl => {
             if (hot) {
-                const mm = this.mutations?.geneData?.[hot]?.mutations || this.damagingMutations?.geneData?.[hot]?.mutations;
+                const mm = this._mutCalls(hot);
                 if (!this._mutLevelPasses(hotLvl, mm ? (mm[cl] || 0) : 0)) return false;
             }
             if (fus) { const has = this._geFusionPasses(cl, fus); if (fusLvl === '0' ? has : !has) return false; }
@@ -56623,7 +56823,7 @@ ${clone.innerHTML}
             if (subtype && this.getCellLineSublineage(cl) !== subtype) continue;
             if (disease && (this.cellLineMetadata?.oncotreeSubtype?.[cl] || '') !== disease) continue;
             if (kind !== 'hotspot' && hot) {
-                const mm = this.mutations?.geneData?.[hot]?.mutations || this.damagingMutations?.geneData?.[hot]?.mutations;
+                const mm = this._mutCalls(hot);
                 if (!this._mutLevelPasses(hotLvl, mm ? (mm[cl] || 0) : 0)) continue;
             }
             if (kind !== 'fusion' && fus) { const has = this._geFusionPasses(cl, fus); if (fusLvl === '0' ? has : !has) continue; }
@@ -56681,8 +56881,12 @@ ${clone.innerHTML}
             let raw = (row.gene || '').trim().toUpperCase();
             if (!raw) return;
             if (row.mode === 'hotspot') {
-                if (!(this.mutations?.geneData?.[raw] || this.damagingMutations?.geneData?.[raw])) {
-                    note += `${raw} has no hotspot or damaging mutation data, that annotation row is not drawn. `;
+                // The gene box is the hotspot filter widget, so its pick can
+                // carry an "(any mutation)" / "(functional loss)" kind. The
+                // decoration is matched case-insensitively, so the uppercased
+                // value above still resolves.
+                if (!this._mutCalls(raw)) {
+                    note += `${this._stripMutDecoration(raw)} has no hotspot or damaging mutation data, that annotation row is not drawn. `;
                     return;
                 }
                 resolved.push({ mode: 'hotspot', gene: raw, sortDir, sortKey, idx });
@@ -56734,7 +56938,7 @@ ${clone.innerHTML}
     // hotspot-then-damaging fallback as the group-by gene box, so a tumour
     // suppressor scored only by loss-of-function still shows something.
     _hmAnn2HotspotLevel(cl, gene) {
-        const mm = this.mutations?.geneData?.[gene]?.mutations || this.damagingMutations?.geneData?.[gene]?.mutations;
+        const mm = this._mutCalls(gene);
         return mm ? (mm[cl] || 0) : 0;
     }
 
@@ -57437,6 +57641,9 @@ ${clone.innerHTML}
         if (mode === 'disease') return (cl) => this.cellLineMetadata?.oncotreeSubtype?.[cl] || 'Not recorded';
         if (mode === 'hotspot') return (cl) => {
             const lvl = this._hmAnn2HotspotLevel(cl, gene);
+            const mk = this._parseMutFilter(gene).kind;
+            if (mk === 'lof') return lvl >= 1 ? 'Lost' : 'Intact';
+            if (mk === 'any') return lvl >= 2 ? 'Both copies' : lvl >= 1 ? 'Mutated' : 'No call';
             return lvl >= 2 ? 'Both copies' : lvl >= 1 ? 'One copy' : 'Wild-type';
         };
         if (mode === 'fusion') return (cl) => this._geFusionPasses(cl, gene) ? 'Fused' : 'No fusion';
@@ -57561,7 +57768,9 @@ ${clone.innerHTML}
     // the summary text and on its own strip can never drift apart.
     _hmAnnRowLabel(mode, gene) {
         return mode === 'lineage' ? 'Lineage' : mode === 'subtype' ? 'Subtype' : mode === 'disease' ? 'Disease'
-            : mode === 'hotspot' ? `${gene} mutation` : mode === 'fusion' ? `${gene} fusion`
+            : mode === 'hotspot' ? (this._parseMutFilter(gene).kind === 'lof' ? `${this._stripMutDecoration(gene)} functional loss`
+                : this._parseMutFilter(gene).kind === 'any' ? `${this._stripMutDecoration(gene)} mutation (any)` : `${gene} mutation`)
+            : mode === 'fusion' ? `${gene} fusion`
             : mode === 'ge' ? `${gene} gene effect` : mode === 'expr' ? `${gene} expression`
             : mode === 'cluster' ? 'Cell-line clusters' : mode === 'gates' ? 'Gates' : `${gene} CN`;
     }
@@ -60551,7 +60760,8 @@ ${clone.innerHTML}
         const mg = v('mutationFilterGene');
         if (mg) {
             const lvl = v('mutationFilterLevel') || '1+2';
-            bits.push(`${mg} ${lvl === '0' ? 'hotspot wild-type' : lvl === '1' ? 'hotspot mutated, one copy' : lvl === '2' ? 'hotspot mutated, both copies' : 'hotspot mutated'}`);
+            bits.push(this._mutFilterPhrase(mg, lvl,
+                lvl === '0' ? 'hotspot wild-type' : lvl === '1' ? 'hotspot mutated, one copy' : lvl === '2' ? 'hotspot mutated, both copies' : 'hotspot mutated'));
         }
         const fg = v('translocationFilterGene');
         if (fg) bits.push(`${fg} ${(v('translocationFilterLevel') || '1+2') === '0' ? 'not fused' : 'fused'}`);
@@ -60664,7 +60874,7 @@ ${clone.innerHTML}
         if (v('geSubtypeFilter')) cohortBits.push(`subtype ${v('geSubtypeFilter')}`);
         if (v('geOncotreeFilter') && v('geOncotreeFilter') !== '__mr_multi__') cohortBits.push(`disease ${v('geOncotreeFilter')}`);
         else if (v('geOncotreeFilter') === '__mr_multi__' && mr?.oncotreeFilterMulti?.length) cohortBits.push(`diseases ${mr.oncotreeFilterMulti.join(' + ')}`);
-        if (v('geHotspotFilter')) cohortBits.push(`${v('geHotspotFilter')} hotspot level ${v('geHotspotLevel') || '1+2'}`);
+        if (v('geHotspotFilter')) cohortBits.push(this._mutFilterPhrase(v('geHotspotFilter'), v('geHotspotLevel') || '1+2', `hotspot level ${v('geHotspotLevel') || '1+2'}`));
         if (v('geFusionFilter')) cohortBits.push(`${v('geFusionFilter')} fusion level ${v('geFusionLevel') || '1+2'}`);
         if (v('geCnFilter')) cohortBits.push(`${v('geCnFilter')} copy number ${v('geCnLevel') || 'altered'}`);
         if (this._customCellLineFilterGE?.size) cohortBits.push(`a hand-picked list of ${this._mNum(this._customCellLineFilterGE.size)} cell lines`);
@@ -60889,7 +61099,7 @@ ${clone.innerHTML}
         if (mr.tissueGroups?.length) cohortBits.push(`the tissue split ${this._tissueGroupsLabel(mr.tissueGroups)}`);
         else if (mr.oncotreeFilter) cohortBits.push(`disease ${mr.oncotreeFilter}`);
         if (mr.excludedTissues?.size) cohortBits.push(`${mr.excludedTissues.size} tissue${mr.excludedTissues.size === 1 ? '' : 's'} excluded (${[...mr.excludedTissues].join(', ')})`);
-        if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') cohortBits.push(`${mr.additionalHotspot} hotspot level ${mr.additionalHotspotLevel}`);
+        if (mr.additionalHotspot && mr.additionalHotspotLevel !== 'all') cohortBits.push(this._mutFilterPhrase(mr.additionalHotspot, mr.additionalHotspotLevel, `hotspot level ${mr.additionalHotspotLevel}`));
         if (mr.additionalTransGene && mr.additionalTransLevel !== 'all') cohortBits.push(`${mr.additionalTransGene} fusion level ${mr.additionalTransLevel}`);
         for (const f of (this._activeOncoprintFilters || [])) cohortBits.push(`${f.gene} ${this._gridStateWord(f.state)}`);
         if (this._analysisCellLineSubset?.size) cohortBits.push(`a cell-line subset of ${this._mNum(this._analysisCellLineSubset.size)} lines carried over from another view${this._analysisSubsetLabel ? ` (${this._analysisSubsetLabel})` : ''}`);
