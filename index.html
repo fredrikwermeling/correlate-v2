@@ -2822,6 +2822,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.64 (2026-09-18)</strong></p>
+                <ul>
+                    <li><b>HeLa removed from the expression data.</b> The lab does not distribute HeLa-derived data. The expression table now covers 1,718 cell lines; gene effect and copy number never included HeLa.</li>
+                </ul>
                 <p><strong>v.89.63 (2026-09-17)</strong></p>
                 <ul>
                     <li>The logo tagline is centred under the wordmark instead of starting at its left edge.</li>
@@ -7728,7 +7732,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.63</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.64</a>
         </span>
     </div>
 
@@ -10868,7 +10872,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_63"></script>
+    <script src="app.js?v=v89_64"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

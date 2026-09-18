@@ -20,6 +20,8 @@ OUTPUT_DIR = "/Users/fredrikwermeling/Documents/correlate_v2/web_data"
 
 SCALE_FACTOR = 1800  # Max = 32767/1800 = 18.2, covers max observed 17.36
 NA_VALUE = -32768
+# Never distributed: HeLa (Henrietta Lacks family agreement), whatever the release contains.
+EXCLUDE = {'ACH-001086'}
 
 def parse_gene_name(col_header):
     match = re.match(r'^(.+?)\s*\(\d+\)$', col_header)
@@ -55,6 +57,8 @@ def main():
                 continue
 
             model_id = row[model_id_col].strip()
+            if model_id in EXCLUDE:
+                continue
             cell_lines.append(model_id)
 
             values = []

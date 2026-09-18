@@ -66,6 +66,8 @@ def main():
             for d in dsts: out[d] = {}
         for row in rdr:
             mid = row.get('ModelID', '').strip()
+            if mid == 'ACH-001086':  # HeLa is never distributed
+                continue
             if not mid: continue
             out['cellLines'].append(mid)
             for src, dsts in COLS:

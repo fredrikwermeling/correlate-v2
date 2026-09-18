@@ -197,6 +197,8 @@ def main():
             cl = row[0].strip()
             if not cl or cl in seen_cl: continue
             seen_cl.add(cl)
+            if cl == 'ACH-001086':  # HeLa is never distributed
+                continue
             cl_ids.append(cl)
             rows_kept.append(row)
         print(f'  scanned {n_seen} rows, kept {len(cl_ids)} unique cell lines')

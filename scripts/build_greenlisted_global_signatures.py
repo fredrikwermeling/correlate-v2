@@ -41,6 +41,8 @@ def main():
             if row.get('IsDefaultEntryForModel') != 'Yes': continue
             n_default += 1
             mid = row['ModelID']
+            if mid == 'ACH-001086':  # HeLa is never distributed
+                continue
             entry = {}
             for fld in FIELDS:
                 v = parse_float(row.get(fld, ''))
