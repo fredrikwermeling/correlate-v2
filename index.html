@@ -2822,6 +2822,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.66 (2026-09-22)</strong></p>
+                <ul>
+                    <li><b>Clearer wording for a gene set pasted With Stats.</b> The network's extra controls are now headed "From your With Stats table" and read "Show LFC / FDR in label" and "Color by LFC / FDR", parallel to the gene effect controls above them, instead of "Show statistics in label" and "Color by stats".</li>
+                </ul>
                 <p><strong>v.89.65 (2026-09-18)</strong></p>
                 <ul>
                     <li><b>Three kinds of mutation filter per gene.</b> Wherever a hotspot gene can be typed (first page, Cell Line Browser, correlation view, Gene Effect, By tissue, heatmap) the picker now offers three entries with counts: <b>TP53</b> (hotspot copies, as before), <b>TP53 (any mutation)</b> (a hotspot or a damaging call; wild-type means neither) and, for the eight tumour suppressors DepMap scores, <b>TP53 (functional loss)</b> (deep deletion, loss-of-function mutation or silenced expression; the same call as the quick filter). Chips and their menus read in words: functionally lost / intact, mutated (any call) / no call.</li>
@@ -7738,7 +7742,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.65</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.66</a>
         </span>
     </div>
 
@@ -8262,9 +8266,9 @@
                             </div>
                             <!-- Gene Statistics options (shown when stats loaded) -->
                             <div id="statsControls" style="display: none; border-top: 1px solid #ddd; padding-top: 6px; margin-top: 4px;">
-                                <label style="font-weight: 600; font-size: 11px; margin-bottom: 4px; display: block;">Gene Statistics:</label>
+                                <label style="font-weight: 600; font-size: 11px; margin-bottom: 4px; display: block;" title="The LFC and FDR columns you pasted with the gene set, as opposed to the gene effect from DepMap above">From your With Stats table:</label>
                                 <div class="checkbox-group" style="margin-bottom: 4px;">
-                                    <label><input type="checkbox" id="showStatsInLabel"> Show statistics in label</label>
+                                    <label title="Write your LFC or FDR after each gene name"><input type="checkbox" id="showStatsInLabel"> Show LFC / FDR in label</label>
                                 </div>
                                 <div id="statsLabelOptions" style="display: none; margin-left: 20px; margin-bottom: 4px;">
                                     <div class="radio-group-inline">
@@ -8273,7 +8277,7 @@
                                     </div>
                                 </div>
                                 <div class="checkbox-group" style="margin-bottom: 4px;">
-                                    <label><input type="checkbox" id="colorByStats"> Color by stats</label>
+                                    <label title="Colour the nodes by your LFC or FDR instead of by gene effect"><input type="checkbox" id="colorByStats"> Color by LFC / FDR</label>
                                 </div>
                                 <div id="colorStatsOptions" style="display: none; margin-left: 20px;">
                                     <div class="radio-group-inline" style="margin-bottom: 4px;">
@@ -10878,7 +10882,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_65"></script>
+    <script src="app.js?v=v89_66"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
