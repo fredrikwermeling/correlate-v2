@@ -14,6 +14,7 @@ Usage:  python3 scripts/build_v1.py [--check]
         --check only reports what would be removed.
 """
 
+import filecmp
 import os
 import re
 import shutil
@@ -128,19 +129,20 @@ def main():
     missing = sync_new_data(check)
     if missing:
         verb = "would copy" if check else "copied"
-        print(f"\nweb_data files absent from V1 ({verb}):")
+        print(f"\nweb_data files absent from V1 or changed in V2 ({verb}):")
         for m in missing:
             print(f"  {m}")
-    print("Existing web_data files are refreshed separately, only when the release changes.")
 
 
 def sync_new_data(check=False):
-    """Copy any web_data file V1 does not have at all.
+    """Copy every web_data file that V1 lacks or that differs from V2.
 
     A data file added to V2 for a new feature (retroelements.json was the one
     that got away) otherwise never reaches V1: its fetch fails silently, the
-    feature's controls are all present and do nothing. Files V1 already has
-    are left alone, those follow the DepMap release, not the build."""
+    feature's controls are all present and do nothing. A file changed in place
+    (a new column in cellLineMetadata.json, a redrawn logo, a cell line taken
+    out of the expression table) was the same trap, so changed files travel
+    too. V2 is the single source; V1's web_data is never edited by hand."""
     src_dir = os.path.join(V2, "web_data")
     dst_dir = os.path.join(V1, "web_data")
     if not os.path.isdir(src_dir) or not os.path.isdir(dst_dir):
@@ -148,7 +150,8 @@ def sync_new_data(check=False):
     new = sorted(f for f in os.listdir(src_dir)
                  if not f.startswith(".")
                  and os.path.isfile(os.path.join(src_dir, f))
-                 and not os.path.exists(os.path.join(dst_dir, f)))
+                 and (not os.path.exists(os.path.join(dst_dir, f))
+                      or not filecmp.cmp(os.path.join(src_dir, f), os.path.join(dst_dir, f), shallow=False)))
     if not check:
         for f in new:
             shutil.copy2(os.path.join(src_dir, f), os.path.join(dst_dir, f))
