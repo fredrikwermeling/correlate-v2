@@ -13456,9 +13456,7 @@ class CorrelationExplorer {
                         });
                     }
                     this.updateSelectedNodesList();
-                    // Update gene textarea with only selected genes
-                    document.getElementById('geneTextarea').value = Array.from(this.selectedNodes).join('\n');
-                    this.updateGeneCount();
+                    this._applySelectionToInput();
                     return;
                 }
 
@@ -17315,12 +17313,16 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
             btn.style.backgroundColor = '#2563eb';
             btn.style.borderColor = '#2563eb';
             btn.style.color = 'white';
-            if (helpText) helpText.textContent = 'Click nodes to select them for the gene list';
+            if (helpText) helpText.textContent = 'Click genes to keep a subset: the gene box narrows to them, and Run repeats the analysis on that subset';
         } else {
             // Restore original node colors for any selected nodes
             this.restoreSelectedNodeColors();
             this.selectedNodes.clear();
             this.updateSelectedNodesList();
+            // Leaving the mode with the gene box still narrowed would make the
+            // next Run silently use the subset, so the full list comes back
+            // with it.
+            this._restoreSelectionInput();
             btn.classList.remove('btn-active');
             btn.style.backgroundColor = '';
             btn.style.borderColor = '';
@@ -17349,8 +17351,10 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         const textEl = document.getElementById('selectedNodesText');
         if (!listEl || !textEl) return;
 
-        if (this.selectedNodes.size > 0) {
-            textEl.textContent = Array.from(this.selectedNodes).join(', ');
+        const sel = Array.from(this.selectedNodes);
+        if (sel.length > 0) {
+            textEl.innerHTML = sel.map(g => this.gi(g)).join(', ')
+                + `<span style="display:block; color:#1e40af; margin-top:2px;">The gene box now holds only these ${sel.length}, so Run repeats the analysis on them. Clear puts the full list back.</span>`;
             listEl.style.display = 'block';
         } else {
             listEl.style.display = 'none';
@@ -17360,12 +17364,44 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
     clearSelectedNodes() {
         this.restoreSelectedNodeColors();
         this.selectedNodes.clear();
+        this._restoreSelectionInput();
         this.updateSelectedNodesList();
-        // Restore the original gene list in textarea
-        if (this.results?.geneList) {
-            document.getElementById('geneTextarea').value = this.results.geneList.join('\n');
-            this.updateGeneCount();
+    }
+
+    // The selection narrows the gene input so the next Run repeats the
+    // analysis on that subset. Which box holds the genes depends on the
+    // input tab: the plain list, or the With Stats table, where each kept
+    // gene keeps its own LFC / FDR row. The full contents of both boxes are
+    // kept aside once, and put back by Clear.
+    _applySelectionToInput() {
+        const paste = document.getElementById('geneTextarea');
+        const stats = document.getElementById('manualStatsTextarea');
+        if (!this._selectBackup) this._selectBackup = { paste: paste?.value || '', stats: stats?.value || '' };
+        const sel = Array.from(this.selectedNodes);
+        if (!sel.length) { this._restoreSelectionInput(); return; }
+        const want = new Set(sel.map(g => String(g).toUpperCase()));
+        if (paste) paste.value = sel.join('\n');
+        if (stats && this._selectBackup.stats.trim()) {
+            const lines = this._selectBackup.stats.split('\n');
+            const headerKeywords = ['gene', 'symbol', 'lfc', 'logfc', 'log2fc', 'fdr', 'padj', 'pvalue', 'p-value'];
+            const first = (lines[0] || '').toLowerCase();
+            const hasHeader = headerKeywords.some(kw => first.includes(kw));
+            const kept = lines.filter((l, i) => (hasHeader && i === 0)
+                || want.has(l.split(/[\t,;]/)[0].trim().toUpperCase()));
+            stats.value = kept.join('\n');
         }
+        this.updateGeneCount();
+    }
+
+    _restoreSelectionInput() {
+        const b = this._selectBackup;
+        if (!b) return;
+        const paste = document.getElementById('geneTextarea');
+        const stats = document.getElementById('manualStatsTextarea');
+        if (paste) paste.value = b.paste;
+        if (stats) stats.value = b.stats;
+        this._selectBackup = null;
+        this.updateGeneCount();
     }
 
     updateRemovedNodesList() {
