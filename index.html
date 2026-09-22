@@ -2822,6 +2822,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.71 (2026-09-22)</strong></p>
+                <ul>
+                    <li><b>Heatmap preset: RAS / MAPK pathway members.</b> KRAS, NRAS, HRAS, BRAF, RAF1, ARAF, MEK1/2, ERK1/2 and the regulators NF1, PTPN11, SOS1, GRB2, SHOC2, RASA1, KSR1 and SPRED1, in a new "Pathway members" category. On gene effect it shows which lines depend on which node. The existing "MAPK output" set stays the transcriptional readout (DUSP6, SPRY4, ETV5 and so on).</li>
+                </ul>
                 <p><strong>v.89.70 (2026-09-22)</strong></p>
                 <ul>
                     <li>The gene set heatmap opens on CRISPR gene effect by default (from Other and from Reset); mRNA expression is the second choice. Opened from the network it still follows the basis the analysis ran on.</li>
@@ -7758,7 +7762,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.70</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.71</a>
         </span>
     </div>
 
@@ -10898,7 +10902,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_70"></script>
+    <script src="app.js?v=v89_71"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
