@@ -2822,6 +2822,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.69 (2026-09-22)</strong></p>
+                <ul>
+                    <li><b>Italics finished.</b> Gene symbols are now italic in the places the first pass left upright: the heatmap heading, its status line and the annotation strip titles and legends (the gene italic, the word upright), the cell line card summary and the whole wiki text, the gene hover card, the quick filter descriptions, the sex chromosome values row, and sixteen smaller tables and captions. Known symbols inside sentences are recognised as such, so "ER", "DNA", "WT" and similar abbreviations stay upright and a variant like p.E545 keeps its gene italic and the change upright. Exports, tooltips and menus stay plain.</li>
+                </ul>
                 <p><strong>v.89.68 (2026-09-22)</strong></p>
                 <ul>
                     <li><b>Select Mode says what it does, and works With Stats.</b> Clicking genes narrows the gene box to them so Run repeats the analysis on that subset. With a With Stats table this now narrows the table itself, keeping each chosen gene's LFC and FDR row, where before it silently rewrote the hidden plain-list box. The note under the network spells this out, and Clear or leaving the mode puts the full list back. The button's tooltip no longer promises a "by group" view that did not exist.</li>
@@ -7750,7 +7754,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.68</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.69</a>
         </span>
     </div>
 
@@ -10890,7 +10894,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_68"></script>
+    <script src="app.js?v=v89_69"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
