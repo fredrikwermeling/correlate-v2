@@ -2822,6 +2822,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.70 (2026-09-22)</strong></p>
+                <ul>
+                    <li>The gene set heatmap opens on CRISPR gene effect by default (from Other and from Reset); mRNA expression is the second choice. Opened from the network it still follows the basis the analysis ran on.</li>
+                </ul>
                 <p><strong>v.89.69 (2026-09-22)</strong></p>
                 <ul>
                     <li><b>Italics finished.</b> Gene symbols are now italic in the places the first pass left upright: the heatmap heading, its status line and the annotation strip titles and legends (the gene italic, the word upright), the cell line card summary and the whole wiki text, the gene hover card, the quick filter descriptions, the sex chromosome values row, and sixteen smaller tables and captions. Known symbols inside sentences are recognised as such, so "ER", "DNA", "WT" and similar abbreviations stay upright and a variant like p.E545 keeps its gene italic and the change upright. Exports, tooltips and menus stay plain.</li>
@@ -7754,7 +7758,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.69</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.70</a>
         </span>
     </div>
 
@@ -9622,8 +9626,8 @@
                         <div class="clb-row-items">
                             <select id="hmPreset" style="width:230px;"></select>
                             <select id="hmDataType" style="width:180px;" title="mRNA expression (log2 TPM+1) or CRISPR gene effect (Chronos)">
-                                <option value="expr" selected>mRNA expression</option>
-                                <option value="ge">CRISPR gene effect</option>
+                                <option value="ge" selected>CRISPR gene effect</option>
+                                <option value="expr">mRNA expression</option>
                             </select>
                             <select id="hmScale" style="width:200px;" title="Z-score compares each gene to its own spread; choose whether that spread is measured across only the cell lines shown or across the whole panel. Raw values keep their original units">
                                 <option value="z">Z-score, vs shown lines</option>
@@ -10894,7 +10898,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_69"></script>
+    <script src="app.js?v=v89_70"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
