@@ -2822,6 +2822,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.73 (2026-09-22)</strong></p>
+                <ul>
+                    <li><b>Heatmap colours mean what they say.</b> For gene effect the default is now the measured Chronos value on one fixed scale: white at 0, orange saturating at -2 (dependency), purple at +1 (a knockout that favours growth), with a tick at -1 for the common-essential level. The same scale on every row and every cohort, so a square can be read on its own. Before, the default was a z-score per gene across the panel, which painted a neutral gene deep purple whenever it was essential in most other lines, and stretched a flat gene's tiny differences into double-digit values.</li>
+                    <li><b>New mode: relative to panel median</b>, in gene effect units rather than units of spread, in teal and brown so it can never be mistaken for the measured picture. The z-score modes remain as further choices.</li>
+                    <li><b>Heatmap preset: TP53 pathway members.</b> The p53 axis as co-dependencies: TP53 with its activators ATM, CHEK2, TP53BP1 and USP28, its brakes MDM2, MDM4, PPM1D and USP7, and the genes whose knockout effect tracks TP53 (CDKN1A, ZNF326, XPO7, UBE2K, RPL22, FAM193A, PPM1G, WDR89, DDX31, FERMT2, TERF1, USP38). "TP53 targets" stays the transcriptional readout.</li>
+                    <li><b>Guards.</b> The legend names the mode on the plot and in every export, and says what the colours mean in biology: the purple end is never called "high". Hovering a square shows the measured gene effect first, then the value against the panel median and the z-score, and warns when the gene's spread across the panel is below 0.25 so that a relative number would mislead. The CSV and Export for AI carry the measured values alongside any relative colouring, plus each gene's panel median, mean, SD and a low-spread flag.</li>
+                </ul>
                 <p><strong>v.89.72 (2026-09-22)</strong></p>
                 <ul>
                     <li>The RAS / MAPK pathway members preset also carries the pathway's negative feedback: DUSP4, DUSP6, SPRY1, SPRY2, SPRY4 and SPRED2.</li>
@@ -7766,7 +7773,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.72</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.73</a>
         </span>
     </div>
 
@@ -9637,12 +9644,13 @@
                                 <option value="ge" selected>CRISPR gene effect</option>
                                 <option value="expr">mRNA expression</option>
                             </select>
-                            <select id="hmScale" style="width:200px;" title="Z-score compares each gene to its own spread; choose whether that spread is measured across only the cell lines shown or across the whole panel. Raw values keep their original units">
+                            <select id="hmScale" style="width:200px;" title="How the colours are computed. As measured: the actual gene effect on one fixed scale (orange saturates at -2, purple at +1), the default for gene effect. Relative to panel median: each cell minus its gene's median across the whole panel, in gene effect units, teal and brown. Z-score: each gene divided by its own spread, which can turn a tiny difference into a large number for a flat gene">
+                                <option value="raw" selected>As measured, fixed scale</option>
+                                <option value="med">Relative to panel median</option>
+                                <option value="zall">Z-score, vs all lines</option>
                                 <option value="z">Z-score, vs shown lines</option>
-                                <option value="zall" selected>Z-score, vs all lines</option>
-                                <option value="raw">Raw values</option>
                             </select>
-                            <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;" title="How the colours are computed. Z-score, vs shown lines: each GENE is centred on its own mean and scaled by its own spread across the cell lines currently drawn, so every row uses the full colour range and rows are comparable; a cell says how that line sits for that gene relative to the other shown lines. Z-score, vs all lines: same per-gene scaling but measured across every cell line in the panel, so a cell says how the line sits against all cancers even when only a subset is drawn. Raw values: the actual units (log2 TPM+1 for expression, Chronos score for gene effect), one shared scale for the whole grid, rows with naturally high levels dominate the colours. Normalisation is always per gene, never across the whole gene set.">?</span>
+                            <span style="color:#9ca3af; font-size:10px; cursor:help; border:1px solid #d1d5db; border-radius:50%; padding:0 5px;" title="How the colours are computed. As measured: the actual value (Chronos gene effect, or log2 TPM+1), on one fixed scale for gene effect (white at 0, orange saturating at -2 for dependency, purple at +1 for a knockout that favours growth, a tick at -1 for the common-essential level), so a square can be read on its own and compared across plots. Relative to panel median: each cell minus that gene's median across all cell lines, still in gene effect units, so one unit is the same distance in every row; teal means more essential than the typical line, brown less. Z-score, vs all lines / vs shown lines: each gene centred and divided by its own spread across the panel or the shown lines; rows are comparable in spread but a gene that barely varies can turn a tiny difference into a double-digit number, and orange or purple then say nothing about the measured effect. Hover a square to see the measured value first, then the relative ones.">?</span>
                             <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151;" title="Hide gene rows measured in fewer than this many of the shown cell lines. Some genes are only screened in a subset of lines, so their rows rest on less data than the rest of the grid. 1 shows every gene.">
                                 Gene min n: <input type="number" id="hmGeneMinN" value="1" min="1" max="2000" step="25" style="width:58px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; text-align:center; font-size:11px;">
                             </span>
@@ -10906,7 +10914,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_72"></script>
+    <script src="app.js?v=v89_73"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
