@@ -2188,6 +2188,11 @@
         .resize-bottom { left: 0; right: 0; bottom: -3px; height: 10px; cursor: ns-resize; }
         .resize-bottom::after { left: 50%; transform: translateX(-50%); height: 4px; width: 44px; top: 3px; }
         @media (max-width: 640px) { .resize-grip { display: none; } }
+        /* The results tabs outgrow a phone row; wrap them so Summary stays reachable. */
+        @media (max-width: 640px) {
+            .nav-tabs { flex-wrap: wrap; row-gap: 2px; }
+            .nav-tabs .nav-link { padding: 8px 10px; }
+        }
         /* The correlation cutoff's step buttons and track, sized for a finger. */
         @media (max-width: 640px) {
             #correlationParams button { min-width: 38px; min-height: 38px; font-size: 18px !important; }
@@ -2822,6 +2827,16 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.79 (2026-09-24)</strong></p>
+                <ul>
+                    <li><b>Mutation analysis on expression used wrong values for 68 cell lines.</b> Screened lines with no expression data took a value from another gene and were plotted and tested with it. They are now left out.</li>
+                    <li><b>Export for AI p-values are exact at small n.</b> Pairwise correlation p-values used a normal approximation that could be about 100 times too small in a lineage-filtered cohort (r = 0.9 at n = 5 gave 0.0004; the correct value is 0.037).</li>
+                    <li><b>Heatmap:</b> "Highest / Lowest absolute values first" can be picked again from the row sort. Blocks sorted that way print the median absolute value they were sorted by, so the order no longer looks random. "Relative to panel median" on expression gets its own blue/red scale and wording. Missing squares are a clear gray (with "gray = no value" in the key), so a gene screened in few lines no longer reads as "no effect". The Methods text names the colours and block order actually drawn. Reopening starts scrolled to the top.</li>
+                    <li>The gene box no longer shows a false "not found" for a gene typed while synonyms were still loading.</li>
+                    <li>Closing the Cell Line Browser keeps the results tab you were on instead of jumping to Network, which Mutation analysis hides.</li>
+                    <li>Select Mode: Clear restores the list from the current run, not an older one, and switching to Remove restores the gene box.</li>
+                    <li>The status line counts the genes drawn in the network. The Correlation popout opens clean after a scatter was closed. On a phone the results tabs wrap so Summary is reachable. Mutation analysis says "No analysis run yet" before a run.</li>
+                </ul>
                 <p><strong>v.89.78 (2026-09-22)</strong></p>
                 <ul>
                     <li>The heatmap's new order is named for what it is: "Highest absolute values first" (mean absolute value over the shown genes), in the row sort, the tie-break and the summary line.</li>
@@ -7793,7 +7808,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.78</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.79</a>
         </span>
     </div>
 
@@ -8551,7 +8566,7 @@
                         <strong>Statistics:</strong> <span id="mutStatsBlurb" class="mobile-hide">p-values are calculated using Welch's t-test comparing gene effect scores between wild-type (WT, 0 mutations) and mutated cell lines (1+2 or 2 mutations). Δ GE = Mean(mutated) − Mean(WT).</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom: 10px;">
-                        <span id="mutationResultsCount">0 genes with p < 0.001</span>
+                        <span id="mutationResultsCount">No analysis run yet</span>
                         <span style="display:inline-flex; align-items:center; gap:4px;">
                             <span style="font-size:10px; color:#9ca3af;">Measure:</span>
                             <button type="button" class="btn btn-outline btn-sm" data-mut-metric="ge" onclick="app.setMutAnalysisMetric('ge')" style="font-size:10px; padding:2px 8px; background:#f0fdf4; border-color:#6ba544; color:#4c782e; font-weight:700;" title="Compare CRISPR knockout effect between the mutant and wild-type groups">Gene effect</button>
@@ -9664,7 +9679,7 @@
                                 <option value="ge" selected>CRISPR gene effect</option>
                                 <option value="expr">mRNA expression</option>
                             </select>
-                            <select id="hmScale" style="width:200px;" title="How the colours are computed. As measured: the actual gene effect on one fixed scale (orange saturates at -2, purple at +1), the default for gene effect. Relative to panel median: each cell minus its gene's median across the whole panel, in gene effect units, teal and brown. Z-score: each gene divided by its own spread, which can turn a tiny difference into a large number for a flat gene">
+                            <select id="hmScale" style="width:200px;" title="How the colours are computed. As measured: the actual gene effect on one fixed scale (orange saturates at -2, purple at +1), the default for gene effect. Relative to panel median: each cell minus its gene's median across the whole panel, in the data's own units, blue-green and brown for gene effect. Z-score: each gene divided by its own spread, which can turn a tiny difference into a large number for a flat gene">
                                 <option value="raw" selected>As measured, fixed scale</option>
                                 <option value="med">Relative to panel median</option>
                                 <option value="zall">Z-score, vs all lines</option>
@@ -10935,7 +10950,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_78"></script>
+    <script src="app.js?v=v89_79"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
