@@ -2827,6 +2827,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.80 (2026-09-28)</strong></p>
+                <ul>
+                    <li><b>Gene cards no longer get stuck on screen.</b> Each scatter update wired the gene buttons' hover again, so after a few updates leaving a button cancelled only one of several timers and the rest opened a card after the pointer had gone, with no way to close it. Each element is now wired once, a card only opens while its gene is still under the pointer, and it closes when the pointer leaves, on any click, or on Esc.</li>
+                    <li>The hover card has a &times; as well, not only the pinned one.</li>
+                </ul>
                 <p><strong>v.89.79 (2026-09-24)</strong></p>
                 <ul>
                     <li><b>Mutation analysis on expression used wrong values for 68 cell lines.</b> Screened lines with no expression data took a value from another gene and were plotted and tested with it. They are now left out.</li>
@@ -7808,7 +7813,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.79</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.80</a>
         </span>
     </div>
 
@@ -10950,7 +10955,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_79"></script>
+    <script src="app.js?v=v89_80"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
