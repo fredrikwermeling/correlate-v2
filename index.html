@@ -2827,6 +2827,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.85 (2026-09-28)</strong></p>
+                <ul>
+                    <li><b>TP53 loss is checked against the data.</b> DepMap's "functional loss of TP53" is a genomic call. The app now also asks whether p53 works, from two readouts in the same data: the TP53 knockout effect in the screen and the expression of 18 direct p53 target genes, combined in a model fitted to DepMap's own calls. Where they contradict a loss call (6 lines, NCC-CCS1B-C1 and HKBMM most clearly), the cell line summary says so beside the call.</li>
+                    <li>Cell Line Browser: <b>Sort: p53 function</b>, and two quick filters, <b>p53 active despite a TP53 loss call</b> and <b>p53 inactive without a TP53 loss call</b> (24 lines; weaker, since some lineages simply express p53 targets at low levels).</li>
+                    <li>Only TP53 is checked: for the other genes in the call (PTEN, RB1, CDKN2A, MTAP, NF1, APC, VHL) the gene's own knockout effect does not separate lost from intact lines reliably, and there is no equivalent target signature.</li>
+                    <li>Export for AI carries the check per line (probability of loss, the two readouts, the verdict) with a note not to group contradicted lines as TP53-null.</li>
+                </ul>
                 <p><strong>v.89.84 (2026-09-28)</strong></p>
                 <ul>
                     <li><b>Faster first load.</b> The gene effect matrix downloads as 27 MB instead of 37 MB (expression 45 instead of 52, copy number 48 instead of 62). Values are stored to three decimals, the precision every export already uses; no value moved by more than 0.0005 and correlations are unchanged at four decimals.</li>
@@ -7837,7 +7844,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.84</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.85</a>
         </span>
     </div>
 
@@ -10358,6 +10365,7 @@
                 <option value="ychr">Sort: Y-linked expression</option>
                 <option value="xist">Sort: XIST expression</option>
                 <option value="medium">Sort: Culture medium</option>
+                <option value="p53">Sort: p53 function (screen + targets)</option>
               </select>
               <button id="clbSortDir" title="Switch the sort direction" class="btn btn-outline btn-sm" style="width:32px;">&#x25B2;</button>
               <div id="clbSortGeneWrap" class="clb-anchor" style="visibility:hidden;">
@@ -10984,7 +10992,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_84"></script>
+    <script src="app.js?v=v89_85"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
