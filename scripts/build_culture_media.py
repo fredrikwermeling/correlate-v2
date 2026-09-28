@@ -16,14 +16,19 @@ blank is always explained):
   supplements  the remaining " + " parts, as written
   formulationId  DepMap's MF-xxx-xxx id
   source       "screen" | "model_default" | "missing"
-  why          present when source is "missing"
+  why          present when source is not "screen", saying why
+  screenMedia  every distinct medium among the line's screens, when more than one
+  modelDefault the model's default medium, when the screen used a different one
 
 Sources, in order of preference:
-  1. The condition the CRISPR screen was run in (ScreenSequenceMap ->
-     ModelConditionID -> ModelCondition). Needs 26Q1/ScreenSequenceMap.csv
-     and 26Q1/ModelCondition.csv. When they are present this script prints
-     their headers and stops, so the join is written against the real
-     column names rather than assumed ones.
+  1. The condition the CRISPR screen was run in: ScreenSequenceMap rows that
+     feed the combined gene effect (PassesQC True, ExcludeFromCRISPRCombined
+     False, ScreenType 2DS) -> ModelConditionID -> ModelCondition. Needs
+     26Q1/ScreenSequenceMap.csv and 26Q1/ModelCondition.csv. ModelCondition
+     has the same shift as Model.csv (MF id under GrowthMedia, text under
+     FormulationID). Sanger screen conditions usually record no medium; a
+     line whose screens record none falls back to 2. A line screened in two
+     different media keeps both in screenMedia, the Broad one first.
   2. The model's onboarded (default) medium from Model26Q1.csv.
      NOTE: in this release the Model.csv columns read shifted: the MF-xxx id
      sits under "OnboardedMedia" and the formulation text under
@@ -108,39 +113,86 @@ def model_default():
     return out
 
 
+def screen_media():
+    """Model -> list of (text, mf, serumFree) for the media its combined screens ran in,
+    Broad conditions first. Empty list when the screens record no medium."""
+    if not (os.path.exists(SCREEN_MAP) and os.path.exists(CONDITION)):
+        return None
+    cond = {}
+    with open(CONDITION, newline="") as f:
+        for r in csv.DictReader(f):
+            cells = [r.get("GrowthMedia", "") or "", r.get("FormulationID", "") or ""]
+            cond[r["ModelConditionID"]] = {
+                "text": next((c.strip() for c in cells if c.strip() and not MF_ID.match(c.strip())), ""),
+                "mf": next((c.strip() for c in cells if MF_ID.match(c.strip())), ""),
+                "serumFree": (r.get("SerumFreeMedia", "") or "").strip().lower() == "true",
+                "source": r.get("DataSource", ""),
+            }
+    per = {}
+    with open(SCREEN_MAP, newline="") as f:
+        for r in csv.DictReader(f):
+            if r.get("PassesQC") != "True" or r.get("ExcludeFromCRISPRCombined") != "False" or r.get("ScreenType") != "2DS":
+                continue
+            per.setdefault(r["ModelID"], set()).add(r["ModelConditionID"])
+    out = {}
+    for model, cids in per.items():
+        seen, media = set(), []
+        for c in sorted((cond[c] for c in cids if c in cond), key=lambda c: c["source"] != "BROAD"):
+            if c["text"] and c["text"] not in seen:
+                seen.add(c["text"])
+                media.append(c)
+        out[model] = media
+    return out
+
+
+def entry_from(text, mf, serum_free, source):
+    base, fam, serum, supp = parse_medium(text)
+    d = {"medium": text, "base": base, "family": fam, "source": source}
+    if serum:
+        d["serum"] = serum
+    if serum_free:
+        d["serumFree"] = True
+    if supp:
+        d["supplements"] = supp
+    if mf:
+        d["formulationId"] = mf
+    return d
+
+
 def main():
-    if os.path.exists(SCREEN_MAP) and os.path.exists(CONDITION):
-        for p in (SCREEN_MAP, CONDITION):
-            with open(p, newline="") as f:
-                print(os.path.basename(p), "columns:", next(csv.reader(f)))
-        sys.exit("Screen-condition files found. Write the ScreenSequenceMap -> ModelCondition join "
-                 "against the columns printed above, then re-run.")
 
     with open(METADATA_JSON) as f:
         meta = json.load(f)
     models = model_default()
+    screens = screen_media()
+    if screens is None:
+        print("Screen-condition files not found in 26Q1/, using the model default medium only.")
 
     culture = {}
     for cl in meta["cellLines"]:
         m = models.get(cl)
-        if not m or not m["text"]:
+        sm = (screens or {}).get(cl, [])
+        if sm:
+            first = sm[0]
+            d = entry_from(first["text"], first["mf"], first["serumFree"], "screen")
+            if len(sm) > 1:
+                d["screenMedia"] = [c["text"] for c in sm]
+            if m and m["text"] and m["text"] != first["text"]:
+                d["modelDefault"] = m["text"]
+            culture[cl] = d
+            continue
+        screen_why = ("the conditions of this line's screens record no medium (typical of Sanger screens)"
+                      if screens is not None else "screen-condition tables not available")
+        if m and m["text"]:
+            d = entry_from(m["text"], m["mf"], m["serumFree"], "model_default")
+            d["why"] = screen_why + ", so this is the medium DepMap lists for the model"
+            culture[cl] = d
+        else:
             culture[cl] = {
                 "family": "unknown", "source": "missing",
-                "why": "no medium recorded for this model in DepMap Model.csv"
-                       if m else "model not found in DepMap Model.csv",
+                "why": screen_why + ", and " + ("no medium is recorded for this model in DepMap Model.csv"
+                                                if m else "the model is not in DepMap Model.csv"),
             }
-            continue
-        base, fam, serum, supp = parse_medium(m["text"])
-        d = {"medium": m["text"], "base": base, "family": fam, "source": "model_default"}
-        if serum:
-            d["serum"] = serum
-        if m["serumFree"]:
-            d["serumFree"] = True
-        if supp:
-            d["supplements"] = supp
-        if m["mf"]:
-            d["formulationId"] = m["mf"]
-        culture[cl] = d
 
     meta["culture"] = culture
     with open(METADATA_JSON, "w") as f:
@@ -148,6 +200,8 @@ def main():
 
     print("culture:", len(culture), "lines")
     print("  source:", dict(Counter(d["source"] for d in culture.values())))
+    print("  screened in more than one medium:", sum(1 for d in culture.values() if d.get("screenMedia")))
+    print("  screen medium differs from model default:", sum(1 for d in culture.values() if d.get("modelDefault")))
     print("  family:", dict(Counter(d["family"] for d in culture.values()).most_common()))
     lin = meta.get("lineage", {})
     blood = Counter(culture[cl]["family"] for cl in culture if lin.get(cl) in ("Lymphoid", "Myeloid"))
