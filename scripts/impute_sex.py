@@ -84,8 +84,8 @@ def chrx_median_cn():
     import gzip
     cm = json.load(open(CN_META))
     loc = json.load(open(GENE_LOC))["genes"]
-    cn = np.frombuffer(gzip.open(CN_BIN).read(), dtype=np.int16)
-    cn = cn.reshape(cm["nGenes"], cm["nCellLines"]).astype(float)
+    from matrix_io import read_int16
+    cn = read_int16(CN_BIN, cm).astype(float)
     cn[cn == cm["naValue"]] = np.nan
     cn /= cm["scaleFactor"]
     rows = [i for i, g in enumerate(cm["genes"])

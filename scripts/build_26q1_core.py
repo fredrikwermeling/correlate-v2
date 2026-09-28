@@ -53,6 +53,8 @@ def quantize(mat, scale):
     return out
 
 
+# Writes the plain layout; run repack_matrices.py afterwards to produce the
+# smaller byte-split files the app ships.
 def write_bin(path, int16_matrix):
     with gzip.open(path, "wb") as f:
         f.write(int16_matrix.flatten().tobytes())

@@ -40,10 +40,8 @@ MIN_PAIRS = 50
 
 def load_matrix(bin_name, meta_name):
     meta = json.load(open(os.path.join(WEB, meta_name)))
-    with gzip.open(os.path.join(WEB, bin_name), "rb") as fh:
-        raw = np.frombuffer(fh.read(), dtype="<i2")
-    n_g, n_c = meta["nGenes"], meta["nCellLines"]
-    arr = raw[: n_g * n_c].reshape(n_g, n_c).astype(np.float32)
+    from matrix_io import read_int16
+    arr = read_int16(os.path.join(WEB, bin_name), meta).astype(np.float32)
     arr[arr == meta["naValue"]] = np.nan
     arr /= meta["scaleFactor"]
     return meta, arr

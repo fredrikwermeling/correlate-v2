@@ -76,14 +76,17 @@ DEP_Z_SOFT = -0.3          # at-least-directionally-supportive dependency
 # despite both signals being in the right direction).
 
 
-def load_int16_matrix(bin_path, n_rows, n_cols, scale_factor, na_value):
-    """Read int16 little-endian matrix, return list-of-lists in float space.
-    Layout: row-major, gene-major (row = gene, col = cell line)."""
+def load_int16_matrix(bin_path, n_rows, n_cols, scale_factor, na_value, byte_split=False):
+    """Read int16 matrix (plain or byte-split, see matrix_io.py), return
+    list-of-lists in float space. Layout: gene-major (row = gene, col = cell line)."""
     with gzip.open(bin_path, "rb") as f:
         raw = f.read()
     expected = n_rows * n_cols * 2
     if len(raw) != expected:
         sys.exit(f"Binary size mismatch for {bin_path}: got {len(raw)}, expected {expected}")
+    if byte_split:
+        n = n_rows * n_cols
+        raw = bytes(b for pair in zip(raw[:n], raw[n:]) for b in pair)
     arr = struct.unpack(f"<{n_rows * n_cols}h", raw)
     out = []
     for r in range(n_rows):
@@ -171,11 +174,11 @@ def main():
 
     print(f"Loading expression matrix ({ex_n_genes} genes x {ex_n_cls} cell lines)...")
     ex_data = load_int16_matrix(
-        os.path.join(web, "expression.bin.gz"), ex_n_genes, ex_n_cls, ex_scale, ex_na
+        os.path.join(web, "expression.bin.gz"), ex_n_genes, ex_n_cls, ex_scale, ex_na, ex_meta.get("byteSplit", False)
     )
     print(f"Loading gene effect matrix ({ge_n_genes} genes x {ge_n_cls} cell lines)...")
     ge_data = load_int16_matrix(
-        os.path.join(web, "geneEffects.bin.gz"), ge_n_genes, ge_n_cls, ge_scale, ge_na
+        os.path.join(web, "geneEffects.bin.gz"), ge_n_genes, ge_n_cls, ge_scale, ge_na, ge_meta.get("byteSplit", False)
     )
 
     # ---------- parse raw fusion calls ----------

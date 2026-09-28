@@ -54,6 +54,7 @@ genes_full = [genes_full_by_name.get(g, g) for g in em["genes"]]
 meta = {
     "nGenes": em["nGenes"], "nCellLines": em["nCellLines"],
     "scaleFactor": em["scaleFactor"], "naValue": em["naValue"],
+    **({"byteSplit": True} if em.get("byteSplit") else {}),
     "genes": em["genes"], "genesFull": genes_full, "cellLines": em["cellLines"],
 }
 json.dump(meta, open(os.path.join(WC, "metadata.json"), "w"))

@@ -2827,6 +2827,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.84 (2026-09-28)</strong></p>
+                <ul>
+                    <li><b>Faster first load.</b> The gene effect matrix downloads as 27 MB instead of 37 MB (expression 45 instead of 52, copy number 48 instead of 62). Values are stored to three decimals, the precision every export already uses; no value moved by more than 0.0005 and correlations are unchanged at four decimals.</li>
+                    <li>The loading screen counts the megabytes as they arrive, so a slow connection shows progress instead of looking stuck.</li>
+                    <li>correlate.cmm.se: the server configuration shipped with the app now compresses the page, the code and the data tables (app.js 3.8 MB to under 1 MB).</li>
+                </ul>
                 <p><strong>v.89.83 (2026-09-28)</strong></p>
                 <ul>
                     <li><b>Culture medium is now the medium of the CRISPR screen itself</b>, from DepMap's screen conditions, for 1,077 of 1,208 lines. 24 of them were screened in a different medium from the model's default (the default is kept beside it), and 6 were screened in two media (both listed). 56 lines whose screens record no medium, mostly Sanger screens, fall back to the model default and say so; 75 have no medium anywhere. The TFRC result is unchanged: more essential in RPMI, also within lung.</li>
@@ -7831,7 +7837,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.83</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.84</a>
         </span>
     </div>
 
@@ -10978,7 +10984,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_83"></script>
+    <script src="app.js?v=v89_84"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
