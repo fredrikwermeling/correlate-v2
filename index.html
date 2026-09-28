@@ -2827,6 +2827,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.82 (2026-09-28)</strong></p>
+                <ul>
+                    <li><b>Culture medium for every cell line.</b> The medium DepMap lists for each model (1,130 of 1,208 lines; the other 78 say none is recorded), with the raw formulation, a medium family (RPMI, DMEM, DMEM-F12, F12, IMDM, MEM, McCoy, L-15, other) and the serum. Dependencies on iron uptake or nucleotide synthesis can follow the medium: RPMI has no iron salts and no hypoxanthine, DMEM-F12 has both. TFRC is markedly more essential in RPMI lines, and still is within lung alone.</li>
+                    <li>Where to find it: <b>Color by culture medium</b> in the scatter, <b>By medium</b> beside Min n in the gene effect box plot (pick a tissue first to compare media within one lineage), and <b>Sort: Culture medium</b> in the Cell Line Browser.</li>
+                    <li>Export for AI carries each line's medium, a new summary of the focal gene by medium family across the panel and within each tissue, and an instruction to check medium as a confounder for metabolic and nutrient-uptake genes. The group tests in that part of the export now use the exact t distribution rather than a normal approximation, which overstated significance for small groups.</li>
+                    <li>Copying the names of colored groups works when coloring by disease (it matched tissue or subtype names only).</li>
+                </ul>
                 <p><strong>v.89.81 (2026-09-28)</strong></p>
                 <ul>
                     <li><b>Custom export for AI no longer carries state from earlier steps.</b> The request box, its note and the settings start clean every time the dialog opens, and the same goes for "Open a view from AI". A pasted request that was never applied is applied when you press Export, instead of being silently ignored. An applied request starts from the standard settings rather than mixing into what the dialog held before, and the note says what will be exported (cell lines, genes, question).</li>
@@ -7820,7 +7827,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.81</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.82</a>
         </span>
     </div>
 
@@ -8902,6 +8909,7 @@
                                          made coloring by subtype unusable. -->
                                     <option value="subtype" id="colorBySubtypeOption">By subtype</option>
                                     <option value="disease">By disease</option>
+                                    <option value="medium">By culture medium</option>
                                 </select>
                                 <!-- Color only the chosen tissues / subtypes; everything else grays out. -->
                                 <button type="button" id="colorByGroupBtn" class="btn btn-sm btn-outline" style="display:none; font-size:9px; padding:1px 4px; margin-top:2px; width:100%;" onclick="app.showColorByGroupPicker()">Pick groups...</button>
@@ -9105,6 +9113,9 @@
                             <input type="number" id="geMinGroupSize" value="1" min="1" max="50" style="width:36px; font-size:11px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; text-align:center;" title="Minimum cell lines per tissue to show" onchange="app.switchGeneEffectView(app.currentGEView || 'tissue')">
                             <button onclick="app.adjustNumber('geMinGroupSize', 1)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
                         </span>
+                        <label class="mobile-hide" style="display:inline-flex; align-items:center; gap:3px; font-size:10px; color:#374151; white-space:nowrap; cursor:pointer;" title="Group the box plot by the culture medium each line is grown in (RPMI, DMEM, DMEM-F12, ...) instead of by tissue. Pick a tissue first to compare media within one lineage: blood lines are almost all in RPMI, so across the whole panel a medium difference can be a lineage difference.">
+                            <input type="checkbox" id="geGroupByMedium" onchange="app.setGeGroupByMedium(this.checked)"> By medium
+                        </label>
                         <input type="text" id="geCellLineSearch" class="form-control mobile-hide" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
                         <span id="geOncoprintLabel" style="display:none; font-size:10px; gap:3px; align-items:center; flex-wrap:wrap;"></span>
                         <button class="btn btn-sm btn-secondary" id="geResetFiltersBtn" style="display: none; font-size: 11px; padding: 3px 8px; margin-left:auto;" title="Reset the tissue / hotspot / fusion / CN filters">Reset Filters</button>
@@ -10336,6 +10347,7 @@
                 <option value="retro">Sort: Retroelement signal (CPM)</option>
                 <option value="ychr">Sort: Y-linked expression</option>
                 <option value="xist">Sort: XIST expression</option>
+                <option value="medium">Sort: Culture medium</option>
               </select>
               <button id="clbSortDir" title="Switch the sort direction" class="btn btn-outline btn-sm" style="width:32px;">&#x25B2;</button>
               <div id="clbSortGeneWrap" class="clb-anchor" style="visibility:hidden;">
@@ -10962,7 +10974,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_81"></script>
+    <script src="app.js?v=v89_82"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
