@@ -2827,6 +2827,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.86 (2026-09-29)</strong></p>
+                <ul>
+                    <li>The p53 sort is removed from the Cell Line Browser; the two p53 quick filters stay.</li>
+                    <li>The cell line summary notes a contradicted TP53 loss call in one short sentence. Shorter help text for the culture-medium grouping and sort.</li>
+                </ul>
                 <p><strong>v.89.85 (2026-09-28)</strong></p>
                 <ul>
                     <li><b>TP53 loss is checked against the data.</b> DepMap's "functional loss of TP53" is a genomic call. The app now also asks whether p53 works, from two readouts in the same data: the TP53 knockout effect in the screen and the expression of 18 direct p53 target genes, combined in a model fitted to DepMap's own calls. Where they contradict a loss call (6 lines, NCC-CCS1B-C1 and HKBMM most clearly), the cell line summary says so beside the call.</li>
@@ -7844,7 +7849,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.85</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.86</a>
         </span>
     </div>
 
@@ -9130,7 +9135,7 @@
                             <input type="number" id="geMinGroupSize" value="1" min="1" max="50" style="width:36px; font-size:11px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; text-align:center;" title="Minimum cell lines per tissue to show" onchange="app.switchGeneEffectView(app.currentGEView || 'tissue')">
                             <button onclick="app.adjustNumber('geMinGroupSize', 1)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">+</button>
                         </span>
-                        <label class="mobile-hide" style="display:inline-flex; align-items:center; gap:3px; font-size:10px; color:#374151; white-space:nowrap; cursor:pointer;" title="Group the box plot by the culture medium each line is grown in (RPMI, DMEM, DMEM-F12, ...) instead of by tissue. Pick a tissue first to compare media within one lineage: blood lines are almost all in RPMI, so across the whole panel a medium difference can be a lineage difference.">
+                        <label class="mobile-hide" style="display:inline-flex; align-items:center; gap:3px; font-size:10px; color:#374151; white-space:nowrap; cursor:pointer;" title="Group by culture medium instead of tissue. Pick a tissue first to compare media within one lineage.">
                             <input type="checkbox" id="geGroupByMedium" onchange="app.setGeGroupByMedium(this.checked)"> By medium
                         </label>
                         <input type="text" id="geCellLineSearch" class="form-control mobile-hide" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
@@ -10365,7 +10370,6 @@
                 <option value="ychr">Sort: Y-linked expression</option>
                 <option value="xist">Sort: XIST expression</option>
                 <option value="medium">Sort: Culture medium</option>
-                <option value="p53">Sort: p53 function (screen + targets)</option>
               </select>
               <button id="clbSortDir" title="Switch the sort direction" class="btn btn-outline btn-sm" style="width:32px;">&#x25B2;</button>
               <div id="clbSortGeneWrap" class="clb-anchor" style="visibility:hidden;">
@@ -10992,7 +10996,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_85"></script>
+    <script src="app.js?v=v89_86"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
