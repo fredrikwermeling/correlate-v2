@@ -2827,6 +2827,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.89 (2026-09-30)</strong></p>
+                <ul>
+                    <li><b>Gene lists from any Green Listed CRISPR library</b> (human Brunello, Gattinara, GeCKO v2, Jacquere, VBC, MinLibCas9, TKOv3, Yusa v1; mouse Brie, GeCKO v2, Gouda, Julianna, VBC, mTKO, Yusa v2) now resolve as far as the data allow. The Green Listed synonym tables are used offline, so old mouse names such as RIKEN clone IDs map to their human gene without an online search, and multi-gene library entries such as "EBP|nan" use the part that has data. A whole Brie library goes from 74% to 93% of genes usable with one click on Use all.</li>
+                    <li>Library genes that cannot be analysed are listed by reason under "No CRISPR data" (not screened by DepMap, microRNAs, olfactory receptors, mouse genes without a human ortholog) instead of as unknown names.</li>
+                    <li>Use all no longer garbles a name containing "|".</li>
+                </ul>
                 <p><strong>v.89.88 (2026-09-30)</strong></p>
                 <ul>
                     <li>A link from Green Listed to one gene (#gene=BRAF) opens that gene's Gene Effect Analysis by tissue, instead of the Cell Line Browser sorted by the gene.</li>
@@ -7858,7 +7864,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.88</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.89</a>
         </span>
     </div>
 
@@ -11005,7 +11011,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_88"></script>
+    <script src="app.js?v=v89_89"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
