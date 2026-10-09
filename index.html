@@ -2827,6 +2827,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.96 (2026-10-09)</strong></p>
+                <ul>
+                    <li>Correlation plot coloured by group: the legend under the plot starts below the x-axis title, also when the title takes two lines (expression and copy number), instead of overlapping it.</li>
+                </ul>
                 <p><strong>v.89.95 (2026-10-09)</strong></p>
                 <ul>
                     <li>When a gene typed into any single-gene box (the correlation plot, gene effect, and others) is not found, the notice first says what the gene is called in this data if it is known under another name (for example CD132 is IL2RG), with a button to use it, before the similar spellings.</li>
@@ -7891,7 +7895,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.95</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.96</a>
         </span>
     </div>
 
@@ -11042,7 +11046,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_95"></script>
+    <script src="app.js?v=v89_96"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
