@@ -2827,6 +2827,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.98 (2026-10-09)</strong></p>
+                <ul>
+                    <li><b>Compilation of correlation plots.</b> The Compilation button in the correlation plot opens a grid of 2 &times; 2, 3 &times; 3 or 4 &times; 4 plots, each with its own X and Y gene and measure (gene effect, mRNA or copy number). All panels share the correlation plot's filters, highlighted cell lines and colour groups, so they can be compared directly; set those in the correlation plot and press Draw. Each panel shows its r, n and p. The grid copies and exports like any other figure, and Export for AI writes one file describing every panel with the values behind it.</li>
+                    <li>The image export dialog says when a figure cannot be reopened from a settings file, instead of offering one that would be empty.</li>
+                </ul>
                 <p><strong>v.89.97 (2026-10-09)</strong></p>
                 <ul>
                     <li>Three-panel mutation view: the panels stay square when coloured by group, the title no longer runs into the panel headers, and the legend sits below the x-axis title.</li>
@@ -7899,7 +7904,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.97</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.98</a>
         </span>
     </div>
 
@@ -9080,6 +9085,7 @@
             </div>
             <div class="modal-footer" style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                 <button class="btn btn-outline btn-sm mobile-hide" id="scatterTextSettingsBtn" style="font-weight:700;" title="Settings">Settings</button>
+                <button class="btn btn-outline btn-sm mobile-hide" id="openCompilationBtn" title="A grid of correlation plots (2 x 2 to 4 x 4), each with its own genes, sharing this plot's filters, highlights and colours">Compilation</button>
                 <button class="btn btn-outline btn-sm" id="resetScatterAll" style="font-size:10px;" title="Reset all filters, gates, fonts, and overlays, keep selected genes">Reset</button>
                 <span class="mobile-hide" style="font-size:10px; color:#9ca3af;">Export:</span>
                 <button class="btn btn-outline btn-sm mobile-hide" id="downloadScatterPNG" title="Export the scatter plot, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
@@ -11050,7 +11056,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_97"></script>
+    <script src="app.js?v=v89_98"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
