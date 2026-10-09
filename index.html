@@ -2827,6 +2827,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.99 (2026-10-09)</strong></p>
+                <ul>
+                    <li>Compilation: panels follow the correlation plot's mutation or fusion overlay (coloured by status, with a shared legend), panel titles say what is measured on each axis (GE, mRNA or CN), each axis has a box to always include 0, and every panel has its own Find correlates, which puts the chosen gene on that panel's Y axis.</li>
+                    <li>Compilation: empty panels are left out of Copy, Export image and Export for AI; the exported grid holds only the drawn panels.</li>
+                </ul>
                 <p><strong>v.89.98 (2026-10-09)</strong></p>
                 <ul>
                     <li><b>Compilation of correlation plots.</b> The Compilation button in the correlation plot opens a grid of 2 &times; 2, 3 &times; 3 or 4 &times; 4 plots, each with its own X and Y gene and measure (gene effect, mRNA or copy number). All panels share the correlation plot's filters, highlighted cell lines and colour groups, so they can be compared directly; set those in the correlation plot and press Draw. Each panel shows its r, n and p. The grid copies and exports like any other figure, and Export for AI writes one file describing every panel with the values behind it.</li>
@@ -7904,7 +7909,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.98</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.99</a>
         </span>
     </div>
 
@@ -11056,7 +11061,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_98"></script>
+    <script src="app.js?v=v89_99"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
