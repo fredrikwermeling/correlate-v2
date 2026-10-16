@@ -2827,6 +2827,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.101 (2026-10-16)</strong></p>
+                <ul>
+                    <li>Compilation: no Draw button; the grid redraws on its own when a gene, a measure or the 0 box changes (gene names after a short pause in typing).</li>
+                    <li>Compilation: <b>Top correlates of</b> a gene, as GE vs GE, GE vs mRNA or mRNA vs mRNA. Fill puts that gene on X in every panel and the genes that correlate most strongly with it, in either direction and in the correlation plot's cohort, on Y.</li>
+                </ul>
                 <p><strong>v.89.100 (2026-10-09)</strong></p>
                 <ul>
                     <li>Compilation: click a point to label that cell line in every panel, and click it again to remove the label; the correlation plot follows, since both share one list. A Regression line box at the top turns the fitted line on or off in all panels (on by default), and copies and exports follow it.</li>
@@ -7913,7 +7918,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.100</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.101</a>
         </span>
     </div>
 
@@ -11065,7 +11070,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_100"></script>
+    <script src="app.js?v=v89_101"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
