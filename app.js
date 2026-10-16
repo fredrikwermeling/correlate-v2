@@ -2689,7 +2689,7 @@ class CorrelationExplorer {
         geneCounts.forEach(({ gene, count }) => {
             const option = document.createElement('option');
             option.value = gene;
-            option.textContent = `${gene} (${count} mutated)`;
+            option.textContent = `${gene} (hotspot, ${count})`;
             select.appendChild(option);
         });
         // Say why the list is empty rather than showing a bare dropdown.
@@ -6173,7 +6173,7 @@ class CorrelationExplorer {
         for (const gene of (this.mutations?.genes || [])) {
             const hotN = countIn(this.mutations.geneData?.[gene]?.mutations);
             const items = [];
-            if (hotN > 0) items.push({ value: gene, primary: gene, count: hotN, secondary: 'hotspot mutation' });
+            if (hotN > 0) items.push({ value: gene, primary: `${gene} (hotspot)`, count: hotN, secondary: 'hotspot mutation' });
             const anyVal = `${gene} (any mutation)`;
             const anyN = countIn(this._mutCalls(anyVal));
             if (anyN > hotN) items.push({ value: anyVal, primary: anyVal, count: anyN, secondary: 'hotspot or damaging call, DepMap' });
@@ -6213,7 +6213,7 @@ class CorrelationExplorer {
         for (const g of (this.mutations?.genes || [])) {
             if (this._isPolymorphicLocus(g)) continue;
             const hotN = countIn(this.mutations.geneData?.[g]?.mutations);
-            html += opt(g, `${g} (${hotN} mut)`);
+            html += opt(g, `${g} (hotspot, ${hotN})`);
             const anyVal = `${g} (any mutation)`;
             const anyN = countIn(this._mutCalls(anyVal));
             if (anyN > hotN) html += opt(anyVal, `${g} (any mutation, ${anyN})`);
@@ -19100,7 +19100,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     const mutData = this.mutations.geneData?.[g]?.mutations || {};
                     let count = 0;
                     for (const cl of cells) if (mutData[cl] > 0) count++;
-                    return `<option value="${g}">${g} (${count} mut)</option>`;
+                    return `<option value="${g}">${g} (hotspot, ${count})</option>`;
                 }).join('');
             if (prevMut) mutFilterGene.value = prevMut;
             document.getElementById('mutationFilterBox').style.display = 'block';
@@ -22639,7 +22639,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 <div class="modal-header"><h3>Compilation</h3><button class="modal-close" id="compClose" title="Close">&times;</button></div>
                 <div class="modal-body" style="font-size:12px; color:#374151;">
                     <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
-                        <label>Grid ${sel('compGrid', 'Rows x panels per row', ['2x5', '2x2', '3x3', '3x4', '4x4'].map(g => `<option value="${g}">${g.replace('x', ' × ')}</option>`).join(''))}</label>
+                        <label title="Rows and panels per row, up to 8 each">Grid <input type="number" id="compRows" min="1" max="8" style="width:38px; font-size:11px; padding:1px 4px; border:1px solid #d1d5db; border-radius:4px;"> rows × <input type="number" id="compCols" min="1" max="8" style="width:38px; font-size:11px; padding:1px 4px; border:1px solid #d1d5db; border-radius:4px;"> columns</label>
                         <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;" title="Every panel on the same x and y range (per measure), so they line up; a panel can be set to fit its own data in its editor"><input type="checkbox" id="compSameRange" checked> Same axis ranges</label>
                         <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" id="compShowLine" checked> Regression line</label>
                         <span id="compCohortNote" style="color:#6b7280; font-size:11px;"></span>
@@ -22682,13 +22682,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             modal.querySelector('#compClose').onclick = close;
             modal.querySelector('#compClose2').onclick = close;
             modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
-            modal.querySelector('#compGrid').onchange = (e) => {
-                const [r, c] = e.target.value.split('x').map(Number);
+            const onGrid = () => {
+                const clamp = (id, cur) => { const el = modal.querySelector(id); const v = Math.max(1, Math.min(8, parseInt(el.value, 10) || cur)); el.value = v; return v; };
+                const r = clamp('#compRows', st.rows), c = clamp('#compCols', st.cols);
+                if (r === st.rows && c === st.cols) return;
                 st.rows = r; st.cols = c;
                 // A filled grid stays filled at the new size.
                 if (st.lastFill) this._compFillTop(st.lastFill);
                 else { this._compRenderEditor(); this.drawCompilation(); }
             };
+            modal.querySelector('#compRows').onchange = onGrid;
+            modal.querySelector('#compCols').onchange = onGrid;
             modal.querySelector('#compSameRange').onchange = (e) => { st.sameRange = e.target.checked; this._compRedrawFigureOnly(); };
             modal.querySelector('#compShowLine').onchange = (e) => { st.showLine = e.target.checked; this._compRedrawFigureOnly(); };
             modal.querySelector('#compMinPct').onchange = (e) => { st.minPct = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)); };
@@ -22754,7 +22758,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 Object.assign(st, { rows: 2, cols: 5, panels: [], showLine: true, sameRange: true, minPct: 75, lastFill: null });
                 const c0 = this.currentInspect;
                 if (c0?.gene1) st.panels[0] = { xg: c0.gene1, xt: c0.xType || 'ge', yg: c0.gene2, yt: c0.yType || 'ge' };
-                modal.querySelector('#compGrid').value = '2x5';
+                modal.querySelector('#compRows').value = 2; modal.querySelector('#compCols').value = 5;
                 modal.querySelector('#compShowLine').checked = true;
                 modal.querySelector('#compSameRange').checked = true;
                 modal.querySelector('#compMinPct').value = 75;
@@ -22765,7 +22769,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             };
         }
         modal.classList.add('active');
-        modal.querySelector('#compGrid').value = `${st.rows}x${st.cols}`;
+        modal.querySelector('#compRows').value = st.rows; modal.querySelector('#compCols').value = st.cols;
         modal.querySelector('#compShowLine').checked = st.showLine !== false;
         modal.querySelector('#compSameRange').checked = st.sameRange !== false;
         modal.querySelector('#compMinPct').value = st.minPct ?? 75;
@@ -45798,7 +45802,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 for (const [cl, v] of Object.entries(muts)) {
                     if (v > 0 && hotspotBaseSet.has(cl)) n++;
                 }
-                if (n > 0) items.push({ value: gene, primary: gene, count: n, secondary: 'hotspot mutation' });
+                if (n > 0) items.push({ value: gene, primary: `${gene} (hotspot)`, count: n, secondary: 'hotspot mutation' });
             }
             items.sort((a, b) => b.count - a.count);
             this._hotspotFilterItems = items;
