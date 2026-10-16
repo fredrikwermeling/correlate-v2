@@ -2827,6 +2827,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.111 (2026-10-16)</strong></p>
+                <ul>
+                    <li>Threshold scan: the share in the criterion is also given as a number of cell lines (for example, at least 121 of 1,208), and the table has a Lines column with each gene's number of cell lines past the cutoff. The exports carry it too.</li>
+                </ul>
                 <p><strong>v.89.110 (2026-10-16)</strong></p>
                 <ul>
                     <li>Compilation: the hotspot, copy-number and fusion filters, each with its grid (oncoprint), are in the compilation itself. They are the correlation plot's own filters, so both always show the same cell lines.</li>
@@ -7967,7 +7971,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.110</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.111</a>
         </span>
     </div>
 
@@ -9852,6 +9856,7 @@
                             <span>in at least</span>
                             <input type="text" inputmode="numeric" id="ctMinShare" value="10" style="width:40px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;" title="A gene is listed when at least this share of the cell lines is past the cutoff">
                             <span>% of cell lines</span>
+                            <span id="ctMinShareN" style="color:#6b7280; font-size:11px; min-width:150px;"></span>
                             <span class="clb-sep"></span>
                             <label style="font-weight:600; color:#374151;" title="How much of this cohort a gene must be measured in before it can appear. A share computed on a fraction of the cell lines is mostly noise. Expressed as a share of the cohort so it scales with whatever you have filtered to. Set 0 to see everything.">measured in &ge; <input type="text" inputmode="numeric" id="ctMinPct" value="75" style="width:40px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;"> <span style="font-weight:400; color:#6b7280;">% of lines</span></label>
                         </div>
@@ -11195,7 +11200,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_110"></script>
+    <script src="app.js?v=v89_111"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
