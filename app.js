@@ -22624,17 +22624,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // plot uses), its highlighted cell lines and its colour-by groups, so the
     // panels are directly comparable and the setup is done in one place.
     openCompilation() {
-        const st = this._compState = this._compState || { rows: 2, cols: 5, panels: [], showLine: true, sameRange: true, minPct: 75 };
-        if (!st.rows) { st.rows = st.n || 2; st.cols = st.n || 5; }
+        // Starts fresh on every open; the modal's handlers hold this object,
+        // so it is reset in place rather than replaced.
+        const st = this._compState = this._compState || {};
+        for (const k of Object.keys(st)) delete st[k];
+        Object.assign(st, { rows: 2, cols: 5, panels: [], showLine: true, sameRange: true, minPct: 75, lastFill: null });
+        this._compLast = null;
         const ci = this.currentInspect;
-        if (!st.panels.some(p => p?.xg) && ci?.gene1) st.panels[0] = { xg: ci.gene1, xt: ci.xType || 'ge', yg: ci.gene2, yt: ci.yType || 'ge' };
+        if (ci?.gene1) st.panels[0] = { xg: ci.gene1, xt: ci.xType || 'ge', yg: ci.gene2, yt: ci.yType || 'ge' };
         let modal = document.getElementById('compilationModal');
         if (!modal) {
             modal = document.createElement('div');
             modal.id = 'compilationModal';
             modal.className = 'modal-overlay';
             modal.style.zIndex = '1360';
-            const sel = (id, title, opts = '') => `<select id="${id}" title="${title}" style="font-size:11px; padding:1px 4px; border:1px solid #d1d5db; border-radius:4px; max-width:150px;">${opts}</select>`;
+            const sel = (id, title, opts = '') => `<select id="${id}" title="${title}" style="font-size:11px; padding:1px 4px; border:1px solid #d1d5db; border-radius:4px; max-width:135px;">${opts}</select>`;
             modal.innerHTML = `<div class="modal" id="compilationModalInner" style="max-width:min(97vw,1500px); width:97vw;">
                 <div class="modal-header"><h3>Compilation</h3><button class="modal-close" id="compClose" title="Close">&times;</button></div>
                 <div class="modal-body" style="font-size:12px; color:#374151;">
@@ -22644,14 +22648,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" id="compShowLine" checked> Regression line</label>
                         <span id="compCohortNote" style="color:#6b7280; font-size:11px;"></span>
                     </div>
-                    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:6px; padding:5px 8px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px;">
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:6px; padding:5px 8px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px;">
                         <b style="font-size:11px; color:#4b5563;">Cohort &amp; highlights</b>
                         <label>Tissue ${sel('compTissue', 'Same as the correlation plot\'s tissue filter')}</label>
                         <label>Subtype ${sel('compSubtype', 'Same as the correlation plot\'s subtype filter')}</label>
                         <label>Mutation colour ${sel('compHot', 'Colour points by this gene\'s mutation status')}</label>
                         <label>Colour by ${sel('compColorBy', 'Colour points by group', '<option value="">none</option><option value="tissue">Tissue</option><option value="subtype">Subtype</option><option value="disease">Disease</option><option value="medium">Culture medium</option>')}</label>
-                        <button type="button" class="btn btn-outline btn-sm" id="compGroups" style="font-size:10px; padding:1px 6px; min-width:128px; visibility:hidden;" title="Pick which groups are coloured; the rest turn grey">Groups...</button>
-                        <label>Highlight <input type="text" id="compHl" placeholder="cell lines, comma separated" autocomplete="off" style="width:180px; font-size:11px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px;"></label>
+                        <button type="button" class="btn btn-outline btn-sm" id="compGroups" style="font-size:10px; padding:1px 6px; min-width:122px; visibility:hidden;" title="Pick which groups are coloured; the rest turn grey">Groups...</button>
+                        <span style="display:inline-flex; gap:4px; align-items:center; white-space:nowrap;"><label title="Typed names and cell lines clicked in the plots">Highlight <input type="text" id="compHl" placeholder="cell lines, comma separated" autocomplete="off" style="width:130px; font-size:11px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px;"></label>
+                        <button type="button" class="btn btn-outline btn-sm" id="compHlCopy" style="font-size:10px; padding:1px 6px;" title="Copy the highlighted cell line names">Copy</button>
+                        <button type="button" class="btn btn-outline btn-sm" id="compHlClear" style="font-size:10px; padding:1px 6px;" title="Remove all highlighted and clicked cell lines">Clear</button></span>
                     </div>
                     <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
                         <span>Top correlates of</span>
@@ -22724,11 +22730,22 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             modal.querySelector('#compHl').addEventListener('input', (e) => {
                 clearTimeout(hlTimer);
                 hlTimer = setTimeout(() => {
+                    // The box lists clicked lines too, so what is typed replaces both.
+                    this.clickedCells.clear();
                     drive('scatterCellSearch', e.target.value.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean).join('\n'), 'input');
                     this.updateInspectPlot?.();
                     this._compRedrawFigureOnly();
                 }, 500);
             });
+            modal.querySelector('#compHlCopy').onclick = () => this.copyNamesToClipboard(this._compHighlightNames(), 'highlighted');
+            modal.querySelector('#compHlClear').onclick = () => {
+                drive('scatterCellSearch', '', 'input');
+                this.clickedCells.clear();
+                this._userLabelPositions?.clear();
+                this.updateInspectPlot?.();
+                this._compSyncControls();
+                this._compRedrawFigureOnly();
+            };
             // Copy and export use a packed copy without the empty panels.
             const noPanels = () => { const s2 = document.getElementById('compStatus'); if (s2) s2.textContent = 'Draw at least one panel first.'; };
             modal.querySelector('#compCopy').onclick = async () => {
@@ -22773,6 +22790,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         modal.querySelector('#compShowLine').checked = st.showLine !== false;
         modal.querySelector('#compSameRange').checked = st.sameRange !== false;
         modal.querySelector('#compMinPct').value = st.minPct ?? 75;
+        modal.querySelector('#compTopGene').value = '';
+        modal.querySelector('#compTopMode').value = 'ge:ge';
+        const status0 = modal.querySelector('#compStatus'); if (status0) status0.textContent = '';
+        document.getElementById('compPanelPop')?.remove();
         this._compSyncControls();
         this._compRenderEditor();
         this.drawCompilation();
@@ -22803,7 +22824,18 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             gb.textContent = this._colorByGroupBtnLabel();
         }
         const hl = document.getElementById('compHl');
-        if (hl && document.activeElement !== hl) hl.value = (document.getElementById('scatterCellSearch')?.value || '').split(/\n+/).map(s => s.trim()).filter(Boolean).join(', ');
+        if (hl && document.activeElement !== hl) hl.value = this._compHighlightNames().join(', ');
+    }
+
+    // Typed highlights plus clicked cell lines, once each.
+    _compHighlightNames() {
+        const typed = (document.getElementById('scatterCellSearch')?.value || '').split(/[,\n]+/).map(t => t.trim()).filter(Boolean);
+        const seen = new Set(), out = [];
+        for (const n of [...typed, ...(this.clickedCells || [])]) {
+            const k = String(n).toUpperCase();
+            if (!seen.has(k)) { seen.add(k); out.push(n); }
+        }
+        return out;
     }
 
     _compRedrawFigureOnly() {
@@ -22973,6 +23005,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const d = (this._compLast || []).flatMap(x => x.res?.data || []).find(q => q.cellLineName === name);
                 if (d && look.isHl(d)) this.removeHighlight(name);
                 else { this.clickedCells.add(name); this.updateInspectPlot?.(); }
+                this._compSyncControls();
                 this._compRenderFigure(plotEl, this._compLast, this._compState.cols);
             });
         }
