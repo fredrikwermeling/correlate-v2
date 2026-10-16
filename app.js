@@ -35737,10 +35737,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     : null;
                 const el = plotId && document.getElementById(plotId);
                 if (el && el.data && typeof Plotly !== 'undefined') {
+                    // On-screen size with scale, not a doubled width/height:
+                    // a relayout at 2x drops the title and axis-label
+                    // annotations, which carry what X and Y are.
                     _pngUrl = await timed(Plotly.toImage(el, {
                         format: 'png',
-                        width: (el._fullLayout?.width || el.clientWidth || 900) * 2,
-                        height: (el._fullLayout?.height || el.clientHeight || 600) * 2
+                        width: el._fullLayout?.width || el.clientWidth || 900,
+                        height: el._fullLayout?.height || el.clientHeight || 600,
+                        scale: 2
                     }));
                 }
             }
