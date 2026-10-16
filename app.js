@@ -22624,7 +22624,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // plot uses), its highlighted cell lines and its colour-by groups, so the
     // panels are directly comparable and the setup is done in one place.
     openCompilation() {
-        const st = this._compState = this._compState || { rows: 2, cols: 5, panels: [], showLine: true, sameRange: true, minLines: 50 };
+        const st = this._compState = this._compState || { rows: 2, cols: 5, panels: [], showLine: true, sameRange: true, minPct: 75 };
         if (!st.rows) { st.rows = st.n || 2; st.cols = st.n || 5; }
         const ci = this.currentInspect;
         if (!st.panels.some(p => p?.xg) && ci?.gene1) st.panels[0] = { xg: ci.gene1, xt: ci.xType || 'ge', yg: ci.gene2, yt: ci.yType || 'ge' };
@@ -22634,7 +22634,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             modal.id = 'compilationModal';
             modal.className = 'modal-overlay';
             modal.style.zIndex = '1360';
-            const sel = (id, title, opts = '') => `<select id="${id}" title="${title}" style="font-size:11px; padding:1px 4px; border:1px solid #d1d5db; border-radius:4px; max-width:170px;">${opts}</select>`;
+            const sel = (id, title, opts = '') => `<select id="${id}" title="${title}" style="font-size:11px; padding:1px 4px; border:1px solid #d1d5db; border-radius:4px; max-width:150px;">${opts}</select>`;
             modal.innerHTML = `<div class="modal" id="compilationModalInner" style="max-width:min(97vw,1500px); width:97vw;">
                 <div class="modal-header"><h3>Compilation</h3><button class="modal-close" id="compClose" title="Close">&times;</button></div>
                 <div class="modal-body" style="font-size:12px; color:#374151;">
@@ -22650,14 +22650,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                         <label>Subtype ${sel('compSubtype', 'Same as the correlation plot\'s subtype filter')}</label>
                         <label>Mutation colour ${sel('compHot', 'Colour points by this gene\'s mutation status')}</label>
                         <label>Colour by ${sel('compColorBy', 'Colour points by group', '<option value="">none</option><option value="tissue">Tissue</option><option value="subtype">Subtype</option><option value="disease">Disease</option><option value="medium">Culture medium</option>')}</label>
-                        <button type="button" class="btn btn-outline btn-sm" id="compGroups" style="font-size:10px; padding:1px 8px; visibility:hidden;" title="Pick which groups are coloured; the rest turn grey">Groups...</button>
+                        <button type="button" class="btn btn-outline btn-sm" id="compGroups" style="font-size:10px; padding:1px 6px; min-width:128px; visibility:hidden;" title="Pick which groups are coloured; the rest turn grey">Groups...</button>
                         <label>Highlight <input type="text" id="compHl" placeholder="cell lines, comma separated" autocomplete="off" style="width:180px; font-size:11px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px;"></label>
                     </div>
                     <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
                         <span>Top correlates of</span>
                         <input type="text" id="compTopGene" placeholder="gene" autocomplete="off" style="width:90px; font-size:12px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px;">
                         ${sel('compTopMode', 'What is correlated', '<option value="ge:ge">GE vs GE</option><option value="ge:expr">GE vs mRNA</option><option value="expr:expr">mRNA vs mRNA</option>')}
-                        <label title="Leave out genes measured in fewer cell lines than this; for mRNA, genes expressed (log2 TPM+1 at least 1) in fewer lines">Min cell lines <input type="number" id="compMinLines" min="0" step="10" style="width:56px; font-size:11px; padding:1px 4px; border:1px solid #d1d5db; border-radius:4px;"></label>
+                        <label title="How much of this cohort a gene must be measured in before it can appear. A correlation computed on a fraction of the cell lines is mostly noise, and it rises to the top of the list precisely because small samples give large numbers. Expressed as a share of the cohort so it scales with whatever you have filtered to. Set 0 to see everything.">measured in ≥ <input type="text" inputmode="numeric" id="compMinPct" style="width:40px; font-size:11px; padding:1px 4px; border:1px solid #d1d5db; border-radius:4px;"> <span style="color:#6b7280;">% of lines</span></label>
                         <button type="button" class="btn btn-outline btn-sm" id="compTopFill" style="font-size:11px; padding:2px 10px; color:#5d9239; border-color:#6ba544;" title="Fill every panel: this gene on X, the genes that correlate most strongly with it (either direction) on Y, in the shared cohort">Fill</button>
                     </div>
                     <div style="display:flex; gap:5px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
@@ -22691,7 +22691,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             };
             modal.querySelector('#compSameRange').onchange = (e) => { st.sameRange = e.target.checked; this._compRedrawFigureOnly(); };
             modal.querySelector('#compShowLine').onchange = (e) => { st.showLine = e.target.checked; this._compRedrawFigureOnly(); };
-            modal.querySelector('#compMinLines').onchange = (e) => { st.minLines = Math.max(0, parseInt(e.target.value, 10) || 0); };
+            modal.querySelector('#compMinPct').onchange = (e) => { st.minPct = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)); };
             modal.querySelector('#compTopFill').onclick = () => this._compFillTop();
             modal.querySelector('#compTopGene').addEventListener('keydown', (e) => { if (e.key === 'Enter') this._compFillTop(); });
             modal.querySelector('#compClearAll').onclick = () => { st.panels = []; st.lastFill = null; this._compRenderEditor(); this.drawCompilation(); };
@@ -22712,14 +22712,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 this._compRedrawFigureOnly();
             };
             modal.querySelector('#compColorBy').onchange = (e) => {
-                const v = e.target.value;
-                const picked = document.getElementById('colorByPicked');
-                // Subtype and disease start with nothing picked in the plot,
-                // which would grey every point here; colour them all instead.
-                if (picked && (v === 'subtype' || v === 'disease') && !picked.value.trim()) picked.value = '*';
-                drive('colorByCategory', v);
-                const gb = document.getElementById('compGroups');
-                if (gb) gb.style.visibility = v ? 'visible' : 'hidden';
+                drive('colorByCategory', e.target.value);
+                this._compSyncControls();
                 this._compRedrawFigureOnly();
             };
             let hlTimer = null;
@@ -22747,7 +22741,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 } finally { el.remove(); }
             };
             modal.querySelector('#compExportAI').onclick = () => this._compExportAI();
-            modal.querySelector('#compGroups').onclick = (e) => this.showColorByGroupPicker(e.currentTarget, () => this._compRedrawFigureOnly());
+            modal.querySelector('#compGroups').onclick = (e) => this.showColorByGroupPicker(e.currentTarget, () => { this._compSyncControls(); this._compRedrawFigureOnly(); });
             modal.querySelector('#compReset').onclick = () => {
                 drive('scatterCancerFilter', '');
                 drive('scatterSubtypeFilter', '');
@@ -22757,13 +22751,13 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 drive('scatterCellSearch', '', 'input');
                 this.clickedCells?.clear();
                 this.updateInspectPlot?.();
-                Object.assign(st, { rows: 2, cols: 5, panels: [], showLine: true, sameRange: true, minLines: 50, lastFill: null });
+                Object.assign(st, { rows: 2, cols: 5, panels: [], showLine: true, sameRange: true, minPct: 75, lastFill: null });
                 const c0 = this.currentInspect;
                 if (c0?.gene1) st.panels[0] = { xg: c0.gene1, xt: c0.xType || 'ge', yg: c0.gene2, yt: c0.yType || 'ge' };
                 modal.querySelector('#compGrid').value = '2x5';
                 modal.querySelector('#compShowLine').checked = true;
                 modal.querySelector('#compSameRange').checked = true;
-                modal.querySelector('#compMinLines').value = 50;
+                modal.querySelector('#compMinPct').value = 75;
                 modal.querySelector('#compTopGene').value = '';
                 this._compSyncControls();
                 this._compRenderEditor();
@@ -22774,7 +22768,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         modal.querySelector('#compGrid').value = `${st.rows}x${st.cols}`;
         modal.querySelector('#compShowLine').checked = st.showLine !== false;
         modal.querySelector('#compSameRange').checked = st.sameRange !== false;
-        modal.querySelector('#compMinLines').value = st.minLines ?? 50;
+        modal.querySelector('#compMinPct').value = st.minPct ?? 75;
         this._compSyncControls();
         this._compRenderEditor();
         this.drawCompilation();
@@ -22800,7 +22794,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const cb = document.getElementById('compColorBy');
         if (cb) cb.value = document.getElementById('colorByCategory')?.value || '';
         const gb = document.getElementById('compGroups');
-        if (gb) gb.style.visibility = cb?.value ? 'visible' : 'hidden';
+        if (gb) {
+            gb.style.visibility = cb?.value ? 'visible' : 'hidden';
+            gb.textContent = this._colorByGroupBtnLabel();
+        }
         const hl = document.getElementById('compHl');
         if (hl && document.activeElement !== hl) hl.value = (document.getElementById('scatterCellSearch')?.value || '').split(/\n+/).map(s => s.trim()).filter(Boolean).join(', ');
     }
@@ -23138,7 +23135,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     // Rank every gene of the target measure by correlation with one gene, in
     // the correlation plot's cohort; strongest first, either direction.
-    async _compTopCorrelates(gene, tx, ty, k, minLines = 0) {
+    async _compTopCorrelates(gene, tx, ty, k, minPct = 0) {
         if ((tx === 'expr' || ty === 'expr') && !this.expressionLoaded) await this.loadExpressionData?.();
         let ids = this._computeInspectFilteredIdsFromDOM();
         if (!Array.isArray(ids)) ids = this.metadata.cellLines.slice();
@@ -23156,6 +23153,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (xi === undefined) return { error: `${gene} has no ${tx === 'ge' ? 'gene-effect' : 'expression'} data` };
         const x = row(tx, xi, new Float64Array(idx.length));
         const y = new Float64Array(idx.length);
+        // Same coverage rule as Find correlates: a share of the lines with an X value.
+        let xN = 0;
+        for (let j = 0; j < x.length; j++) if (!isNaN(x[j])) xN++;
+        const nMin = minPct > 0 ? Math.ceil(xN * minPct / 100) : 0;
         const genes = ty === 'ge' ? this.metadata.genes : this.expressionMetadata.genes;
         const out = [];
         for (let g = 0; g < genes.length; g++) {
@@ -23168,13 +23169,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 n++; sx += a; sy += b; sxx += a * a; syy += b * b; sxy += a * b;
             }
             if (n < 10) continue;
-            // Too few lines behind this gene: measured lines for gene effect,
-            // lines that express it for mRNA (nearly every line has a value).
-            if (minLines > 0) {
-                let m = 0;
-                for (let j = 0; j < y.length; j++) { const b = y[j]; if (!isNaN(b) && (ty !== 'expr' || b >= 1)) m++; }
-                if (m < minLines) continue;
-            }
+            if (n < nMin) continue;
             const den = Math.sqrt((n * sxx - sx * sx) * (n * syy - sy * sy));
             if (!(den > 0)) continue;
             out.push({ gene: String(genes[g]).toUpperCase(), r: (n * sxy - sx * sy) / den });
@@ -23203,7 +23198,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
         if (status) status.textContent = `Ranking correlates of ${gene}...`;
         await new Promise(r => setTimeout(r, 30));
-        const res = await this._compTopCorrelates(gene, tx, ty, this._compTotal(), st.minLines ?? 50);
+        const res = await this._compTopCorrelates(gene, tx, ty, this._compTotal(), st.minPct ?? 75);
         if (res.error) { if (status) status.textContent = res.error; return; }
         st.panels = res.top.map(t => ({ xg: gene, xt: tx, yg: t.gene, yt: ty, x0: true, y0: true }));
         st.lastFill = { gene, mode };
@@ -42390,11 +42385,16 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         btn.style.display = on ? '' : 'none';
         const statSel = document.getElementById('colorByLegendStat');
         if (statSel) statSel.style.display = on ? '' : 'none';
+        btn.textContent = this._colorByGroupBtnLabel();
+    }
+
+    _colorByGroupBtnLabel() {
+        const mode = document.getElementById('colorByCategory')?.value;
         const raw = (document.getElementById('colorByPicked')?.value || '').trim();
-        if (raw === '*') btn.textContent = 'Groups: all';
-        else if (raw === 'none') btn.textContent = 'Groups: none';
-        else if (raw) btn.textContent = `Groups: ${raw.split('|').filter(Boolean).length}`;
-        else btn.textContent = mode === 'subtype' ? 'Pick subtypes to color...'
+        if (raw === '*') return 'Groups: all';
+        if (raw === 'none') return 'Groups: none';
+        if (raw) return `Groups: ${raw.split('|').filter(Boolean).length}`;
+        return mode === 'subtype' ? 'Pick subtypes to color...'
             : mode === 'disease' ? 'Pick diseases to color...' : 'Groups: all';
     }
 
