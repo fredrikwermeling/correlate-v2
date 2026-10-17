@@ -2827,6 +2827,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.116 (2026-10-17)</strong></p>
+                <ul>
+                    <li>Threshold scan: each gene's <b>top tissue</b>, the tissue whose share of lines past the cutoff stands out most from all other lines (tissues with at least 10 lines), with that share and the difference (&Delta; vs rest). Sort by any of them; the criterion can count within one tissue instead of over all lines, and then the table sorts by &Delta;.</li>
+                    <li>Threshold scan: a <b>By tissue</b> chart beside the histogram: one row per tissue, one dot per cell line, the cutoff line, and each tissue's share past it. Hover a dot for the cell line's card.</li>
+                </ul>
                 <p><strong>v.89.115 (2026-10-16)</strong></p>
                 <ul>
                     <li>Threshold scan: the all-genes chart and the All genes row are gone. The chart opens on the first gene in the table and follows it as the settings change, until another gene is clicked.</li>
@@ -7989,7 +7994,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.115</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.116</a>
         </span>
     </div>
 
@@ -9873,7 +9878,8 @@
                             <input type="text" inputmode="decimal" id="ctCut" style="width:52px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;" title="The cutoff value">
                             <span>in at least</span>
                             <input type="text" inputmode="numeric" id="ctMinShare" value="10" style="width:40px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;" title="A gene is listed when at least this share of the cell lines is past the cutoff">
-                            <span>% of cell lines</span>
+                            <span>% of</span>
+                            <select id="ctScope" style="width:150px;" title="Count the share over all cell lines, or within each tissue (a gene qualifies when one tissue reaches it)"><option value="overall" selected>all cell lines</option><option value="tissue">one tissue's lines</option></select>
                             <span id="ctMinShareN" style="color:#6b7280; font-size:11px; min-width:150px;"></span>
                             <span class="clb-sep"></span>
                             <label style="font-weight:600; color:#374151;" title="How much of this cohort a gene must be measured in before it can appear. A share computed on a fraction of the cell lines is mostly noise. Expressed as a share of the cohort so it scales with whatever you have filtered to. Set 0 to see everything.">measured in &ge; <input type="text" inputmode="numeric" id="ctMinPct" value="75" style="width:40px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;"> <span style="font-weight:400; color:#6b7280;">% of lines</span></label>
@@ -9924,6 +9930,11 @@
                     </div>
                     <div style="flex:1 1 480px; min-width:0;">
                         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:11px; color:#374151; margin-bottom:4px;">
+                            <span style="display:inline-flex; gap:3px;">
+                                <button type="button" class="btn btn-success btn-sm" id="ctViewHist" style="font-size:10px; padding:1px 8px;">Histogram</button>
+                                <button type="button" class="btn btn-secondary btn-sm" id="ctViewTissue" style="font-size:10px; padding:1px 8px;" title="One row per tissue, one dot per cell line, with each tissue's share past the cutoff">By tissue</button>
+                            </span>
+                            <span class="clb-sep"></span>
                             <span title="Leave empty to fit the data">x axis from</span>
                             <input type="text" inputmode="decimal" id="ctXmin" placeholder="auto" style="width:46px; padding:1px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:11px;">
                             <span>to</span>
@@ -11218,7 +11229,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_115"></script>
+    <script src="app.js?v=v89_116"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
