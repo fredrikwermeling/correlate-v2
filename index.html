@@ -2833,6 +2833,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.1 (2026-10-18)</strong></p>
+                <ul>
+                    <li>Fix: the Gene Effect chart by mutation could still overlap its title with the statistics under it (for example "Mutation Status" over "All lineages"). The title is now placed after the statistics are drawn, from their real height, so it stays clear whatever the fonts or text settings.</li>
+                    <li>Version numbers: after .100 the major number goes up (v.89.118 is followed by v.90.1).</li>
+                </ul>
                 <p><strong>v.89.118 (2026-10-18)</strong></p>
                 <ul>
                     <li>Threshold scan: the tissue columns are gone from the normal table. A <b>Tissue differences</b> button switches them on: genes where one tissue stands out, shown as for example "Skin: 80% vs 12% elsewhere" with the difference in percentage points, sorted by that difference, and the By tissue chart. Press it again to go back.</li>
@@ -8009,7 +8014,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.118</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.1</a>
         </span>
     </div>
 
@@ -11252,7 +11257,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_118"></script>
+    <script src="app.js?v=v90_1"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
