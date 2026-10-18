@@ -2833,6 +2833,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.89.118 (2026-10-18)</strong></p>
+                <ul>
+                    <li>Threshold scan: the tissue columns are gone from the normal table. A <b>Tissue differences</b> button switches them on: genes where one tissue stands out, shown as for example "Skin: 80% vs 12% elsewhere" with the difference in percentage points, sorted by that difference, and the By tissue chart. Press it again to go back.</li>
+                </ul>
                 <p><strong>v.89.117 (2026-10-18)</strong></p>
                 <ul>
                     <li>The input each view needs first (the gene box in Gene Effect and the correlation views, the gene set on the main page and in the heatmap, the hotspot gene in Mutation analysis, the cutoff in Threshold scan, the gene in the compilation) sits in a light green box, so it is the first thing to find.</li>
@@ -8005,7 +8009,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.117</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.89.118</a>
         </span>
     </div>
 
@@ -9894,8 +9898,7 @@
                             <input type="text" inputmode="decimal" id="ctCut" style="width:52px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;" title="The cutoff value">
                             <span>in at least</span>
                             <input type="text" inputmode="numeric" id="ctMinShare" value="10" style="width:40px; padding:2px 4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;" title="A gene is listed when at least this share of the cell lines is past the cutoff">
-                            <span>% of</span>
-                            <select id="ctScope" style="width:150px;" title="Count the share over all cell lines, or within each tissue (a gene qualifies when one tissue reaches it)"><option value="overall" selected>all cell lines</option><option value="tissue">one tissue's lines</option></select>
+                            <span id="ctShareOf">% of cell lines</span>
                             <span id="ctMinShareN" style="color:#6b7280; font-size:11px; min-width:150px;"></span>
                             </span>
                             <span class="clb-sep"></span>
@@ -9935,6 +9938,7 @@
                     <div style="flex:1 1 430px; min-width:0;">
                         <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
                             <input type="text" id="ctSearch" placeholder="Search gene..." autocomplete="off" style="width:150px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;" title="Finds a gene even when it misses the criterion; those rows are grey">
+                            <button type="button" class="btn btn-outline btn-sm" id="ctTissueMode" style="font-size:11px; padding:2px 10px;" title="Find the genes where one tissue stands out: the share of its cell lines past the cutoff compared with the share in all other cell lines">Tissue differences</button>
                             <span id="ctCount" style="color:#6b7280; font-size:11px;"></span>
                         </div>
                         <div style="max-height:56vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:4px;">
@@ -11248,7 +11252,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v89_117"></script>
+    <script src="app.js?v=v89_118"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
