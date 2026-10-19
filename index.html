@@ -2839,6 +2839,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.8 (2026-10-19)</strong></p>
+                <ul>
+                    <li>The gene set heatmap and the threshold scan are now part of the extended version only (this one); the standard version at correlate.cmm.se leaves them out.</li>
+                </ul>
                 <p><strong>v.90.7 (2026-10-19)</strong></p>
                 <ul>
                     <li>Fix: typing in a text box while a network was shown could move or zoom the network instead: the arrow keys panned it, and Shift with the + key (? on a Swedish keyboard) zoomed it, so ? could not be typed. The network no longer listens to the keyboard; move it with the mouse, trackpad or its on-screen buttons.</li>
@@ -8049,7 +8053,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.7</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.8</a>
         </span>
     </div>
 
@@ -9917,7 +9921,7 @@
     <!-- Gene set x cell line heatmap. Controls stay in a single row that wraps
          as a unit, so picking Custom never shoves a sibling control sideways;
          the gene textarea it reveals sits on its own row below instead. -->
-    <!-- Threshold scan: each gene's share of cell lines below / above a value -->
+    <!-- V2 ONLY. Threshold scan: each gene's share of cell lines below / above a value -->
     <div id="cutoffModal" class="modal-overlay" style="z-index:1380;">
         <div class="modal" id="cutoffModalInner" style="max-width:min(96vw,1280px); width:96vw;">
             <div class="modal-header">
@@ -10567,7 +10571,7 @@
             <li><b>Quick filters</b>: curated cell-line collections to include or exclude, among them the two provenance sets below.</li>
             <li><b>Interferon score</b> (<i>Sort: Interferon score</i>, and the interferon-high / interferon-low quick filters): the average of 34 interferon-stimulated genes, each expressed as how far the line sits from the panel average for that gene. 0 is typical, above +0.5 is called interferon-high here and below &minus;0.5 interferon-low. It measures the cell's own interferon signalling, which shapes how visible a line is to the immune system, and is the readout for viral mimicry. A cell line has no immune infiltrate, so it says nothing about the interferon environment of a tumor. Lines with no expression data are unscored and sort to the end. The score also appears on each cell line's own card.</li>
             <li><b>Retroelement signal</b> (<i>Sort: Retroelement signal</i>, and the retroelement-high quick filter): RNA output of 750 full-length LINE-1, HERV-K and SVA elements outside genes, in counts per million, measured from the public CCLE sequencing files. The panel median is about 40 CPM; the top tenth, about 80 CPM and up, counts as retroelement-high. Lines with a higher signal depend measurably more on ADAR1, beyond what the interferon score predicts. 669 of 1,208 lines have public data; the rest are unscored and sort to the end. The score also appears on each cell line's card and wiki.</li>
-            <li><b>Heatmap</b>: draws a gene set across the cell lines the filters leave showing. Open it from the <b>Heatmap</b> button in this header, or from Options / Other / Gene set heatmap. Pick a preset or paste your own genes, and choose mRNA or gene effect. The column order is carried by the annotation rows under the grid: mark one row as the blocks and the colour strip, legend and Min n follow it, turn on other rows' sort arrows to order the lines within each block, and the score (the mean of the shown genes) settles ties. Rows can show hotspot mutations, fusions, copy number, lineage, subtype, disease, one gene's expression or gene effect, cell-line clustering, or the gates. Saves as an image, to the clipboard, as a .csv or as a reopenable view file, and its Methods button writes out exactly how the picture was made.</li>
+            <li id="clbHelpHeatmap"><b>Heatmap</b>: draws a gene set across the cell lines the filters leave showing. Open it from the <b>Heatmap</b> button in this header, or from Options / Other / Gene set heatmap. Pick a preset or paste your own genes, and choose mRNA or gene effect. The column order is carried by the annotation rows under the grid: mark one row as the blocks and the colour strip, legend and Min n follow it, turn on other rows' sort arrows to order the lines within each block, and the score (the mean of the shown genes) settles ties. Rows can show hotspot mutations, fusions, copy number, lineage, subtype, disease, one gene's expression or gene effect, cell-line clustering, or the gates. Saves as an image, to the clipboard, as a .csv or as a reopenable view file, and its Methods button writes out exactly how the picture was made.</li>
           </ul>
 
           <p style="margin-top:14px;"><strong>&#9888; Warning marks</strong>: a triangle beside a cell line's name means <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cellosaurus</a> records a problem with it. 56 of the 1,208 lines are flagged. Hover the mark for the full explanation, or open the line to see it with a link to the source.</p>
@@ -11302,7 +11306,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_7"></script>
+    <script src="app.js?v=v90_8"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

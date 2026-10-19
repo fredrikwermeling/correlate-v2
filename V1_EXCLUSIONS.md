@@ -70,3 +70,17 @@ Ask before assuming any of these leaves.
 - Search for now-dead ids before shipping: a removed button whose handler
   remains is harmless, but a handler whose button is gone throws on load if it
   is not guarded with `?.`.
+
+## Gene set heatmap and Threshold scan (V2 only since v.90.8)
+
+Fredrik, 2026-10-19: "gene set heatmap and threshold scan could be kept to v2, it's a bit niche".
+
+- `index.html` blocks removed by `build_v1.py`: `#heatmapModal`, `#cutoffModal` (REMOVE_DIVS); the
+  single lines `#showHeatmapDirect`, `#showCutoffDirect` (Options > Other), `#mutHeatmapBtn`,
+  `#clbHeatmapBtn`, `#clbHelpHeatmap` (REMOVE_LINES); the network's `#networkHeatmapWrap`
+  button + menu (REMOVE_SPANS).
+- `app.js` degrades on the missing markup: `_hasHeatmap()` (is `#heatmapModal` there) gates
+  `setupHeatmapModal`, the Cell Line Browser list "Open in heatmap" buttons, the Gene Effect
+  inspect "Open in heatmap" button, the "Heatmap" row of the send-cell-lines menu, and reopening
+  a saved heatmap view file (`_hmRestoreView` says the version does not include it).
+  `setupCutoffTool` already returns when `#cutoffModal` is absent.

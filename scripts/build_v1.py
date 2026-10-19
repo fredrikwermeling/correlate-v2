@@ -28,6 +28,23 @@ REMOVE_DIVS = [
     ("clbUmapSection", "PCA / UMAP dimensionality reduction"),
     ("changelogModal", "changelog modal"),
     ("basisParams", "expression basis toggle"),
+    ("heatmapModal", "gene set heatmap"),
+    ("cutoffModal", "threshold scan"),
+]
+
+# Single-line elements (buttons, a help line) that open or describe a V2-only
+# tool. app.js skips the buttons it draws itself when #heatmapModal is absent.
+REMOVE_LINES = [
+    ("showHeatmapDirect", "Options > Other > Gene set heatmap"),
+    ("showCutoffDirect", "Options > Other > Threshold scan"),
+    ("mutHeatmapBtn", "mutation analysis Heatmap button"),
+    ("clbHeatmapBtn", "Cell Line Browser Heatmap button"),
+    ("clbHelpHeatmap", "Cell Line Browser help line on the heatmap"),
+]
+
+# <span id=...> blocks (the network's Heatmap button and its menu).
+REMOVE_SPANS = [
+    ("networkHeatmapWrap", "network Heatmap button and menu"),
 ]
 
 # What replaces a removed block, where cutting it clean would hide a fact
@@ -82,6 +99,26 @@ def cut_div(lines, div_id):
     return lines[:first] + replacement + lines[end + 1:], removed
 
 
+def cut_line(lines, el_id):
+    hits = [i for i, l in enumerate(lines) if f'id="{el_id}"' in l]
+    if len(hits) != 1:
+        raise SystemExit(f"expected one line with id={el_id}, found {len(hits)}")
+    i = hits[0]
+    return lines[:i] + lines[i + 1:], 1
+
+
+def cut_span(lines, el_id):
+    start = next((i for i, l in enumerate(lines) if f'id="{el_id}"' in l), None)
+    if start is None:
+        return lines, 0
+    depth = 0
+    for i in range(start, len(lines)):
+        depth += lines[i].count("<span") - lines[i].count("</span")
+        if depth <= 0:
+            return lines[:start] + lines[i + 1:], i - start + 1
+    raise SystemExit(f"could not find the end of #{el_id}")
+
+
 def main():
     check = "--check" in sys.argv
     src = open(os.path.join(V2, "index.html")).readlines()
@@ -89,6 +126,12 @@ def main():
     for div_id, name in REMOVE_DIVS:
         src, n = cut_div(src, div_id)
         report.append(f"  {name} (#{div_id}): {n} lines")
+    for el_id, name in REMOVE_LINES:
+        src, n = cut_line(src, el_id)
+        report.append(f"  {name} (#{el_id}): {n} line")
+    for el_id, name in REMOVE_SPANS:
+        src, n = cut_span(src, el_id)
+        report.append(f"  {name} (#{el_id}): {n} lines")
     html = "".join(src)
 
     badge = re.search(r'\s*<a href="#" id="versionBadge".*?</a>', html, re.S)
