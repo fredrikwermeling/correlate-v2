@@ -2833,6 +2833,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.4 (2026-10-19)</strong></p>
+                <ul>
+                    <li>Threshold scan, Tissue differences: a p column (Welch t-test of the tissue or chosen group against all other cell lines); picking a group sorts by the difference; the table is wider and its headers wrap, so every column fits.</li>
+                    <li>Threshold scan, By tissue chart: the chosen group, or the gene's standout tissue, is marked in green. Choosing a subtype or disease shows the subtypes or diseases of its tissue, plus one row for all other lines.</li>
+                </ul>
                 <p><strong>v.90.3 (2026-10-19)</strong></p>
                 <ul>
                     <li>Threshold scan: the table is sorted by median by default, lowest first when scanning below and highest first when scanning above. The number of lines the share stands for reads simply as, for example, (121 of 1,208).</li>
@@ -8023,7 +8028,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.3</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.4</a>
         </span>
     </div>
 
@@ -9949,7 +9954,7 @@
                     </div>
                 </div>
                 <div style="display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;">
-                    <div style="flex:1 1 430px; min-width:0;">
+                    <div style="flex:1.25 1 560px; min-width:0;">
                         <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
                             <input type="text" id="ctSearch" placeholder="Search gene..." autocomplete="off" style="width:150px; padding:2px 6px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;" title="Finds a gene even when it misses the criterion; those rows are grey">
                             <button type="button" class="btn btn-outline btn-sm" id="ctTissueMode" style="font-size:11px; padding:2px 10px;" title="Find the genes where one tissue stands out: the tissue whose median lies furthest from the median of all cell lines">Tissue differences</button>
@@ -9964,7 +9969,7 @@
                         </div>
                         <div style="font-size:10px; color:#9ca3af; margin-top:4px;">Click a gene to see its histogram, hover for what is known about it. Click a column header to sort.</div>
                     </div>
-                    <div style="flex:1 1 480px; min-width:0;">
+                    <div style="flex:1 1 420px; min-width:0;">
                         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; font-size:11px; color:#374151; margin-bottom:4px;">
                             <span style="display:inline-flex; gap:3px;">
                                 <button type="button" class="btn btn-success btn-sm" id="ctViewHist" style="font-size:10px; padding:1px 8px;">Histogram</button>
@@ -11267,7 +11272,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_3"></script>
+    <script src="app.js?v=v90_4"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
