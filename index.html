@@ -2839,6 +2839,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.7 (2026-10-19)</strong></p>
+                <ul>
+                    <li>Fix: typing in a text box while a network was shown could move or zoom the network instead: the arrow keys panned it, and Shift with the + key (? on a Swedish keyboard) zoomed it, so ? could not be typed. The network no longer listens to the keyboard; move it with the mouse, trackpad or its on-screen buttons.</li>
+                    <li>Fix: with a chart label selected in Settings, the arrow keys no longer move the label while typing in one of the Settings boxes.</li>
+                </ul>
                 <p><strong>v.90.6 (2026-10-19)</strong></p>
                 <ul>
                     <li>Threshold scan: under a gene's histogram, which tissues supply more of the lines past the cutoff than their share of all lines would by chance: observed against expected, how many times expected, and a one-sided hypergeometric p.</li>
@@ -8044,7 +8049,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.6</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.7</a>
         </span>
     </div>
 
@@ -11297,7 +11302,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_6"></script>
+    <script src="app.js?v=v90_7"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
