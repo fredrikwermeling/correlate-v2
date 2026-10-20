@@ -763,6 +763,10 @@
         #minCellLines::-webkit-inner-spin-button, #minCellLines::-webkit-outer-spin-button,
         #minGeneCoverage::-webkit-inner-spin-button, #minGeneCoverage::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
+        /* A searchable menu's native select stays hidden whatever inline
+           display code gives it; the proxy button stands in for it. */
+        .select-proxy > select { display: none !important; }
+
         .form-control:focus {
             border-color: var(--green-500);
             box-shadow: 0 0 0 3px rgba(122, 185, 80, 0.15);
@@ -2839,6 +2843,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.12 (2026-10-20)</strong></p>
+                <ul>
+                    <li>Every tissue, subtype and disease menu, the highlight-group menus, the mutation-gene and gene-set menus, and the browser's sex and sort menus are searchable the same way as on the main page: type to filter (abbreviations like CLL work), arrow keys and Enter to pick, group headings kept.</li>
+                    <li>Every gene box handles names the same way: a synonym, mouse ortholog or library alias is read as the name this data uses (CD132 becomes IL2RG, with a note), and an unknown name gets the usual "did you mean" suggestions that put the pick back in the box. This now covers the correlation plot, Gene effect / expression, correlation by group, the compilation's panels, the expression scatter, the threshold scan's list, the heatmap's gene list and annotation rows, the browser's sort and Export genes, the UMAP gene boxes and the AI export's gene list and requests.</li>
+                    <li>Fix: the UMAP split gene box did not recognise lower-case names.</li>
+                </ul>
                 <p><strong>v.90.11 (2026-10-20)</strong></p>
                 <ul>
                     <li>Colour by subtype or disease now starts coloured: every group when no more than 8 are shown (for example one tissue), else the 8 largest. It used to colour nothing until groups were picked, which left a legend of only "Not selected", including in views opened from an assistant.</li>
@@ -8070,7 +8080,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.11</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.12</a>
         </span>
     </div>
 
@@ -11322,7 +11332,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_11"></script>
+    <script src="app.js?v=v90_12"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
