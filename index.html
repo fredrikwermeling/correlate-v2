@@ -2843,6 +2843,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.16 (2026-10-20)</strong></p>
+                <ul>
+                    <li>Threshold scan: the cell lines picked by "Only these cell lines" are shown by name next to the filters, with any typed name that matched nothing; the box turns blue while it is in use, and chart titles and exports name the picked lines instead of the typed text.</li>
+                </ul>
                 <p><strong>v.90.15 (2026-10-20)</strong></p>
                 <ul>
                     <li>Threshold scan: an "Only these cell lines" box bases the list on one or several named cell lines (or a tissue, subtype or disease term).</li>
@@ -8096,7 +8100,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.15</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.16</a>
         </span>
     </div>
 
@@ -10026,6 +10030,7 @@
                             <select id="ctCnLevel" class="form-control" style="width:112px; font-size:11px; padding:3px 4px; display:none;" title="Keep the cell lines carrying this copy-number event, or only those without it"><option value="altered" selected>With event</option><option value="wt">Only WT</option></select>
                             <button id="ctGridCnBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Copy-number grid, click a gene to require the event present or absent">&#9638;</button>
                             <span id="ctActiveFilters"></span>
+                            <span id="ctLinesChips" style="display:inline-flex; flex-wrap:wrap; align-items:center; gap:4px; margin-left:6px; font-size:10px;"></span>
                         </div>
                     </div>
                 </div>
@@ -11351,7 +11356,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_15"></script>
+    <script src="app.js?v=v90_16"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
