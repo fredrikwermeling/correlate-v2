@@ -2839,6 +2839,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.10 (2026-10-20)</strong></p>
+                <ul>
+                    <li>Highlight boxes take several cell lines, separated by commas, semicolons, spaces or new lines. The Gene effect / expression box only ever matched one.</li>
+                    <li>A <b>+ Highlight group</b> menu beside each highlight box (correlation plot, compilation, Gene effect / expression) marks every cell line of a tissue, subtype or disease. It lists only the groups among the cell lines shown, so a Lymphoid filter never offers Lung.</li>
+                    <li>Large highlights stay readable: up to 12 lines are named, more are marked without names, and the correlation plot shows the first 20 names as chips with the rest counted.</li>
+                    <li>Correlation by group: the highlight box is gone; that view has no cell-line points to highlight, and the box did nothing.</li>
+                </ul>
                 <p><strong>v.90.9 (2026-10-20)</strong></p>
                 <ul>
                     <li>The Gene Effect view is called <b>Gene effect / expression</b> in the menu and its window, since it shows either; the gene box is labelled Gene, with the measure chosen beside it.</li>
@@ -8057,7 +8064,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.9</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.10</a>
         </span>
     </div>
 
@@ -9745,7 +9752,6 @@
                             </select>
 <button id="caGridCnBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Copy-number grid for the cell lines shown, click a gene to require the event present or absent">&#9638;</button>
                         </div>
-                        <input type="text" id="caCellLineSearch" class="form-control mobile-hide" placeholder="Highlight cell line..." style="width: 140px; font-size: 11px; padding: 3px 6px;" title="Search and highlight a cell line in the plot">
                         <span style="font-size: 12px; color: #6b7280;">View:</span>
                         <button class="btn btn-sm" id="caViewTissue" style="background: #6ba544; color: white;">By Tissue</button>
                         <button class="btn btn-sm btn-secondary" id="caViewHotspot" title="Scan how each hotspot mutation shifts this gene's effect, comparing the cell lines carrying it against those without it">By hotspot mutation</button>
@@ -11310,7 +11316,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_9"></script>
+    <script src="app.js?v=v90_10"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
