@@ -2843,6 +2843,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.20 (2026-10-21)</strong></p>
+                <ul>
+                    <li>The picture Export for AI saves beside its file now carries the view's settings, so Open saved figure reopens it (Gene effect, Mutation Inspect, correlation plot, mutation analysis table, network, cell line wiki and heatmap). Pictures from earlier Export for AI runs had none and cannot be reopened.</li>
+                </ul>
                 <p><strong>v.90.19 (2026-10-21)</strong></p>
                 <ul>
                     <li>Floating popups (tissue breakdown, pickers, editors) can be resized by dragging their left, right or bottom edge, like the dialogs. The tissue breakdown popups also open larger.</li>
@@ -8116,7 +8120,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.19</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.20</a>
         </span>
     </div>
 
@@ -11374,7 +11378,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_19"></script>
+    <script src="app.js?v=v90_20"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
