@@ -2843,6 +2843,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.18 (2026-10-21)</strong></p>
+                <ul>
+                    <li>Fix: unticking "Also save a settings file" in the export dialog also left the settings out of the PNG / SVG itself, so Open saved figure said it found no Correlate data. The image now always carries them; the box only decides the separate .correlate.json.</li>
+                    <li>The Mutation analysis results table can be reopened from its exported image: Open saved figure re-runs the analysis and restores the table's sort, search and row filters.</li>
+                </ul>
                 <p><strong>v.90.17 (2026-10-20)</strong></p>
                 <ul>
                     <li>Threshold scan: "Only these cell lines" is now a picker. Typing suggests cell lines by name with their tissue, and a pick becomes a chip (&times; removes it, Clear removes all). A pasted list adds every exact name with Enter and reports the rest as not found. A few letters no longer pull in every line whose name starts with them.</li>
@@ -8105,7 +8110,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.17</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.18</a>
         </span>
     </div>
 
@@ -10354,11 +10359,10 @@
                 <div id="exportOptSidecarRow" style="margin-bottom:10px; padding:8px 10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:5px;">
                     <label style="display:flex; align-items:flex-start; gap:6px; cursor:pointer; font-size:12px; color:#374151;">
                         <input type="checkbox" id="exportOptSidecar" checked style="margin-top:2px;">
-                        <span>Also save a small <b>settings file</b> next to the image
+                        <span>Also save a separate <b>settings file</b>
                             (<code style="font-size:11px;">.correlate.json</code>).<br>
-                            <span style="color:#4b5563; font-size:11px;">It records the genes, filters and appearance behind this figure. To come back
-                            and change something, open Correlate and choose <b>Options &rarr; Other &rarr; Open saved figure</b>,
-                            then pick that file: the app returns to exactly this view. The file holds no image, only the settings.</span>
+                            <span style="color:#4b5563; font-size:11px;">PNG and SVG keep the settings inside, so <b>Options &rarr; Other &rarr; Open saved figure</b> reopens the image itself.
+                            TIFF, PDF and PowerPoint need this file.</span>
                         </span>
                     </label>
                     <div id="exportOptSidecarNote" style="display:none; font-size:11px; color:#92400e; margin-top:6px;"></div>
@@ -11364,7 +11368,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_17"></script>
+    <script src="app.js?v=v90_18"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
