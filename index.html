@@ -2843,6 +2843,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.19 (2026-10-21)</strong></p>
+                <ul>
+                    <li>Floating popups (tissue breakdown, pickers, editors) can be resized by dragging their left, right or bottom edge, like the dialogs. The tissue breakdown popups also open larger.</li>
+                    <li>Fix: the Highlight box did nothing in Mutation Inspect; it now marks the cell lines there too (named when a dozen or fewer, orange diamonds when more), including tissue, subtype and disease groups.</li>
+                    <li>Open saved figure explains why an image has no settings (copied, screenshot or re-saved by another program).</li>
+                </ul>
                 <p><strong>v.90.18 (2026-10-21)</strong></p>
                 <ul>
                     <li>Fix: unticking "Also save a settings file" in the export dialog also left the settings out of the PNG / SVG itself, so Open saved figure said it found no Correlate data. The image now always carries them; the box only decides the separate .correlate.json.</li>
@@ -8110,7 +8116,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.18</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.19</a>
         </span>
     </div>
 
@@ -8140,7 +8146,7 @@
                                 <button class="options-menu-item" id="showHeatmapDirect" title="Show a gene set across the cell lines currently listed, as a heatmap">Gene set heatmap</button>
                                 <button class="options-menu-item" id="showCutoffDirect" title="Every gene's share of cell lines below or above a value, in gene effect or mRNA, with a histogram per gene">Threshold scan</button>
                                 <button class="options-menu-item" id="customAIExportBtn" title="Paste a block an assistant wrote after reading an export: a view opens straight away, a request for more data fills in the export settings. The settings can also be set by hand.">Paste from AI</button>
-                                <label class="options-menu-item" for="restoreFromExportInput" title="Open a Correlate metadata file (.correlate.json, saved alongside every image export) to recreate the figure. Older SVG/PNG exports with embedded settings also work.">Open saved figure</label>
+                                <label class="options-menu-item" for="restoreFromExportInput" title="Pick a PNG or SVG saved with Export image, or its .correlate.json settings file, to return to that view">Open saved figure</label>
                             </div>
                         </div>
                         <!-- Starts in the same quiet outline as its neighbours;
@@ -11368,7 +11374,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_18"></script>
+    <script src="app.js?v=v90_19"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
