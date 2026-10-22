@@ -2843,6 +2843,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.21 (2026-10-22)</strong></p>
+                <ul>
+                    <li>Fix: zooming the browser in or out could squash a chart (for example Gene effect / expression by tissue) to a fixed short height, with no way back short of reopening it. Charts now keep their own height through zoom and window resizes.</li>
+                </ul>
                 <p><strong>v.90.20 (2026-10-21)</strong></p>
                 <ul>
                     <li>The picture Export for AI saves beside its file now carries the view's settings, so Open saved figure reopens it (Gene effect, Mutation Inspect, correlation plot, mutation analysis table, network, cell line wiki and heatmap). Pictures from earlier Export for AI runs had none and cannot be reopened.</li>
@@ -8120,7 +8124,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.20</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.21</a>
         </span>
     </div>
 
@@ -11378,7 +11382,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_20"></script>
+    <script src="app.js?v=v90_21"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
