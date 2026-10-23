@@ -24314,7 +24314,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         document.getElementById('ctGeneSet')?.addEventListener('change', async (e) => {
             const list = document.getElementById('ctGeneList');
             if (list) list.disabled = e.target.value !== 'custom';
-            if (e.target.value === 'ess') await this._ctEnsureCommonEssentials();
+            if (e.target.value === 'ess') await this._ensureCommonEssentials();
             this._ct.autoSel = true;
             this._ctRenderTable();
         });
@@ -24520,7 +24520,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         sel.value = '';
     }
 
-    async _ctEnsureCommonEssentials() {
+    async _ensureCommonEssentials() {
         if (this._commonEssentials) return;
         try { const r = await fetch(this._dataUrl('web_data/common_essentials.json')); this._commonEssentials = new Set(await r.json()); }
         catch (e) { this._commonEssentials = new Set(); }
@@ -25000,8 +25000,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // Bars of 0.1 (GE) or 0.25 (mRNA) with an edge on the cutoff, y as % of
     // the values; bars past the cutoff coloured, a dashed line at the cutoff
     // labelled with the share. ax is the axis suffix ('' or '2'...).
-    _ctHistParts(values, ax, fs = 11, labels = true, unit = 'cell lines') {
-        const c = this._ct;
+    // `c` defaults to the scan's own state; other views pass {measure, cut, dir}.
+    _ctHistParts(values, ax, fs = 11, labels = true, unit = 'cell lines', c = this._ct) {
         const size = c.measure === 'expr' ? 0.25 : 0.1;
         const n = values.length;
         let lo = Infinity, hi = -Infinity;
@@ -30905,7 +30905,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // (plot + export only) ON TOP instead.
         const geModalEl = document.getElementById('geneEffectModal');
         let topZ = 0;
-        document.querySelectorAll('.modal-overlay, #clbWikiModal, #cellLineBrowserModal').forEach(el => {
+        document.querySelectorAll('.modal-overlay, #clbWikiModal, #cellLineBrowserModal, #gbModal').forEach(el => {
             if (el.id === 'geneEffectModal' || getComputedStyle(el).display === 'none') return;
             const z = parseInt(getComputedStyle(el).zIndex) || 0;
             if (z > topZ) topZ = z;
@@ -36242,9 +36242,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         // Load common essentials (#6)
-        if (!this._commonEssentials) {
-            try { const r = await fetch(this._dataUrl('web_data/common_essentials.json')); this._commonEssentials = new Set(await r.json()); } catch(e) { this._commonEssentials = new Set(); }
-        }
+        await this._ensureCommonEssentials();
 
         // Build cell line metadata + mutations
         setStatus(`Building metadata for ${n} cell lines...`);
@@ -38708,6 +38706,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // opens a card rather than a popout still leads somewhere.
             const inApp = el.dataset.pinned === '1' && this.geneIndex?.has(String(gene).toUpperCase())
                 ? `<a href="#" onclick="event.preventDefault(); app._openGeneEffectFromCard('${this.esc(gene)}')" style="color:#4c782e; font-weight:600; margin-right:6px;">Gene effect in this app &#9656;</a>`
+                    + `<a href="#" onclick="event.preventDefault(); app.hideGeneTooltip(true); app.openGeneBrowser('${this.esc(gene)}')" style="color:#4c782e; font-weight:600; margin-right:6px;">Gene Browser &#9656;</a>`
                 : '';
             html += `<div style="display:flex; flex-wrap:wrap; gap:2px 4px;">${inApp}${links}</div>`;
             // No Shift key and no Esc on a phone, so neither hint leads
@@ -50206,19 +50205,18 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         return (this._gbSynMap?.get(gene) || []).slice(0, 3);
     }
 
-    async _gbEnsureCommonEss() {
-        if (this._commonEssentials) return;
-        try {
-            const r = await fetch(this._dataUrl('web_data/common_essentials.json'));
-            this._commonEssentials = new Set(await r.json());
-        } catch (e) {
-            this._commonEssentials = new Set();
-        }
-    }
-
     openGeneBrowser(gene) {
         const modal = document.getElementById('gbModal');
         if (!modal || !this.metadata) return;
+        // Opened from a gene card it can sit over any popout: stack above
+        // whatever is showing, as the export dialogs do.
+        let topZ = 0;
+        document.querySelectorAll('.modal-overlay, [id$="Modal"]').forEach(el => {
+            if (el === modal || getComputedStyle(el).display === 'none') return;
+            const z = parseInt(getComputedStyle(el).zIndex) || 0;
+            if (z > topZ) topZ = z;
+        });
+        modal.style.zIndex = String(Math.max(1365, topZ + 10));
         modal.style.display = 'flex';
         this._ensureAliasTables?.();
         if (gene) { this._gbGo(gene); return; }
@@ -50228,7 +50226,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
     closeGeneBrowser() {
         const modal = document.getElementById('gbModal');
-        if (modal) modal.style.display = 'none';
+        if (modal) { modal.style.display = 'none'; modal.style.zIndex = '1365'; }
     }
 
     _gbRenderEmpty() {
@@ -50251,7 +50249,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const g = e.target.closest('[data-gb-gene]');
             if (g) { e.preventDefault(); this._gbGo(g.dataset.gbGene); return; }
             const cl = e.target.closest('[data-gb-cl]');
-            if (cl) { e.preventDefault(); this.hideCellLineTooltip?.(); this.openCellLineWiki(cl.dataset.gbCl); return; }
+            if (cl) {
+                e.preventDefault(); this.hideCellLineTooltip?.();
+                const wiki = document.getElementById('clbWikiModal');
+                const gbZ = parseInt(document.getElementById('gbModal').style.zIndex) || 1365;
+                if (wiki && gbZ >= 1370) wiki.style.zIndex = String(gbZ + 10);
+                this.openCellLineWiki(cl.dataset.gbCl);
+                return;
+            }
             const act = e.target.closest('[data-gb-act]');
             if (act && this._gbGene) {
                 const dt = act.dataset.gbAct === 'expr' ? 'expr' : 'ge';
@@ -50260,17 +50265,22 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         });
         // Cell line names show the same hover card as the dots on a plot.
         let timer = null;
+        // Gene names show the shared gene card, as gene links do elsewhere.
         body?.addEventListener('mouseover', (e) => {
             const cl = e.target.closest('[data-gb-cl]');
-            if (!cl) return;
+            const g = cl ? null : e.target.closest('[data-gb-gene]');
+            if (!cl && !g) return;
             const ev = { clientX: e.clientX, clientY: e.clientY };
             clearTimeout(timer);
-            timer = setTimeout(() => this.showCellLineTooltip(ev, cl.dataset.gbCl), this._HOVER_DELAY);
+            timer = cl
+                ? setTimeout(() => this.showCellLineTooltip(ev, cl.dataset.gbCl), this._HOVER_DELAY)
+                : setTimeout(() => this.showGeneTooltip(ev, g.dataset.gbGene), this._HOVER_DELAY);
         });
         body?.addEventListener('mouseout', (e) => {
-            if (!e.target.closest('[data-gb-cl]')) return;
+            const cl = e.target.closest('[data-gb-cl]');
+            if (!cl && !e.target.closest('[data-gb-gene]')) return;
             clearTimeout(timer);
-            this.hideCellLineTooltip?.();
+            if (cl) this.hideCellLineTooltip?.(); else this.hideGeneTooltip();
         });
     }
 
@@ -50439,28 +50449,15 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         return items.map(([id, v]) => `<div class="gb-trow"><span class="gb-trow-n">${this._gbClLink(id)}</span><span class="gb-trow-v">${this._gbNum(v)}</span><span class="gb-trow-c">${this.esc(this.cellLineMetadata?.lineage?.[id] || '')}</span></div>`).join('');
     }
 
-    _gbHist(elId, vals, { size, cut, xTitle, color, cutColor }) {
+    // Same bars, bin sizes and cutoff line as the Threshold scan histogram.
+    _gbHist(elId, vals, { measure, cut = NaN, dir = 'below', xTitle }) {
         const el = document.getElementById(elId);
         if (!el || !vals.length || typeof Plotly === 'undefined') return;
-        let lo = Infinity, hi = -Infinity;
-        for (const v of vals) { if (v < lo) lo = v; if (v > hi) hi = v; }
-        const start = Math.floor(lo / size) * size;
-        const nb = Math.max(1, Math.floor((hi - start) / size + 1e-9) + 1);
-        const counts = new Array(nb).fill(0);
-        for (const v of vals) counts[Math.min(nb - 1, Math.floor((v - start) / size + 1e-9))]++;
-        const x = [], y = [], txt = [], col = [];
-        for (let i = 0; i < nb; i++) {
-            const l = start + i * size, pct = counts[i] / vals.length * 100;
-            x.push(l + size / 2); y.push(pct);
-            col.push(cut !== undefined && l + size / 2 < cut ? color : '#9ca3af');
-            txt.push(`${l.toFixed(2)} to ${(l + size).toFixed(2)}: ${pct.toFixed(1)}% (${counts[i]} ${counts[i] === 1 ? 'line' : 'lines'})`);
-        }
-        const ymax = Math.max(1, ...y);
-        const shapes = cut === undefined ? [] : [{ type: 'line', x0: cut, x1: cut, y0: 0, y1: ymax * 1.1, line: { color: cutColor || '#dc2626', width: 1.5, dash: 'dash' } }];
-        Plotly.newPlot(el, [{ type: 'bar', x, y, width: size, marker: { color: cut === undefined ? color : col, line: { color: '#fff', width: 0.5 } }, hovertext: txt, hoverinfo: 'text', showlegend: false }], {
-            height: 200, margin: { l: 44, r: 10, t: 8, b: 40 }, bargap: 0, shapes,
+        const p = this._ctHistParts(vals, '', 11, false, 'lines', { measure, cut, dir });
+        Plotly.newPlot(el, p.traces, {
+            height: 200, margin: { l: 44, r: 10, t: 8, b: 40 }, bargap: 0, shapes: p.shapes,
             xaxis: { title: { text: xTitle, font: { size: 11 } }, gridcolor: '#eeeeee', zeroline: false, tickfont: { size: 10 } },
-            yaxis: { title: { text: '% of lines', font: { size: 11 } }, range: [0, ymax * 1.2], gridcolor: '#eeeeee', tickfont: { size: 10 } },
+            yaxis: { title: { text: '% of lines', font: { size: 11 } }, range: [0, p.ymax * 1.2], gridcolor: '#eeeeee', tickfont: { size: 10 } },
             paper_bgcolor: '#ffffff', plot_bgcolor: '#fafafa', font: { family: 'Open Sans, sans-serif' }
         }, { displayModeBar: false, responsive: true });
     }
@@ -50469,7 +50466,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const cards = document.getElementById('gbCards');
         if (!cards) return;
         cards.innerHTML = this._gbLoading('Loading...');
-        await this._gbEnsureCommonEss();
+        await this._ensureCommonEssentials();
         await this._ensureAliasTables?.();
         if (this._gbGene !== gene) return;
         const s = this._gbCore(gene);
@@ -50508,7 +50505,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         document.getElementById('gbBody').scrollTop = 0;
         document.getElementById('gbModal').scrollTop = 0;
         if (s.hasGe) {
-            this._gbHist('gbGeHist', s.geVals, { size: 0.1, cut: this._gbDepCut, xTitle: 'Gene effect', color: '#dc2626' });
+            this._gbHist('gbGeHist', s.geVals, { measure: 'ge', cut: this._gbDepCut, xTitle: 'Gene effect' });
         }
         // The slow cards run after the first paint, each guarded against a
         // newer gene having been chosen meanwhile.
@@ -50599,7 +50596,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             + `<div class="gb-sub">Highest-expressing cell lines</div>${this._gbTopLines(topL)}`
             + `<div style="margin-top:10px;"><button class="btn btn-outline btn-sm" data-gb-act="expr" style="font-size:11px; padding:3px 10px;" title="Open this gene in the Gene effect / expression view, as mRNA by tissue">Open in expression view</button></div>`;
         card.outerHTML = this._gbSection('Expression (mRNA)', body, 'DepMap 26Q1 OmicsExpressionTPMLogp1 (log₂ TPM+1).', 'gbExprCard');
-        this._gbHist('gbExprHist', vals, { size: 0.25, cut, xTitle: 'log₂ TPM+1', color: '#9ca3af', cutColor: '#2563eb' });
+        this._gbHist('gbExprHist', vals, { measure: 'expr', cut, dir: 'above', xTitle: 'log₂ TPM+1' });
     }
 
     _gbMutationCard(s) {
@@ -50642,14 +50639,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const vals = [];
         for (let i = 0; i < N; i++) { const v = this.getCnValue(gene, s.ids[i]); if (v === v) { cn[i] = v; vals.push(v); } }
         if (vals.length < 10) { card.remove(); return; }
-        // Same rule as the cell line wiki: relative CN of 3 or more is an
-        // amplification, below 0.3 a deep deletion.
+        // The app's CN tiers (_cnTier): amplified from 3, deep deletion below
+        // 0.3. AMP / DEL only label the rows.
         const AMP = 3.0, DEL = 0.3;
-        const nAmp = vals.filter(v => v >= AMP).length, nDel = vals.filter(v => v < DEL).length;
+        const nAmp = vals.filter(v => this._cnTier(v).amp).length, nDel = vals.filter(v => this._cnTier(v).label === 'deep del').length;
         const tis = this._gbByTissue(s, (i) => cn[i] === cn[i] ? cn[i] : NaN);
-        const ampT = tis.map(t => ({ name: t.name, n: t.n, k: t.vals.filter(v => v >= AMP).length })).filter(t => t.k > 0)
+        const ampT = tis.map(t => ({ name: t.name, n: t.n, k: t.vals.filter(v => this._cnTier(v).amp).length })).filter(t => t.k > 0)
             .sort((a, b) => (b.k / b.n) - (a.k / a.n) || b.k - a.k).slice(0, 5);
-        const delT = tis.map(t => ({ name: t.name, n: t.n, k: t.vals.filter(v => v < DEL).length })).filter(t => t.k > 0)
+        const delT = tis.map(t => ({ name: t.name, n: t.n, k: t.vals.filter(v => this._cnTier(v).label === 'deep del').length })).filter(t => t.k > 0)
             .sort((a, b) => (b.k / b.n) - (a.k / a.n) || b.k - a.k).slice(0, 5);
         let link = '';
         if (s.exprVec) {
@@ -50670,7 +50667,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             + (ampT.length ? `<div class="gb-sub">Tissues most often amplified</div>${this._gbTissueRows(ampT, r => this._gbFmtPct(r.k, r.n))}` : '')
             + (delT.length ? `<div class="gb-sub">Tissues most often deleted</div>${this._gbTissueRows(delT, r => this._gbFmtPct(r.k, r.n))}` : '');
         card.outerHTML = this._gbSection('Copy number', body, 'DepMap gene-level relative copy number (OmicsCNGene).', 'gbCnCard');
-        this._gbHist('gbCnHist', vals.map(v => Math.min(v, 6)), { size: 0.1, xTitle: 'Relative copy number (capped at 6)', color: '#6b8fb5' });
+        this._gbHist('gbCnHist', vals.map(v => Math.min(v, 6)), { measure: 'cn', xTitle: 'Relative copy number (capped at 6)' });
     }
 
     _gbDrugCard(s) {
@@ -50826,7 +50823,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             for (let i = 0; i < N; i++) { const x = this.getCnValue(gene, s.ids[i]); if (x === x) { cn[i] = x; vals.push(x); } }
             out.copyNumber = vals.length < 10 ? null : {
                 nWithData: vals.length, median: r3(this._gbMedian(vals)),
-                nAmplified: vals.filter(x => x >= AMP).length, nDeleted: vals.filter(x => x < DEL).length,
+                nAmplified: vals.filter(x => this._cnTier(x).amp).length, nDeleted: vals.filter(x => this._cnTier(x).label === 'deep del').length,
                 copyNumberVsExpression: s.exprVec ? corr(cn, s.exprVec) : null,
                 copyNumberVsGeneEffect: s.hasGe ? corr(cn, s.ge) : null
             };
@@ -50878,14 +50875,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // pan-essentials out of the "uniquely essential" view below. Small
         // file; loaded once and cached for the session. Silently falls back
         // to an empty set on failure (filter becomes a no-op).
-        if (!this._commonEssentials) {
-            try {
-                const r = await fetch(this._dataUrl('web_data/common_essentials.json'));
-                this._commonEssentials = new Set(await r.json());
-            } catch (e) {
-                this._commonEssentials = new Set();
-            }
-        }
+        await this._ensureCommonEssentials();
         const name = this.getCellLineName(cellLineId);
         const m = this.cellLineMetadata || {};
         const get = (field) => m[field]?.[cellLineId] || '';
