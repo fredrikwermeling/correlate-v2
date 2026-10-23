@@ -50754,7 +50754,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         z += `<text x="${x1}" y="${zy + zh / 2 + 50}" text-anchor="end" font-size="8.5" fill="#9ca3af" font-family="Open Sans, Arial, sans-serif">Mb</text>`;
         if (pos != null) {
             const gx = X(pos), lab = `${this.esc(gene)}  ·  ${this.esc(this._gbLocText(loc))}  ·  ${pos.toFixed(1)} Mb`;
-            const band = me.bands?.find(b => pos * 1000 >= b[0] && pos * 1000 < b[1]);
+            // Outline the band the label names (Ensembl's call), so the two
+            // agree for genes near a band edge; else the band at the midpoint.
+            const named = String(loc.band || '').replace(new RegExp('^' + me.name), '');
+            const near = (b) => Math.abs((b[0] + b[1]) / 2000 - pos);
+            const band = (named && me.bands?.filter(b => b[2] === named || b[2].startsWith(named + '.')).sort((p1, p2) => near(p1) - near(p2))[0])
+                || me.bands?.find(b => pos * 1000 >= b[0] && pos * 1000 < b[1]);
             if (band) z += `<rect x="${X(band[0] / 1000).toFixed(2)}" y="${zy - zh / 2 - 2}" width="${Math.max(1.5, X(band[1] / 1000) - X(band[0] / 1000)).toFixed(2)}" height="${zh + 4}" rx="2" fill="none" stroke="#dc2626" stroke-width="1.5"/>`;
             const anchor = gx < ZW * 0.22 ? 'start' : gx > ZW * 0.78 ? 'end' : 'middle';
             z += `<line x1="${gx.toFixed(1)}" x2="${gx.toFixed(1)}" y1="${zy - zh / 2 - 16}" y2="${zy - zh / 2 - 3}" stroke="#dc2626" stroke-width="1.8"/>`
