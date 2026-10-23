@@ -50789,8 +50789,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
 
     async _gbFillAbout(s) {
         const gene = s.gene;
-        const [info] = await Promise.all([this.fetchGeneInfo(gene).catch(() => null), this.loadGeneLocations().catch(() => null), this._gbEnsureCytobands()]);
+        let [info] = await Promise.all([this.fetchGeneInfo(gene).catch(() => null), this.loadGeneLocations().catch(() => null), this._gbEnsureCytobands()]);
+        // One retry: a busy moment at MyGene.info should not leave the card
+        // saying the description is unavailable.
+        if (!info) { await new Promise(r => setTimeout(r, 1500)); info = await this.fetchGeneInfo(gene).catch(() => null); }
         if (this._gbGene !== gene) return;
+        // Only a record for exactly this symbol describes this gene.
+        const mismatch = info && String(info.symbol || '').toUpperCase() !== gene;
+        if (mismatch) info = null;
         const card = document.getElementById('gbAboutCard');
         if (!card) return;
         const loc = this.geneLocations?.[gene] || null;
@@ -50809,7 +50815,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const left = (info?.name ? `<div style="font-size:14px; font-weight:600; color:#374151; margin-bottom:2px;">${this._italicizeGenesInHtml(this.esc(info.name))}</div>` : '')
             + (typeWord ? `<div class="gb-m" style="margin-bottom:8px;">${this.esc(typeWord)}${loc ? `, ${this.esc(this._gbLocText(loc))}` : ''}</div>` : '')
             + (summary ? `<p style="margin:0 0 8px; font-size:12px; line-height:1.6;">${this._italicizeGenesInHtml(this.esc(summary))}</p>`
-                : `<p class="gb-m" style="margin:0 0 8px;">${info ? 'No description is available for this gene.' : 'The description could not be loaded (it needs an internet connection).'}</p>`)
+                : `<p class="gb-m" style="margin:0 0 8px;">${info ? 'No description is available for this gene.' : mismatch ? 'No description was found under this exact symbol.' : 'The description could not be loaded (it needs an internet connection).'}</p>`)
             + (syn.length ? this._gbRow('Also known as', this.esc(syn.join(', '))) : '')
             + (loc?.start != null ? this._gbRow('Position (GRCh38)', `chr${this.esc(String(loc.chr))}:${loc.start.toLocaleString()}-${loc.end.toLocaleString()} <span class="gb-m">(${((loc.end - loc.start) / 1000).toFixed(1)} kb)</span>`) : '')
             + (ids.length ? this._gbRow('Records', ids.join(' <span style="color:#9ca3af;">&middot;</span> ')) : '');
