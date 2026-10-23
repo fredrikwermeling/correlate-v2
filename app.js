@@ -57906,7 +57906,7 @@ ${clone.innerHTML}
             + `<rect width="${totalW}" height="${totalH}" fill="white"/>`
             + `<g>${plotInner}</g>`
             + `<g transform="translate(${plotW + gap}, 0)">`
-            +   `<text x="${loadW / 2}" y="${titleH - 12}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111827">Loadings (top 8)</text>`
+            +   `<text x="${loadW / 2}" y="${titleH - 12}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="700" fill="#111827">${this.esc(sidecar.querySelector('b')?.textContent || 'Loadings')}</text>`
             +   `<g transform="translate(0, ${titleH})">${loadingsInner}</g>`
             + `</g>`
             + `</svg>`;
@@ -57992,6 +57992,15 @@ ${clone.innerHTML}
         this._clbUmapData._compX = compX;
         this._clbUmapData._compY = compY;
 
+        // A gene colouring survives the redraw: switching axes or showing the
+        // loadings is not a request to go back to tissue colours.
+        const geneColor = this._clbUmapGeneColorActive;
+        if (geneColor) {
+            document.getElementById('clbUmapColorGene').value = geneColor.gene;
+            document.getElementById('clbUmapColorGeneType').value = geneColor.colorType;
+            this.applyUmapGeneColor();
+            return;
+        }
         const { cellLines, categories, mutStatus, splitGene } = this._clbUmapData;
         const colorBy = document.getElementById('clbUmapColorBy').value;
         this._renderUmapPlot(x, y, cellLines, categories, mutStatus, colorBy, splitGene);
@@ -58078,6 +58087,8 @@ ${clone.innerHTML}
         }));
         mags.sort((a, b) => b.mag - a.mag);
         const top = mags.slice(0, 8);
+        const loadTitle = mags.length > top.length ? `Loadings (top ${top.length})`
+            : `Loadings (${top.length} gene${top.length === 1 ? '' : 's'})`;
         if (top.length === 0) {
             if (sidecar) sidecar.style.display = 'none';
             return;
@@ -58152,7 +58163,7 @@ ${clone.innerHTML}
             // The SVG box then lines up with the plot's axes box.
             sidecar.innerHTML = `
                 <div style="height:50px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:8px;">
-                    <b style="font-size:14px; color:#111827;">Loadings (top 8)</b>
+                    <b style="font-size:14px; color:#111827;">${loadTitle}</b>
                 </div>
                 ${svg}`;
         }
