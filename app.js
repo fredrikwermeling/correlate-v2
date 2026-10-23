@@ -19680,6 +19680,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
 
     closeInspectModal() {
         document.getElementById('inspectModal').classList.remove('active');
+        // Undo a bump from the Gene Browser (_gbScatter); 1300 is its declared level.
+        document.getElementById('inspectModal').style.zIndex = '1300';
         // The gene card raised from this popout draws above it and outlives it
         // otherwise; it belongs to the view, so it goes with the view.
         this.hideGeneTooltip?.(true);
@@ -25554,6 +25556,33 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             layers: { drugResponse: false, fullCopyNumber: false, viralTransformation: false, identityWarnings: false, derivativePairs: false }, drugFilter: [], question: '' };
         try { await this.exportFullAIAnalysis({ custom, statusId: 'ctStatus', cutoffTable: true }); }
         finally { this._aiCutoff = null; }
+    }
+
+    _methodsGeneBrowser() {
+        const title = 'Gene Browser';
+        const s = this._gbState;
+        if (!s || !this._gbGene) return this._methodsNotReady(title, 'Look up a gene in the Gene Browser first.');
+        const gene = s.gene, dep = this._gbDepCut, ex = this._gbExprCut;
+        const nGe = s.geVals.length, nEx = s.expr?.n;
+        const condensed = this._mSentences([
+            this._methodsDataSentence('both'),
+            `For ${gene}, the share of cell lines with a gene effect below ${dep} (${this._mNum(nGe)} screened lines)${nEx ? ` and with an expression of at least ${ex} log2(TPM+1) (${this._mNum(nEx)} lines)` : ''} was calculated, and tissues with at least 5 lines were summarized by their mean gene effect and median expression.`,
+            s.split ? `Gene effect in ${s.split.label} and wild-type lines was compared with a two-sided Welch t-test.` : '',
+            `Pearson correlations were computed over the cell lines with both values: expression against gene effect, copy number against expression, drug sensitivity (PRISM AUC) against gene effect for compounds annotated to target ${gene}, and ${gene}'s gene effect against that of every other gene in the screen (genes with at least 100 shared lines).`,
+            'Relative copy number of at least 3 was counted as amplification and below 0.3 as deep deletion.',
+            this._methodsCitation()
+        ]);
+        const long = this._mBlocks([
+            this._methodsHeaderBlock(title, 'both'),
+            `THE GENE\n   ${gene}${s.loc ? `, ${this._gbLocText(s.loc)}` : ''}. Every number on the page uses all cell lines with data for that layer; no tissue or other filter is applied.`,
+            `DEPENDENCY\n   ${this._mNum(nGe)} screened lines. "Dependent" means a gene effect below ${dep}, the Threshold scan's default. The wording in the summary (a common essential gene, a dependency in most lines, a selective dependency, a dependency in a few lines, rarely a dependency) follows the common-essentials list first, then the share of lines below the cutoff (50% or more, 5%, 1%).`,
+            nEx ? `EXPRESSION\n   ${this._mNum(nEx)} lines. "Expressed" means at least ${ex} log2(TPM+1).` : '',
+            `MUTATIONS AND FUSIONS\n   Hotspot, any-mutation, functional-loss and fusion calls as used across the app. Percentages use all ${this._mNum(s.N)} lines as the denominator, including lines that were never sequenced. Specific variants come from the inferred-subtype layer.${s.split ? ` Mutated (${s.split.label}, n = ${s.split.mut.length}) and wild-type (n = ${s.split.wt.length}) lines were compared with a two-sided Welch t-test on gene effect.` : ''}`,
+            'COPY NUMBER\n   Gene-level relative copy number (1 = the line\'s own baseline). The app\'s copy-number tiers: amplified from 3, deep deletion below 0.3.',
+            `RELATED GENES\n   Co-dependencies: the 10 genes whose gene effect correlates most positively with ${gene}'s (Pearson r, genes with at least 100 shared lines, p from the t distribution, not corrected for the number of genes tested). Complex partners from CORUM, pathway partners from Reactome.`,
+            'WHAT THIS DOES NOT SAY\nA correlation across cell lines does not show that two genes act together, and differences between tissues can drive it. A mutated-versus-wild-type difference across the whole panel can reflect lineage rather than the mutation; Mutation analysis inside one tissue separates the two.'
+        ]);
+        return { title, condensed, long };
     }
 
     _methodsCutoff() {
@@ -33505,6 +33534,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 const m = this._buildPopoutMeta(kind);
                 return { network: m.network, popout: m.popout };
             } catch (e) { return {}; }
+        }
+        if (fileStem === 'correlate_genebrowser' && this._gbGene) {
+            return { graphType: 'genebrowser', gbGene: this._gbGene };
         }
         if (fileStem === 'correlate_wiki' && this._wikiCellLineId != null) {
             return { graphType: 'wiki', wikiCellLine: this._wikiCellLineId };
@@ -50279,7 +50311,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     _gbRenderEmpty() {
         this._gbGene = null;
         document.getElementById('gbSubtitle').textContent = '';
-        const ai = document.getElementById('gbAnalyzeWithAI'); if (ai) ai.disabled = true;
+        document.querySelectorAll('#gbModal .gb-needs-gene').forEach(b => { b.disabled = true; });
         const chips = ['KRAS', 'MYC', 'CDK6'].map(g => `<button class="gb-chip" data-gb-gene="${g}">${this.gi(g)}</button>`).join('');
         document.getElementById('gbCards').innerHTML = `<div class="gb-empty">Type a gene symbol above, or try ${chips}</div>`;
     }
@@ -50314,6 +50346,24 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     setupGeneBrowserEvents() {
         document.getElementById('showGeneBrowser')?.addEventListener('click', (e) => { e.preventDefault(); this.openGeneBrowser(); });
         document.getElementById('gbCloseBtn')?.addEventListener('click', () => this.closeGeneBrowser());
+        document.getElementById('gbExportImageBtn')?.addEventListener('click', () => { if (this._gbGene) this.screenshotPopout('gbCards', 'correlate_genebrowser'); });
+        document.getElementById('gbMethodsBtn')?.addEventListener('click', () => this.openMethods('genebrowser'));
+        document.getElementById('gbDownloadBtn')?.addEventListener('click', () => {
+            if (!this._gbGene) return;
+            this.downloadCellLineWiki({
+                bodyId: 'gbCards', btnId: 'gbDownloadBtn', scopeClass: 'gb-scope',
+                title: `Gene Browser: ${this._gbGene}`,
+                subtitle: document.getElementById('gbSubtitle')?.textContent || '',
+                credit: 'data from DepMap 26Q1, CORUM and Reactome'
+            });
+        });
+        document.getElementById('gbResetBtn')?.addEventListener('click', () => {
+            const box = document.getElementById('gbGene');
+            if (box) box.value = '';
+            this._gbRenderEmpty();
+            document.getElementById('gbModal').scrollTop = 0;
+            box?.focus();
+        });
         document.getElementById('gbModal')?.addEventListener('click', (e) => { if (e.target.id === 'gbModal') this.closeGeneBrowser(); });
         const box = document.getElementById('gbGene');
         document.getElementById('gbShowBtn')?.addEventListener('click', () => this._gbGo(box.value));
@@ -50331,11 +50381,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 this.openCellLineWiki(cl.dataset.gbCl);
                 return;
             }
+            const sc = e.target.closest('[data-gb-scatter]');
+            if (sc && this._gbGene) { e.preventDefault(); this._gbScatter(this._gbGene, sc.dataset.gbScatter, 'ge', 'ge'); return; }
             const act = e.target.closest('[data-gb-act]');
-            if (act && this._gbGene) {
-                const dt = act.dataset.gbAct === 'expr' ? 'expr' : 'ge';
-                this.openGeneEffectModal(this._gbGene, 'tissue', { dataType: dt });
-            }
+            if (act && this._gbGene) this._gbAction(act.dataset.gbAct);
         });
         // Cell line names show the same hover card as the dots on a plot.
         let timer = null;
@@ -50548,7 +50597,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (this._gbGene !== gene) return;
         const s = this._gbCore(gene);
         this._gbState = s;
-        const ai = document.getElementById('gbAnalyzeWithAI'); if (ai) ai.disabled = false;
+        document.querySelectorAll('#gbModal .gb-needs-gene').forEach(b => { b.disabled = false; });
         const gname = this.gi(gene);
         s.tissues = this._gbByTissue(s, (i) => s.ge[i]).map(t => ({ name: t.name, n: t.n, mean: this.mean(t.vals), vals: t.vals }))
             .sort((a, b) => a.mean - b.mean);
@@ -50614,7 +50663,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             + `<div class="gb-grid"><div><div id="gbGeHist" class="gb-hist"></div></div><div>${stats}</div></div>`
             + (topT.length ? `<div class="gb-sub">Most dependent tissues <span class="gb-m">(mean gene effect, tissues with 5 or more lines)</span></div>${this._gbTissueRows(topT, r => this._gbNum(r.mean))}` : '')
             + `<div class="gb-sub">Most dependent cell lines</div>${this._gbTopLines(topL)}`
-            + `<div style="margin-top:10px;"><button class="btn btn-outline btn-sm" data-gb-act="ge" style="font-size:11px; padding:3px 10px;" title="Open this gene in the Gene effect view, by tissue">Open in Gene effect view</button></div>`;
+            + `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="ge" title="Open this gene in the Gene effect view, by tissue">Open in Gene effect view</button></div>`;
         return this._gbSection('Dependency (CRISPR gene effect)', body, 'DepMap 26Q1 CRISPRGeneEffect (Chronos).');
     }
 
@@ -50671,7 +50720,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             + `<div class="gb-grid" style="margin-top:6px;"><div><div class="gb-sub">Highest tissues <span class="gb-m">(median)</span></div>${this._gbTissueRows(high, r => this._gbNum(r.med))}</div>`
             + `<div><div class="gb-sub">Lowest tissues <span class="gb-m">(median)</span></div>${this._gbTissueRows(low, r => this._gbNum(r.med))}</div></div>`
             + `<div class="gb-sub">Highest-expressing cell lines</div>${this._gbTopLines(topL)}`
-            + `<div style="margin-top:10px;"><button class="btn btn-outline btn-sm" data-gb-act="expr" style="font-size:11px; padding:3px 10px;" title="Open this gene in the Gene effect / expression view, as mRNA by tissue">Open in expression view</button></div>`;
+            + `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="expr" title="Open this gene in the Gene effect / expression view, as mRNA by tissue">Open in expression view</button>`
+            + (s.hasGe ? `<button class="btn btn-outline btn-sm" data-gb-act="sc-expr-ge" title="A scatter of each cell line's expression of this gene against its gene effect">Expression vs gene effect scatter</button>` : '')
+            + `</div>`;
         card.outerHTML = this._gbSection('Expression (mRNA)', body, 'DepMap 26Q1 OmicsExpressionTPMLogp1 (log₂ TPM+1).', 'gbExprCard');
         this._gbHist('gbExprHist', vals, { measure: 'expr', cut, dir: 'above', xTitle: 'log₂ TPM+1' });
     }
@@ -50699,8 +50750,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 + this._gbRow('Mean gene effect, wild-type', `${this._gbNum(mw)} <span class="gb-m">(n = ${sp.wt.length})</span>`)
                 + this._gbRow('Welch t-test', `p = ${this._gbP(sp.t.p)}`);
         }
+        const mk = this._gbMutKind(s.gene);
+        const mkWord = { hotspot: 'hotspot-mutated', damaging: 'functional-loss', translocation: 'fused' }[mk];
         const body = this._gbDesc('How often this gene is mutated or fused across the cell lines, and whether mutated lines depend on it differently.')
-            + rows + vars + tis + cmp;
+            + rows + vars + tis + cmp
+            + (mk ? `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="mut" title="Open Mutation analysis split on ${this.esc(s.gene)} (${mkWord} vs the rest) and run it: which genes do these lines depend on more or less?">Mutation analysis for this gene</button></div>` : '');
         return this._gbSection('Mutations and fusions', body, 'DepMap 26Q1 hotspot and damaging mutation calls, fusion calls and the integrated functional-loss call; specific variants from the inferred-subtype layer.');
     }
 
@@ -50742,7 +50796,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const body = this._gbDesc('Gene-level copy number relative to each line’s own baseline: above 1 is a gain, below 1 a loss.')
             + `<div class="gb-grid"><div><div id="gbCnHist" class="gb-hist"></div></div><div>${stats}</div></div>`
             + (ampT.length ? `<div class="gb-sub">Tissues most often amplified</div>${this._gbTissueRows(ampT, r => this._gbFmtPct(r.k, r.n))}` : '')
-            + (delT.length ? `<div class="gb-sub">Tissues most often deleted</div>${this._gbTissueRows(delT, r => this._gbFmtPct(r.k, r.n))}` : '');
+            + (delT.length ? `<div class="gb-sub">Tissues most often deleted</div>${this._gbTissueRows(delT, r => this._gbFmtPct(r.k, r.n))}` : '')
+            + (s.exprVec ? `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="sc-cn-expr" title="A scatter of each cell line's copy number of this gene against its expression">Copy number vs expression scatter</button></div>` : '');
         card.outerHTML = this._gbSection('Copy number', body, 'DepMap gene-level relative copy number (OmicsCNGene).', 'gbCnCard');
         this._gbHist('gbCnHist', vals.map(v => Math.min(v, 6)), { measure: 'cn', xTitle: 'Relative copy number (capped at 6)' });
     }
@@ -50815,14 +50870,99 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const reactome = (this.reactomePartners?.partners?.[gene] || []).filter(g => g !== gene);
         const mice = Object.keys(this.orthologs?.mouseToHuman || {}).filter(k => this.orthologs.mouseToHuman[k] === gene)
             .map(k => k.charAt(0) + k.slice(1).toLowerCase());
-        const co = top.length ? `<div class="gb-sub">Most similar gene-effect profile <span class="gb-m">(Pearson r across screened lines)</span></div>`
-            + top.map(h => `<div class="gb-trow"><span class="gb-trow-n"><a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a></span><span class="gb-trow-v">r = ${this._gbNum(h.r)}</span><span class="gb-trow-c">p = ${this._gbP(h.p)}, n = ${h.n.toLocaleString()}</span></div>`).join('') : '';
-        const body = this._gbDesc('Genes that behave like this one across the CRISPR screen, and genes it shares a complex or pathway with. Click a gene to open it here.')
+        const g = this.gi(gene);
+        const co = top.length ? `<div class="gb-sub">Co-dependencies <span class="gb-m">(lines that depend on ${g} also depend on these, and the other way round)</span></div>`
+            + `<div class="gb-trow gb-m"><span class="gb-trow-n">Gene</span><span class="gb-trow-v" style="font-weight:400;">r</span><span class="gb-trow-c">p, cell lines</span></div>`
+            + top.map(h => `<div class="gb-trow"><span class="gb-trow-n"><a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a></span><span class="gb-trow-v">${this._gbNum(h.r)}</span><span class="gb-trow-c">p = ${this._gbP(h.p)}, ${h.n.toLocaleString()} lines <a href="#" class="gb-act" data-gb-scatter="${this.esc(h.gene)}" title="Open the correlation scatter of ${this.esc(gene)} against ${this.esc(h.gene)}">Scatter &#9656;</a></span></div>`).join('')
+            + `<div class="gb-actions">`
+            + `<button class="btn btn-outline btn-sm" data-gb-act="net-codep" title="Run Gene set analysis on ${this.esc(gene)} and these ${top.length} genes, drawn as a correlation network">Network of these genes</button>`
+            + `<button class="btn btn-outline btn-sm" data-gb-act="hm-codep" title="Show ${this.esc(gene)} and these ${top.length} genes as a heatmap across the cell lines">Heatmap of these genes</button>`
+            + `<button class="btn btn-outline btn-sm" data-gb-act="expand" title="Search every gene in the screen for ones whose gene effect correlates with ${this.esc(gene)}, drawn as a network (Gene set analysis, Expand my set)">Find more correlated genes</button>`
+            + `</div>` : '';
+        const body = this._gbDesc(`Genes linked to ${g} in two ways: by the data (co-dependencies, genes whose gene effect rises and falls with ${g}'s across the screened cell lines; r is the Pearson correlation, 1 = identical pattern) and by prior knowledge (proteins in the same complex or pathway). Click a gene name to open it here; hover for a summary.`)
             + co
-            + (corum.length ? `<div class="gb-sub">Complex partners <span class="gb-m">(CORUM)</span></div><div class="gb-chips">${list(corum, 15)}</div>` : '')
-            + (reactome.length ? `<div class="gb-sub">Pathway partners <span class="gb-m">(Reactome)</span></div><div class="gb-chips">${list(reactome, 15)}</div>` : '')
+            + (corum.length ? `<div class="gb-sub">Complex partners <span class="gb-m">(same protein complex, CORUM)</span></div><div class="gb-chips">${list(corum, 15)}</div>`
+                + `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="net-corum" title="Run Gene set analysis on ${this.esc(gene)} and its complex partners: do they behave as one unit in the screen?">Network of the complex</button>`
+                + `<button class="btn btn-outline btn-sm" data-gb-act="hm-corum" title="Show ${this.esc(gene)} and its complex partners as a heatmap across the cell lines">Heatmap of the complex</button></div>` : '')
+            + (reactome.length ? `<div class="gb-sub">Pathway partners <span class="gb-m">(same Reactome pathway)</span></div><div class="gb-chips">${list(reactome, 15)}</div>` : '')
             + (mice.length ? this._gbRow('Mouse ortholog', this.esc(mice.join(', '))) : '');
         card.outerHTML = this._gbSection('Related genes', body, 'DepMap 26Q1 CRISPRGeneEffect (correlation), CORUM complexes, Reactome pathways, mouse orthologs.', 'gbRelCard');
+    }
+
+    // Hand-offs from the cards to the rest of the app, each through the
+    // path that view's own buttons use.
+    _gbAction(act) {
+        const gene = this._gbGene, s = this._gbState;
+        if (!gene) return;
+        const coDep = (this._gbCoDepCache?.get(gene) || []).map(h => h.gene);
+        const corum = (this.corumPartners?.partners?.[gene] || []).filter(g => g !== gene);
+        if (act === 'ge' || act === 'expr') { this.openGeneEffectModal(gene, 'tissue', { dataType: act }); return; }
+        if (act === 'sc-expr-ge') { this._gbScatter(gene, gene, 'expr', 'ge'); return; }
+        if (act === 'sc-cn-expr') { this._gbScatter(gene, gene, 'cn', 'expr'); return; }
+        if (act === 'hm-codep') { this._gbHeatmap([gene, ...coDep]); return; }
+        if (act === 'hm-corum') { this._gbHeatmap([gene, ...corum]); return; }
+        // These run on the main page or in the Mutation analysis popout,
+        // which sit below the Gene Browser, so it closes first.
+        if (act === 'net-codep' || act === 'net-corum' || act === 'expand') {
+            const genes = act === 'expand' ? [gene] : [gene, ...(act === 'net-codep' ? coDep : corum)];
+            this.closeGeneBrowser();
+            this._openGenesFromLink(genes.join(','));
+            document.getElementById('resultsCard')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            return;
+        }
+        if (act === 'mut' && s) this._gbOpenMutationAnalysis(s);
+    }
+
+    // The correlation scatter, stacked above the Gene Browser; it goes back
+    // to its own level when closed (closeInspectModal).
+    _gbScatter(g1, g2, x, y) {
+        this.openInspectByGenes(g1, g2, { x, y });
+        const m = document.getElementById('inspectModal');
+        const gbZ = parseInt(document.getElementById('gbModal')?.style.zIndex) || 1365;
+        if (m) m.style.zIndex = String(gbZ + 10);
+    }
+
+    // Same steps as the network's "Open in heatmap": open (which resets),
+    // then set the custom gene list and draw.
+    _gbHeatmap(genes) {
+        this._hmOpenModal();
+        const preset = document.getElementById('hmPreset');
+        if (preset) preset.value = 'custom';
+        const box = document.getElementById('hmGenes');
+        if (box) box.value = [...new Set(genes)].join('\n');
+        const dt = document.getElementById('hmDataType');
+        if (dt) dt.value = 'ge';
+        const sc = document.getElementById('hmScale');
+        if (sc) sc.value = this._hmDefaultScaleFor('ge');
+        this._hmRedraw();
+    }
+
+    // Which Mutation analysis sub-type can split on this gene, if any.
+    _gbMutKind(gene) {
+        if (this.mutations?.geneData?.[gene]) return 'hotspot';
+        const loss = this.functionalLoss || this.damagingMutations;
+        if (loss?.geneData?.[gene]) return 'damaging';
+        if (this._fusionAxisData?.geneData?.[gene]) return 'translocation';
+        return null;
+    }
+
+    _gbOpenMutationAnalysis(s) {
+        const kind = this._gbMutKind(s.gene);
+        if (!kind) return;
+        this.closeGeneBrowser();
+        this._setAnalysisLocked(false);
+        this._setAnalysisMode('mutation');
+        const radio = document.querySelector(`input[name="mutAnalysisType"][value="${kind}"]`);
+        if (radio) radio.checked = true;
+        this.updateMutAnalysisTypeUI();
+        const selId = kind === 'hotspot' ? 'mutationHotspotSelect' : kind === 'damaging' ? 'damagingHotspotSelect' : 'translocationHotspotSelect';
+        const sel = document.getElementById(selId);
+        if (!sel) return;
+        sel.value = s.gene;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        // A gene too rare for the list's minimum is left for the user to see
+        // rather than run on an empty group.
+        if (sel.value === s.gene) this.runAnalysis();
     }
 
     // The numbers behind every card, for Export for AI. Recomputed from the
@@ -53227,14 +53367,16 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         this.showCopyNotification?.(`Exported breast receptor expression (this line: ${name})`);
     }
 
-    async downloadCellLineWiki() {
-        const title = document.getElementById('clbWikiTitle')?.textContent || 'Cell Line Wiki';
-        const subtitle = document.getElementById('clbWikiSubtitle')?.textContent || '';
-        const liveBody = document.getElementById('clbWikiBody');
+    // Also writes the Gene Browser's PDF: opts names the page, its title and
+    // button, and a scope class its styles hang on.
+    async downloadCellLineWiki(opts = {}) {
+        const title = opts.title || document.getElementById('clbWikiTitle')?.textContent || 'Cell Line Wiki';
+        const subtitle = opts.subtitle ?? (document.getElementById('clbWikiSubtitle')?.textContent || '');
+        const liveBody = document.getElementById(opts.bodyId || 'clbWikiBody');
         if (!liveBody || !liveBody.innerHTML.trim()) { alert('Open a cell-line Wiki first.'); return; }
         const date = new Date().toISOString().slice(0, 10);
 
-        const btn = document.getElementById('clbWikiDownloadBtn');
+        const btn = document.getElementById(opts.btnId || 'clbWikiDownloadBtn');
         const btnLabel = btn ? btn.textContent : '';
         if (btn) { btn.textContent = 'Preparing…'; btn.disabled = true; }
 
@@ -53267,7 +53409,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 }
             }
             // Strip interactive-only chrome that shouldn't be in a static document.
-            clone.querySelectorAll('.modebar, .modebar-container, button, .js-plotly-plot').forEach(e => e.remove());
+            clone.querySelectorAll('.modebar, .modebar-container, button, .js-plotly-plot, .gb-act, .gb-actions').forEach(e => e.remove());
 
             const safeName = (title.replace(/[^A-Za-z0-9_-]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')) || 'CellLineWiki';
             const fileName = `${safeName}_${date}.pdf`;
@@ -53276,11 +53418,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             // jsPDF + html2canvas render a real .pdf FILE directly (no print
             // dialog / no "Save as PDF" printer needed).
             const holder = document.createElement('div');
+            if (opts.scopeClass) holder.className = opts.scopeClass;
             holder.style.cssText = "position:fixed; left:-99999px; top:0; width:760px; background:#fff; padding:26px; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; color:#374151; line-height:1.5; font-size:12.5px;";
             holder.innerHTML = `<h1 style="color:#4c782e;margin:0 0 4px;font-size:22px;">${title}</h1>
                 <div style="font-size:11px;color:#6b7280;margin-bottom:16px;">${subtitle}</div>
                 ${clone.innerHTML}
-                <div style="margin-top:20px;font-size:10px;color:#9ca3af;">Generated ${date} by Correlate V2, data from DepMap 26Q1 and Cellosaurus.</div>`;
+                <div style="margin-top:20px;font-size:10px;color:#9ca3af;">Generated ${date} by Correlate V2, ${opts.credit || 'data from DepMap 26Q1 and Cellosaurus'}.</div>`;
             document.body.appendChild(holder);
 
             const JS = window.jspdf?.jsPDF || window.jsPDF;
@@ -65985,7 +66128,8 @@ ${clone.innerHTML}
             clb:            { title: 'Cell Line Browser', stem: 'cell_line_browser' },
             selection:      { title: 'Selection inspect', stem: 'selection_inspect' },
             umap:           { title: 'UMAP / PCA', stem: 'umap_pca' },
-            cutoff:         { title: 'Threshold scan', stem: 'threshold_scan' }
+            cutoff:         { title: 'Threshold scan', stem: 'threshold_scan' },
+            genebrowser:    { title: 'Gene Browser', stem: 'gene_browser' }
         };
     }
 
@@ -66014,6 +66158,7 @@ ${clone.innerHTML}
                 case 'selection': return this._methodsSelectionInspect();
                 case 'umap': return this._methodsUmap();
                 case 'cutoff': return this._methodsCutoff();
+                case 'genebrowser': return this._methodsGeneBrowser();
                 default: return this._methodsNotReady(title, 'No description has been written for this view.');
             }
         } catch (err) {

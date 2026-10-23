@@ -1710,39 +1710,42 @@
            stays readable instead of running together as tiny comma-separated
            text. */
         /* Gene Browser */
-        #gbBody .gb-card { margin-bottom:16px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.04); overflow:hidden; }
-        #gbBody .gb-card-head { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid #eef2f7; background:#f7fbf8; }
-        #gbBody .gb-dot { width:8px; height:8px; border-radius:50%; background:#4c782e; flex:0 0 auto; }
-        #gbBody .gb-card-head h3 { margin:0; font-size:13px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#4c782e; }
-        #gbBody .gb-card-body { padding:12px 14px; }
-        #gbBody .gb-card-src { padding:8px 14px; border-top:1px solid #f1f5f9; font-size:10px; color:#9ca3af; }
-        #gbBody .gb-desc { margin:0 0 10px; font-size:11px; color:#6b7280; }
-        #gbBody .gb-summary { font-size:13px; line-height:1.6; }
-        #gbBody .gb-m { font-size:10px; color:#6b7280; }
-        #gbBody .gb-sub { font-weight:600; color:#374151; font-size:12px; margin:12px 0 4px; }
-        #gbBody .gb-loading, #gbBody .gb-empty { font-size:11px; color:#9ca3af; padding:4px 0; }
-        #gbBody .gb-empty { font-size:12px; color:#6b7280; }
-        #gbBody .gb-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:14px; align-items:start; }
-        #gbBody .gb-hist { height:200px; }
-        #gbBody .gb-kv { display:flex; gap:12px; padding:3px 0; align-items:baseline; }
-        #gbBody .gb-kv-l { flex:0 0 170px; color:#6b7280; font-size:11px; }
-        #gbBody .gb-kv-v { flex:1; min-width:0; }
-        #gbBody .gb-trow { display:flex; gap:10px; padding:2px 0; align-items:baseline; border-bottom:1px solid #f3f4f6; }
-        #gbBody .gb-trow-n { flex:1 1 0; min-width:0; overflow-wrap:anywhere; }
-        #gbBody .gb-trow-v { flex:0 0 auto; font-weight:600; }
-        #gbBody .gb-trow-c { flex:0 0 38%; max-width:38%; text-align:right; font-size:10px; color:#6b7280; }
-        #gbBody .gb-drug { padding:5px 0; border-bottom:1px solid #f3f4f6; }
-        #gbBody .gb-cl { color:#3730a3; text-decoration:none; }
-        #gbBody .gb-cl:hover { text-decoration:underline; }
-        #gbBody .gb-chips { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
-        #gbBody .gb-chip { border:1px solid #d1d5db; background:#f9fafb; color:#4c782e; font-weight:600; border-radius:10px; padding:2px 10px; cursor:pointer; font-size:11px; margin:0 4px 4px 0; }
-        #gbBody .gb-chip:hover { background:#f3faee; border-color:#b2dd95; }
+        .gb-scope .gb-card { margin-bottom:16px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.04); overflow:hidden; }
+        .gb-scope .gb-card-head { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid #eef2f7; background:#f7fbf8; }
+        .gb-scope .gb-dot { width:8px; height:8px; border-radius:50%; background:#4c782e; flex:0 0 auto; }
+        .gb-scope .gb-card-head h3 { margin:0; font-size:13px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#4c782e; }
+        .gb-scope .gb-card-body { padding:12px 14px; }
+        .gb-scope .gb-card-src { padding:8px 14px; border-top:1px solid #f1f5f9; font-size:10px; color:#9ca3af; }
+        .gb-scope .gb-desc { margin:0 0 10px; font-size:11px; color:#6b7280; }
+        .gb-scope .gb-summary { font-size:13px; line-height:1.6; }
+        .gb-scope .gb-m { font-size:10px; color:#6b7280; }
+        .gb-scope .gb-sub { font-weight:600; color:#374151; font-size:12px; margin:12px 0 4px; }
+        .gb-scope .gb-loading, .gb-scope .gb-empty { font-size:11px; color:#9ca3af; padding:4px 0; }
+        .gb-scope .gb-empty { font-size:12px; color:#6b7280; }
+        .gb-scope .gb-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:14px; align-items:start; }
+        .gb-scope .gb-hist { height:200px; }
+        .gb-scope .gb-kv { display:flex; gap:12px; padding:3px 0; align-items:baseline; }
+        .gb-scope .gb-kv-l { flex:0 0 170px; color:#6b7280; font-size:11px; }
+        .gb-scope .gb-kv-v { flex:1; min-width:0; }
+        .gb-scope .gb-trow { display:flex; gap:10px; padding:2px 0; align-items:baseline; border-bottom:1px solid #f3f4f6; }
+        .gb-scope .gb-trow-n { flex:1 1 0; min-width:0; overflow-wrap:anywhere; }
+        .gb-scope .gb-trow-v { flex:0 0 auto; font-weight:600; }
+        .gb-scope .gb-trow-c { flex:0 0 38%; max-width:38%; text-align:right; font-size:10px; color:#6b7280; }
+        .gb-scope .gb-drug { padding:5px 0; border-bottom:1px solid #f3f4f6; }
+        .gb-scope .gb-cl { color:#3730a3; text-decoration:none; }
+        .gb-scope .gb-cl:hover { text-decoration:underline; }
+        .gb-scope .gb-act { color:#4c782e; font-weight:600; text-decoration:none; margin-left:6px; white-space:nowrap; }
+        .gb-scope .gb-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+        .gb-scope .gb-actions .btn { font-size:11px; padding:3px 10px; }
+        .gb-scope .gb-chips { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+        .gb-scope .gb-chip { border:1px solid #d1d5db; background:#f9fafb; color:#4c782e; font-weight:600; border-radius:10px; padding:2px 10px; cursor:pointer; font-size:11px; margin:0 4px 4px 0; }
+        .gb-scope .gb-chip:hover { background:#f3faee; border-color:#b2dd95; }
         @media (max-width: 640px) {
             #gbBody { padding:12px 10px !important; }
-            #gbBody .gb-grid { grid-template-columns:1fr; }
-            #gbBody .gb-kv { flex-direction:column; gap:0; }
-            #gbBody .gb-kv-l { flex:0 0 auto; }
-            #gbBody .gb-trow-c { flex-basis:34%; max-width:34%; }
+            .gb-scope .gb-grid { grid-template-columns:1fr; }
+            .gb-scope .gb-kv { flex-direction:column; gap:0; }
+            .gb-scope .gb-kv-l { flex:0 0 auto; }
+            .gb-scope .gb-trow-c { flex-basis:34%; max-width:34%; }
         }
         #clbWikiBody { font-size: 12px; line-height: 1.55; }
         #clbWikiBody .wiki-sub-h { font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 3px; }
@@ -2893,6 +2896,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.42 (2026-10-23)</strong></p>
+                <ul>
+                    <li><b>Gene Browser: more ways into the rest of the app.</b> Related genes explains what it lists and gives each co-dependent gene a Scatter link, plus buttons to draw the gene and its co-dependencies (or its complex partners) as a network or a heatmap, and to find every gene correlated with it. The mutation card opens Mutation analysis for the gene; the expression and copy-number cards open the matching scatter.</li>
+                    <li><b>Gene Browser header:</b> Export image, Methods, Download PDF and Reset, beside Export for AI.</li>
+                </ul>
                 <p><strong>v.90.41 (2026-10-23)</strong></p>
                 <ul>
                     <li>Gene Browser: the tissue tables for mutations and copy number say how many of the tissue's lines are altered ("50 of 75 lines") instead of a bare n, which read as the number altered.</li>
@@ -8256,7 +8264,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.41</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.42</a>
         </span>
     </div>
 
@@ -10764,11 +10772,15 @@
             <div id="gbSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px; min-height:14px;"></div>
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
-            <button id="gbAnalyzeWithAI" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px;" disabled title="Package this gene as one file for a language model, so you can ask questions about it">Export for AI</button>
+            <button id="gbExportImageBtn" class="btn btn-outline btn-sm mobile-hide gb-needs-gene" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" disabled title="Save the page as an image, choosing format, resolution and whether to capture the whole page or just what is on screen">Export image...</button>
+            <button id="gbMethodsBtn" class="btn btn-outline btn-sm mobile-hide gb-needs-gene" style="font-size:11px; padding:4px 10px;" disabled title="Write out how every number on this page was calculated, as a methods paragraph and as a plain walk-through">Methods</button>
+            <button id="gbAnalyzeWithAI" class="btn btn-outline btn-sm mobile-hide gb-needs-gene" style="font-size:11px; padding:4px 10px;" disabled title="Package this gene as one file for a language model, so you can ask questions about it">Export for AI</button>
+            <button id="gbDownloadBtn" class="btn btn-outline btn-sm mobile-hide gb-needs-gene" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" disabled title="Download this page as a multi-page PDF (charts embedded as images, white background)">Download PDF</button>
+            <button id="gbResetBtn" class="btn btn-outline btn-sm gb-needs-gene" style="font-size:11px; padding:4px 10px;" disabled title="Clear the gene and start again">Reset</button>
             <button id="gbCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;" title="Close the Gene Browser">&times;</button>
           </div>
         </div>
-        <div id="gbBody" style="padding:16px 20px; font-size:12px; line-height:1.55; color:#374151; background:#f9fafb; border-radius:0 0 8px 8px;">
+        <div id="gbBody" class="gb-scope" style="padding:16px 20px; font-size:12px; line-height:1.55; color:#374151; background:#f9fafb; border-radius:0 0 8px 8px;">
           <div class="main-input" style="display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
             <label for="gbGene" style="font-size:13px; font-weight:600; color:#374151; white-space:nowrap;">Gene:</label>
             <input type="text" id="gbGene" class="form-control" placeholder="Gene symbol" autocomplete="off" style="width:150px; font-size:13px; padding:6px 10px;">
@@ -11559,7 +11571,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_41"></script>
+    <script src="app.js?v=v90_42"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
