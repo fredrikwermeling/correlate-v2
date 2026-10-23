@@ -14180,6 +14180,13 @@ class CorrelationExplorer {
 
             if (params.nodes.length > 0) {
                 const nodeId = params.nodes[0];
+                // Shift-click a gene opens it in the Gene Browser, as Shift-click
+                // on a cell line opens its Wiki.
+                if (params.event?.srcEvent?.shiftKey && !this.highlightMode && !this.selectMode && !this.removeMode) {
+                    this.hideGeneTooltip?.(true);
+                    this.openGeneBrowser(String(nodeId).toUpperCase());
+                    return;
+                }
 
                 // Highlight Mode: toggle the highlight ring on the clicked gene
                 if (this.highlightMode) {
@@ -38797,7 +38804,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             // anywhere: the card is dismissed by tapping away from it.
             const _hint = window.innerWidth <= 640
                 ? 'Tap anywhere to close'
-                : (el.dataset.pinned === '1' ? 'Esc to close' : 'Hold Shift for full text');
+                : (el.dataset.pinned === '1' ? 'Esc to close' : 'Hold Shift for full text · Shift-click opens the Gene Browser');
             html += `<div style="color:#9ca3af; margin-top:4px;">${_hint}</div>`;
             html += `</div>`;
 
@@ -65169,12 +65176,16 @@ ${clone.innerHTML}
     // silently when it would silence the last drawn gene.
     _hmOnLabelClick(e) {
         const d = this._hmData;
-        if (!d || this._hmViewOnly()) return;
+        if (!d) return;
         const labelCanvas = document.getElementById('hmLabelCanvas');
         const rect = labelCanvas.getBoundingClientRect();
         const y = e.clientY - rect.top;
         const rowIdx = Math.floor(y / d.cellH);
         if (rowIdx < 0 || rowIdx >= d.orderedGenes.length) return;
+        // Shift-click opens the gene in the Gene Browser, as it does on gene
+        // names elsewhere; a plain click silences the row.
+        if (e.shiftKey) { this.hideGeneTooltip?.(true); this.openGeneBrowser(d.orderedGenes[rowIdx]); return; }
+        if (this._hmViewOnly()) return;
         if (d.orderedGenes.length <= 1) return;
         const gene = d.orderedGenes[rowIdx];
         this._hmSilencedGenes = this._hmSilencedGenes || new Set();
@@ -67388,6 +67399,19 @@ document.addEventListener('DOMContentLoaded', () => {
         window.app?.hideCellLineTooltip?.();
     }, { capture: true, passive: true });
 });
+
+// Shift-click on a gene name anywhere opens it in the Gene Browser, the gene
+// twin of Shift-click on a cell line opening its Wiki. Capture phase, so the
+// name's own click (opening Gene effect, say) does not also run.
+document.addEventListener('click', (e) => {
+    if (!e.shiftKey || !window.app?.openGeneBrowser) return;
+    const el = e.target.closest?.('.gene-hover[data-gene], .clb-gene-link[data-gene], .gene-effect-btn[data-gene], .si-row[data-gene]');
+    if (!el || !el.dataset.gene) return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.app.hideGeneTooltip?.(true);
+    window.app.openGeneBrowser(String(el.dataset.gene).toUpperCase());
+}, true);
 
 // Whether Shift is being held right now. The gene tooltip needs this because
 // it is created on a timer, long after the keydown that would have told it.
