@@ -1430,7 +1430,7 @@ class CorrelationExplorer {
             this._scatterGridActive = popout.scatterGridFilters?.length ? popout.scatterGridFilters.map(f => ({ ...f })) : null;
             this._scatterGridMap = {};
             (popout.scatterGridFilters || []).forEach(f => { this._scatterGridMap[f.gene] = f.state; });
-            this.openInspectByGenes(popout.gene1, popout.gene2);
+            this.openInspectByGenes(popout.gene1, popout.gene2, { x: c.xAxisDataType, y: c.yAxisDataType });
             this._restorePopoutControls(popout.controls, 'scatterCancerFilter', () => {
                 this._savedScatterTextSettings = ts;
                 // After openInspect has cleared them, put back the clicked
@@ -18998,7 +18998,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         return !!this.geneIndex?.has(gene);
     }
 
-    openInspectByGenes(gene1, gene2) {
+    // axisTypes: { x, y } from a reopened figure, put back after the reset
+    // below, which otherwise returns both axes to gene effect.
+    openInspectByGenes(gene1, gene2, axisTypes = null) {
         // The scatter opens on the analysis's own basis, so the r on an edge
         // and the r in the plot describe the same numbers. The axis selectors
         // stay live for switching afterwards.
@@ -19030,6 +19032,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // visit does not linger, and the analysis's own cohort filters are
         // then put on, so the plot shows the cell lines the network was run on.
         this._resetInspectSettings();
+        if (axisTypes) {
+            const xs = document.getElementById('xAxisDataType'), ys = document.getElementById('yAxisDataType');
+            if (xs && axisTypes.x) xs.value = axisTypes.x;
+            if (ys && axisTypes.y) ys.value = axisTypes.y;
+        }
         this.openInspect(c);
         this._applyNetworkFiltersToInspect();
     }

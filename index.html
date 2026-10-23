@@ -2883,6 +2883,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.36 (2026-10-23)</strong></p>
+                <ul>
+                    <li>Fix: a saved correlation figure on mRNA expression (or growth rate, copy number) reopened as gene effect, with the axis ranges of the original. Open saved figure and New tab now keep each axis's measure.</li>
+                </ul>
                 <p><strong>v.90.35 (2026-10-23)</strong></p>
                 <ul>
                     <li>New <b>Gene Browser</b> in the Options row: enter one gene and get a page of cards for it, like the cell-line Wiki. It summarises how strongly cell lines depend on the gene (by tissue and cell line), where it is expressed, how often it is mutated or fused, its copy number, drugs that target it and the genes that behave like it. Gene names in the related-genes card open the browser on that gene, and <code>#genebrowser=KRAS</code> links straight to one.</li>
@@ -8221,7 +8225,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.35</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.36</a>
         </span>
     </div>
 
@@ -11502,7 +11506,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_35"></script>
+    <script src="app.js?v=v90_36"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
