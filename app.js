@@ -182,25 +182,21 @@ const HM_GROUP_LABEL_ABBREV = {
 };
 
 class CorrelationExplorer {
-    // 40 visually-distinct categorical colors. DepMap has ~40+ disease
-    // subtypes, so a 20-color palette left most of them gray; the most
-    // common categories (sorted by count) get the most distinct hues first,
-    // and color assignment cycles (modulo) rather than falling back to gray.
+    // 20 categorical colors that stay distinct from each other. A longer
+    // list had near-twins (two cyans, two lavenders, two reds), so two
+    // tissues could look the same; past 20 groups the marker shape changes
+    // instead (categoryMarker), which keeps every group tellable apart.
     static CATEGORY_COLORS = [
         '#e6194b', '#3cb44b', '#4363d8', '#f58231', '#911eb4',
         '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990',
         '#dcbeff', '#9a6324', '#800000', '#aaffc3', '#808000',
-        '#000075', '#ffe119', '#ffd8b1', '#e6beff', '#a9a9a9',
-        '#ff1493', '#00ced1', '#ff8c00', '#8b008b', '#556b2f',
-        '#1e90ff', '#dc143c', '#228b22', '#daa520', '#4b0082',
-        '#ff4500', '#2e8b57', '#6a5acd', '#b22222', '#20b2aa',
-        '#9932cc', '#cd853f', '#008b8b', '#bdb76b', '#c71585'
+        '#000075', '#ffe119', '#ffd8b1', '#a9a9a9', '#000000'
     ];
 
     // Second channel for when there are more groups than colors. Repeating the
     // palette alone gives two groups the same color with no way to tell them
     // apart; changing the marker shape on each pass keeps every group distinct
-    // (40 colors x 6 shapes), and the shape carries into the legend.
+    // (20 colors x 6 shapes), and the shape carries into the legend.
     static CATEGORY_SYMBOLS = ['circle', 'square', 'diamond', 'triangle-up', 'cross', 'star'];
 
     // Color + shape for the i-th group in a color-by series.
@@ -21745,9 +21741,15 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         html += '</div>';
         html += '<div style="display: flex; flex-wrap: wrap; gap: 2px;">';
         categories.forEach((cat, i) => {
-            const color = i < colors.length ? colors[i] : '#999';
+            // Same colour and shape as the group's dots, so the chip still
+            // matches once the palette repeats with a new shape.
+            const mk = colors ? CorrelationExplorer.categoryMarker(i, 8, 1) : { color: '#999', symbol: 'circle' };
+            const color = mk.color;
+            const glyph = { square: '\u25A0', diamond: '\u25C6', 'triangle-up': '\u25B2', cross: '\u271A', star: '\u2605' }[mk.symbol];
             html += `<span class="color-by-chip" data-cat-index="${i}" style="display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; border-radius: 3px; font-size: 10px; cursor: pointer; border: 1px solid ${color}; background: rgba(255,255,255,0.9); white-space: nowrap; user-select: none;">`;
-            html += `<span style="width: 8px; height: 8px; border-radius: 50%; background: ${color}; display: inline-block; flex-shrink: 0;"></span>`;
+            html += glyph
+                ? `<span style="color: ${color}; font-size: 10px; line-height: 8px; flex-shrink: 0;">${glyph}</span>`
+                : `<span style="width: 8px; height: 8px; border-radius: 50%; background: ${color}; display: inline-block; flex-shrink: 0;"></span>`;
             html += `${cat}`;
             html += `</span>`;
         });
@@ -23970,8 +23972,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             let cats = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]);
             const picked = this._colorByPickedSet(cats);
             if (picked) cats = cats.filter(c => picked.has(c));
-            const palette = CorrelationExplorer.CATEGORY_COLORS;
-            const groups = cats.map((c, i) => ({ key: c, name: c, color: palette[i % palette.length] }));
+            const groups = cats.map((c, i) => {
+                const m = CorrelationExplorer.categoryMarker(i, 6, 1);
+                return { key: c, name: c, color: m.color, symbol: m.symbol };
+            });
             if (picked) groups.unshift({ key: this.OTHER_GROUP_LABEL, name: this.OTHER_GROUP_LABEL, color: '#d1d5db' });
             return { isHl, groupsBy: colorBy, title: this._legendTitleText?.(colorBy) || colorBy, groups,
                 groupOf: (d) => { const c = this._colorByGroup(d, colorBy); return cats.includes(c) ? c : this.OTHER_GROUP_LABEL; } };
@@ -24061,7 +24065,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     const pts = d.filter(q => look.groupOf(q) === g.key);
                     if (!pts.length) return;
                     traces.push({ ...base, x: pts.map(q => q.x), y: pts.map(q => q.y), text: pts.map(q => q.cellLineName), customdata: ids(pts), name: g.name,
-                        legendgroup: String(g.key), showlegend: !shown.has(g.key), marker: { size: 6, color: g.color } });
+                        legendgroup: String(g.key), showlegend: !shown.has(g.key), marker: { size: 6, color: g.color, symbol: g.symbol || 'circle' } });
                     shown.add(g.key);
                 });
             } else {
