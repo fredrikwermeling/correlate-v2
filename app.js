@@ -25586,6 +25586,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             nEx ? `EXPRESSION\n   ${this._mNum(nEx)} lines. "Expressed" means at least ${ex} log2(TPM+1).` : '',
             `MUTATIONS AND FUSIONS\n   Hotspot, any-mutation, functional-loss and fusion calls as used across the app. Percentages use all ${this._mNum(s.N)} lines as the denominator, including lines that were never sequenced. Specific variants come from the inferred-subtype layer.${s.split ? ` Mutated (${s.split.label}, n = ${s.split.mut.length}) and wild-type (n = ${s.split.wt.length}) lines were compared with a two-sided Welch t-test on gene effect.` : ''}`,
             'COPY NUMBER\n   Gene-level relative copy number (1 = the line\'s own baseline). The app\'s copy-number tiers: amplified from 3, deep deletion below 0.3.',
+            this._gbStructure ? `GENE STRUCTURE\n   Exons, transcript, coding and protein lengths of the MANE Select transcript (else the Ensembl canonical one), fetched live from the Ensembl REST API (GRCh38).` : '',
             `RELATED GENES\n   Co-dependencies: the 10 genes whose gene effect correlates most positively with ${gene}'s (Pearson r, genes with at least 100 shared lines, p from the t distribution, not corrected for the number of genes tested). Complex partners from CORUM, pathway partners from Reactome.`,
             'WHAT THIS DOES NOT SAY\nA correlation across cell lines does not show that two genes act together, and differences between tissues can drive it. A mutated-versus-wild-type difference across the whole panel can reflect lineage rather than the mutation; Mutation analysis inside one tissue separates the two.'
         ]);
@@ -50661,6 +50662,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         html.push(this._gbSection('Copy number', this._gbLoading('Loading copy-number data...'), '', 'gbCnCard'));
         const drugs = this._gbDrugCard(s);
         if (drugs) html.push(drugs);
+        html.push(this._gbSection('Gene structure', this._gbLoading('Loading the gene structure from Ensembl...'), '', 'gbStructCard'));
         html.push(this._gbLinksCard(gene));
         cards.innerHTML = html.join('');
         document.getElementById('gbBody').scrollTop = 0;
@@ -50679,6 +50681,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         this._gbFillAbout(s);
         this._gbFillExpression(s);
         this._gbFillCn(s);
+        this._gbFillStructure(s);
         if (s.hasGe) this._gbFillRelated(s);
     }
 
@@ -50803,6 +50806,235 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (this._cytobands !== undefined) return;
         try { this._cytobands = await (await fetch(this._dataUrl('web_data/cytobands.json'))).json(); }
         catch (e) { this._cytobands = null; }
+    }
+
+    // Ensembl's record for the gene with every transcript and its exons; MANE
+    // Select (the agreed reference) when there is one, else Ensembl canonical.
+    async _gbFetchStructure(gene) {
+        const cache = (this._gbStructCache ||= new Map());
+        if (cache.has(gene)) return cache.get(gene);
+        const ens = this.geneInfoCache?.[gene]?.ensembl;
+        const url = ens
+            ? `https://rest.ensembl.org/lookup/id/${encodeURIComponent(ens)}?expand=1;mane=1;content-type=application/json`
+            : `https://rest.ensembl.org/lookup/symbol/homo_sapiens/${encodeURIComponent(gene)}?expand=1;mane=1;content-type=application/json`;
+        const d = JSON.parse(await this._gbEnsemblText(url.replace('https://rest.ensembl.org/', '')));
+        const tx = d.Transcript || [];
+        const pick = tx.find(t => (t.MANE || []).some(m => m.type === 'MANE_Select')) || tx.find(t => t.is_canonical) || tx[0];
+        if (!pick) throw new Error('no transcript');
+        const mane = (pick.MANE || []).find(m => m.type === 'MANE_Select');
+        const plus = tx.filter(t => t !== pick && (t.MANE || []).some(m => m.type === 'MANE_Plus_Clinical'))
+            .map(t => ({ id: t.id, name: t.display_name, refseq: t.MANE.find(m => m.type === 'MANE_Plus_Clinical').refseq_match }));
+        const strand = pick.strand;
+        // Exons in transcription order, each with its coding stretch.
+        const tl = pick.Translation || null;
+        const exons = [...(pick.Exon || [])].sort((a, b) => strand === -1 ? b.start - a.start : a.start - b.start).map(e => {
+            const len = e.end - e.start + 1;
+            let c0 = null, c1 = null;
+            if (tl) {
+                const a = Math.max(e.start, tl.start), b = Math.min(e.end, tl.end);
+                if (a <= b) {
+                    // Offsets from the exon's 5' end, in the direction of transcription.
+                    c0 = strand === -1 ? e.end - b : a - e.start;
+                    c1 = strand === -1 ? e.end - a + 1 : b - e.start + 1;
+                }
+            }
+            return { id: e.id, start: e.start, end: e.end, len, c0, c1 };
+        });
+        const out = {
+            geneId: d.id, chr: d.seq_region_name, start: d.start, end: d.end, strand, biotype: d.biotype,
+            tx: { id: pick.id, version: pick.version, name: pick.display_name, biotype: pick.biotype, length: pick.length, refseq: mane?.refseq_match || null, mane: !!mane, canonical: !!pick.is_canonical },
+            protein: tl ? { id: tl.id, length: tl.length } : null,
+            cdsLength: exons.reduce((n, e) => n + (e.c0 !== null ? e.c1 - e.c0 : 0), 0),
+            exons, nTranscripts: tx.length, plus
+        };
+        cache.set(gene, out);
+        return out;
+    }
+
+    // Exons to scale along the mRNA, introns all drawn the same short width
+    // (to scale they would hide the exons). Coding parts tall, UTRs short.
+    _gbStructureSvg(gene, st) {
+        const W = 720, x0 = 30, x1 = W - 30, mid = 46, font = 'Arial, sans-serif';
+        const ex = st.exons, n = ex.length;
+        const intronW = n > 1 ? Math.max(6, Math.min(26, 180 / (n - 1))) : 0;
+        const exonSpace = x1 - x0 - intronW * (n - 1);
+        const total = ex.reduce((a, e) => a + e.len, 0) || 1;
+        const minW = 3;
+        // Exon widths by length, with a floor so tiny exons stay visible.
+        let widths = ex.map(e => Math.max(minW, exonSpace * e.len / total));
+        const k = exonSpace / widths.reduce((a, b) => a + b, 0);
+        widths = widths.map(w => w * k);
+        let x = x0, body = '', labels = '';
+        body += `<line x1="${x0}" y1="${mid}" x2="${x1}" y2="${mid}" stroke="#6b7280" stroke-width="1.2"/>`;
+        let startX = null, stopX = null;
+        ex.forEach((e, i) => {
+            const w = widths[i], px = (off) => x + w * off / e.len;
+            body += `<rect x="${x.toFixed(2)}" y="${mid - 6}" width="${w.toFixed(2)}" height="12" fill="#cde6b8" stroke="#5d9239" stroke-width="0.8"><title>Exon ${i + 1}: ${e.len.toLocaleString()} nt${e.c0 !== null ? ', coding' : ', untranslated'}</title></rect>`;
+            if (e.c0 !== null) {
+                const a = px(e.c0), b = px(e.c1);
+                body += `<rect x="${a.toFixed(2)}" y="${mid - 11}" width="${Math.max(1, b - a).toFixed(2)}" height="22" fill="#6ba544" stroke="#000000" stroke-width="1"><title>Exon ${i + 1}: ${e.len.toLocaleString()} nt, ${(e.c1 - e.c0).toLocaleString()} nt coding</title></rect>`;
+                if (startX === null) startX = a;
+                stopX = b;
+            }
+            if (n <= 40 || i % Math.ceil(n / 40) === 0) labels += `<text x="${(x + w / 2).toFixed(1)}" y="${mid - 16}" text-anchor="middle" font-size="9.5" fill="#6b7280" font-family="${font}">${i + 1}</text>`;
+            x += w;
+            if (i < n - 1) {
+                // Chevrons on the intron point the way the gene is read.
+                const c = x + intronW / 2;
+                body += `<path d="M${(c - 2).toFixed(1)},${mid - 3} L${(c + 1.5).toFixed(1)},${mid} L${(c - 2).toFixed(1)},${mid + 3}" fill="none" stroke="#6b7280" stroke-width="1"/>`;
+                x += intronW;
+            }
+        });
+        const mark = (px, t) => px === null ? '' : `<line x1="${px.toFixed(1)}" y1="${mid + 12}" x2="${px.toFixed(1)}" y2="${mid + 22}" stroke="#dc2626" stroke-width="1.5"/><text x="${px.toFixed(1)}" y="${mid + 33}" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="700" font-family="${font}">${t}</text>`;
+        const ends = `<text x="${x0 - 6}" y="${mid + 4}" text-anchor="end" font-size="10" fill="#374151" font-family="${font}">5′</text><text x="${x1 + 6}" y="${mid + 4}" font-size="10" fill="#374151" font-family="${font}">3′</text>`;
+        const title = `<text x="${x0}" y="12" font-size="11" font-weight="700" fill="#374151" font-family="${font}"><tspan font-style="italic">${this.esc(gene)}</tspan>  ${this.esc(st.tx.name || st.tx.id)}  ·  ${n} exon${n === 1 ? '' : 's'}${st.protein ? `  ·  ${st.protein.length} aa` : ''}</text>`;
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${mid + 40}" width="100%" style="max-width:${W}px; display:block;" role="img" aria-label="Exon structure of ${this.esc(gene)}">${title}${labels}${body}${mark(startX, 'ATG')}${mark(stopX, 'Stop')}${ends}</svg>`;
+    }
+
+    async _gbFillStructure(s) {
+        const gene = s.gene;
+        let st = null;
+        try {
+            await this.fetchGeneInfo(gene).catch(() => null);
+            st = await this._gbFetchStructure(gene);
+        } catch (e) { st = null; }
+        if (this._gbGene !== gene) return;
+        const card = document.getElementById('gbStructCard');
+        if (!card) return;
+        const e = (t) => this.esc(String(t));
+        const a = (href, t) => `<a href="${href}" target="_blank" rel="noopener" style="color:#3730a3;">${t} &#8599;</a>`;
+        const ensGene = st?.geneId || this.geneInfoCache?.[gene]?.ensembl || '';
+        const loc = this.geneLocations?.[gene];
+        const pos = st ? `chr${st.chr}:${st.start}-${st.end}` : (loc?.start != null ? `chr${loc.chr}:${loc.start}-${loc.end}` : '');
+        const links = [
+            ensGene ? a(`https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=${encodeURIComponent(ensGene)}`, 'Ensembl gene') : '',
+            st ? a(`https://www.ensembl.org/Homo_sapiens/Transcript/Exons?t=${encodeURIComponent(st.tx.id)}`, 'Ensembl exons and sequence') : '',
+            pos ? a(`https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&position=${encodeURIComponent(pos)}`, 'UCSC Genome Browser') : '',
+            st?.tx.refseq ? a(`https://www.ncbi.nlm.nih.gov/nuccore/${encodeURIComponent(st.tx.refseq)}`, `NCBI RefSeq ${e(st.tx.refseq)}`) : '',
+            this.geneInfoCache?.[gene]?.uniprot ? a(`https://www.uniprot.org/uniprotkb/${encodeURIComponent(this.geneInfoCache[gene].uniprot)}/entry#sequences`, 'UniProt sequence') : '',
+        ].filter(Boolean).join(' <span style="color:#9ca3af;">&middot;</span> ');
+        if (!st) {
+            card.outerHTML = this._gbSection('Gene structure', this._gbDesc('The exon structure could not be loaded from Ensembl (it needs an internet connection). The sequences can be viewed and downloaded at these sites:')
+                + `<div style="font-size:11px;">${links || '<span class="gb-m">No record found.</span>'}</div>`, 'Ensembl REST API, GRCh38 (fetched live).', 'gbStructCard');
+            return;
+        }
+        this._gbStructure = st;
+        const coding = st.exons.filter(x => x.c0 !== null).length;
+        const span = st.end - st.start + 1;
+        const stats = [
+            this._gbRow('Reference transcript', `${e(st.tx.name || st.tx.id)} <span class="gb-m">${e(st.tx.id)}${st.tx.version ? '.' + st.tx.version : ''}${st.tx.refseq ? ` · RefSeq ${e(st.tx.refseq)}` : ''} · ${st.tx.mane ? 'MANE Select' : st.tx.canonical ? 'Ensembl canonical' : 'first listed'}</span>`),
+            this._gbRow('Strand', st.strand === -1 ? 'Minus (read right to left on the chromosome)' : 'Plus'),
+            this._gbRow('Exons', `${st.exons.length}${st.protein ? ` <span class="gb-m">(${coding} with coding sequence)</span>` : ''}`),
+            this._gbRow('Lengths', `gene ${(span / 1000).toFixed(1)} kb · mRNA ${st.tx.length?.toLocaleString?.() || '?'} nt${st.protein ? ` · coding ${st.cdsLength.toLocaleString()} nt · protein ${st.protein.length.toLocaleString()} aa` : ''}`),
+            this._gbRow('Other transcripts', `${(st.nTranscripts - 1).toLocaleString()}${st.plus.length ? ` <span class="gb-m">(including ${st.plus.map(p => `${e(p.name)}${p.refseq ? ' / ' + e(p.refseq) : ''}`).join(', ')}, MANE Plus Clinical)</span>` : ''}`),
+        ].join('');
+        const btn = (k, t, title) => `<button class="btn btn-outline btn-sm" data-gb-act="fasta-${k}" title="${title}">${t}</button>`;
+        const body = this._gbDesc(`The exons of the reference transcript, as read from 5′ to 3′. Tall boxes are protein-coding, short boxes untranslated (UTR); exons are to scale, introns shortened.`)
+            + `<div id="gbStructFig" style="background:#fff; padding:4px 0;">${this._gbStructureSvg(gene, st)}</div>`
+            + `<div class="gb-m" style="display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; margin:2px 0 8px;">`
+            + `<span><svg width="18" height="12" style="vertical-align:-2px;"><rect x="1" y="1" width="16" height="10" fill="#6ba544" stroke="#000" stroke-width="1"/></svg> coding</span>`
+            + `<span><svg width="18" height="12" style="vertical-align:-2px;"><rect x="1" y="3" width="16" height="6" fill="#cde6b8" stroke="#5d9239" stroke-width="0.8"/></svg> untranslated</span>`
+            + `<span>hover an exon for its length</span>`
+            + `<button class="btn btn-outline btn-sm mobile-hide" data-gb-act="copy-struct" style="font-size:10px; padding:1px 8px; margin-left:auto;" title="Copy the exon figure as an image">Copy figure</button></div>`
+            + stats
+            + `<div class="gb-sub">Download sequence (FASTA)</div>`
+            + `<div class="gb-actions mobile-hide" style="margin-top:4px;">`
+            + btn('genomic', `Genomic (${(span / 1000).toFixed(1)} kb)`, 'The whole gene region on the chromosome, exons and introns, from Ensembl (GRCh38)')
+            + btn('cdna', 'mRNA (cDNA)', 'The spliced transcript of the reference transcript, with its UTRs')
+            + (st.protein ? btn('cds', 'Coding sequence (CDS)', 'Start codon to stop codon of the reference transcript') + btn('protein', 'Protein', 'The amino-acid sequence of the reference protein') : '')
+            + `</div>`
+            + `<div style="font-size:11px; margin-top:8px;"><span class="gb-m">View or download elsewhere:</span> ${links}</div>`;
+        card.outerHTML = this._gbSection('Gene structure', body, 'Ensembl REST API, GRCh38 (fetched live); MANE Select is the reference transcript agreed by NCBI and EMBL-EBI.', 'gbStructCard');
+    }
+
+    // One Ensembl request with a time limit and a retry; the service has
+    // busy spells that answer 503.
+    async _gbEnsemblText(path, tries = 2) {
+        let last = null;
+        for (let k = 0; k < tries; k++) {
+            const ctl = new AbortController();
+            const timer = setTimeout(() => ctl.abort(), 30000);
+            try {
+                const res = await fetch(`https://rest.ensembl.org/${path}`, { signal: ctl.signal });
+                if (res.ok) return await res.text();
+                last = new Error(`Ensembl ${res.status}`);
+            } catch (e) { last = e; } finally { clearTimeout(timer); }
+            await new Promise(r => setTimeout(r, 1500));
+        }
+        throw last || new Error('Ensembl did not answer');
+    }
+
+    // The gene's genomic sequence, already turned to the gene's own strand.
+    async _gbGenomic(st) {
+        if (st._genomic) return st._genomic;
+        const txt = await this._gbEnsemblText(`sequence/id/${encodeURIComponent(st.geneId)}?type=genomic;content-type=text/plain`);
+        const seq = txt.replace(/\s+/g, '').toUpperCase();
+        if (seq.length !== st.end - st.start + 1) throw new Error('unexpected sequence length');
+        st._genomic = seq;
+        return seq;
+    }
+
+    // mRNA and coding sequence spliced from the genomic sequence with the
+    // exon coordinates already loaded, so they need only one request.
+    _gbSplice(st, seq, coding) {
+        const off = (e) => st.strand === -1 ? st.end - e.end : e.start - st.start;
+        return st.exons.map(e => {
+            if (!coding) return seq.substr(off(e), e.len);
+            return e.c0 === null ? '' : seq.substr(off(e) + e.c0, e.c1 - e.c0);
+        }).join('');
+    }
+
+    _gbTranslate(cds) {
+        const b = 'TCAG', aa = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG';
+        let p = '';
+        for (let i = 0; i + 2 < cds.length; i += 3) {
+            const k = b.indexOf(cds[i]) * 16 + b.indexOf(cds[i + 1]) * 4 + b.indexOf(cds[i + 2]);
+            p += k >= 0 && b.includes(cds[i]) && b.includes(cds[i + 1]) && b.includes(cds[i + 2]) ? aa[k] : 'X';
+        }
+        return p;
+    }
+
+    _gbFasta(header, seq) {
+        return `>${header}\n${seq.match(/.{1,60}/g)?.join('\n') || ''}\n`;
+    }
+
+    async _gbDownloadFasta(kind) {
+        const st = this._gbStructure, gene = this._gbGene;
+        if (!st || !gene) return;
+        const btn = document.querySelector(`[data-gb-act="fasta-${kind}"]`);
+        const label = btn?.textContent;
+        if (btn) { btn.disabled = true; btn.textContent = 'Downloading...'; }
+        const tx = `${st.tx.id}${st.tx.version ? '.' + st.tx.version : ''}`;
+        const ref = `${st.tx.mane ? 'MANE Select' : 'Ensembl canonical'}${st.tx.refseq ? ' ' + st.tx.refseq : ''}`;
+        const strand = st.strand === -1 ? '-' : '+';
+        try {
+            let text, name;
+            if (kind === 'protein') {
+                try {
+                    text = await this._gbEnsemblText(`sequence/id/${encodeURIComponent(st.protein.id)}?type=protein;content-type=text/x-fasta`, 1);
+                } catch (e) {
+                    const cds = this._gbSplice(st, await this._gbGenomic(st), true);
+                    text = this._gbFasta(`${gene} ${st.protein.id} protein, translated from ${tx} (${ref})`, this._gbTranslate(cds).replace(/\*$/, ''));
+                }
+                name = `${gene}_protein_${st.protein.id}.fa`;
+            } else {
+                const seq = await this._gbGenomic(st);
+                if (kind === 'genomic') {
+                    text = this._gbFasta(`${gene} ${st.geneId} genomic GRCh38 chr${st.chr}:${st.start}-${st.end}(${strand}), gene strand`, seq);
+                    name = `${gene}_genomic_GRCh38.fa`;
+                } else {
+                    const coding = kind === 'cds';
+                    const out = this._gbSplice(st, seq, coding);
+                    text = this._gbFasta(`${gene} ${tx} ${coding ? 'CDS' : 'mRNA (cDNA)'} ${out.length} nt GRCh38 (${ref})`, out);
+                    name = `${gene}_${coding ? 'cds' : 'mrna'}_${st.tx.id}.fa`;
+                }
+            }
+            this.downloadFile(text, name, 'text/x-fasta');
+        } catch (e) {
+            this.showCopyNotification?.('Ensembl did not answer, so the sequence could not be downloaded. Try again shortly, or use the Ensembl link below.');
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = label; }
+        }
     }
 
     async _gbFillAbout(s) {
@@ -51095,7 +51327,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // gene set library), which say what the link is; the database lists
         // below only say that one exists.
         const named = this._gbNamedSets(gene);
-        const sets = named.length ? `<div class="gb-sub">Pathways and complexes it belongs to</div>`
+        const sets = named.length ? `<div class="gb-sub">Curated pathways and complexes that include ${g}</div>`
+            + `<div class="gb-m" style="margin-bottom:2px;">Hand-picked member lists the app also uses in the cell line wiki and the heatmap. ${g} is highlighted in each; Network and Heatmap draw the whole list across the cell lines.</div>`
             + named.map((x, k) => `<div class="gb-set"><div><b>${this.esc(x.name)}</b> <span class="gb-m">${this.esc(x.kind)} · ${x.genes.length} genes</span>`
                 + `<span class="gb-set-acts"><button class="gb-scatter-btn" data-gb-set="${k}" data-gb-set-do="net" title="Run Gene set analysis on this set">Network</button><button class="gb-scatter-btn" data-gb-set="${k}" data-gb-set-do="hm" title="Show this set as a heatmap across the cell lines">Heatmap</button></span></div>`
                 + (x.note ? `<div class="gb-m" style="margin:1px 0 3px;">${this._italicizeGenesInHtml(this.esc(x.note))}</div>` : '')
@@ -51115,18 +51348,21 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         card.outerHTML = this._gbSection('Related genes', body, 'DepMap 26Q1 CRISPRGeneEffect (correlation); the app’s curated pathway, complex and gene set lists; CORUM complexes; Reactome pathways; mouse orthologs.', 'gbRelCard');
     }
 
-    // The named sets that contain the gene, from the app's own curated lists.
+    // The curated pathways and complexes that list the gene as a member.
+    // Gene sets that are not memberships (targets a pathway switches on,
+    // cell-state signatures, lists computed from the panel) are left out.
     _gbNamedSets(gene) {
         const out = [];
         for (const [name, v] of Object.entries(this._WIKI_PATHWAYS?.() || {})) {
-            if ((v.genes || []).includes(gene)) out.push({ name, kind: 'cancer pathway', genes: v.genes, note: v.note || '' });
+            if ((v.genes || []).includes(gene)) out.push({ name, kind: 'cancer pathway, core members', genes: v.genes, note: v.note || '' });
         }
         this._FOCAL_GENE_COMPLEX_PARTNERS?.();
         for (const [name, genes] of Object.entries(this._focalGeneComplexes || {})) {
-            if (genes.includes(gene)) out.push({ name, kind: 'complex / machinery', genes, note: '' });
+            if (genes.includes(gene)) out.push({ name, kind: 'protein complex / machinery', genes, note: '' });
         }
         for (const v of Object.values(this._GENE_SET_LIBRARY?.() || {})) {
-            if ((v.genes || []).includes(gene) && !out.some(o => o.name === v.label)) out.push({ name: v.label, kind: `gene set, ${String(v.category || '').toLowerCase()}`, genes: v.genes, note: v.note || '' });
+            if (!['Pathway members', 'Immune'].includes(v.category)) continue;
+            if ((v.genes || []).includes(gene) && !out.some(o => o.name === v.label)) out.push({ name: v.label, kind: v.category === 'Immune' ? 'immune pathway' : 'pathway, extended membership', genes: v.genes, note: v.note || '' });
         }
         return out;
     }
@@ -51175,6 +51411,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const corum = (this.corumPartners?.partners?.[gene] || []).filter(g => g !== gene);
         if (act === 'ge' || act === 'expr') { this.openGeneEffectModal(gene, 'tissue', { dataType: act }); return; }
         if (act === 'copy-relfig') { this.copyPlotToClipboard('gbRelFig', 'Related genes figure'); return; }
+        if (act === 'copy-struct') { this.copyPlotToClipboard('gbStructFig', 'Gene structure'); return; }
+        if (act && act.startsWith('fasta-')) { this._gbDownloadFasta(act.slice(6)); return; }
         if (act === 'copy-ideogram') { this.copyPlotToClipboard('gbIdeogram', 'Chromosome figure'); return; }
         if (act === 'sc-expr-ge') { this._gbScatter(gene, gene, 'expr', 'ge'); return; }
         if (act === 'sc-cn-expr') { this._gbScatter(gene, gene, 'cn', 'expr'); return; }
@@ -51266,6 +51504,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             _readMe: `The numbers behind each card of the Gene Browser page for ${gene}, computed over every cell line in the panel (${N.toLocaleString()} lines). Percentages of mutation, fusion and functional-loss calls use all ${N.toLocaleString()} lines as the denominator, not only the sequenced ones. A section that is null was not available for this gene or had not finished loading when the file was made; that is missing data, not a zero.`,
             gene,
             location: s.loc ? this._gbLocText(s.loc) : null,
+            geneStructure: (() => {
+                const st = this._gbStructCache?.get(gene);
+                return st ? { referenceTranscript: `${st.tx.id}${st.tx.version ? '.' + st.tx.version : ''}`, refseq: st.tx.refseq, mane: st.tx.mane, exons: st.exons.length, mRNALength_nt: st.tx.length, cdsLength_nt: st.cdsLength || null, proteinLength_aa: st.protein?.length || null, strand: st.strand, otherTranscripts: st.nTranscripts - 1, source: 'Ensembl REST API, GRCh38' } : null;
+            })(),
             about: (() => {
                 const i = this.geneInfoCache?.[gene];
                 return i ? { fullName: i.name || null, geneType: i.typeOfGene || null, description: i.summary || null, description_source: 'NCBI Gene / RefSeq summary via MyGene.info' } : null;
@@ -51364,7 +51606,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             a(`https://depmap.org/portal/gene/${e}`, 'DepMap portal'),
             a(`https://www.uniprot.org/uniprotkb?query=gene_exact%3A${e}+AND+organism_id%3A9606`, 'UniProt'),
         ];
-        return this._gbSection('Links', `<div style="padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">Primary records:</b> ${links.join(' <span style="color:#9ca3af;">&middot;</span> ')}<div style="font-size:10px; color:#6b7280; margin-top:3px;">Opens the gene’s page at each site. Only the description under About the gene is fetched live (MyGene.info); everything else comes from the app’s own data.</div></div>`);
+        return this._gbSection('Links', `<div style="padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">Primary records:</b> ${links.join(' <span style="color:#9ca3af;">&middot;</span> ')}<div style="font-size:10px; color:#6b7280; margin-top:3px;">Opens the gene’s page at each site. Only the gene description (MyGene.info) and the gene structure (Ensembl) are fetched live; everything else comes from the app’s own data.</div></div>`);
     }
 
     async openCellLineWiki(cellLineId) {

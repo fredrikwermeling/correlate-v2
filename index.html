@@ -1742,7 +1742,7 @@
         .gb-scope .gb-scatter-btn:hover { background:#6ba544; color:#fff; }
         .gb-scope .gb-set { padding:6px 0; border-bottom:1px solid #f3f4f6; }
         .gb-scope .gb-set-acts { float:right; display:inline-flex; gap:4px; }
-        .gb-scope .gb-chip.gb-chip-me { background:#4c782e; color:#fff; border-color:#4c782e; cursor:default; }
+        .gb-scope .gb-chip.gb-chip-me { background:#4c782e; color:#fff; border-color:#4c782e; cursor:default; box-shadow:0 0 0 2px #cde6b8; }
         .gb-scope .gb-details { margin-top:8px; }
         .gb-scope .gb-details > summary { cursor:pointer; font-size:11px; color:#4c782e; font-weight:600; }
         .gb-scope .gb-drug { padding:5px 0; border-bottom:1px solid #f3f4f6; }
@@ -1753,7 +1753,7 @@
         .gb-scope .gb-actions .btn { font-size:11px; padding:3px 10px; }
         .gb-scope .gb-chips { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
         .gb-scope .gb-chip { border:1px solid #d1d5db; background:#f9fafb; color:#4c782e; font-weight:600; border-radius:10px; padding:2px 10px; cursor:pointer; font-size:11px; margin:0 4px 4px 0; }
-        .gb-scope .gb-chip:hover { background:#f3faee; border-color:#b2dd95; }
+        .gb-scope .gb-chip:hover { border-color:#4c782e; }
         @media (max-width: 640px) {
             #gbBody { padding:12px 10px !important; }
             .gb-scope .gb-grid { grid-template-columns:1fr; }
@@ -2910,6 +2910,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.51 (2026-10-23)</strong></p>
+                <ul>
+                    <li>Gene Browser: the curated pathways and complexes list only real memberships (gene lists computed from the panel, pathway targets and cell-state sets are left out), say where the lists come from, and the page's own gene is the only one highlighted.</li>
+                    <li><b>Gene Browser: Gene structure.</b> The exons of the gene's reference transcript (MANE Select) drawn from 5′ to 3′, coding parts tall and untranslated parts short, with the start and stop codons marked; the transcript, strand, exon count and the gene, mRNA, coding and protein lengths; FASTA downloads of the genomic, mRNA, coding and protein sequences; and links to Ensembl, the UCSC Genome Browser, NCBI RefSeq and UniProt. Fetched live from Ensembl.</li>
+                </ul>
                 <p><strong>v.90.50 (2026-10-23)</strong></p>
                 <ul>
                     <li>Gene Browser in the app's own style: every list is a table like the app's other tables, co-dependencies have the same green Correlation button as the correlation table, and the related-genes figure is drawn like the network (green nodes, italic names, blue edges thicker for higher r; complex partners as open nodes on dashed lines).</li>
@@ -8311,7 +8316,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.50</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.51</a>
         </span>
     </div>
 
@@ -11618,7 +11623,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_50"></script>
+    <script src="app.js?v=v90_51"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
