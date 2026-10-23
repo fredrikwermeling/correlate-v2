@@ -50659,54 +50659,121 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         ['12', 133.28, 35.5], ['13', 114.36, 17.7], ['14', 107.04, 17.2], ['15', 101.99, 19.0], ['16', 90.34, 36.8], ['17', 83.26, 25.1],
         ['18', 80.37, 18.5], ['19', 58.62, 26.2], ['20', 64.44, 28.1], ['21', 46.71, 12.0], ['22', 50.82, 15.0], ['X', 156.04, 60.6], ['Y', 57.23, 10.4]];
 
-    // Every chromosome as a small bar, the gene's own one in green with a
-    // marker at the gene; below it, that chromosome to scale with the gene.
+    // G-band shades (UCSC gieStain), grey for the other chromosomes and green
+    // for the gene's own.
+    static GB_STAIN = {
+        grey: { gneg: '#ffffff', gpos25: '#d9d9d9', gpos50: '#a8a8a8', gpos75: '#737373', gpos100: '#3f3f3f', gvar: '#c3cbdb', stalk: '#ececec', acen: '#c9c9c9' },
+        green: { gneg: '#f4faef', gpos25: '#cde6b8', gpos50: '#9fcb7f', gpos75: '#6ba544', gpos100: '#3e6625', gvar: '#b9d9a3', stalk: '#e3f0d9', acen: '#b4d49c' }
+    };
+
+    // Lengths and centromeres from the band file when loaded, else the table.
+    _gbChromList() {
+        const bands = this._cytobands?.bands;
+        return CorrelationExplorer.GB_CHROMS.map(([name, len, cen]) => {
+            const b = bands?.[name];
+            if (!b?.length) return { name, len, cen, bands: null };
+            const acen = b.filter(x => x[3] === 'acen');
+            return {
+                name, len: b[b.length - 1][1] / 1000,
+                cen: acen.length ? acen[0][1] / 1000 : cen,
+                bands: b
+            };
+        });
+    }
+
+    // A chromosome outline (rounded ends, waist at the centromere) along an
+    // axis: a0..a1 along it, centred on o across it, w wide.
+    _gbChromPath(o, a0, ac, a1, w, horiz) {
+        const r = w / 2, pin = Math.max(1, w * 0.16);
+        const n = Math.max(0.5, Math.min(w * 0.45, ac - a0 - r * 0.6, a1 - ac - r * 0.6));
+        const P = (a, c) => horiz ? `${a.toFixed(2)},${(o + c).toFixed(2)}` : `${(o + c).toFixed(2)},${a.toFixed(2)}`;
+        // Swapping the axes mirrors the drawing, which flips the arc sweep.
+        const sw = horiz ? 0 : 1;
+        return `M${P(a0 + r, -r)} A${r},${r} 0 0 ${sw} ${P(a0 + r, r)} L${P(ac - n, r)} L${P(ac, pin)} L${P(ac + n, r)} L${P(a1 - r, r)}`
+            + ` A${r},${r} 0 0 ${sw} ${P(a1 - r, -r)} L${P(ac + n, -r)} L${P(ac, -pin)} L${P(ac - n, -r)} Z`;
+    }
+
+    // Band rectangles clipped to the outline, then the outline on top.
+    _gbChromSvg(id, c, o, a0, a1, w, horiz, palette, opacity = 1) {
+        const scale = (a1 - a0) / c.len;
+        const A = (mb) => a0 + mb * scale;
+        const path = this._gbChromPath(o, a0, A(c.cen), a1, w, horiz);
+        const pal = CorrelationExplorer.GB_STAIN[palette];
+        let fill = '';
+        if (c.bands) {
+            for (const [s0, s1, , st] of c.bands) {
+                const b0 = A(s0 / 1000), b1 = A(s1 / 1000), col = pal[st] || pal.gneg;
+                fill += horiz
+                    ? `<rect x="${b0.toFixed(2)}" y="${(o - w / 2).toFixed(2)}" width="${Math.max(0.3, b1 - b0).toFixed(2)}" height="${w}" fill="${col}"/>`
+                    : `<rect x="${(o - w / 2).toFixed(2)}" y="${b0.toFixed(2)}" width="${w}" height="${Math.max(0.3, b1 - b0).toFixed(2)}" fill="${col}"/>`;
+            }
+        } else {
+            fill = `<path d="${path}" fill="${pal.gpos25}"/>`;
+        }
+        const stroke = palette === 'green' ? '#4c782e' : '#a3a3a3';
+        // A soft highlight down the middle reads as a rounded body.
+        const shine = horiz
+            ? `<rect x="${a0}" y="${(o - w / 2).toFixed(2)}" width="${a1 - a0}" height="${(w * 0.35).toFixed(2)}" fill="#ffffff" opacity="0.28"/>`
+            : `<rect x="${(o - w / 2).toFixed(2)}" y="${a0}" width="${(w * 0.35).toFixed(2)}" height="${a1 - a0}" fill="#ffffff" opacity="0.28"/>`;
+        return `<g opacity="${opacity}"><clipPath id="${id}"><path d="${path}"/></clipPath><g clip-path="url(#${id})">${fill}${shine}</g>`
+            + `<path d="${path}" fill="none" stroke="${stroke}" stroke-width="${palette === 'green' ? 1.1 : 0.8}"/></g>`;
+    }
+
+    // Every chromosome to relative length with its G-bands, the gene's own in
+    // green with the gene marked; below it, that chromosome to scale.
     _gbIdeogramSvg(gene, loc) {
         const chr = String(loc?.chr || '').replace(/^chr/i, '').toUpperCase();
-        const all = CorrelationExplorer.GB_CHROMS;
-        const me = all.find(c => c[0] === chr);
+        const all = this._gbChromList();
+        const me = all.find(c => c.name === chr);
         if (!me) return '';
         const pos = loc.start != null && loc.end != null ? (loc.start + loc.end) / 2e6 : null;
-        const W = 480, slot = W / all.length, bw = 9, H = 120, top = 8, max = all[0][1];
-        const arm = (x, y0, y1, fill) => y1 - y0 > 0.5
-            ? `<rect x="${(x - bw / 2).toFixed(1)}" y="${y0.toFixed(1)}" width="${bw}" height="${(y1 - y0).toFixed(1)}" rx="${bw / 2}" fill="${fill}"/>` : '';
-        let out = `<defs><linearGradient id="gbChrOn" x1="0" x2="1"><stop offset="0" stop-color="#7cb356"/><stop offset="1" stop-color="#4c782e"/></linearGradient></defs>`;
-        all.forEach(([name, len, cen], i) => {
-            const x = slot * i + slot / 2, h = H * len / max, c = top + H * cen / max;
-            const on = name === chr, fill = on ? 'url(#gbChrOn)' : '#e5e7eb';
-            out += arm(x, top, c - 1, fill) + arm(x, c + 1, top + h, fill);
-            out += `<text x="${x.toFixed(1)}" y="${top + H + 14}" text-anchor="middle" font-size="9" fill="${on ? '#4c782e' : '#9ca3af'}" font-weight="${on ? 700 : 400}">${name}</text>`;
+        const W = 500, slot = W / all.length, bw = 11, H = 150, top = 6, max = Math.max(...all.map(c => c.len));
+        let out = '';
+        all.forEach((c, i) => {
+            const x = slot * i + slot / 2, on = c.name === chr;
+            out += this._gbChromSvg(`gbcO${c.name}`, c, x, top, top + H * c.len / max, bw, false, on ? 'green' : 'grey', on ? 1 : 0.75);
+            out += `<text x="${x.toFixed(1)}" y="${top + H + 15}" text-anchor="middle" font-size="9.5" fill="${on ? '#4c782e' : '#9ca3af'}" font-weight="${on ? 700 : 400}" font-family="Open Sans, Arial, sans-serif">${c.name}</text>`;
             if (on && pos != null) {
                 const y = top + H * pos / max;
-                out += `<line x1="${(x - bw / 2 - 4).toFixed(1)}" x2="${(x + bw / 2 + 4).toFixed(1)}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#dc2626" stroke-width="2"/>`
-                    + `<path d="M${(x + bw / 2 + 5).toFixed(1)},${y.toFixed(1)} l6,-4 v8 z" fill="#dc2626"/>`;
+                out += `<line x1="${(x - bw / 2 - 3).toFixed(1)}" x2="${(x + bw / 2 + 3).toFixed(1)}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#dc2626" stroke-width="2"/>`
+                    + `<path d="M${(x + bw / 2 + 4).toFixed(1)},${y.toFixed(1)} l7,-4.5 v9 z" fill="#dc2626"/>`;
             }
         });
-        const overview = `<svg viewBox="0 0 ${W} ${top + H + 20}" width="100%" style="max-width:${W}px; display:block;" role="img" aria-label="Human chromosomes with chromosome ${this.esc(chr)} highlighted">${out}</svg>`;
-        // The chromosome itself, horizontal and to scale.
-        const ZW = 480, x0 = 14, x1 = ZW - 14, zy = 34, zh = 14, len = me[1], cen = me[2];
+        const overview = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${top + H + 22}" width="100%" style="max-width:${W}px; display:block;" role="img" aria-label="Human chromosomes with chromosome ${this.esc(chr)} highlighted">${out}</svg>`;
+        // The chromosome itself, horizontal and to scale, with its bands.
+        const ZW = 500, x0 = 16, x1 = ZW - 16, zy = 46, zh = 20, len = me.len;
         const X = (mb) => x0 + (x1 - x0) * mb / len;
-        let z = `<defs><linearGradient id="gbChrZ" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9cc97c"/><stop offset="1" stop-color="#5d9239"/></linearGradient></defs>`;
-        z += `<rect x="${x0}" y="${zy}" width="${(X(cen) - 1 - x0).toFixed(1)}" height="${zh}" rx="${zh / 2}" fill="url(#gbChrZ)"/>`
-            + `<rect x="${(X(cen) + 1).toFixed(1)}" y="${zy}" width="${(x1 - X(cen) - 1).toFixed(1)}" height="${zh}" rx="${zh / 2}" fill="url(#gbChrZ)"/>`
-            + `<text x="${((x0 + X(cen)) / 2).toFixed(1)}" y="${zy + zh + 13}" text-anchor="middle" font-size="9" fill="#6b7280">p arm</text>`
-            + `<text x="${((X(cen) + x1) / 2).toFixed(1)}" y="${zy + zh + 13}" text-anchor="middle" font-size="9" fill="#6b7280">q arm</text>`
-            + `<text x="${x0}" y="${zy + zh + 26}" font-size="9" fill="#9ca3af">0</text>`
-            + `<text x="${x1}" y="${zy + zh + 26}" font-size="9" fill="#9ca3af" text-anchor="end">${Math.round(len)} Mb</text>`;
-        if (pos != null) {
-            const gx = X(pos), lab = `${this.esc(gene)} · ${this.esc(this._gbLocText(loc))} · ${pos.toFixed(1)} Mb`;
-            const anchor = gx < ZW * 0.2 ? 'start' : gx > ZW * 0.8 ? 'end' : 'middle';
-            z += `<line x1="${gx.toFixed(1)}" x2="${gx.toFixed(1)}" y1="${zy - 10}" y2="${zy + zh + 3}" stroke="#dc2626" stroke-width="2"/>`
-                + `<circle cx="${gx.toFixed(1)}" cy="${zy - 11}" r="3" fill="#dc2626"/>`
-                + `<text x="${gx.toFixed(1)}" y="${zy - 18}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="#374151">${lab}</text>`;
+        let z = this._gbChromSvg(`gbcZ${me.name}`, me, zy, x0, x1, zh, true, 'green');
+        z += `<text x="${((x0 + X(me.cen)) / 2).toFixed(1)}" y="${zy + zh / 2 + 24}" text-anchor="middle" font-size="9.5" fill="#6b7280" font-family="Open Sans, Arial, sans-serif">${this.esc(me.name)}p</text>`
+            + `<text x="${((X(me.cen) + x1) / 2).toFixed(1)}" y="${zy + zh / 2 + 24}" text-anchor="middle" font-size="9.5" fill="#6b7280" font-family="Open Sans, Arial, sans-serif">${this.esc(me.name)}q</text>`;
+        const step = len > 150 ? 50 : 25;
+        for (let mb = 0; mb <= len; mb += step) {
+            z += `<line x1="${X(mb).toFixed(1)}" x2="${X(mb).toFixed(1)}" y1="${zy + zh / 2 + 3}" y2="${zy + zh / 2 + 7}" stroke="#9ca3af" stroke-width="0.8"/>`
+                + `<text x="${X(mb).toFixed(1)}" y="${zy + zh / 2 + 38}" text-anchor="middle" font-size="8.5" fill="#9ca3af" font-family="Open Sans, Arial, sans-serif">${mb}${mb === 0 ? '' : ''}</text>`;
         }
-        const zoom = `<svg viewBox="0 0 ${ZW} ${zy + zh + 30}" width="100%" style="max-width:${ZW}px; display:block; margin-top:6px;" role="img" aria-label="Chromosome ${this.esc(chr)} with the gene marked">${z}</svg>`;
+        z += `<text x="${x1}" y="${zy + zh / 2 + 50}" text-anchor="end" font-size="8.5" fill="#9ca3af" font-family="Open Sans, Arial, sans-serif">Mb</text>`;
+        if (pos != null) {
+            const gx = X(pos), lab = `${this.esc(gene)}  ·  ${this.esc(this._gbLocText(loc))}  ·  ${pos.toFixed(1)} Mb`;
+            const band = me.bands?.find(b => pos * 1000 >= b[0] && pos * 1000 < b[1]);
+            if (band) z += `<rect x="${X(band[0] / 1000).toFixed(2)}" y="${zy - zh / 2 - 2}" width="${Math.max(1.5, X(band[1] / 1000) - X(band[0] / 1000)).toFixed(2)}" height="${zh + 4}" rx="2" fill="none" stroke="#dc2626" stroke-width="1.5"/>`;
+            const anchor = gx < ZW * 0.22 ? 'start' : gx > ZW * 0.78 ? 'end' : 'middle';
+            z += `<line x1="${gx.toFixed(1)}" x2="${gx.toFixed(1)}" y1="${zy - zh / 2 - 16}" y2="${zy - zh / 2 - 3}" stroke="#dc2626" stroke-width="1.8"/>`
+                + `<circle cx="${gx.toFixed(1)}" cy="${zy - zh / 2 - 17}" r="3" fill="#dc2626"/>`
+                + `<text x="${gx.toFixed(1)}" y="${zy - zh / 2 - 24}" text-anchor="${anchor}" font-size="11.5" font-weight="700" fill="#374151" font-family="Open Sans, Arial, sans-serif">${lab}</text>`;
+        }
+        const zoom = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${ZW} ${zy + zh / 2 + 54}" width="100%" style="max-width:${ZW}px; display:block; margin-top:4px;" role="img" aria-label="Chromosome ${this.esc(chr)} with the gene marked">${z}</svg>`;
         return overview + zoom;
+    }
+
+    async _gbEnsureCytobands() {
+        if (this._cytobands !== undefined) return;
+        try { this._cytobands = await (await fetch(this._dataUrl('web_data/cytobands.json'))).json(); }
+        catch (e) { this._cytobands = null; }
     }
 
     async _gbFillAbout(s) {
         const gene = s.gene;
-        const [info] = await Promise.all([this.fetchGeneInfo(gene).catch(() => null), this.loadGeneLocations().catch(() => null)]);
+        const [info] = await Promise.all([this.fetchGeneInfo(gene).catch(() => null), this.loadGeneLocations().catch(() => null), this._gbEnsureCytobands()]);
         if (this._gbGene !== gene) return;
         const card = document.getElementById('gbAboutCard');
         if (!card) return;
@@ -50731,8 +50798,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             + (loc?.start != null ? this._gbRow('Position (GRCh38)', `chr${this.esc(String(loc.chr))}:${loc.start.toLocaleString()}-${loc.end.toLocaleString()} <span class="gb-m">(${((loc.end - loc.start) / 1000).toFixed(1)} kb)</span>`) : '')
             + (ids.length ? this._gbRow('Records', ids.join(' <span style="color:#9ca3af;">&middot;</span> ')) : '');
         const pic = loc ? this._gbIdeogramSvg(gene, loc) : '';
-        const body = pic ? `<div class="gb-grid"><div>${left}</div><div>${pic}</div></div>` : left;
-        card.outerHTML = this._gbSection('About the gene', body, 'Description: NCBI Gene / RefSeq summary via MyGene.info (fetched live). Location: Ensembl GRCh38.', 'gbAboutCard');
+        const figure = pic ? `<div id="gbIdeogram" style="background:#fff; padding:4px;">${pic}</div>`
+            + `<div class="gb-actions mobile-hide" style="margin-top:4px;"><button class="btn btn-outline btn-sm" data-gb-act="copy-ideogram" title="Copy the chromosome figure as an image, to paste into a slide or document">Copy figure</button></div>` : '';
+        const body = pic ? `<div class="gb-grid"><div>${left}</div><div>${figure}</div></div>` : left;
+        card.outerHTML = this._gbSection('About the gene', body, 'Description: NCBI Gene / RefSeq summary via MyGene.info (fetched live). Location: Ensembl GRCh38. Bands: UCSC hg38 cytoBand (G-banding).', 'gbAboutCard');
     }
 
     _gbDependencyCard(s) {
@@ -50986,6 +51055,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const coDep = (this._gbCoDepCache?.get(gene) || []).map(h => h.gene);
         const corum = (this.corumPartners?.partners?.[gene] || []).filter(g => g !== gene);
         if (act === 'ge' || act === 'expr') { this.openGeneEffectModal(gene, 'tissue', { dataType: act }); return; }
+        if (act === 'copy-ideogram') { this.copyPlotToClipboard('gbIdeogram', 'Chromosome figure'); return; }
         if (act === 'sc-expr-ge') { this._gbScatter(gene, gene, 'expr', 'ge'); return; }
         if (act === 'sc-cn-expr') { this._gbScatter(gene, gene, 'cn', 'expr'); return; }
         if (act === 'hm-codep') { this._gbHeatmap([gene, ...coDep]); return; }
