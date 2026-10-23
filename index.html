@@ -2786,7 +2786,7 @@
                does reach for, to loosen or tighten a network. */
             #slopeParams, #minCellLinesPvalRow,
             #pValueThresholdGroup,
-            #networkAnalyzeWithAI, #clbExportAIBtn, #clbWikiAnalyzeWithAI,
+            #networkAnalyzeWithAI, #clbExportAIBtn, #clbWikiAnalyzeWithAI, #gbAnalyzeWithAI,
             #selectionInspectAI, #aiExportBtn,
             #toggleSelectMode, #toggleRemoveMode,
             #compareAllMutationsBtn, #compareAllTranslocationsBtn,
@@ -2883,6 +2883,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.37 (2026-10-23)</strong></p>
+                <ul>
+                    <li><b>Export for AI in the Gene Browser.</b> The button in its header writes one file about the gene across every cell line: the numbers behind each card (dependency and expression by tissue, the most dependent and highest-expressing lines, mutation, fusion and copy-number counts, drugs targeting it, related genes) with the cutoffs used, plus the usual data for the panel and a picture of the page. The picture reopens the gene with Open saved figure.</li>
+                </ul>
                 <p><strong>v.90.36 (2026-10-23)</strong></p>
                 <ul>
                     <li>Fix: a saved correlation figure on mRNA expression (or growth rate, copy number) reopened as gene effect, with the axis ranges of the original. Open saved figure and New tab now keep each axis's measure.</li>
@@ -8225,7 +8229,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.36</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.37</a>
         </span>
     </div>
 
@@ -10713,7 +10717,10 @@
             <h3 style="margin:0; font-size:17px; color:#4c782e;">Gene Browser</h3>
             <div id="gbSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px; min-height:14px;"></div>
           </div>
-          <button id="gbCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;" title="Close the Gene Browser">&times;</button>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button id="gbAnalyzeWithAI" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px;" disabled title="Package this gene as one file for a language model, so you can ask questions about it">Export for AI</button>
+            <button id="gbCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;" title="Close the Gene Browser">&times;</button>
+          </div>
         </div>
         <div id="gbBody" style="padding:16px 20px; font-size:12px; line-height:1.55; color:#374151; background:#f9fafb; border-radius:0 0 8px 8px;">
           <div class="main-input" style="display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
@@ -11506,7 +11513,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_36"></script>
+    <script src="app.js?v=v90_37"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

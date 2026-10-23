@@ -1305,6 +1305,7 @@ class CorrelationExplorer {
             if (source === 'mutation') return this.mutationResults?.hotspotGene ? this._buildMutationTableMeta() : null;
             if (source === 'correlations' || source === 'clusters') return this.results?.success ? this._buildNetworkMeta() : null;
             if (source === 'wiki' && this._wikiCellLineId != null) return this._buildExportMetadata('wiki', { wikiCellLine: this._wikiCellLineId });
+            if (source === 'genebrowser' && this._gbGene) return this._buildExportMetadata('genebrowser', { gbGene: this._gbGene });
             if (source === 'heatmap') return this._hmViewState();
         } catch (e) { console.warn('No reopen settings for the AI picture:', e); }
         return null;
@@ -8097,6 +8098,7 @@ class CorrelationExplorer {
             clusters: 'Cluster network, correlation network',
             exprCorrelates: 'Expression correlates, target gene',
             wiki: 'Cell line wiki, one cell line',
+            genebrowser: 'Gene Browser, one gene',
             clb: 'Cell Line Browser, the cell lines listed',
             heatmap: 'Gene set heatmap, genes x cell lines'
         };
@@ -8111,6 +8113,7 @@ class CorrelationExplorer {
             clusters: 'the network edges above the cutoff, the cluster assignments, and the gene-effect values for every gene in the network',
             exprCorrelates: 'the expression-versus-gene-effect correlations for the target gene',
             wiki: 'every section of the wiki for this cell line, including the alterations, pathway read-out, dependencies and drug response',
+            genebrowser: 'the numbers behind every card for this gene: dependency and expression by tissue, the most dependent and highest-expressing lines, mutation and fusion counts, copy number, drugs targeting it and related genes',
             clb: 'the cell lines the browser is currently showing, with their alterations, signatures and gene-effect data',
             heatmap: 'the gene set heatmap matrix (genes x cell lines, values as shown), the grouping and every group\'s n and score, and the alteration filters that shaped the cohort'
         };
@@ -8168,6 +8171,9 @@ class CorrelationExplorer {
             } else {
                 tierText = `<b>What's in the file:</b> GE filtered to |val|>0.5 (essentials); expression filtered to mean>3.0 OR sd>1.0; up to 2 500 genes per matrix; mutations / fusions / inferred / signatures full. Large cohort, expect ~20 MB.`;
             }
+            if (source === 'genebrowser' && n > 0) {
+                tierText = `<b>What's in the file:</b> gene effect and expression for this gene and the genes the page lists as related, across every cell line; mutations / fusions / inferred / signatures full.`;
+            }
             const extras = aiSourceExtras[source];
             document.getElementById('aiDataTierInfo').innerHTML = tierText
                 + (extras && n > 0 ? `<div style="margin-top:6px;"><b>From this view specifically:</b> ${extras}.</div>` : '')
@@ -8214,6 +8220,7 @@ class CorrelationExplorer {
         });
         document.getElementById('networkAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('clusters'));
         document.getElementById('clbWikiAnalyzeWithAI')?.addEventListener('click', () => aiShowDialog('wiki'));
+        document.getElementById('gbAnalyzeWithAI')?.addEventListener('click', () => { if (this._gbGene) aiShowDialog('genebrowser'); });
         // Stash the helper so exportForAI (correlations / clusters /
         // exprCorrelates menu entries) can reach the same dialog.
         this._aiShowDialog = aiShowDialog;
@@ -28775,6 +28782,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             this.openCellLineWiki(meta.wikiCellLine);
             return;
         }
+        if (meta.graphType === 'genebrowser' && meta.gbGene) {
+            this.openGeneBrowser(meta.gbGene);
+            return;
+        }
 
         // UMAP/PCA, show info (requires computation that can't be serialized)
         if (meta.graphType === 'umap' || meta.graphType === 'pca') {
@@ -34094,6 +34105,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (source === 'wiki') {
             return this._wikiCellLineId ? [this._wikiCellLineId] : [];
         }
+        if (source === 'genebrowser') {
+            return this._gbGene ? (this.metadata?.cellLines || []).slice() : [];
+        }
         if (source === 'selection') {
             // Gate mode ships BOTH sides: the export exists to
             // carry the contrast, and with only side A in the matrices a
@@ -34702,6 +34716,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (shown('selectionInspectModal')) return 'selection';
         if (shown('inspectModal') && this.currentInspect) return 'scatter';
         if (shown('geneEffectModal') && this.currentGeneEffect) return 'ge';
+        if (shown('gbModal') && this._gbGene) return 'genebrowser';
         if (shown('cellLineBrowserModal')) return 'clb';
         const tab = document.querySelector('.nav-link.active[data-tab]')?.dataset.tab;
         if (tab === 'mutation' && this.mutationResults) return 'mutation';
@@ -35066,6 +35081,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 tierLabel = `chosen in the custom export: up to ${custom.geneCap.toLocaleString()} genes per matrix`
                     + (geCutoff > 0 ? `, variance filter GE |val|>${geCutoff} kept` : ', no variance filter');
             }
+        }
+        // The Gene Browser is about one gene: its matrices carry that gene and
+        // the genes its page names as related, not the panel-wide variance cut,
+        // which made a 50 MB file of genes the page never mentions.
+        let _gbGeneList = null;
+        if (!custom && source === 'genebrowser' && this._gbGene) {
+            const rel = this._gbAiExtras()?.relatedGenes || {};
+            _gbGeneList = [...new Set([this._gbGene,
+                ...(rel.mostSimilarGeneEffectProfile || []).map(h => h.gene),
+                ...(rel.complexPartnersCorum || []), ...(rel.pathwayPartnersReactome || [])])];
+            tierLabel = `Gene Browser export: the matrices hold ${this._gbGene} and the ${_gbGeneList.length - 1} genes its page lists as related (most similar gene-effect profile, CORUM complex partners, up to 50 Reactome pathway partners), across every cell line; mutations / fusions / LoF / signatures full`;
         }
         const _scanTop = custom?.scanTop || 30;
         const includeExpr = this.expressionLoaded;
@@ -35901,6 +35927,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 retroelements,
                 retroelements_readMe: 'Retroelement signal measures RNA-seq reads over 750 full-length intergenic LINE-1, HERV-K and SVA elements (unique reads only, counts per million), from public CCLE hg19 alignments. The top decile of the 669 measured lines counts as retroelement-high (retroelementHigh: true). Lines with a higher signal depend measurably more on ADAR1 dependency (r = -0.18, p = 2.6e-06, n=669), and this persists after controlling for the interferon score (partial r = -0.15). This measures element transcription, not retrotransposition: new genomic insertions cannot be seen in RNA.'
             };
+        } else if (source === 'genebrowser') {
+            const gene = this._gbGene || '';
+            context = { type: 'gene_browser', gene, measure: 'gene effect', plotType: 'gene_profile', stratification: 'none' };
+            context.plotDescribesWhat = `Not a chart: the Gene Browser page for ${gene}, a set of cards (dependency, expression, mutations and fusions, copy number, drugs targeting it, related genes) computed across every cell line in the panel. extras.geneBrowser holds the numbers behind each card.`;
+            description = `Everything the app holds on the single gene ${gene}, across every cell line.`;
+            extras = { geneBrowser: this._gbAiExtras() };
         } else if (source === 'exprCorrelates') {
             const ctx = this._exprCorrelateContext || {};
             context = {
@@ -36439,7 +36471,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // makes a file about twelve genes small enough to carry every cell
         // line and every extra layer at once.
         const _wantGenes = (custom && custom.genes === 'list' && custom.geneList?.length)
-            ? new Set(custom.geneList.map(g => g.toUpperCase())) : null;
+            ? new Set(custom.geneList.map(g => g.toUpperCase()))
+            : _gbGeneList ? new Set(_gbGeneList.map(g => g.toUpperCase())) : null;
         if (_wantGenes) {
             for (const g of Object.keys(geMatrix)) {
                 if (!_wantGenes.has(g.toUpperCase()) && g.toUpperCase() !== focalGene && g.toUpperCase() !== focalGene2) delete geMatrix[g];
@@ -36675,12 +36708,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             exprMatrix = {};
             for (const c of exprCandidates) exprMatrix[c.gene] = c.vals;
             if (_wantGenes) {
-                // The focal gene(s) stay, as on the gene-effect side: a view of
-                // a gene's expression exported without that gene's expression
-                // could not be redrawn from the file.
+                // The focal gene(s) and the correlates the file names stay, as on
+                // the gene-effect side: a gene's expression or a listed
+                // correlate missing from the matrix could not be checked.
                 for (const g of Object.keys(exprMatrix)) {
                     const u = g.toUpperCase();
-                    if (!_wantGenes.has(u) && u !== focalGene && u !== focalGene2) delete exprMatrix[g];
+                    if (!_wantGenes.has(u) && u !== focalGene && u !== focalGene2 && !alwaysIncludeExpr.has(u)) delete exprMatrix[g];
                 }
                 // Same add-back on this side: a named gene the expression
                 // variance filter dropped is still a gene that was asked for.
@@ -38086,6 +38119,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 if (el && el.offsetParent !== null) _pngUrl = await timed(this._domToPngUrl(el));
             } else if (source === 'wiki') {
                 const el = document.getElementById('clbWikiBody');
+                if (el && el.offsetParent !== null) _pngUrl = await timed(this._domToPngUrl(el));
+            } else if (source === 'genebrowser') {
+                const el = document.getElementById('gbCards');
                 if (el && el.offsetParent !== null) _pngUrl = await timed(this._domToPngUrl(el));
             } else if (source === 'heatmap') {
                 // Also not a Plotly chart: the same composed canvas Export
@@ -50198,6 +50234,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     _gbRenderEmpty() {
         this._gbGene = null;
         document.getElementById('gbSubtitle').textContent = '';
+        const ai = document.getElementById('gbAnalyzeWithAI'); if (ai) ai.disabled = true;
         const chips = ['KRAS', 'MYC', 'CDK6'].map(g => `<button class="gb-chip" data-gb-gene="${g}">${this.gi(g)}</button>`).join('');
         document.getElementById('gbCards').innerHTML = `<div class="gb-empty">Type a gene symbol above, or try ${chips}</div>`;
     }
@@ -50437,6 +50474,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (this._gbGene !== gene) return;
         const s = this._gbCore(gene);
         this._gbState = s;
+        const ai = document.getElementById('gbAnalyzeWithAI'); if (ai) ai.disabled = false;
         const gname = this.gi(gene);
         s.tissues = this._gbByTissue(s, (i) => s.ge[i]).map(t => ({ name: t.name, n: t.n, mean: this.mean(t.vals), vals: t.vals }))
             .sort((a, b) => a.mean - b.mean);
@@ -50711,6 +50749,113 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             + (reactome.length ? `<div class="gb-sub">Pathway partners <span class="gb-m">(Reactome)</span></div><div class="gb-chips">${list(reactome, 15)}</div>` : '')
             + (mice.length ? this._gbRow('Mouse ortholog', this.esc(mice.join(', '))) : '');
         card.outerHTML = this._gbSection('Related genes', body, 'DepMap 26Q1 CRISPRGeneEffect (correlation), CORUM complexes, Reactome pathways, mouse orthologs.', 'gbRelCard');
+    }
+
+    // The numbers behind every card, for Export for AI. Recomputed from the
+    // page's state rather than scraped from the cards, so a card still
+    // loading is reported as not loaded instead of missing.
+    _gbAiExtras() {
+        const s = this._gbState;
+        if (!s || s.gene !== this._gbGene) return null;
+        const gene = s.gene, N = s.N;
+        const r3 = (v) => v === null || v === undefined || v !== v ? null : Math.round(v * 1000) / 1000;
+        const pv = (p) => p === null || p === undefined || p !== p ? null : Number(p.toPrecision(3));
+        const corr = (a, b) => {
+            const r = this.pearsonWithSlope(a, b);
+            return r.n >= 10 && r.correlation === r.correlation ? { r: r3(r.correlation), p: pv(r.pValue), n: r.n } : null;
+        };
+        const lineRow = (id, v, key) => ({ id, name: this.getCellLineName(id) || id, lineage: s.lin[id] || null, [key]: r3(v) });
+        const ranked = (vec, dir, k) => s.ids.map((id, i) => [id, vec[i]]).filter(x => x[1] === x[1])
+            .sort((a, b) => dir * (a[1] - b[1])).slice(0, k);
+        const depCut = this._gbDepCut, exprCut = this._gbExprCut;
+        const AMP = 3.0, DEL = 0.3;
+        const out = {
+            _readMe: `The numbers behind each card of the Gene Browser page for ${gene}, computed over every cell line in the panel (${N.toLocaleString()} lines). Percentages of mutation, fusion and functional-loss calls use all ${N.toLocaleString()} lines as the denominator, not only the sequenced ones. A section that is null was not available for this gene or had not finished loading when the file was made; that is missing data, not a zero.`,
+            gene,
+            location: s.loc ? this._gbLocText(s.loc) : null,
+            synonyms: this._gbSynonymsOf(gene),
+            generatedSummary: String(this._gbSummaryHtml(s) || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+            summaryCaveat: 'generatedSummary is written by the app from the numbers in this section. Treat it as a starting point, not a source: check any claim in it against the values, and say so if they disagree.',
+            cutoffs: {
+                dependent: `gene effect below ${depCut}`,
+                expressed: `log2 TPM+1 of at least ${exprCut}`,
+                amplified: `relative copy number of at least ${AMP}`,
+                deleted: `relative copy number below ${DEL}`
+            }
+        };
+        if (s.hasGe) {
+            const v = s.geVals, below = (c) => v.filter(x => x < c).length;
+            out.dependency = {
+                nScreened: v.length,
+                mean: r3(this.mean(v)), median: r3(this._gbMedian(v)),
+                nBelowCutoff: below(depCut), nBelowMinus1: below(-1),
+                commonEssential: !!this._commonEssentials?.has(gene),
+                wording: this._gbDepWords(s),
+                byTissue: s.tissues.map(t => ({ tissue: t.name, n: t.n, mean: r3(t.mean), median: r3(this._gbMedian(t.vals)) })),
+                byTissue_readMe: 'Every tissue with at least 5 screened lines, most dependent (most negative mean) first.',
+                mostDependentLines: ranked(s.ge, 1, 20).map(([id, x]) => lineRow(id, x, 'geneEffect'))
+            };
+        } else out.dependency = null;
+        if (s.exprVec && s.expr) {
+            const vals = [...s.exprVec].filter(x => x === x);
+            out.expression = {
+                nWithData: s.expr.n, median: r3(this._gbMedian(vals)), nExpressed: s.expr.nOn,
+                byTissue: this._gbByTissue(s, (i) => s.exprVec[i]).map(t => ({ tissue: t.name, n: t.n, median: r3(this._gbMedian(t.vals)) }))
+                    .sort((a, b) => b.median - a.median),
+                highestLines: ranked(s.exprVec, -1, 20).map(([id, x]) => lineRow(id, x, 'log2TpmPlus1')),
+                expressionVsGeneEffect: s.hasGe ? corr(s.exprVec, s.ge) : null,
+                expressionVsGeneEffect_readMe: 'Pearson r across lines with both values. Negative r: lines that express more depend on it more.'
+            };
+        } else out.expression = null;
+        const split = s.split;
+        out.mutations = {
+            denominator: N,
+            nHotspot: s.hot ? s.nHot : null, nAnyMutation: s.any ? s.nAny : null,
+            nFunctionalLoss: s.lof ? s.nLof : null, nFusion: s.fus ? s.nFus : null,
+            commonVariants: s.variants.map(([variant, n]) => ({ variant: `${gene} ${variant}`, n })),
+            commonVariants_readMe: 'Specific codon calls; a generic call such as p.G12 counts lines where only the codon, not the exact change, was called.',
+            mostMutatedTissues: s.mutTissues.map(t => ({ tissue: t.name, nMutated: t.k, n: t.n })),
+            mutatedVsWildType: split ? {
+                mutatedGroup: split.label, nMutated: split.mut.length, meanGeneEffectMutated: r3(this.mean(split.mut)),
+                nWildType: split.wt.length, meanGeneEffectWildType: r3(this.mean(split.wt)),
+                welchP: pv(split.t.p)
+            } : null
+        };
+        if (this.cnLoaded && this.cnGeneIndex?.has(gene)) {
+            const cn = new Float64Array(N).fill(NaN), vals = [];
+            for (let i = 0; i < N; i++) { const x = this.getCnValue(gene, s.ids[i]); if (x === x) { cn[i] = x; vals.push(x); } }
+            out.copyNumber = vals.length < 10 ? null : {
+                nWithData: vals.length, median: r3(this._gbMedian(vals)),
+                nAmplified: vals.filter(x => x >= AMP).length, nDeleted: vals.filter(x => x < DEL).length,
+                copyNumberVsExpression: s.exprVec ? corr(cn, s.exprVec) : null,
+                copyNumberVsGeneEffect: s.hasGe ? corr(cn, s.ge) : null
+            };
+        } else out.copyNumber = null;
+        const comps = this.drugResponse?.compounds || [];
+        const re = new RegExp('(^|[^A-Za-z0-9])' + gene.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^A-Za-z0-9]|$)', 'i');
+        out.drugsTargetingIt = comps.filter(c => c.target && re.test(c.target)).slice(0, 10).map(c => {
+            let aucVsGeneEffect = null;
+            if (s.hasGe) {
+                const a = new Float64Array(N).fill(NaN);
+                for (let i = 0; i < N; i++) { const x = c.auc?.[s.ids[i]]; if (x !== undefined && x !== null) a[i] = x; }
+                aucVsGeneEffect = corr(a, s.ge);
+            }
+            return { name: c.name, target: c.target, moa: c.moa || null, nLinesTested: Object.keys(c.auc || {}).length, aucVsGeneEffect };
+        });
+        out.drugsTargetingIt_readMe = 'Compounds whose listed target names this gene. AUC: lower is more sensitive, so a positive r with gene effect means lines that depend on the gene are also more sensitive to the drug.';
+        const coDep = this._gbCoDepCache?.get(gene);
+        const corum = (this.corumPartners?.partners?.[gene] || []).filter(g => g !== gene);
+        const reactome = (this.reactomePartners?.partners?.[gene] || []).filter(g => g !== gene);
+        out.relatedGenes = {
+            mostSimilarGeneEffectProfile: coDep ? coDep.map(h => ({ gene: h.gene, r: r3(h.r), p: pv(h.p), n: h.n })) : null,
+            mostSimilarGeneEffectProfile_readMe: coDep
+                ? 'The 10 genes whose gene-effect profile across lines correlates best with this one (Pearson r, genes with at least 100 shared lines).'
+                : 'Not computed: the page had not finished comparing this gene with every other gene when the file was made.',
+            complexPartnersCorum: corum.slice(0, 50), complexPartnersCorumTotal: corum.length,
+            pathwayPartnersReactome: reactome.slice(0, 50), pathwayPartnersReactomeTotal: reactome.length,
+            mouseOrthologs: Object.keys(this.orthologs?.mouseToHuman || {}).filter(k => this.orthologs.mouseToHuman[k] === gene)
+        };
+        return out;
     }
 
     _gbLinksCard(gene) {
