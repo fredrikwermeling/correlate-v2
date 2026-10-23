@@ -50517,7 +50517,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     _gbClLink(id) { return `<a href="#" data-gb-cl="${this.esc(id)}" class="gb-cl">${this.esc(this.getCellLineName(id) || id)}</a>`; }
     _gbLoading(t) { return `<div class="gb-loading">${t}</div>`; }
     _gbTissueRows(rows, fmt) {
-        return rows.map(r => `<div class="gb-trow"><span class="gb-trow-n">${this.esc(r.name)}</span><span class="gb-trow-v">${fmt(r)}</span><span class="gb-trow-c">n = ${r.n}</span></div>`).join('');
+        // Rows that count lines (r.k) say "k of n lines" so n can't be read
+        // as the number altered; the others give the tissue's line count.
+        const count = (r) => r.k !== undefined ? `${r.k} of ${r.n} lines` : `${r.n} lines`;
+        return rows.map(r => `<div class="gb-trow"><span class="gb-trow-n">${this.esc(r.name)}</span><span class="gb-trow-v">${fmt(r)}</span><span class="gb-trow-c">${count(r)}</span></div>`).join('');
     }
     _gbTopLines(items) {
         return items.map(([id, v]) => `<div class="gb-trow"><span class="gb-trow-n">${this._gbClLink(id)}</span><span class="gb-trow-v">${this._gbNum(v)}</span><span class="gb-trow-c">${this.esc(this.cellLineMetadata?.lineage?.[id] || '')}</span></div>`).join('');
