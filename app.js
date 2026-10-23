@@ -38825,6 +38825,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             else if (st === 'xi_lost') s1 += ' XIST is off and one X copy remains, so the inactive X is lost.';
             else if (st === 'xist_silenced') s1 += ' XIST is off although two X copies remain.';
         }
+        {
+            // A resistant or knockdown line reads as an unrelated line with a
+            // similar name unless the card says what its suffix means.
+            const dv = this._derivativePairs(cellLineId);
+            const nm = (id) => this.esc(this.getCellLineName(id) || id);
+            if (dv?.role === 'derivative') {
+                const p = dv.pairs[0];
+                s1 += ` <b>Derivative of ${nm(p.parent)}</b>: ${this.esc(p.changeShort || p.change || '')}.`;
+            } else if (dv?.role === 'parent') {
+                s1 += ` Parent of ${dv.pairs.length === 1 ? 'a derived line' : `${dv.pairs.length} derived lines`}: `
+                    + dv.pairs.map(p => nm(p.derivative)).join(', ') + '.';
+            }
+        }
         if ((lin || '').toLowerCase().includes('breast')) {
             // A published classification leads. Where this line's own data says
             // something else, that is stated next to it rather than either one

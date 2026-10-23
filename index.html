@@ -2848,6 +2848,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.33 (2026-10-23)</strong></p>
+                <ul>
+                    <li>The cell-line card says when a line is a derivative of another (for example A375DABR: derivative of A375, resistant to dabrafenib), and a parental line lists its derived lines.</li>
+                </ul>
                 <p><strong>v.90.32 (2026-10-23)</strong></p>
                 <ul>
                     <li>Fix: a highlighted cell line's dot can be hovered again to show its information. The name label's arrow was catching the pointer on top of the dot; the label itself can still be dragged.</li>
@@ -8174,7 +8178,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.32</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.33</a>
         </span>
     </div>
 
@@ -11433,7 +11437,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_32"></script>
+    <script src="app.js?v=v90_33"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
