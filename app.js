@@ -48,6 +48,19 @@
         if (onPhone()) out.edits = {};
         return out;
     };
+    // A box that sizes itself (aspect-ratio) is left alone. Otherwise the pin
+    // includes border and padding under border-box, or a chart that refits to
+    // the box's inner height (the volcano's ResizeObserver) shrank 2 px a loop.
+    const pinHeight = (el, h) => {
+        if (!el?.style) return;
+        const cs = getComputedStyle(el);
+        if (cs.aspectRatio && cs.aspectRatio !== 'auto') return;
+        const extra = cs.boxSizing === 'border-box'
+            ? (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0)
+              + (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0)
+            : 0;
+        el.style.height = (h + extra) + 'px';
+    };
     ['newPlot', 'react'].forEach((fn) => {
         const orig = Plotly[fn];
         if (typeof orig !== 'function') return;
@@ -57,8 +70,7 @@
             // gives Plotly's 450 px default: a tall chart was squashed for
             // good. Pin the chart's own height on the box.
             if (config?.responsive && typeof layout?.height === 'number') {
-                const el = typeof div === 'string' ? document.getElementById(div) : div;
-                if (el?.style) el.style.height = layout.height + 'px';
+                pinHeight(typeof div === 'string' ? document.getElementById(div) : div, layout.height);
             }
             const r = orig.call(this, div, data, lockLayout(layout), lockConfig(config));
             // Phone only, and only if a Run / Update press armed it.
@@ -73,7 +85,7 @@
     if (typeof origRelayout === 'function') {
         Plotly.relayout = function(div, update, ...rest) {
             const el = typeof div === 'string' ? document.getElementById(div) : div;
-            if (el?._context?.responsive && update && typeof update === 'object' && typeof update.height === 'number') el.style.height = update.height + 'px';
+            if (el?._context?.responsive && update && typeof update === 'object' && typeof update.height === 'number') pinHeight(el, update.height);
             return origRelayout.call(this, div, update, ...rest);
         };
     }
