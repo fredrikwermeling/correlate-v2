@@ -1699,6 +1699,41 @@
            source lines. Gene names are chips with real padding so a long list
            stays readable instead of running together as tiny comma-separated
            text. */
+        /* Gene Browser */
+        #gbBody .gb-card { margin-bottom:16px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.04); overflow:hidden; }
+        #gbBody .gb-card-head { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid #eef2f7; background:#f7fbf8; }
+        #gbBody .gb-dot { width:8px; height:8px; border-radius:50%; background:#4c782e; flex:0 0 auto; }
+        #gbBody .gb-card-head h3 { margin:0; font-size:13px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#4c782e; }
+        #gbBody .gb-card-body { padding:12px 14px; }
+        #gbBody .gb-card-src { padding:8px 14px; border-top:1px solid #f1f5f9; font-size:10px; color:#9ca3af; }
+        #gbBody .gb-desc { margin:0 0 10px; font-size:11px; color:#6b7280; }
+        #gbBody .gb-summary { font-size:13px; line-height:1.6; }
+        #gbBody .gb-m { font-size:10px; color:#6b7280; }
+        #gbBody .gb-sub { font-weight:600; color:#374151; font-size:12px; margin:12px 0 4px; }
+        #gbBody .gb-loading, #gbBody .gb-empty { font-size:11px; color:#9ca3af; padding:4px 0; }
+        #gbBody .gb-empty { font-size:12px; color:#6b7280; }
+        #gbBody .gb-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:14px; align-items:start; }
+        #gbBody .gb-hist { height:200px; }
+        #gbBody .gb-kv { display:flex; gap:12px; padding:3px 0; align-items:baseline; }
+        #gbBody .gb-kv-l { flex:0 0 170px; color:#6b7280; font-size:11px; }
+        #gbBody .gb-kv-v { flex:1; min-width:0; }
+        #gbBody .gb-trow { display:flex; gap:10px; padding:2px 0; align-items:baseline; border-bottom:1px solid #f3f4f6; }
+        #gbBody .gb-trow-n { flex:1 1 0; min-width:0; overflow-wrap:anywhere; }
+        #gbBody .gb-trow-v { flex:0 0 auto; font-weight:600; }
+        #gbBody .gb-trow-c { flex:0 0 38%; max-width:38%; text-align:right; font-size:10px; color:#6b7280; }
+        #gbBody .gb-drug { padding:5px 0; border-bottom:1px solid #f3f4f6; }
+        #gbBody .gb-cl { color:#3730a3; text-decoration:none; }
+        #gbBody .gb-cl:hover { text-decoration:underline; }
+        #gbBody .gb-chips { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+        #gbBody .gb-chip { border:1px solid #d1d5db; background:#f9fafb; color:#4c782e; font-weight:600; border-radius:10px; padding:2px 10px; cursor:pointer; font-size:11px; margin:0 4px 4px 0; }
+        #gbBody .gb-chip:hover { background:#f3faee; border-color:#b2dd95; }
+        @media (max-width: 640px) {
+            #gbBody { padding:12px 10px !important; }
+            #gbBody .gb-grid { grid-template-columns:1fr; }
+            #gbBody .gb-kv { flex-direction:column; gap:0; }
+            #gbBody .gb-kv-l { flex:0 0 auto; }
+            #gbBody .gb-trow-c { flex-basis:34%; max-width:34%; }
+        }
         #clbWikiBody { font-size: 12px; line-height: 1.55; }
         #clbWikiBody .wiki-sub-h { font-weight: 600; color: #374151; font-size: 13px; margin-bottom: 3px; }
         #clbWikiBody .wiki-sub-p { margin: 0 0 10px; font-size: 11px; color: #6b7280; line-height: 1.55; }
@@ -2848,6 +2883,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.35 (2026-10-23)</strong></p>
+                <ul>
+                    <li>New <b>Gene Browser</b> in the Options row: enter one gene and get a page of cards for it, like the cell-line Wiki. It summarises how strongly cell lines depend on the gene (by tissue and cell line), where it is expressed, how often it is mutated or fused, its copy number, drugs that target it and the genes that behave like it. Gene names in the related-genes card open the browser on that gene, and <code>#genebrowser=KRAS</code> links straight to one.</li>
+                </ul>
                 <p><strong>v.90.34 (2026-10-23)</strong></p>
                 <ul>
                     <li>The recent fixes now apply across the app. Every clickable label on a chart (inspect volcano names, cell-line labels, clickable axis titles, compilation panel titles) shows its hint as a small tooltip that no longer covers it. The Dimension reduction plot uses the same distinct colours and shapes as the correlation plot. Highlighted cell lines keep their legend colour in the Mutation Inspect and gene-effect-by-tissue charts too.</li>
@@ -8182,7 +8221,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.34</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.35</a>
         </span>
     </div>
 
@@ -8203,6 +8242,7 @@
                     <div id="optionsRow">
                         <button class="btn btn-success btn-sm" id="modeGeneSetBtn" title="Correlate the gene-effect profiles of a set of genes, and optionally expand it to find correlated genes">Gene set<br>analysis</button>
                         <button class="btn btn-outline btn-sm" id="showCellLineBrowser" style="color:var(--green-700); border-color:var(--green-400);" title="Browse, filter and compare the cell lines behind the data">Cell Line<br>Browser</button>
+                        <button class="btn btn-outline btn-sm" id="showGeneBrowser" style="color:var(--green-700); border-color:var(--green-400);" title="Look up one gene: dependency, expression, mutations and copy number across the cell lines">Gene<br>Browser</button>
                         <div style="position:relative; display:flex;">
                             <button class="btn btn-outline btn-sm" id="optionsOtherBtn" aria-haspopup="true" aria-expanded="false" style="color:var(--green-700); border-color:var(--green-400); flex:1 1 0; min-width:0;" title="Mutation analysis, Gene Effect, Correlation and opening a saved figure">Other &#9662;</button>
                             <div id="optionsOtherMenu" style="display:none; position:absolute; top:calc(100% + 4px); right:0; z-index:1200; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.12); min-width:180px; padding:4px;">
@@ -10548,7 +10588,7 @@
                         </div>
                     </div>
                     <p style="font-size: 12px; color: #777; margin: 12px 0 0; line-height: 1.55;">
-                        More under <b>Options &rarr; Other</b>: <b>Mutation analysis</b> splits the cell lines by a chosen alteration (hotspot mutation, driver fusion, functional loss or amplification) and ranks the genes carriers depend on more, or express differently.
+                        The <b>Gene Browser</b> (Options) is the gene-level counterpart: one gene in, and a page of cards for its dependency, expression, mutations, copy number, drugs and related genes. More under <b>Options &rarr; Other</b>: <b>Mutation analysis</b> splits the cell lines by a chosen alteration (hotspot mutation, driver fusion, functional loss or amplification) and ranks the genes carriers depend on more, or express differently.
                     </p>
                 </div>
 
@@ -10658,6 +10698,27 @@
         </div>
         <div style="padding:8px 20px; border-bottom:1px solid #e5e7eb; display:flex; gap:6px; flex-wrap:wrap;" id="enrichrTabs"></div>
         <div id="enrichrContent" style="flex:1; overflow-y:auto; padding:20px; color:#374151;"></div>
+      </div>
+    </div>
+
+    <!-- Gene Browser Modal -->
+    <div id="gbModal" style="display:none; position:fixed; inset:0; z-index:1365; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:0 20px 20px; overflow-y:auto;">
+      <div style="background:#fff; width:100%; max-width:min(96vw, 1100px); margin-top:20px; border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+        <div style="position:sticky; top:0; z-index:3; display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg,#f3faee,#fff); border-radius:8px 8px 0 0;">
+          <div style="min-width:0;">
+            <h3 style="margin:0; font-size:17px; color:#4c782e;">Gene Browser</h3>
+            <div id="gbSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px; min-height:14px;"></div>
+          </div>
+          <button id="gbCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;" title="Close the Gene Browser">&times;</button>
+        </div>
+        <div id="gbBody" style="padding:16px 20px; font-size:12px; line-height:1.55; color:#374151; background:#f9fafb; border-radius:0 0 8px 8px;">
+          <div class="main-input" style="display:inline-flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
+            <label for="gbGene" style="font-size:13px; font-weight:600; color:#374151; white-space:nowrap;">Gene:</label>
+            <input type="text" id="gbGene" class="form-control" placeholder="Gene symbol" autocomplete="off" style="width:150px; font-size:13px; padding:6px 10px;">
+            <button class="btn btn-success btn-sm" id="gbShowBtn" style="padding:6px 16px;">Show</button>
+          </div>
+          <div id="gbCards"></div>
+        </div>
       </div>
     </div>
 
@@ -11441,7 +11502,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_34"></script>
+    <script src="app.js?v=v90_35"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

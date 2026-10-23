@@ -461,6 +461,16 @@ class CorrelationExplorer {
             return;
         }
         const h = raw.toLowerCase();
+        // The Gene Browser: #genebrowser=KRAS for one gene, bare #gene or
+        // #genebrowser for the empty page. (#gene=SYMBOL stays the Gene Effect link.)
+        if (h === 'gene' || h === 'genebrowser') { this.openGeneBrowser(); return; }
+        const gbNamed = /^genebrowser=(.+)$/.exec(h);
+        if (gbNamed) {
+            let value = gbNamed[1];
+            try { value = decodeURIComponent(value); } catch (e) { }
+            this.openGeneBrowser(value.toUpperCase());
+            return;
+        }
         const CELL_BROWSER_ROUTES = ['cell', 'cells', 'cellbrowser', 'cellsbrowser', 'cell-line-browser', 'celllinebrowser', 'browser'];
         if (CELL_BROWSER_ROUTES.includes(h)) {
             try { this.openCellLineBrowser(); }
@@ -8273,6 +8283,7 @@ class CorrelationExplorer {
         });
 
         this.setupCellLineBrowserEvents();
+        this.setupGeneBrowserEvents();
         this.setupHeatmapModal();
         this.setupCutoffTool();
     }
@@ -50128,6 +50139,585 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         this._geGeneStats = { mean, sd };
     }
 
+    // ---- Gene Browser: one gene, wiki-style cards ---------------------------
+    // Built only from layers already in memory; the expression, copy-number and
+    // co-dependency cards fill in after the first render.
+
+    _gbHas(g) { return !!(this.geneIndex?.has(g) || this.expressionGeneIndex?.has(g)); }
+
+    // The two cutoffs are the Threshold scan's defaults: gene effect below -0.5
+    // is "dependent", log2 TPM+1 below 1 is "not expressed".
+    get _gbDepCut() { return this._ctDefault('ge', 'below'); }
+    get _gbExprCut() { return this._ctDefault('expr', 'below'); }
+
+    _gbSynonymsOf(gene) {
+        if (!this._gbSynMap && this.synonymLookup) {
+            const m = new Map();
+            for (const [k, v] of Object.entries(this.synonymLookup)) {
+                const d = (v && v.d || '').toUpperCase();
+                if (!d || k === d || /\s/.test(k) || k.length > 14) continue;
+                (m.get(d) || m.set(d, []).get(d)).push(k);
+            }
+            this._gbSynMap = m;
+        }
+        return (this._gbSynMap?.get(gene) || []).slice(0, 3);
+    }
+
+    async _gbEnsureCommonEss() {
+        if (this._commonEssentials) return;
+        try {
+            const r = await fetch(this._dataUrl('web_data/common_essentials.json'));
+            this._commonEssentials = new Set(await r.json());
+        } catch (e) {
+            this._commonEssentials = new Set();
+        }
+    }
+
+    openGeneBrowser(gene) {
+        const modal = document.getElementById('gbModal');
+        if (!modal || !this.metadata) return;
+        modal.style.display = 'flex';
+        this._ensureAliasTables?.();
+        if (gene) { this._gbGo(gene); return; }
+        if (!this._gbGene) this._gbRenderEmpty();
+        setTimeout(() => document.getElementById('gbGene')?.focus(), 0);
+    }
+
+    closeGeneBrowser() {
+        const modal = document.getElementById('gbModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    _gbRenderEmpty() {
+        this._gbGene = null;
+        document.getElementById('gbSubtitle').textContent = '';
+        const chips = ['KRAS', 'MYC', 'CDK6'].map(g => `<button class="gb-chip" data-gb-gene="${g}">${this.gi(g)}</button>`).join('');
+        document.getElementById('gbCards').innerHTML = `<div class="gb-empty">Type a gene symbol above, or try ${chips}</div>`;
+    }
+
+    setupGeneBrowserEvents() {
+        document.getElementById('showGeneBrowser')?.addEventListener('click', (e) => { e.preventDefault(); this.openGeneBrowser(); });
+        document.getElementById('gbCloseBtn')?.addEventListener('click', () => this.closeGeneBrowser());
+        document.getElementById('gbModal')?.addEventListener('click', (e) => { if (e.target.id === 'gbModal') this.closeGeneBrowser(); });
+        const box = document.getElementById('gbGene');
+        document.getElementById('gbShowBtn')?.addEventListener('click', () => this._gbGo(box.value));
+        box?.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); this._gbGo(box.value); } });
+        const body = document.getElementById('gbBody');
+        body?.addEventListener('click', (e) => {
+            const g = e.target.closest('[data-gb-gene]');
+            if (g) { e.preventDefault(); this._gbGo(g.dataset.gbGene); return; }
+            const cl = e.target.closest('[data-gb-cl]');
+            if (cl) { e.preventDefault(); this.hideCellLineTooltip?.(); this.openCellLineWiki(cl.dataset.gbCl); return; }
+            const act = e.target.closest('[data-gb-act]');
+            if (act && this._gbGene) {
+                const dt = act.dataset.gbAct === 'expr' ? 'expr' : 'ge';
+                this.openGeneEffectModal(this._gbGene, 'tissue', { dataType: dt });
+            }
+        });
+        // Cell line names show the same hover card as the dots on a plot.
+        let timer = null;
+        body?.addEventListener('mouseover', (e) => {
+            const cl = e.target.closest('[data-gb-cl]');
+            if (!cl) return;
+            const ev = { clientX: e.clientX, clientY: e.clientY };
+            clearTimeout(timer);
+            timer = setTimeout(() => this.showCellLineTooltip(ev, cl.dataset.gbCl), this._HOVER_DELAY);
+        });
+        body?.addEventListener('mouseout', (e) => {
+            if (!e.target.closest('[data-gb-cl]')) return;
+            clearTimeout(timer);
+            this.hideCellLineTooltip?.();
+        });
+    }
+
+    async _gbGo(raw) {
+        const box = document.getElementById('gbGene');
+        if (box) box.value = String(raw || '').trim();
+        if (!box?.value) return;
+        const gene = await this._resolveGeneBox(box, (g) => this._gbHas(g), 'the gene-effect or expression data');
+        if (!gene) return;
+        this._gbGene = gene;
+        await this._gbRender(gene);
+    }
+
+    // Everything that needs only the gene-effect matrix and the mutation layers.
+    _gbCore(gene) {
+        const ids = this.metadata.cellLines, N = ids.length;
+        const lin = this.cellLineMetadata?.lineage || {};
+        const s = { gene, N, ids, lin };
+        const gi = this.geneIndex.get(gene);
+        s.ge = new Float64Array(N).fill(NaN);
+        if (gi !== undefined) {
+            const raw = this.getGeneData(gi);
+            for (let i = 0; i < N; i++) { const v = raw[i]; if (v === v && v !== -999) s.ge[i] = v; }
+        }
+        s.geVals = [];
+        for (let i = 0; i < N; i++) if (s.ge[i] === s.ge[i]) s.geVals.push(s.ge[i]);
+        s.hasGe = s.geVals.length >= 10;
+        s.loc = this.geneLocations?.[gene] || null;
+        // Mutation and fusion calls, always through the shared accessors.
+        const countIn = (calls) => { let n = 0; if (calls) for (let i = 0; i < N; i++) if (calls[ids[i]] >= 1) n++; return n; };
+        s.hot = this._mutCalls(gene, { hotspotOnly: true });
+        s.any = this._mutCalls(`${gene} (any mutation)`);
+        s.lof = this._mutCalls(`${gene} (functional loss)`);
+        s.fus = this.translocations?.geneData?.[gene]?.translocations || null;
+        s.nHot = countIn(s.hot); s.nAny = countIn(s.any); s.nLof = countIn(s.lof); s.nFus = countIn(s.fus);
+        // Lines carrying a specific codon call (KRAS p.G12D ...).
+        const vc = new Map();
+        const byCl = this.inferredSubtypes?.byCellLine || {};
+        for (const id of ids) {
+            for (const h of (byCl[id]?.hotspots || [])) {
+                if (!h.startsWith(gene + ' ')) continue;
+                const v = h.slice(gene.length + 1);
+                if (v === 'Hotspot') continue;
+                vc.set(v, (vc.get(v) || 0) + 1);
+            }
+        }
+        s.variants = [...vc.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+        return s;
+    }
+
+    // [{name, n, ...}] per tissue with at least minN lines, for values read by fn(i).
+    _gbByTissue(s, valueOf, minN = 5) {
+        const groups = new Map();
+        for (let i = 0; i < s.N; i++) {
+            const t = s.lin[s.ids[i]];
+            if (!t) continue;
+            const v = valueOf(i);
+            if (v === null || v === undefined || v !== v) continue;
+            (groups.get(t) || groups.set(t, []).get(t)).push(v);
+        }
+        return [...groups.entries()].filter(([, a]) => a.length >= minN).map(([name, a]) => ({ name, n: a.length, vals: a }));
+    }
+
+    // "12p12.1" is chromosome and band in one string; show "chr12 p12.1".
+    _gbLocText(loc) {
+        const c = String(loc.chr).replace(/^chr/i, '');
+        const b = String(loc.band || '');
+        return `chr${c}` + (b ? ' ' + (b.startsWith(c) ? b.slice(c.length) : b) : '');
+    }
+
+    _gbPct(k, n) { return n ? (100 * k / n) : 0; }
+    _gbFmtPct(k, n) { const p = this._gbPct(k, n); return p >= 10 || p === 0 ? p.toFixed(0) + '%' : p.toFixed(1) + '%'; }
+    _gbNum(v, d = 2) { return v === null || v === undefined || v !== v ? 'n/a' : (v < 0 ? '−' : '') + Math.abs(v).toFixed(d); }
+    _gbP(p) { return p === null || p === undefined || p !== p ? 'n/a' : this.formatPValue(p); }
+    _gbMedian(a) { return this.median(a); }
+
+    // The mutated-vs-wild-type split for the dependency comparison: hotspot
+    // calls when at least 5 screened lines carry one, else any mutation call.
+    _gbMutSplit(s) {
+        const pick = (calls, label) => {
+            if (!calls) return null;
+            const mut = [], wt = [];
+            for (let i = 0; i < s.N; i++) {
+                const v = s.ge[i];
+                if (v !== v) continue;
+                (calls[s.ids[i]] >= 1 ? mut : wt).push(v);
+            }
+            return mut.length >= 5 && wt.length >= 5 ? { label, mut, wt, t: this.welchTTest(mut, wt) } : null;
+        };
+        return pick(s.hot, 'hotspot-mutated') || pick(s.any, 'mutated');
+    }
+
+    _gbMutTissues(s) {
+        const calls = s.nHot >= 1 ? s.hot : s.any;
+        if (!calls) return [];
+        return this._gbByTissue(s, (i) => calls[s.ids[i]] >= 1 ? 1 : 0, 5)
+            .map(t => ({ name: t.name, n: t.n, k: t.vals.reduce((a, b) => a + b, 0) }))
+            .filter(t => t.k > 0).sort((a, b) => (b.k / b.n) - (a.k / a.n) || b.k - a.k).slice(0, 5);
+    }
+
+    // The dependency wording rule: a gene on the common-essentials list is a
+    // "common essential"; otherwise the share of lines below the cutoff decides.
+    _gbDepWords(s) {
+        const pct = this._gbPct(s.geVals.filter(v => v < this._gbDepCut).length, s.geVals.length);
+        if (this._commonEssentials?.has(s.gene)) return 'a common essential gene';
+        if (pct >= 50) return 'a dependency in most lines';
+        if (pct >= 5) return 'a selective dependency';
+        if (pct >= 1) return 'a dependency in a few lines';
+        return 'rarely a dependency';
+    }
+
+    _gbSummaryHtml(s) {
+        const g = this.gi(s.gene);
+        const out = [];
+        let head = `<b>${g}</b>`;
+        if (s.loc) head += ` <span style="color:#6b7280;">(${this.esc(this._gbLocText(s.loc))})</span>`;
+        if (s.hasGe) {
+            const k = s.geVals.filter(v => v < this._gbDepCut).length;
+            let t = `${head} is ${this._gbDepWords(s)}: gene effect below ${this._gbNum(this._gbDepCut, 1)} in ${this._gbFmtPct(k, s.geVals.length)} of ${s.geVals.length.toLocaleString()} screened lines`;
+            const top = (s.tissues || []).filter(x => x.mean < -0.3).slice(0, 2);
+            if (top.length && k > 0) t += `, strongest in ${top.map(x => this.esc(x.name)).join(' and ')}`;
+            out.push(t + '.');
+        } else {
+            out.push(`${head} has no CRISPR gene-effect data in this panel.`);
+        }
+        if (s.expr) {
+            out.push(`Expressed (log₂ TPM+1 of at least ${this._gbNum(this._gbExprCut, 0)}) in ${this._gbFmtPct(s.expr.nOn, s.expr.n)} of ${s.expr.n.toLocaleString()} lines.`);
+        }
+        if (s.nHot > 0) {
+            let t = `Hotspot-mutated in ${s.nHot} ${s.nHot === 1 ? 'line' : 'lines'}`;
+            if (s.variants.length) t += ` (most often ${this.esc(s.variants[0][0])})`;
+            const mt = s.mutTissues?.[0];
+            if (mt) t += `, most frequent in ${this.esc(mt.name)}`;
+            out.push(t + '.');
+        } else if (s.nAny > 0) {
+            out.push(`Mutated in ${s.nAny} ${s.nAny === 1 ? 'line' : 'lines'}.`);
+        }
+        if (s.nFus > 0) out.push(`Fused in ${s.nFus} ${s.nFus === 1 ? 'line' : 'lines'}.`);
+        const sp = s.split;
+        if (sp && sp.t.p < 0.05) {
+            const mm = this.mean(sp.mut), mw = this.mean(sp.wt);
+            out.push(`${sp.label.charAt(0).toUpperCase() + sp.label.slice(1)} lines depend on it ${mm < mw ? 'more' : 'less'} (mean gene effect ${this._gbNum(mm, 1)} vs ${this._gbNum(mw, 1)}).`);
+        }
+        return out.join(' ');
+    }
+
+    // Card shell, same look as the cell line wiki's cards.
+    _gbSection(title, body, source, id) {
+        return `<section${id ? ` id="${id}"` : ''} class="gb-card">
+            <div class="gb-card-head"><span class="gb-dot"></span><h3>${title}</h3></div>
+            <div class="gb-card-body">${body}</div>
+            ${source ? `<div class="gb-card-src"><b>Source:</b> ${source}</div>` : ''}
+        </section>`;
+    }
+    _gbRow(label, value) {
+        return (value === null || value === undefined || value === '' || value === false) ? ''
+            : `<div class="gb-kv"><span class="gb-kv-l">${label}</span><span class="gb-kv-v">${value}</span></div>`;
+    }
+    _gbDesc(t) { return `<p class="gb-desc">${t}</p>`; }
+    _gbClLink(id) { return `<a href="#" data-gb-cl="${this.esc(id)}" class="gb-cl">${this.esc(this.getCellLineName(id) || id)}</a>`; }
+    _gbLoading(t) { return `<div class="gb-loading">${t}</div>`; }
+    _gbTissueRows(rows, fmt) {
+        return rows.map(r => `<div class="gb-trow"><span class="gb-trow-n">${this.esc(r.name)}</span><span class="gb-trow-v">${fmt(r)}</span><span class="gb-trow-c">n = ${r.n}</span></div>`).join('');
+    }
+    _gbTopLines(items) {
+        return items.map(([id, v]) => `<div class="gb-trow"><span class="gb-trow-n">${this._gbClLink(id)}</span><span class="gb-trow-v">${this._gbNum(v)}</span><span class="gb-trow-c">${this.esc(this.cellLineMetadata?.lineage?.[id] || '')}</span></div>`).join('');
+    }
+
+    _gbHist(elId, vals, { size, cut, xTitle, color, cutColor }) {
+        const el = document.getElementById(elId);
+        if (!el || !vals.length || typeof Plotly === 'undefined') return;
+        let lo = Infinity, hi = -Infinity;
+        for (const v of vals) { if (v < lo) lo = v; if (v > hi) hi = v; }
+        const start = Math.floor(lo / size) * size;
+        const nb = Math.max(1, Math.floor((hi - start) / size + 1e-9) + 1);
+        const counts = new Array(nb).fill(0);
+        for (const v of vals) counts[Math.min(nb - 1, Math.floor((v - start) / size + 1e-9))]++;
+        const x = [], y = [], txt = [], col = [];
+        for (let i = 0; i < nb; i++) {
+            const l = start + i * size, pct = counts[i] / vals.length * 100;
+            x.push(l + size / 2); y.push(pct);
+            col.push(cut !== undefined && l + size / 2 < cut ? color : '#9ca3af');
+            txt.push(`${l.toFixed(2)} to ${(l + size).toFixed(2)}: ${pct.toFixed(1)}% (${counts[i]} ${counts[i] === 1 ? 'line' : 'lines'})`);
+        }
+        const ymax = Math.max(1, ...y);
+        const shapes = cut === undefined ? [] : [{ type: 'line', x0: cut, x1: cut, y0: 0, y1: ymax * 1.1, line: { color: cutColor || '#dc2626', width: 1.5, dash: 'dash' } }];
+        Plotly.newPlot(el, [{ type: 'bar', x, y, width: size, marker: { color: cut === undefined ? color : col, line: { color: '#fff', width: 0.5 } }, hovertext: txt, hoverinfo: 'text', showlegend: false }], {
+            height: 200, margin: { l: 44, r: 10, t: 8, b: 40 }, bargap: 0, shapes,
+            xaxis: { title: { text: xTitle, font: { size: 11 } }, gridcolor: '#eeeeee', zeroline: false, tickfont: { size: 10 } },
+            yaxis: { title: { text: '% of lines', font: { size: 11 } }, range: [0, ymax * 1.2], gridcolor: '#eeeeee', tickfont: { size: 10 } },
+            paper_bgcolor: '#ffffff', plot_bgcolor: '#fafafa', font: { family: 'Open Sans, sans-serif' }
+        }, { displayModeBar: false, responsive: true });
+    }
+
+    async _gbRender(gene) {
+        const cards = document.getElementById('gbCards');
+        if (!cards) return;
+        cards.innerHTML = this._gbLoading('Loading...');
+        await this._gbEnsureCommonEss();
+        await this._ensureAliasTables?.();
+        if (this._gbGene !== gene) return;
+        const s = this._gbCore(gene);
+        this._gbState = s;
+        const gname = this.gi(gene);
+        s.tissues = this._gbByTissue(s, (i) => s.ge[i]).map(t => ({ name: t.name, n: t.n, mean: this.mean(t.vals), vals: t.vals }))
+            .sort((a, b) => a.mean - b.mean);
+        s.split = this._gbMutSplit(s);
+        s.mutTissues = this._gbMutTissues(s);
+
+        // Subtitle: symbol | location | synonyms. Location fills in once loaded.
+        const setSub = () => {
+            const parts = [gene];
+            const loc = this.geneLocations?.[gene];
+            if (loc) parts.push(this._gbLocText(loc));
+            const syn = this._gbSynonymsOf(gene);
+            if (syn.length) parts.push(syn.join(', '));
+            document.getElementById('gbSubtitle').textContent = parts.join('  |  ');
+        };
+        setSub();
+
+        const html = [];
+        html.push(this._gbSection('Summary', `<div id="gbSummary" class="gb-summary">${this._gbSummaryHtml(s)}</div>`, 'Generated from the DepMap layers shown below.'));
+        if (s.hasGe) html.push(this._gbDependencyCard(s));
+        const hasExprGene = !this.expressionGeneIndex || this.expressionGeneIndex.has(gene);
+        if (hasExprGene) html.push(this._gbSection('Expression (mRNA)', this._gbLoading('Loading expression data...'), '', 'gbExprCard'));
+        const mut = this._gbMutationCard(s);
+        if (mut) html.push(mut);
+        html.push(this._gbSection('Copy number', this._gbLoading('Loading copy-number data...'), '', 'gbCnCard'));
+        const drugs = this._gbDrugCard(s);
+        if (drugs) html.push(drugs);
+        if (s.hasGe) html.push(this._gbSection('Related genes', this._gbLoading('Comparing the gene-effect profile with every other gene...'), '', 'gbRelCard'));
+        html.push(this._gbLinksCard(gene));
+        cards.innerHTML = html.join('');
+        document.getElementById('gbBody').scrollTop = 0;
+        document.getElementById('gbModal').scrollTop = 0;
+        if (s.hasGe) {
+            this._gbHist('gbGeHist', s.geVals, { size: 0.1, cut: this._gbDepCut, xTitle: 'Gene effect', color: '#dc2626' });
+        }
+        // The slow cards run after the first paint, each guarded against a
+        // newer gene having been chosen meanwhile.
+        this.loadGeneLocations().then(() => {
+            if (this._gbGene !== gene) return;
+            s.loc = this.geneLocations?.[gene] || null;
+            setSub();
+            const sm = document.getElementById('gbSummary'); if (sm) sm.innerHTML = this._gbSummaryHtml(s);
+        });
+        this._gbFillExpression(s);
+        this._gbFillCn(s);
+        if (s.hasGe) this._gbFillRelated(s);
+    }
+
+    _gbDependencyCard(s) {
+        const v = s.geVals, n = v.length;
+        const below = (c) => v.filter(x => x < c).length;
+        const ce = this._commonEssentials?.has(s.gene);
+        const topT = s.tissues.slice(0, 5);
+        const topL = s.ids.map((id, i) => [id, s.ge[i]]).filter(x => x[1] === x[1]).sort((a, b) => a[1] - b[1]).slice(0, 10);
+        const stats = [
+            this._gbRow('Cell lines screened', n.toLocaleString()),
+            this._gbRow('Mean / median gene effect', `${this._gbNum(this.mean(v))} / ${this._gbNum(this._gbMedian(v))}`),
+            this._gbRow(`Below ${this._gbNum(this._gbDepCut, 1)}`, `${this._gbFmtPct(below(this._gbDepCut), n)} <span class="gb-m">(${below(this._gbDepCut).toLocaleString()} lines)</span>`),
+            this._gbRow('Below −1', `${this._gbFmtPct(below(-1), n)} <span class="gb-m">(${below(-1).toLocaleString()} lines)</span>`),
+            this._gbRow('Common essential', ce ? 'Yes' : 'No'),
+        ].join('');
+        const body = this._gbDesc('How much cell lines depend on this gene in the CRISPR screen. More negative means the lines grow worse without it; 0 means no effect.')
+            + `<div class="gb-grid"><div><div id="gbGeHist" class="gb-hist"></div></div><div>${stats}</div></div>`
+            + (topT.length ? `<div class="gb-sub">Most dependent tissues <span class="gb-m">(mean gene effect, tissues with 5 or more lines)</span></div>${this._gbTissueRows(topT, r => this._gbNum(r.mean))}` : '')
+            + `<div class="gb-sub">Most dependent cell lines</div>${this._gbTopLines(topL)}`
+            + `<div style="margin-top:10px;"><button class="btn btn-outline btn-sm" data-gb-act="ge" style="font-size:11px; padding:3px 10px;" title="Open this gene in the Gene effect view, by tissue">Open in Gene effect view</button></div>`;
+        return this._gbSection('Dependency (CRISPR gene effect)', body, 'DepMap 26Q1 CRISPRGeneEffect (Chronos).');
+    }
+
+    async _gbWaitExpression() {
+        if (this.expressionLoaded) return true;
+        const t0 = Date.now();
+        let started = false;
+        while (!this.expressionLoaded && Date.now() - t0 < 120000) {
+            if (!started && Date.now() - t0 > 3000 && document.getElementById('exprDataLoadingIndicator')?.style.display !== 'block') {
+                started = true;
+                this.loadExpressionData().catch(() => { });
+            }
+            await new Promise(r => setTimeout(r, 400));
+        }
+        return !!this.expressionLoaded;
+    }
+
+    async _gbFillExpression(s) {
+        const gene = s.gene;
+        const ok = await this._gbWaitExpression();
+        if (this._gbGene !== gene) return;
+        const card = document.getElementById('gbExprCard');
+        if (!card) return;
+        if (!ok || !this.expressionGeneIndex?.has(gene)) { card.remove(); return; }
+        const N = s.N;
+        const ex = new Float64Array(N).fill(NaN);
+        const vals = [];
+        for (let i = 0; i < N; i++) { const v = this.getExpressionValueByGEIndex(gene, i); if (v === v) { ex[i] = v; vals.push(v); } }
+        if (vals.length < 10) { card.remove(); return; }
+        const cut = this._gbExprCut;
+        s.exprVec = ex;
+        s.expr = { n: vals.length, nOn: vals.filter(v => v >= cut).length };
+        const sm = document.getElementById('gbSummary'); if (sm) sm.innerHTML = this._gbSummaryHtml(s);
+        const tis = this._gbByTissue(s, (i) => ex[i]).map(t => ({ name: t.name, n: t.n, med: this._gbMedian(t.vals) })).sort((a, b) => b.med - a.med);
+        const high = tis.slice(0, 5), low = tis.slice(-5).reverse().filter(t => !high.includes(t));
+        const topL = s.ids.map((id, i) => [id, ex[i]]).filter(x => x[1] === x[1]).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        const stats = [
+            this._gbRow('Cell lines with data', vals.length.toLocaleString()),
+            this._gbRow('Median expression', `${this._gbNum(this._gbMedian(vals))} <span class="gb-m">log₂ TPM+1</span>`),
+            this._gbRow(`Expressed (at least ${this._gbNum(cut, 0)})`, `${this._gbFmtPct(s.expr.nOn, vals.length)} <span class="gb-m">(${s.expr.nOn.toLocaleString()} lines)</span>`),
+        ];
+        let link = '';
+        if (s.hasGe) {
+            const r = this.pearsonWithSlope(ex, s.ge);
+            if (r.n >= 10 && r.correlation === r.correlation) {
+                const words = r.pValue < 0.01 && Math.abs(r.correlation) >= 0.1
+                    ? (r.correlation < 0 ? 'lines that express more depend on it more' : 'lines that express more depend on it less')
+                    : 'no clear link between expression and dependency';
+                link = this._gbRow('Expression vs gene effect', `r = ${this._gbNum(r.correlation)}, p = ${this._gbP(r.pValue)}, n = ${r.n.toLocaleString()} <span class="gb-m">: ${words}</span>`);
+            }
+        }
+        const body = this._gbDesc('How much of this gene’s mRNA each cell line makes (bulk RNA-seq, log₂ TPM+1).')
+            + `<div class="gb-grid"><div><div id="gbExprHist" class="gb-hist"></div></div><div>${stats.join('')}${link}</div></div>`
+            + `<div class="gb-grid" style="margin-top:6px;"><div><div class="gb-sub">Highest tissues <span class="gb-m">(median)</span></div>${this._gbTissueRows(high, r => this._gbNum(r.med))}</div>`
+            + `<div><div class="gb-sub">Lowest tissues <span class="gb-m">(median)</span></div>${this._gbTissueRows(low, r => this._gbNum(r.med))}</div></div>`
+            + `<div class="gb-sub">Highest-expressing cell lines</div>${this._gbTopLines(topL)}`
+            + `<div style="margin-top:10px;"><button class="btn btn-outline btn-sm" data-gb-act="expr" style="font-size:11px; padding:3px 10px;" title="Open this gene in the Gene effect / expression view, as mRNA by tissue">Open in expression view</button></div>`;
+        card.outerHTML = this._gbSection('Expression (mRNA)', body, 'DepMap 26Q1 OmicsExpressionTPMLogp1 (log₂ TPM+1).', 'gbExprCard');
+        this._gbHist('gbExprHist', vals, { size: 0.25, cut, xTitle: 'log₂ TPM+1', color: '#9ca3af', cutColor: '#2563eb' });
+    }
+
+    _gbMutationCard(s) {
+        if (s.nHot + s.nAny + s.nLof + s.nFus === 0) return '';
+        const N = s.N;
+        const cnt = (k) => `${this._gbFmtPct(k, N)} <span class="gb-m">(${k.toLocaleString()} of ${N.toLocaleString()} lines)</span>`;
+        const rows = [
+            s.hot ? this._gbRow('Hotspot mutation', cnt(s.nHot)) : '',
+            s.any && s.nAny !== s.nHot ? this._gbRow('Any mutation call', `${cnt(s.nAny)} <span class="gb-m">(hotspot or likely loss-of-function)</span>`) : '',
+            s.lof ? this._gbRow('Functional loss', cnt(s.nLof)) : '',
+            s.fus ? this._gbRow('Fusion', cnt(s.nFus)) : '',
+        ].join('');
+        const vars = s.variants.length ? `<div class="gb-sub">Most common variants</div>`
+            + s.variants.map(([v, k]) => `<div class="gb-trow"><span class="gb-trow-n">${this.gi(s.gene)} ${this.esc(v)}</span><span class="gb-trow-v">${k}</span><span class="gb-trow-c">${this._gbFmtPct(k, N)} of lines</span></div>`).join('') : '';
+        const tis = s.mutTissues.length ? `<div class="gb-sub">Tissues where it is most often mutated</div>`
+            + this._gbTissueRows(s.mutTissues, r => `${this._gbFmtPct(r.k, r.n)}`) : '';
+        let cmp = '';
+        const sp = s.split;
+        if (sp) {
+            const mm = this.mean(sp.mut), mw = this.mean(sp.wt);
+            cmp = `<div class="gb-sub">Dependency in mutated vs wild-type lines</div>`
+                + this._gbRow(`Mean gene effect, ${sp.label}`, `${this._gbNum(mm)} <span class="gb-m">(n = ${sp.mut.length})</span>`)
+                + this._gbRow('Mean gene effect, wild-type', `${this._gbNum(mw)} <span class="gb-m">(n = ${sp.wt.length})</span>`)
+                + this._gbRow('Welch t-test', `p = ${this._gbP(sp.t.p)}`);
+        }
+        const body = this._gbDesc('How often this gene is mutated or fused across the cell lines, and whether mutated lines depend on it differently.')
+            + rows + vars + tis + cmp;
+        return this._gbSection('Mutations and fusions', body, 'DepMap 26Q1 hotspot and damaging mutation calls, fusion calls and the integrated functional-loss call; specific variants from the inferred-subtype layer.');
+    }
+
+    async _gbFillCn(s) {
+        const gene = s.gene;
+        try { await this.loadCnData(); await this.loadGeneLocations(); } catch (e) { /* card is dropped below */ }
+        if (this._gbGene !== gene) return;
+        const card = document.getElementById('gbCnCard');
+        if (!card) return;
+        if (!this.cnLoaded || !this.cnGeneIndex?.has(gene)) { card.remove(); return; }
+        const N = s.N;
+        const cn = new Float64Array(N).fill(NaN);
+        const vals = [];
+        for (let i = 0; i < N; i++) { const v = this.getCnValue(gene, s.ids[i]); if (v === v) { cn[i] = v; vals.push(v); } }
+        if (vals.length < 10) { card.remove(); return; }
+        // Same rule as the cell line wiki: relative CN of 3 or more is an
+        // amplification, below 0.3 a deep deletion.
+        const AMP = 3.0, DEL = 0.3;
+        const nAmp = vals.filter(v => v >= AMP).length, nDel = vals.filter(v => v < DEL).length;
+        const tis = this._gbByTissue(s, (i) => cn[i] === cn[i] ? cn[i] : NaN);
+        const ampT = tis.map(t => ({ name: t.name, n: t.n, k: t.vals.filter(v => v >= AMP).length })).filter(t => t.k > 0)
+            .sort((a, b) => (b.k / b.n) - (a.k / a.n) || b.k - a.k).slice(0, 5);
+        const delT = tis.map(t => ({ name: t.name, n: t.n, k: t.vals.filter(v => v < DEL).length })).filter(t => t.k > 0)
+            .sort((a, b) => (b.k / b.n) - (a.k / a.n) || b.k - a.k).slice(0, 5);
+        let link = '';
+        if (s.exprVec) {
+            const r = this.pearsonWithSlope(cn, s.exprVec);
+            if (r.n >= 10 && r.correlation === r.correlation) {
+                link = this._gbRow('Copy number vs expression', `r = ${this._gbNum(r.correlation)}, p = ${this._gbP(r.pValue)}, n = ${r.n.toLocaleString()}`);
+            }
+        }
+        const stats = [
+            this._gbRow('Cell lines with data', vals.length.toLocaleString()),
+            this._gbRow('Median relative CN', `${this._gbNum(this._gbMedian(vals))} <span class="gb-m">(1.0 = the line’s own baseline)</span>`),
+            this._gbRow(`Amplified (at least ${AMP.toFixed(0)})`, `${this._gbFmtPct(nAmp, vals.length)} <span class="gb-m">(${nAmp.toLocaleString()} lines)</span>`),
+            this._gbRow(`Deleted (below ${DEL})`, `${this._gbFmtPct(nDel, vals.length)} <span class="gb-m">(${nDel.toLocaleString()} lines)</span>`),
+            link,
+        ].join('');
+        const body = this._gbDesc('Gene-level copy number relative to each line’s own baseline: above 1 is a gain, below 1 a loss.')
+            + `<div class="gb-grid"><div><div id="gbCnHist" class="gb-hist"></div></div><div>${stats}</div></div>`
+            + (ampT.length ? `<div class="gb-sub">Tissues most often amplified</div>${this._gbTissueRows(ampT, r => this._gbFmtPct(r.k, r.n))}` : '')
+            + (delT.length ? `<div class="gb-sub">Tissues most often deleted</div>${this._gbTissueRows(delT, r => this._gbFmtPct(r.k, r.n))}` : '');
+        card.outerHTML = this._gbSection('Copy number', body, 'DepMap gene-level relative copy number (OmicsCNGene).', 'gbCnCard');
+        this._gbHist('gbCnHist', vals.map(v => Math.min(v, 6)), { size: 0.1, xTitle: 'Relative copy number (capped at 6)', color: '#6b8fb5' });
+    }
+
+    _gbDrugCard(s) {
+        const comps = this.drugResponse?.compounds;
+        if (!comps?.length) return '';
+        const re = new RegExp('(^|[^A-Za-z0-9])' + s.gene.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^A-Za-z0-9]|$)', 'i');
+        const hits = comps.filter(c => c.target && re.test(c.target)).slice(0, 10);
+        if (!hits.length) return '';
+        const rows = hits.map(c => {
+            const nA = Object.keys(c.auc || {}).length;
+            let corr = '<span class="gb-m">no gene-effect data</span>';
+            if (s.hasGe) {
+                const a = new Float64Array(s.N).fill(NaN);
+                for (let i = 0; i < s.N; i++) { const v = c.auc?.[s.ids[i]]; if (v !== undefined && v !== null) a[i] = v; }
+                const r = this.pearsonWithSlope(a, s.ge);
+                if (r.n >= 10 && r.correlation === r.correlation) corr = `r = ${this._gbNum(r.correlation)}, p = ${this._gbP(r.pValue)}, n = ${r.n}`;
+            }
+            return `<div class="gb-drug"><div><b>${this.esc(c.name)}</b> <span class="gb-m">${this.esc(c.moa || '')}</span></div><div class="gb-m">${nA} lines tested | AUC vs gene effect: ${corr}</div></div>`;
+        }).join('');
+        const body = this._gbDesc(`Compounds in the drug-response panel whose listed target includes ${this.gi(s.gene)}. The correlation compares each line’s drug sensitivity (AUC, lower is more sensitive) with its gene effect.`) + rows;
+        return this._gbSection('Drugs targeting it', body, 'DepMap PRISM Repurposing Secondary (AUC), target annotation as listed in the panel.');
+    }
+
+    async _gbFillRelated(s) {
+        const gene = s.gene;
+        const cache = (this._gbCoDepCache ||= new Map());
+        let top = cache.get(gene);
+        if (!top) {
+            const gi = this.geneIndex.get(gene), N = this.nCellLines, ge = this.geneEffects;
+            const xv = new Uint8Array(N), x = new Float64Array(N);
+            for (let i = 0; i < N; i++) { const v = ge[gi * N + i]; if (v === v && v !== -999) { x[i] = v; xv[i] = 1; } }
+            const hits = [], nG = this.nGenes;
+            for (let g0 = 0; g0 < nG; g0 += 1500) {
+                const g1 = Math.min(nG, g0 + 1500);
+                for (let g = g0; g < g1; g++) {
+                    if (g === gi) continue;
+                    const off = g * N;
+                    let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, n = 0;
+                    for (let i = 0; i < N; i++) {
+                        if (!xv[i]) continue;
+                        const y = ge[off + i];
+                        if (y !== y || y === -999) continue;
+                        const xi = x[i];
+                        sx += xi; sy += y; sxx += xi * xi; syy += y * y; sxy += xi * y; n++;
+                    }
+                    if (n < 100) continue;
+                    const dx = n * sxx - sx * sx, dy = n * syy - sy * sy;
+                    if (dx < 1e-12 || dy < 1e-12) continue;
+                    const r = (n * sxy - sx * sy) / Math.sqrt(dx * dy);
+                    if (r === r) hits.push({ gene: this.geneNames[g], r, n });
+                }
+                await new Promise(r => setTimeout(r, 0));
+                if (this._gbGene !== gene) return;
+            }
+            hits.sort((a, b) => b.r - a.r);
+            top = hits.slice(0, 10).map(h => ({ ...h, p: this._pearsonP(h.r, h.n) }));
+            cache.set(gene, top);
+        }
+        if (this._gbGene !== gene) return;
+        const card = document.getElementById('gbRelCard');
+        if (!card) return;
+        const chip = (g) => `<button class="gb-chip" data-gb-gene="${this.esc(g)}">${this.gi(g)}</button>`;
+        const list = (arr, cap) => {
+            const shown = arr.slice(0, cap).map(chip).join('');
+            return shown + (arr.length > cap ? ` <span class="gb-m">and ${arr.length - cap} more</span>` : '');
+        };
+        const corum = (this.corumPartners?.partners?.[gene] || []).filter(g => g !== gene);
+        const reactome = (this.reactomePartners?.partners?.[gene] || []).filter(g => g !== gene);
+        const mice = Object.keys(this.orthologs?.mouseToHuman || {}).filter(k => this.orthologs.mouseToHuman[k] === gene)
+            .map(k => k.charAt(0) + k.slice(1).toLowerCase());
+        const co = top.length ? `<div class="gb-sub">Most similar gene-effect profile <span class="gb-m">(Pearson r across screened lines)</span></div>`
+            + top.map(h => `<div class="gb-trow"><span class="gb-trow-n"><a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a></span><span class="gb-trow-v">r = ${this._gbNum(h.r)}</span><span class="gb-trow-c">p = ${this._gbP(h.p)}, n = ${h.n.toLocaleString()}</span></div>`).join('') : '';
+        const body = this._gbDesc('Genes that behave like this one across the CRISPR screen, and genes it shares a complex or pathway with. Click a gene to open it here.')
+            + co
+            + (corum.length ? `<div class="gb-sub">Complex partners <span class="gb-m">(CORUM)</span></div><div class="gb-chips">${list(corum, 15)}</div>` : '')
+            + (reactome.length ? `<div class="gb-sub">Pathway partners <span class="gb-m">(Reactome)</span></div><div class="gb-chips">${list(reactome, 15)}</div>` : '')
+            + (mice.length ? this._gbRow('Mouse ortholog', this.esc(mice.join(', '))) : '');
+        card.outerHTML = this._gbSection('Related genes', body, 'DepMap 26Q1 CRISPRGeneEffect (correlation), CORUM complexes, Reactome pathways, mouse orthologs.', 'gbRelCard');
+    }
+
+    _gbLinksCard(gene) {
+        const e = encodeURIComponent(gene);
+        const a = (href, t) => `<a href="${href}" target="_blank" rel="noopener" style="color:#3730a3; font-weight:600;">${t} &#8599;</a>`;
+        const links = [
+            a(`https://www.ncbi.nlm.nih.gov/gene/?term=${e}%5BGene+Name%5D+AND+human%5BOrganism%5D`, 'NCBI Gene'),
+            a(`https://www.genecards.org/cgi-bin/carddisp.pl?gene=${e}`, 'GeneCards'),
+            a(`https://depmap.org/portal/gene/${e}`, 'DepMap portal'),
+            a(`https://www.uniprot.org/uniprotkb?query=gene_exact%3A${e}+AND+organism_id%3A9606`, 'UniProt'),
+        ];
+        return this._gbSection('Links', `<div style="padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">Primary records:</b> ${links.join(' <span style="color:#9ca3af;">&middot;</span> ')}<div style="font-size:10px; color:#6b7280; margin-top:3px;">Opens the gene’s page at each site. Nothing on this page is fetched live.</div></div>`);
+    }
+
     async openCellLineWiki(cellLineId) {
         // Remember which cell line the wiki is showing so the header export
         // buttons (gene-info CSV etc.) know what to export.
@@ -66285,7 +66875,7 @@ document.addEventListener('keyup', (e) => { if (e.key === 'Shift' && window.app)
 document.addEventListener('focusin', (e) => {
     const t = e.target;
     if (!window.app || !t?.matches) return;
-    if (t.matches('#inspectGeneX, #inspectGeneY, #geneEffectSearch, #caGene1Search, #caGene2Search, #compTopGene, .pp-xg, .pp-yg, #ctGeneList, #hmGenes, #clbSortGene, #exprScatterGEGene, #exprScatterExprGene, #caiGeneList, #axisEditorGene, #clbUmapColorGene, #clbUmapSplitGene, #geneTextarea, #askValueInput, #gcGenes')) {
+    if (t.matches('#inspectGeneX, #inspectGeneY, #geneEffectSearch, #caGene1Search, #caGene2Search, #compTopGene, .pp-xg, .pp-yg, #ctGeneList, #hmGenes, #clbSortGene, #exprScatterGEGene, #exprScatterExprGene, #caiGeneList, #axisEditorGene, #gbGene, #clbUmapColorGene, #clbUmapSplitGene, #geneTextarea, #askValueInput, #gcGenes')) {
         window.app._ensureAliasTables?.();
     }
 });
