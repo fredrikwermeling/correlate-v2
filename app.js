@@ -2401,6 +2401,44 @@ class CorrelationExplorer {
     // correlation and cluster tables, and the mutation-analysis results. The
     // gene list is kept, since that is usually what the user wants to carry
     // across, and the input box is cleared only where the mode ignores it.
+    _clearMutationResults() {
+        this.mutationResults = null;
+        ['mutationResultsBody', 'mutationTableBody']
+            .forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+    }
+
+    // Mutation analysis runs in a popout: box 1 and the mutation results pane
+    // are moved into #mutModal while the mode is on and back when it is off.
+    // Moving (not copying) keeps every id, listener and export path as it was.
+    _mutPopout(on) {
+        const modal = document.getElementById('mutModal');
+        const params = document.getElementById('paramsCard');
+        const pane = document.getElementById('tab-mutation');
+        if (!modal || !params || !pane) return;
+        const inside = modal.contains(params);
+        if (on && !inside) {
+            // A same-size stand-in keeps the main page from reflowing behind.
+            const hold = document.createElement('div');
+            hold.id = 'paramsCardHold';
+            hold.className = params.className;
+            hold.style.height = params.offsetHeight + 'px';
+            hold.style.visibility = 'hidden';
+            params.before(hold);
+            const paneMark = document.createComment('tab-mutation home');
+            pane.before(paneMark);
+            this._mutPaneMark = paneMark;
+            document.getElementById('mutPopLeft').appendChild(params);
+            document.getElementById('mutPopRight').appendChild(pane);
+            modal.style.display = 'flex';
+            modal.scrollTop = 0;
+        } else if (!on && inside) {
+            const hold = document.getElementById('paramsCardHold');
+            if (hold) { hold.replaceWith(params); }
+            if (this._mutPaneMark?.parentNode) { this._mutPaneMark.replaceWith(pane); this._mutPaneMark = null; }
+            modal.style.display = 'none';
+        }
+    }
+
     _clearResultsForModeSwitch() {
         if (!this.results && !this.mutationResults) return;
         this.results = null;
@@ -6900,6 +6938,9 @@ class CorrelationExplorer {
             this._setAnalysisLocked(false);
             this._setAnalysisMode('mutation');
         });
+        const closeMut = () => this._setAnalysisMode(this._lastGeneSetMode || 'analysis');
+        document.getElementById('mutModalCloseBtn')?.addEventListener('click', closeMut);
+        document.getElementById('mutModal')?.addEventListener('click', (e) => { if (e.target.id === 'mutModal') closeMut(); });
         this._filterModeKey = this._modeFilterKey();
         this._syncAnalysisModeButtons();
 
@@ -6944,11 +6985,14 @@ class CorrelationExplorer {
                     this._modeFilters[this._filterModeKey] = this._captureModeFilters();
                     this._applyModeFilters(this._modeFilters[nextKey] || null);
                 }
+                const crossed = this._filterModeKey && this._filterModeKey !== nextKey;
                 this._filterModeKey = nextKey;
-                // Results from the previous mode do not belong to the new one.
-                // Leaving a network on screen after switching to mutation
-                // analysis made it look like part of that analysis.
-                this._clearResultsForModeSwitch();
+                // Mutation analysis is a popout over the gene-set page, so
+                // crossing between the two only drops the mutation table; the
+                // network behind it stays, with its filters restored above.
+                // Between the gene-set sub-modes the old results do not belong.
+                if (crossed) this._clearMutationResults();
+                else this._clearResultsForModeSwitch();
                 this.updateAnalysisModeUI();
                 this._syncAnalysisModeButtons();
             });
@@ -8291,6 +8335,7 @@ class CorrelationExplorer {
 
         this.setupCellLineBrowserEvents();
         this.setupGeneBrowserEvents();
+        this._setupPopoutScrollLock();
         this.setupHeatmapModal();
         this.setupCutoffTool();
     }
@@ -28478,6 +28523,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // Results card is numbered 2 in this mode.
         const resultsTitle = document.querySelector('#resultsCard .card-title');
         if (resultsTitle) resultsTitle.textContent = isMutation ? '2. Results' : '3. Results';
+        if (!isMutation && mode) this._lastGeneSetMode = mode;
+        this._mutPopout(isMutation);
     }
 
     // Gray out / enable boxes 1 (Set Parameters), 2 (Input Gene Set) and
@@ -50235,6 +50282,33 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const ai = document.getElementById('gbAnalyzeWithAI'); if (ai) ai.disabled = true;
         const chips = ['KRAS', 'MYC', 'CDK6'].map(g => `<button class="gb-chip" data-gb-gene="${g}">${this.gi(g)}</button>`).join('');
         document.getElementById('gbCards').innerHTML = `<div class="gb-empty">Type a gene symbol above, or try ${chips}</div>`;
+    }
+
+    // While any popout covers the window the page behind must not scroll.
+    // Popouts open and close in many ways, so this watches for any visible
+    // full-window fixed layer among body's children instead of hooking each.
+    _setupPopoutScrollLock() {
+        const root = document.documentElement;
+        const covering = (el) => {
+            if (el.nodeType !== 1 || el.id === 'progressOverlay') return false;
+            const cs = getComputedStyle(el);
+            if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') return false;
+            const r = el.getBoundingClientRect();
+            return r.width >= window.innerWidth * 0.9 && r.height >= window.innerHeight * 0.9;
+        };
+        let queued = false;
+        const sync = () => {
+            queued = false;
+            const lock = [...document.body.children].some(covering);
+            root.classList.toggle('popout-open', lock);
+        };
+        new MutationObserver((recs) => {
+            if (queued) return;
+            if (!recs.some(r => r.target === document.body || r.target.parentElement === document.body)) return;
+            queued = true;
+            requestAnimationFrame(sync);
+        }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+        sync();
     }
 
     setupGeneBrowserEvents() {
