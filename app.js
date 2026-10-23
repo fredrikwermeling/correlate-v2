@@ -19824,6 +19824,19 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // One look for a highlighted cell line in every chart: an orange
     // diamond, and (when a dozen or fewer) the name in a white box with an
     // orange edge. Clicking a dot adds it to the view's highlight box.
+    // Native tooltips on annotations that carry _hint. Plotly redraws its
+    // annotation groups on every relayout, so call this after each plot.
+    _annotationHints(gd) {
+        const anns = gd?.layout?.annotations || [];
+        gd?.querySelectorAll?.('g.annotation').forEach(g => {
+            const hint = anns[+g.getAttribute('data-index')]?._hint;
+            let t = g.querySelector(':scope > title');
+            if (!hint) { t?.remove(); return; }
+            if (!t) { t = document.createElementNS('http://www.w3.org/2000/svg', 'title'); g.prepend(t); }
+            t.textContent = hint;
+        });
+    }
+
     // fill: per-point colours from _hlFill. When the dots carry a legend
     // colour, a highlighted dot keeps it and only the shape and the dark rim
     // mark it; orange there read as one more legend group.
@@ -20760,7 +20773,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     // effect popout.
                     _cellLabel: d.cellLineName,
                     captureevents: true,
-                    hovertext: `Click to remove the ${d.cellLineName} label`,
+                    _hint: `Click to remove the ${d.cellLineName} highlight`,
                     x: d.x, y: d.y,
                     xref: 'x', yref: 'y',
                     text: d.cellLineName,
@@ -27772,6 +27785,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ev.event?.preventDefault?.();
             this.removeHighlight(name);
         });
+        // Plotly's hovertext box sat over the label and caught the click
+        // meant for it; the browser's own tooltip shows under the pointer.
+        this._annotationHints(hoverEl);
+        hoverEl.removeAllListeners?.('plotly_afterplot');
+        hoverEl.on('plotly_afterplot', () => this._annotationHints(hoverEl));
         let scatterHoverTimer = null;
         hoverEl.removeAllListeners?.('plotly_hover');
         hoverEl.removeAllListeners?.('plotly_unhover');
