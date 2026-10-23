@@ -1766,6 +1766,8 @@
         /* Reserve the space, hide the control. Used for the sort-direction
            arrow, which only means something once a sort basis is chosen. */
         .clb-hidden { visibility: hidden; }
+        /* Forces the next group onto its own line of a wrapping row. */
+        .clb-break { flex-basis: 100%; height: 0; }
         .clb-sep { display: inline-block; width: 1px; height: 20px; background: var(--gray-200); margin: 0 3px; flex: 0 0 auto; }
         .clb-toolbar input[type="text"],
         .clb-toolbar select,
@@ -2843,6 +2845,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.26 (2026-10-23)</strong></p>
+                <ul>
+                    <li>Cell Line Browser: the Export CSV buttons start on their own line in the Selection row.</li>
+                </ul>
                 <p><strong>v.90.25 (2026-10-22)</strong></p>
                 <ul>
                     <li>Gene effect / expression Compilation rebuilt to work like the correlation compilation: a grid of small panels (2 rows × 5 by default), one gene per panel with its cell lines as dots over a box. Fill it from a list of genes or from the top correlates of a gene (in the popout's cell lines), or click a panel to pick its gene and measure. Same axis range, Split into groups (the popout's grouping) and Colour by tissue, subtype or disease; the popout's filters and Highlight box apply to every panel. Export image and Copy give the filled panels; Open saved figure reopens them.</li>
@@ -8141,7 +8147,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.25</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.26</a>
         </span>
     </div>
 
@@ -10924,7 +10930,7 @@
               <button id="clbInspectGEBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:#5d9239; border-color:#6ba544;" title="Compare the selected cell lines against every other cell line, gene by gene. Fast (~seconds).">Inspect<br><span>selected vs rest</span></button>
               <button id="clbSendToBtn" class="btn btn-outline btn-sm clb-tall-btn" style="color:#5d9239; border-color:#6ba544;" title="Carry these cell lines over to another view: highlight them on a chart, or narrow that view to them.">Send to<br><span>another view</span></button>
 
-              <span class="clb-sep"></span>
+              <span class="clb-break"></span>
 
               <span class="clb-group-label mobile-hide" style="color:var(--earth-700);">Export CSV</span>
               <button id="clbExportMinimal" class="btn btn-outline btn-sm clb-tall-btn" style="color:var(--earth-700); border-color:var(--earth-300);" title="One or a few selected cell lines: Gene Effect + Expression for every gene (CSV). Includes DepMap version and citation.">Cell line:<br><span>GE + expression</span></button>
@@ -11400,7 +11406,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_25"></script>
+    <script src="app.js?v=v90_26"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
