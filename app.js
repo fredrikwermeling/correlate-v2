@@ -38591,7 +38591,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (this.geneInfoCache[gene]) return this.geneInfoCache[gene];
 
         try {
-            const res = await fetch(`https://mygene.info/v3/query?q=symbol:${encodeURIComponent(gene)}&species=human&fields=symbol,name,summary,entrezgene,HGNC&size=1`);
+            const res = await fetch(`https://mygene.info/v3/query?q=symbol:${encodeURIComponent(gene)}&species=human&fields=symbol,name,summary,entrezgene,HGNC,type_of_gene,alias,ensembl.gene,uniprot.Swiss-Prot,MIM&size=1`);
             const data = await res.json();
             if (data.hits && data.hits.length > 0) {
                 const hit = data.hits[0];
@@ -38600,7 +38600,12 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     name: hit.name || '',
                     summary: hit.summary || '',
                     entrezgene: hit.entrezgene || null,
-                    hgnc: hit.HGNC || null
+                    hgnc: hit.HGNC || null,
+                    typeOfGene: hit.type_of_gene || '',
+                    aliases: [].concat(hit.alias || []),
+                    ensembl: [].concat(hit.ensembl || []).map(e => e && e.gene).filter(Boolean)[0] || null,
+                    uniprot: [].concat(hit.uniprot?.['Swiss-Prot'] || [])[0] || null,
+                    mim: hit.MIM || null
                 };
                 this.geneInfoCache[gene] = info;
                 return info;
@@ -50616,6 +50621,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         setSub();
 
         const html = [];
+        html.push(this._gbSection('About the gene', this._gbLoading('Loading the gene description...'), '', 'gbAboutCard'));
         html.push(this._gbSection('Summary', `<div id="gbSummary" class="gb-summary">${this._gbSummaryHtml(s)}</div>`, 'Generated from the DepMap layers shown below.'));
         if (s.hasGe) html.push(this._gbDependencyCard(s));
         const hasExprGene = !this.expressionGeneIndex || this.expressionGeneIndex.has(gene);
@@ -50641,9 +50647,92 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             setSub();
             const sm = document.getElementById('gbSummary'); if (sm) sm.innerHTML = this._gbSummaryHtml(s);
         });
+        this._gbFillAbout(s);
         this._gbFillExpression(s);
         this._gbFillCn(s);
         if (s.hasGe) this._gbFillRelated(s);
+    }
+
+    // GRCh38 chromosome lengths and centromere midpoints, in Mb.
+    static GB_CHROMS = [['1', 248.96, 123.4], ['2', 242.19, 93.9], ['3', 198.30, 90.9], ['4', 190.21, 50.0], ['5', 181.54, 48.8],
+        ['6', 170.81, 59.8], ['7', 159.35, 60.1], ['8', 145.14, 45.2], ['9', 138.39, 43.0], ['10', 133.80, 39.8], ['11', 135.09, 53.4],
+        ['12', 133.28, 35.5], ['13', 114.36, 17.7], ['14', 107.04, 17.2], ['15', 101.99, 19.0], ['16', 90.34, 36.8], ['17', 83.26, 25.1],
+        ['18', 80.37, 18.5], ['19', 58.62, 26.2], ['20', 64.44, 28.1], ['21', 46.71, 12.0], ['22', 50.82, 15.0], ['X', 156.04, 60.6], ['Y', 57.23, 10.4]];
+
+    // Every chromosome as a small bar, the gene's own one in green with a
+    // marker at the gene; below it, that chromosome to scale with the gene.
+    _gbIdeogramSvg(gene, loc) {
+        const chr = String(loc?.chr || '').replace(/^chr/i, '').toUpperCase();
+        const all = CorrelationExplorer.GB_CHROMS;
+        const me = all.find(c => c[0] === chr);
+        if (!me) return '';
+        const pos = loc.start != null && loc.end != null ? (loc.start + loc.end) / 2e6 : null;
+        const W = 480, slot = W / all.length, bw = 9, H = 120, top = 8, max = all[0][1];
+        const arm = (x, y0, y1, fill) => y1 - y0 > 0.5
+            ? `<rect x="${(x - bw / 2).toFixed(1)}" y="${y0.toFixed(1)}" width="${bw}" height="${(y1 - y0).toFixed(1)}" rx="${bw / 2}" fill="${fill}"/>` : '';
+        let out = `<defs><linearGradient id="gbChrOn" x1="0" x2="1"><stop offset="0" stop-color="#7cb356"/><stop offset="1" stop-color="#4c782e"/></linearGradient></defs>`;
+        all.forEach(([name, len, cen], i) => {
+            const x = slot * i + slot / 2, h = H * len / max, c = top + H * cen / max;
+            const on = name === chr, fill = on ? 'url(#gbChrOn)' : '#e5e7eb';
+            out += arm(x, top, c - 1, fill) + arm(x, c + 1, top + h, fill);
+            out += `<text x="${x.toFixed(1)}" y="${top + H + 14}" text-anchor="middle" font-size="9" fill="${on ? '#4c782e' : '#9ca3af'}" font-weight="${on ? 700 : 400}">${name}</text>`;
+            if (on && pos != null) {
+                const y = top + H * pos / max;
+                out += `<line x1="${(x - bw / 2 - 4).toFixed(1)}" x2="${(x + bw / 2 + 4).toFixed(1)}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#dc2626" stroke-width="2"/>`
+                    + `<path d="M${(x + bw / 2 + 5).toFixed(1)},${y.toFixed(1)} l6,-4 v8 z" fill="#dc2626"/>`;
+            }
+        });
+        const overview = `<svg viewBox="0 0 ${W} ${top + H + 20}" width="100%" style="max-width:${W}px; display:block;" role="img" aria-label="Human chromosomes with chromosome ${this.esc(chr)} highlighted">${out}</svg>`;
+        // The chromosome itself, horizontal and to scale.
+        const ZW = 480, x0 = 14, x1 = ZW - 14, zy = 34, zh = 14, len = me[1], cen = me[2];
+        const X = (mb) => x0 + (x1 - x0) * mb / len;
+        let z = `<defs><linearGradient id="gbChrZ" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9cc97c"/><stop offset="1" stop-color="#5d9239"/></linearGradient></defs>`;
+        z += `<rect x="${x0}" y="${zy}" width="${(X(cen) - 1 - x0).toFixed(1)}" height="${zh}" rx="${zh / 2}" fill="url(#gbChrZ)"/>`
+            + `<rect x="${(X(cen) + 1).toFixed(1)}" y="${zy}" width="${(x1 - X(cen) - 1).toFixed(1)}" height="${zh}" rx="${zh / 2}" fill="url(#gbChrZ)"/>`
+            + `<text x="${((x0 + X(cen)) / 2).toFixed(1)}" y="${zy + zh + 13}" text-anchor="middle" font-size="9" fill="#6b7280">p arm</text>`
+            + `<text x="${((X(cen) + x1) / 2).toFixed(1)}" y="${zy + zh + 13}" text-anchor="middle" font-size="9" fill="#6b7280">q arm</text>`
+            + `<text x="${x0}" y="${zy + zh + 26}" font-size="9" fill="#9ca3af">0</text>`
+            + `<text x="${x1}" y="${zy + zh + 26}" font-size="9" fill="#9ca3af" text-anchor="end">${Math.round(len)} Mb</text>`;
+        if (pos != null) {
+            const gx = X(pos), lab = `${this.esc(gene)} · ${this.esc(this._gbLocText(loc))} · ${pos.toFixed(1)} Mb`;
+            const anchor = gx < ZW * 0.2 ? 'start' : gx > ZW * 0.8 ? 'end' : 'middle';
+            z += `<line x1="${gx.toFixed(1)}" x2="${gx.toFixed(1)}" y1="${zy - 10}" y2="${zy + zh + 3}" stroke="#dc2626" stroke-width="2"/>`
+                + `<circle cx="${gx.toFixed(1)}" cy="${zy - 11}" r="3" fill="#dc2626"/>`
+                + `<text x="${gx.toFixed(1)}" y="${zy - 18}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="#374151">${lab}</text>`;
+        }
+        const zoom = `<svg viewBox="0 0 ${ZW} ${zy + zh + 30}" width="100%" style="max-width:${ZW}px; display:block; margin-top:6px;" role="img" aria-label="Chromosome ${this.esc(chr)} with the gene marked">${z}</svg>`;
+        return overview + zoom;
+    }
+
+    async _gbFillAbout(s) {
+        const gene = s.gene;
+        const [info] = await Promise.all([this.fetchGeneInfo(gene).catch(() => null), this.loadGeneLocations().catch(() => null)]);
+        if (this._gbGene !== gene) return;
+        const card = document.getElementById('gbAboutCard');
+        if (!card) return;
+        const loc = this.geneLocations?.[gene] || null;
+        const syn = [...new Set([...(info?.aliases || []), ...this._gbSynonymsOf(gene)]
+            .map(a => String(a).replace(/^['"\s]+|['"\s]+$/g, '')))].filter(a => a && a !== gene).slice(0, 8);
+        const typeWord = { 'protein-coding': 'Protein-coding gene', ncRNA: 'Non-coding RNA gene', pseudo: 'Pseudogene' }[info?.typeOfGene] || (info?.typeOfGene ? `${info.typeOfGene} gene` : '');
+        const summary = info?.summary ? (this._leadWithFunction?.(info.summary) || info.summary) : '';
+        const a = (href, t) => `<a href="${href}" target="_blank" rel="noopener" style="color:#3730a3;">${t} &#8599;</a>`;
+        const ids = [
+            info?.entrezgene ? a(`https://www.ncbi.nlm.nih.gov/gene/${info.entrezgene}`, `NCBI Gene ${info.entrezgene}`) : '',
+            info?.hgnc ? a(`https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${encodeURIComponent(info.hgnc)}`, `HGNC:${this.esc(String(info.hgnc).replace(/^HGNC:/, ''))}`) : '',
+            info?.ensembl ? a(`https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=${encodeURIComponent(info.ensembl)}`, this.esc(info.ensembl)) : '',
+            info?.uniprot ? a(`https://www.uniprot.org/uniprotkb/${encodeURIComponent(info.uniprot)}`, `UniProt ${this.esc(info.uniprot)}`) : '',
+            info?.mim ? a(`https://www.omim.org/entry/${encodeURIComponent(info.mim)}`, `OMIM ${this.esc(info.mim)}`) : '',
+        ].filter(Boolean);
+        const left = (info?.name ? `<div style="font-size:14px; font-weight:600; color:#374151; margin-bottom:2px;">${this._italicizeGenesInHtml(this.esc(info.name))}</div>` : '')
+            + (typeWord ? `<div class="gb-m" style="margin-bottom:8px;">${this.esc(typeWord)}${loc ? `, ${this.esc(this._gbLocText(loc))}` : ''}</div>` : '')
+            + (summary ? `<p style="margin:0 0 8px; font-size:12px; line-height:1.6;">${this._italicizeGenesInHtml(this.esc(summary))}</p>`
+                : `<p class="gb-m" style="margin:0 0 8px;">${info ? 'No description is available for this gene.' : 'The description could not be loaded (it needs an internet connection).'}</p>`)
+            + (syn.length ? this._gbRow('Also known as', this.esc(syn.join(', '))) : '')
+            + (loc?.start != null ? this._gbRow('Position (GRCh38)', `chr${this.esc(String(loc.chr))}:${loc.start.toLocaleString()}-${loc.end.toLocaleString()} <span class="gb-m">(${((loc.end - loc.start) / 1000).toFixed(1)} kb)</span>`) : '')
+            + (ids.length ? this._gbRow('Records', ids.join(' <span style="color:#9ca3af;">&middot;</span> ')) : '');
+        const pic = loc ? this._gbIdeogramSvg(gene, loc) : '';
+        const body = pic ? `<div class="gb-grid"><div>${left}</div><div>${pic}</div></div>` : left;
+        card.outerHTML = this._gbSection('About the gene', body, 'Description: NCBI Gene / RefSeq summary via MyGene.info (fetched live). Location: Ensembl GRCh38.', 'gbAboutCard');
     }
 
     _gbDependencyCard(s) {
@@ -50987,6 +51076,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             _readMe: `The numbers behind each card of the Gene Browser page for ${gene}, computed over every cell line in the panel (${N.toLocaleString()} lines). Percentages of mutation, fusion and functional-loss calls use all ${N.toLocaleString()} lines as the denominator, not only the sequenced ones. A section that is null was not available for this gene or had not finished loading when the file was made; that is missing data, not a zero.`,
             gene,
             location: s.loc ? this._gbLocText(s.loc) : null,
+            about: (() => {
+                const i = this.geneInfoCache?.[gene];
+                return i ? { fullName: i.name || null, geneType: i.typeOfGene || null, description: i.summary || null, description_source: 'NCBI Gene / RefSeq summary via MyGene.info' } : null;
+            })(),
             synonyms: this._gbSynonymsOf(gene),
             generatedSummary: String(this._gbSummaryHtml(s) || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
             summaryCaveat: 'generatedSummary is written by the app from the numbers in this section. Treat it as a starting point, not a source: check any claim in it against the values, and say so if they disagree.',
@@ -51081,7 +51174,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             a(`https://depmap.org/portal/gene/${e}`, 'DepMap portal'),
             a(`https://www.uniprot.org/uniprotkb?query=gene_exact%3A${e}+AND+organism_id%3A9606`, 'UniProt'),
         ];
-        return this._gbSection('Links', `<div style="padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">Primary records:</b> ${links.join(' <span style="color:#9ca3af;">&middot;</span> ')}<div style="font-size:10px; color:#6b7280; margin-top:3px;">Opens the gene’s page at each site. Nothing on this page is fetched live.</div></div>`);
+        return this._gbSection('Links', `<div style="padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">Primary records:</b> ${links.join(' <span style="color:#9ca3af;">&middot;</span> ')}<div style="font-size:10px; color:#6b7280; margin-top:3px;">Opens the gene’s page at each site. Only the description under About the gene is fetched live (MyGene.info); everything else comes from the app’s own data.</div></div>`);
     }
 
     async openCellLineWiki(cellLineId) {

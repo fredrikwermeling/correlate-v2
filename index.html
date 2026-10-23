@@ -2896,6 +2896,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.43 (2026-10-23)</strong></p>
+                <ul>
+                    <li><b>Gene Browser: About the gene.</b> A new first card with the gene's full name, type, what it does (the NCBI / RefSeq description), other names, its exact position and links to its NCBI, HGNC, Ensembl, UniProt and OMIM records, beside a picture of all chromosomes with the gene's own one highlighted and the gene marked, and that chromosome drawn to scale.</li>
+                </ul>
                 <p><strong>v.90.42 (2026-10-23)</strong></p>
                 <ul>
                     <li><b>Gene Browser: more ways into the rest of the app.</b> Related genes explains what it lists and gives each co-dependent gene a Scatter link, plus buttons to draw the gene and its co-dependencies (or its complex partners) as a network or a heatmap, and to find every gene correlated with it. The mutation card opens Mutation analysis for the gene; the expression and copy-number cards open the matching scatter.</li>
@@ -8264,7 +8268,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.42</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.43</a>
         </span>
     </div>
 
@@ -11571,7 +11575,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_42"></script>
+    <script src="app.js?v=v90_43"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
