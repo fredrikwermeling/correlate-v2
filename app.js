@@ -50592,14 +50592,21 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     _gbDesc(t) { return `<p class="gb-desc">${t}</p>`; }
     _gbClLink(id) { return `<a href="#" data-gb-cl="${this.esc(id)}" class="gb-cl">${this.esc(this.getCellLineName(id) || id)}</a>`; }
     _gbLoading(t) { return `<div class="gb-loading">${t}</div>`; }
-    _gbTissueRows(rows, fmt) {
-        // Rows that count lines (r.k) say "k of n lines" so n can't be read
-        // as the number altered; the others give the tissue's line count.
-        const count = (r) => r.k !== undefined ? `${r.k} of ${r.n} lines` : `${r.n} lines`;
-        return rows.map(r => `<div class="gb-trow"><span class="gb-trow-n">${this.esc(r.name)}</span><span class="gb-trow-v">${fmt(r)}</span><span class="gb-trow-c">${count(r)}</span></div>`).join('');
+    // The app's own table look (data-table: green header row, hover rows).
+    _gbTable(heads, rows) {
+        return `<table class="data-table gb-table"><thead><tr>${heads.map(h => `<th>${h}</th>`).join('')}</tr></thead>`
+            + `<tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
     }
-    _gbTopLines(items) {
-        return items.map(([id, v]) => `<div class="gb-trow"><span class="gb-trow-n">${this._gbClLink(id)}</span><span class="gb-trow-v">${this._gbNum(v)}</span><span class="gb-trow-c">${this.esc(this.cellLineMetadata?.lineage?.[id] || '')}</span></div>`).join('');
+    _gbTissueRows(rows, fmt, head = 'Value') {
+        // Rows that count lines (r.k) say "k of n" so n can't be read as the
+        // number altered; the others give the tissue's line count.
+        const counted = rows.some(r => r.k !== undefined);
+        return this._gbTable(['Tissue', head, counted ? 'Lines' : 'Lines'],
+            rows.map(r => [this.esc(r.name), `<b>${fmt(r)}</b>`, `<span class="gb-m">${r.k !== undefined ? `${r.k} of ${r.n}` : r.n}</span>`]));
+    }
+    _gbTopLines(items, head = 'Value') {
+        return this._gbTable(['Cell line', head, 'Tissue'],
+            items.map(([id, v]) => [this._gbClLink(id), `<b>${this._gbNum(v)}</b>`, `<span class="gb-m">${this.esc(this.cellLineMetadata?.lineage?.[id] || '')}</span>`]));
     }
 
     // Same bars, bin sizes and cutoff line as the Threshold scan histogram.
@@ -50853,8 +50860,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const body = this._gbDesc('How much cell lines depend on this gene in the CRISPR screen. More negative means the lines grow worse without it; 0 means no effect.')
             + `<div class="gb-grid"><div><div id="gbGeHist" class="gb-hist"></div></div><div>${stats}</div></div>`
             + `<div class="gb-grid">`
-            + `<div>${topT.length ? `<div class="gb-sub">Most dependent tissues <span class="gb-m">(mean gene effect, 5 or more lines)</span></div>${this._gbTissueRows(topT, r => this._gbNum(r.mean))}` : ''}</div>`
-            + `<div><div class="gb-sub">Most dependent cell lines</div>${this._gbTopLines(topL)}</div></div>`
+            + `<div>${topT.length ? `<div class="gb-sub">Most dependent tissues <span class="gb-m">(mean gene effect, 5 or more lines)</span></div>${this._gbTissueRows(topT, r => this._gbNum(r.mean), 'Mean')}` : ''}</div>`
+            + `<div><div class="gb-sub">Most dependent cell lines</div>${this._gbTopLines(topL, 'Gene effect')}</div></div>`
             + `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="ge" title="Open this gene in the Gene effect view, by tissue">Open in Gene effect view</button></div>`;
         return this._gbSection('Dependency (CRISPR gene effect)', body, 'DepMap 26Q1 CRISPRGeneEffect (Chronos).');
     }
@@ -50909,9 +50916,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         }
         const body = this._gbDesc('How much of this gene’s mRNA each cell line makes (bulk RNA-seq, log₂ TPM+1).')
             + `<div class="gb-grid"><div><div id="gbExprHist" class="gb-hist"></div></div><div>${stats.join('')}${link}</div></div>`
-            + `<div class="gb-grid" style="margin-top:6px;"><div><div class="gb-sub">Highest tissues <span class="gb-m">(median)</span></div>${this._gbTissueRows(high, r => this._gbNum(r.med))}</div>`
-            + `<div><div class="gb-sub">Lowest tissues <span class="gb-m">(median)</span></div>${this._gbTissueRows(low, r => this._gbNum(r.med))}</div></div>`
-            + `<div class="gb-sub">Highest-expressing cell lines</div>${this._gbTopLines(topL)}`
+            + `<div class="gb-grid" style="margin-top:6px;"><div><div class="gb-sub">Highest tissues <span class="gb-m">(median)</span></div>${this._gbTissueRows(high, r => this._gbNum(r.med), 'Median')}</div>`
+            + `<div><div class="gb-sub">Lowest tissues <span class="gb-m">(median)</span></div>${this._gbTissueRows(low, r => this._gbNum(r.med), 'Median')}</div></div>`
+            + `<div class="gb-sub">Highest-expressing cell lines</div>${this._gbTopLines(topL, 'log₂ TPM+1')}`
             + `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="expr" title="Open this gene in the Gene effect / expression view, as mRNA by tissue">Open in expression view</button>`
             + (s.hasGe ? `<button class="btn btn-outline btn-sm" data-gb-act="sc-expr-ge" title="A scatter of each cell line's expression of this gene against its gene effect">Expression vs gene effect scatter</button>` : '')
             + `</div>`;
@@ -50930,9 +50937,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             s.fus ? this._gbRow('Fusion', cnt(s.nFus)) : '',
         ].join('');
         const vars = s.variants.length ? `<div class="gb-sub">Most common variants</div>`
-            + s.variants.map(([v, k]) => `<div class="gb-trow"><span class="gb-trow-n">${this.gi(s.gene)} ${this.esc(v)}</span><span class="gb-trow-v">${k}</span><span class="gb-trow-c">${this._gbFmtPct(k, N)} of lines</span></div>`).join('') : '';
+            + this._gbTable(['Variant', 'Lines', 'Share'], s.variants.map(([v, k]) => [`${this.gi(s.gene)} ${this.esc(v)}`, `<b>${k}</b>`, `<span class="gb-m">${this._gbFmtPct(k, N)}</span>`])) : '';
         const tis = s.mutTissues.length ? `<div class="gb-sub">Tissues where it is most often mutated</div>`
-            + this._gbTissueRows(s.mutTissues, r => `${this._gbFmtPct(r.k, r.n)}`) : '';
+            + this._gbTissueRows(s.mutTissues, r => `${this._gbFmtPct(r.k, r.n)}`, 'Mutated') : '';
         let cmp = '';
         const sp = s.split;
         if (sp) {
@@ -50987,8 +50994,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         ].join('');
         const body = this._gbDesc('Gene-level copy number relative to each line’s own baseline: above 1 is a gain, below 1 a loss.')
             + `<div class="gb-grid"><div><div id="gbCnHist" class="gb-hist"></div></div><div>${stats}</div></div>`
-            + ((ampT.length || delT.length) ? `<div class="gb-grid"><div>${ampT.length ? `<div class="gb-sub">Tissues most often amplified</div>${this._gbTissueRows(ampT, r => this._gbFmtPct(r.k, r.n))}` : ''}</div>`
-                + `<div>${delT.length ? `<div class="gb-sub">Tissues most often deleted</div>${this._gbTissueRows(delT, r => this._gbFmtPct(r.k, r.n))}` : ''}</div></div>` : '')
+            + ((ampT.length || delT.length) ? `<div class="gb-grid"><div>${ampT.length ? `<div class="gb-sub">Tissues most often amplified</div>${this._gbTissueRows(ampT, r => this._gbFmtPct(r.k, r.n), 'Amplified')}` : ''}</div>`
+                + `<div>${delT.length ? `<div class="gb-sub">Tissues most often deleted</div>${this._gbTissueRows(delT, r => this._gbFmtPct(r.k, r.n), 'Deleted')}` : ''}</div></div>` : '')
             + (s.exprVec ? `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="sc-cn-expr" title="A scatter of each cell line's copy number of this gene against its expression">Copy number vs expression scatter</button></div>` : '');
         card.outerHTML = this._gbSection('Copy number', body, 'DepMap gene-level relative copy number (OmicsCNGene).', 'gbCnCard');
         this._gbHist('gbCnHist', vals.map(v => Math.min(v, 6)), { measure: 'cn', xTitle: 'Relative copy number (capped at 6)' });
@@ -51067,13 +51074,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const g = this.gi(gene);
         const maxR = Math.max(0.01, ...top.map(h => h.r));
         const co = top.length ? `<div class="gb-sub">Co-dependencies <span class="gb-m">(lines that depend on ${g} also depend on these)</span></div>`
-            + `<div class="gb-rtab"><span class="gb-m">Gene</span><span class="gb-m">r</span><span></span><span class="gb-m">p</span><span></span>`
-            + top.map(h => `<a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a>`
-                + `<span class="gb-rbar"><span style="width:${(100 * Math.max(0, h.r) / maxR).toFixed(0)}%"></span></span>`
-                + `<b>${this._gbNum(h.r)}</b>`
-                + `<span class="gb-m" title="${h.n.toLocaleString()} cell lines">${this._gbP(h.p)}</span>`
-                + `<button class="gb-scatter-btn" data-gb-scatter="${this.esc(h.gene)}" title="Open the correlation scatter of ${this.esc(gene)} against ${this.esc(h.gene)}">Scatter</button>`).join('')
-            + `</div><div class="gb-m" style="margin-top:3px;">Pearson r of gene effect across ${top[0].n.toLocaleString()} cell lines (1 = identical pattern).</div>`
+            + this._gbTable(['Gene', 'r', 'p', ''], top.map(h => [
+                `<a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a>`,
+                `<span class="corr-positive">${h.r.toFixed(3)}</span>`,
+                `<span class="gb-m" title="${h.n.toLocaleString()} cell lines">${this._gbP(h.p)}</span>`,
+                `<button class="btn btn-sm inspect-btn" style="padding:2px 6px; font-size:10px; background:#6ba544; color:white;" data-gb-scatter="${this.esc(h.gene)}" title="Open the correlation plot of ${this.esc(gene)} against ${this.esc(h.gene)}">Correlation</button>`]))
+            + `<div class="gb-m" style="margin-top:3px;">Pearson r of gene effect across ${top[0].n.toLocaleString()} cell lines (1 = identical pattern).</div>`
             + `<div class="gb-actions">`
             + `<button class="btn btn-outline btn-sm" data-gb-act="net-codep" title="Run Gene set analysis on ${this.esc(gene)} and these ${top.length} genes, drawn as a correlation network">Network of these genes</button>`
             + `<button class="btn btn-outline btn-sm" data-gb-act="hm-codep" title="Show ${this.esc(gene)} and these ${top.length} genes as a heatmap across the cell lines">Heatmap</button>`
@@ -51082,8 +51088,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const scheme = this._gbRelSchematic(gene, top, corum);
         const figure = scheme ? `<div id="gbRelFig" style="background:#fff;">${scheme}</div>`
             + `<div class="gb-m" style="display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; margin-top:2px;">`
-            + `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#5d9239" stroke-width="3"/></svg> co-dependency (thicker = higher r)</span>`
-            + `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#4a6fa5" stroke-width="1.5" stroke-dasharray="4 3"/></svg> same protein complex (CORUM)</span>`
+            + `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#3182ce" stroke-width="3"/></svg> co-dependency (thicker = higher r)</span>`
+            + `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 3"/></svg><svg width="12" height="12" style="vertical-align:-2px;"><circle cx="6" cy="6" r="4.5" fill="#fff" stroke="#6ba544" stroke-width="2"/></svg> same protein complex (CORUM)</span>`
             + `<button class="btn btn-outline btn-sm mobile-hide" data-gb-act="copy-relfig" style="font-size:10px; padding:1px 8px; margin-left:auto;" title="Copy this figure as an image">Copy figure</button></div>` : '';
         // Named sets the app already curates (cancer pathway panel, complexes,
         // gene set library), which say what the link is; the database lists
@@ -51125,37 +51131,39 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         return out;
     }
 
-    // The gene in the middle, co-dependencies (solid, width by r) and CORUM
-    // complex partners (dashed) around it; genes that are both get both.
+    // Drawn like the app's network: green nodes with a dark outline, italic
+    // labels under them, blue edges for positive correlation (thicker = higher
+    // r). CORUM complex partners hang off grey dashed edges as hollow nodes;
+    // a gene that is both keeps the blue edge and gets a hollow ring too.
     _gbRelSchematic(gene, top, corum) {
         const codep = top.slice(0, 10);
         const cset = new Set(corum);
         const extra = corum.filter(x => !codep.some(h => h.gene === x)).slice(0, 8);
         const nodes = [...codep.map(h => ({ g: h.gene, r: h.r, cx: cset.has(h.gene) })), ...extra.map(x => ({ g: x, r: null, cx: true }))];
         if (!nodes.length) return '';
-        const W = 460, H = 300, cx0 = W / 2, cy0 = H / 2, rx = 168, ry = 112;
+        const W = 460, H = 310, cx0 = W / 2, cy0 = H / 2 - 6, rx = 172, ry = 112;
         const rs = codep.map(h => h.r), rMin = rs.length ? Math.min(...rs) : 0, rMax = rs.length ? Math.max(...rs) : 1;
-        const font = 'Open Sans, Arial, sans-serif';
-        const pillW = (t) => t.length * 6.6 + 16;
-        let edges = '', pills = '';
+        const font = 'Arial, sans-serif';
+        let edges = '', dots = '';
         nodes.forEach((n, i) => {
             const a = -Math.PI / 2 + 2 * Math.PI * i / nodes.length;
             const x = cx0 + rx * Math.cos(a), y = cy0 + ry * Math.sin(a);
             if (n.r !== null) {
-                const w = 1.5 + 5 * (n.r - rMin) / ((rMax - rMin) || 1);
-                edges += `<line x1="${cx0}" y1="${cy0}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#5d9239" stroke-width="${w.toFixed(1)}" stroke-linecap="round" opacity="0.75"/>`;
+                const w = 1.2 + 4.8 * (n.r - rMin) / ((rMax - rMin) || 1);
+                edges += `<line x1="${cx0}" y1="${cy0}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#3182ce" stroke-width="${w.toFixed(1)}"/>`;
+            } else {
+                edges += `<line x1="${cx0}" y1="${cy0}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#9ca3af" stroke-width="1.3" stroke-dasharray="4 3"/>`;
             }
-            if (n.cx) edges += `<line x1="${cx0}" y1="${cy0}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#4a6fa5" stroke-width="1.5" stroke-dasharray="4 3"/>`;
-            const pw = pillW(n.g), green = n.r !== null;
-            pills += `<g data-gb-gene="${this.esc(n.g)}" style="cursor:pointer;"><rect x="${(x - pw / 2).toFixed(1)}" y="${(y - 11).toFixed(1)}" width="${pw.toFixed(1)}" height="22" rx="11" fill="${green ? '#eef6e8' : '#eaf0f8'}" stroke="${green ? '#5d9239' : '#4a6fa5'}" stroke-width="${n.cx && green ? 2 : 1.2}"${n.cx && green ? ' stroke-dasharray="none"' : ''}/>`
-                + `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" font-size="11" font-style="italic" font-weight="600" fill="#374151" font-family="${font}">${this.esc(n.g)}</text>`
-                + (n.r !== null ? `<text x="${x.toFixed(1)}" y="${(y + 22).toFixed(1)}" text-anchor="middle" font-size="9" fill="#6b7280" stroke="#ffffff" stroke-width="3" paint-order="stroke" font-family="${font}">r ${n.r.toFixed(2)}</text>` : '')
-                + `</g>`;
+            const filled = n.r !== null;
+            dots += `<g data-gb-gene="${this.esc(n.g)}" style="cursor:pointer;">`
+                + (n.cx && filled ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="12.5" fill="none" stroke="#6ba544" stroke-width="2" stroke-dasharray="3 2"/>` : '')
+                + `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="${filled ? '#6ba544' : '#ffffff'}" stroke="${filled ? '#000000' : '#6ba544'}" stroke-width="${filled ? 1.3 : 2}"/>`
+                + `<text x="${x.toFixed(1)}" y="${(y + 23).toFixed(1)}" text-anchor="middle" font-size="12" font-style="italic" fill="#333333" stroke="#ffffff" stroke-width="3" paint-order="stroke" font-family="${font}">${this.esc(n.g)}</text>`
+                + `<title>${this.esc(n.g)}${n.r !== null ? `, r = ${n.r.toFixed(2)}` : ''}${n.cx ? ', same complex' : ''}</title></g>`;
         });
-        const cw = pillW(gene) + 12;
-        const center = `<rect x="${cx0 - cw / 2}" y="${cy0 - 15}" width="${cw}" height="30" rx="15" fill="#4c782e"/>`
-            + `<text x="${cx0}" y="${cy0 + 5}" text-anchor="middle" font-size="13" font-style="italic" font-weight="700" fill="#ffffff" font-family="${font}">${this.esc(gene)}</text>`;
-        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px; display:block; margin:0 auto;" role="img" aria-label="${this.esc(gene)} with its co-dependencies and complex partners">${edges}${center}${pills}</svg>`;
+        const center = `<circle cx="${cx0}" cy="${cy0}" r="15" fill="#6ba544" stroke="#000000" stroke-width="1.8"/>`
+            + `<text x="${cx0}" y="${cy0 + 33}" text-anchor="middle" font-size="14" font-style="italic" font-weight="700" fill="#333333" stroke="#ffffff" stroke-width="3.5" paint-order="stroke" font-family="${font}">${this.esc(gene)}</text>`;
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px; display:block; margin:0 auto;" role="img" aria-label="${this.esc(gene)} with its co-dependencies and complex partners">${edges}${center}${dots}</svg>`;
     }
 
     // Hand-offs from the cards to the rest of the app, each through the
