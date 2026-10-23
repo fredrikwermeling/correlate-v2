@@ -50395,6 +50395,16 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 this.openCellLineWiki(cl.dataset.gbCl);
                 return;
             }
+            const node = e.target.closest('[data-gb-node]');
+            if (node && this._gbGene) {
+                e.preventDefault();
+                this.hideGeneTooltip?.(true);
+                if (e.shiftKey) { this._gbGo(node.dataset.gbNode); return; }
+                this.openGeneEffectModal(node.dataset.gbNode, 'tissue', { dataType: 'ge' });
+                return;
+            }
+            const edge = e.target.closest('[data-gb-edge]');
+            if (edge && this._gbGene) { e.preventDefault(); this._gbScatter(this._gbGene, edge.dataset.gbEdge, 'ge', 'ge'); return; }
             const sc = e.target.closest('[data-gb-scatter]');
             if (sc && this._gbGene) { e.preventDefault(); this._gbScatter(this._gbGene, sc.dataset.gbScatter, 'ge', 'ge'); return; }
             const set = e.target.closest('[data-gb-set]');
@@ -50417,18 +50427,18 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // the page already holds everything the card would say.
         body?.addEventListener('mouseover', (e) => {
             const cl = e.target.closest('[data-gb-cl]');
-            let g = cl ? null : e.target.closest('#gbRelCard [data-gb-gene]');
-            if (g && g.dataset.gbGene === this._gbGene) g = null;
+            let g = cl ? null : e.target.closest('#gbRelCard [data-gb-gene], #gbRelCard [data-gb-node]');
+            if (g && (g.dataset.gbGene || g.dataset.gbNode) === this._gbGene) g = null;
             if (!cl && !g) return;
             const ev = { clientX: e.clientX, clientY: e.clientY };
             clearTimeout(timer);
             timer = cl
                 ? setTimeout(() => this.showCellLineTooltip(ev, cl.dataset.gbCl), this._HOVER_DELAY)
-                : setTimeout(() => this.showGeneTooltip(ev, g.dataset.gbGene), this._HOVER_DELAY);
+                : setTimeout(() => this.showGeneTooltip(ev, g.dataset.gbGene || g.dataset.gbNode), this._HOVER_DELAY);
         });
         body?.addEventListener('mouseout', (e) => {
             const cl = e.target.closest('[data-gb-cl]');
-            if (!cl && !e.target.closest('[data-gb-gene]')) return;
+            if (!cl && !e.target.closest('[data-gb-gene], [data-gb-node]')) return;
             clearTimeout(timer);
             if (cl) this.hideCellLineTooltip?.(); else this.hideGeneTooltip();
         });
@@ -51320,8 +51330,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const scheme = this._gbRelSchematic(gene, top, corum);
         const figure = scheme ? `<div id="gbRelFig" style="background:#fff;">${scheme}</div>`
             + `<div class="gb-m" style="display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; margin-top:2px;">`
-            + `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#3182ce" stroke-width="3"/></svg> co-dependency (thicker = higher r)</span>`
-            + `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#9ca3af" stroke-width="1.5" stroke-dasharray="4 3"/></svg><svg width="12" height="12" style="vertical-align:-2px;"><circle cx="6" cy="6" r="4.5" fill="#fff" stroke="#6ba544" stroke-width="2"/></svg> same protein complex (CORUM)</span>`
+            + `<span>Click a line for the correlation plot, a gene for its gene effect.</span>`
+
             + `<button class="btn btn-outline btn-sm mobile-hide" data-gb-act="copy-relfig" style="font-size:10px; padding:1px 8px; margin-left:auto;" title="Copy this figure as an image">Copy figure</button></div>` : '';
         // Named sets the app already curates (cancer pathway panel, complexes,
         // gene set library), which say what the link is; the database lists
@@ -51367,39 +51377,49 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         return out;
     }
 
-    // Drawn like the app's network: green nodes with a dark outline, italic
-    // labels under them, blue edges for positive correlation (thicker = higher
-    // r). CORUM complex partners hang off grey dashed edges as hollow nodes;
-    // a gene that is both keeps the blue edge and gets a hollow ring too.
+    // Co-dependencies in a column on the right (sorted by r), complex
+    // partners on the left, the gene in the middle; curved links leave it
+    // sideways so no line crosses a name. Network colours: green nodes with
+    // a dark outline, blue links thicker for higher r, dashed grey for CORUM.
+    // A link opens the correlation plot, a gene its gene effect view.
     _gbRelSchematic(gene, top, corum) {
-        const codep = top.slice(0, 10);
         const cset = new Set(corum);
-        const extra = corum.filter(x => !codep.some(h => h.gene === x)).slice(0, 8);
-        const nodes = [...codep.map(h => ({ g: h.gene, r: h.r, cx: cset.has(h.gene) })), ...extra.map(x => ({ g: x, r: null, cx: true }))];
-        if (!nodes.length) return '';
-        const W = 460, H = 310, cx0 = W / 2, cy0 = H / 2 - 6, rx = 172, ry = 112;
-        const rs = codep.map(h => h.r), rMin = rs.length ? Math.min(...rs) : 0, rMax = rs.length ? Math.max(...rs) : 1;
-        const font = 'Arial, sans-serif';
-        let edges = '', dots = '';
-        nodes.forEach((n, i) => {
-            const a = -Math.PI / 2 + 2 * Math.PI * i / nodes.length;
-            const x = cx0 + rx * Math.cos(a), y = cy0 + ry * Math.sin(a);
-            if (n.r !== null) {
-                const w = 1.2 + 4.8 * (n.r - rMin) / ((rMax - rMin) || 1);
-                edges += `<line x1="${cx0}" y1="${cy0}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#3182ce" stroke-width="${w.toFixed(1)}"/>`;
-            } else {
-                edges += `<line x1="${cx0}" y1="${cy0}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#9ca3af" stroke-width="1.3" stroke-dasharray="4 3"/>`;
-            }
-            const filled = n.r !== null;
-            dots += `<g data-gb-gene="${this.esc(n.g)}" style="cursor:pointer;">`
-                + (n.cx && filled ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="12.5" fill="none" stroke="#6ba544" stroke-width="2" stroke-dasharray="3 2"/>` : '')
-                + `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="${filled ? '#6ba544' : '#ffffff'}" stroke="${filled ? '#000000' : '#6ba544'}" stroke-width="${filled ? 1.3 : 2}"/>`
-                + `<text x="${x.toFixed(1)}" y="${(y + 23).toFixed(1)}" text-anchor="middle" font-size="12" font-style="italic" fill="#333333" stroke="#ffffff" stroke-width="3" paint-order="stroke" font-family="${font}">${this.esc(n.g)}</text>`
-                + `<title>${this.esc(n.g)}${n.r !== null ? `, r = ${n.r.toFixed(2)}` : ''}${n.cx ? ', same complex' : ''}</title></g>`;
+        const right = top.slice(0, 10).map(h => ({ g: h.gene, r: h.r, cx: cset.has(h.gene) }));
+        const left = corum.filter(x => !right.some(n => n.g === x)).slice(0, 10).map(g => ({ g, r: null, cx: true }));
+        if (!right.length && !left.length) return '';
+        const rowH = 25, head = 26, rows = Math.max(right.length, left.length, 3);
+        const W = 560, H = head + rows * rowH + 8, cx = W / 2, cy = head + (rows * rowH) / 2;
+        const colX = 128, font = 'Arial, sans-serif';
+        const rs = right.map(n => n.r), rMin = rs.length ? Math.min(...rs) : 0, rMax = rs.length ? Math.max(...rs) : 1;
+        const ys = (list) => list.map((_, i) => head + rowH / 2 + i * rowH + (rows - list.length) * rowH / 2);
+        let links = '', nodes = '';
+        const side = (list, dir) => ys(list).forEach((y, i) => {
+            const n = list[i], x = cx + dir * colX;
+            const x0 = cx + dir * 16, x1 = x - dir * 8;
+            const d = `M${x0},${cy} C${(x0 + dir * 60).toFixed(1)},${cy} ${(x1 - dir * 60).toFixed(1)},${y.toFixed(1)} ${x1},${y.toFixed(1)}`;
+            const co = n.r !== null;
+            const w = co ? 1.4 + 3.2 * (n.r - rMin) / ((rMax - rMin) || 1) : 1.4;
+            const what = co ? `r = ${n.r.toFixed(2)}` : 'same complex';
+            links += `<g class="gb-edge" data-gb-edge="${this.esc(n.g)}" style="cursor:pointer;"><title>${this.esc(gene)} and ${this.esc(n.g)}: ${what}. Click to open their correlation plot.</title>`
+                + `<path class="gb-edge-line" d="${d}" fill="none" stroke="${co ? '#3182ce' : '#9ca3af'}" stroke-width="${w.toFixed(1)}"${co ? '' : ' stroke-dasharray="4 3"'}/>`
+                + `<path d="${d}" fill="none" stroke="transparent" stroke-width="12"/></g>`;
+            const filled = co;
+            const tx = x + dir * 13, anchor = dir > 0 ? 'start' : 'end';
+            nodes += `<g class="gb-node" data-gb-node="${this.esc(n.g)}" style="cursor:pointer;"><title>${this.esc(n.g)}: click for its gene effect, Shift-click to open it here</title>`
+                + (n.cx && filled ? `<circle cx="${x}" cy="${y.toFixed(1)}" r="11" fill="none" stroke="#6ba544" stroke-width="1.6" stroke-dasharray="3 2"/>` : '')
+                + `<circle cx="${x}" cy="${y.toFixed(1)}" r="7.5" fill="${filled ? '#6ba544' : '#ffffff'}" stroke="${filled ? '#000000' : '#6ba544'}" stroke-width="${filled ? 1.2 : 2}"/>`
+                + `<text x="${tx}" y="${(y + 4).toFixed(1)}" text-anchor="${anchor}" font-size="12" font-family="${font}" fill="#333333"><tspan font-style="italic">${this.esc(n.g)}</tspan>`
+                + (co ? `<tspan dx="6" font-size="10.5" fill="#2b6cb0">${n.r.toFixed(2)}</tspan>` : '')
+                + `</text></g>`;
         });
-        const center = `<circle cx="${cx0}" cy="${cy0}" r="15" fill="#6ba544" stroke="#000000" stroke-width="1.8"/>`
-            + `<text x="${cx0}" y="${cy0 + 33}" text-anchor="middle" font-size="14" font-style="italic" font-weight="700" fill="#333333" stroke="#ffffff" stroke-width="3.5" paint-order="stroke" font-family="${font}">${this.esc(gene)}</text>`;
-        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px; display:block; margin:0 auto;" role="img" aria-label="${this.esc(gene)} with its co-dependencies and complex partners">${edges}${center}${dots}</svg>`;
+        side(right, 1);
+        side(left, -1);
+        const heads = (right.length ? `<text x="${cx + colX - 8}" y="14" font-size="10.5" fill="#6b7280" font-family="${font}">Co-dependency (r)</text>` : '')
+            + (left.length ? `<text x="${cx - colX + 8}" y="14" text-anchor="end" font-size="10.5" fill="#6b7280" font-family="${font}">Same complex (CORUM)</text>` : '');
+        const center = `<g class="gb-node" data-gb-node="${this.esc(gene)}" style="cursor:pointer;"><title>${this.esc(gene)}: click for its gene effect</title>`
+            + `<circle cx="${cx}" cy="${cy}" r="14" fill="#6ba544" stroke="#000000" stroke-width="1.6"/>`
+            + `<text x="${cx}" y="${cy - 21}" text-anchor="middle" font-size="14" font-weight="700" font-style="italic" fill="#333333" font-family="${font}">${this.esc(gene)}</text></g>`;
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px; display:block; margin:0 auto;" role="img" aria-label="${this.esc(gene)} with its co-dependencies and complex partners">${heads}${links}${center}${nodes}</svg>`;
     }
 
     // Hand-offs from the cards to the rest of the app, each through the
