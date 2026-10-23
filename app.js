@@ -19824,8 +19824,37 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // One look for a highlighted cell line in every chart: an orange
     // diamond, and (when a dozen or fewer) the name in a white box with an
     // orange edge. Clicking a dot adds it to the view's highlight box.
-    _hlMarker(size = 10) {
+    // fill: per-point colours from _hlFill. When the dots carry a legend
+    // colour, a highlighted dot keeps it and only the shape and the dark rim
+    // mark it; orange there read as one more legend group.
+    _hlMarker(size = 10, fill = null) {
+        if (fill) return { size, symbol: 'diamond', color: fill, line: { color: '#111827', width: 2 } };
         return { size, symbol: 'diamond', color: '#f59e0b', line: { color: '#92400e', width: 1.2 } };
+    }
+
+    // The legend colour each highlighted point is drawn in, read off the
+    // traces already built (a legend trace has a legendgroup or shows in the
+    // legend). keys: the points' cell-line ids or names; axis: the panel's
+    // x axis on multi-panel charts. Null when no point sits in a legend
+    // trace, so uncoloured charts keep the orange.
+    _hlFill(traces, keys, axis = 'x') {
+        const col = new Map();
+        traces.forEach(t => {
+            if (!t || t.type === 'box' || !String(t.mode || '').includes('markers')) return;
+            if (!t.legendgroup && t.showlegend === false) return;
+            if ((t.xaxis || 'x') !== axis) return;
+            const c = t.marker?.color;
+            const n = (t.x || []).length;
+            for (let i = 0; i < n; i++) {
+                const cc = Array.isArray(c) ? c[i] : c;
+                if (!cc) continue;
+                if (t.customdata?.[i] != null) col.set(t.customdata[i], cc);
+                const nm = Array.isArray(t.text) ? String(t.text[i] ?? '').split('<br>')[0] : '';
+                if (nm) col.set(nm, cc);
+            }
+        });
+        const out = keys.map(k => col.get(k));
+        return out.some(Boolean) ? out.map(c => c || '#f59e0b') : null;
     }
 
     _hlLabel(x, y, name, extra = {}) {
@@ -20706,7 +20735,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 mode: 'markers',
                 type: 'scatter',
                 hovertemplate: highlightData.map(d => `${d.cellLineName} (${d.lineage || 'Unknown'})<extra></extra>`),
-                marker: this._hlMarker(14),
+                marker: this._hlMarker(14, this._hlFill(traces, highlightData.map(d => d.cellLineName))),
                 name: 'Highlighted',
                 showlegend: false
             });
@@ -21444,7 +21473,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     mode: 'markers',
                     type: 'scatter',
                     hovertemplate: highlightData.map(d => `${d.cellLineName} (${d.lineage || 'Unknown'})<extra></extra>`),
-                    marker: this._hlMarker(11),
+                    marker: this._hlMarker(11, this._hlFill(traces, highlightData.map(d => d.cellLineName), xaxis)),
                     showlegend: false
                 });
                 highlightData.forEach(d => {
@@ -23371,7 +23400,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 line: { color: '#374151', width: 1 }, fillcolor: 'rgba(0,0,0,0)', hoverinfo: 'skip', showlegend: false });
             if (hm) {
                 const h = pts.filter(q => hm(this.getCellLineName(q.id) || q.id, q.id));
-                if (h.length) traces.push({ ...base, x: h.map(xOf), y: h.map(q => q.v), customdata: h.map(q => q.id), hovertext: h.map(text), showlegend: false, marker: this._hlMarker(9) });
+                if (h.length) traces.push({ ...base, x: h.map(xOf), y: h.map(q => q.v), customdata: h.map(q => q.id), hovertext: h.map(text), showlegend: false, marker: this._hlMarker(9, this._hlFill(traces, h.map(q => q.id), xa)) });
                 // Alternating sides and heights, so lines close together stay readable.
                 if (h.length && h.length <= 12) h.slice().sort((a, b) => a.v - b.v).forEach((q, j) => annotations.push(this._hlLabel(xOf(q), q.v, this.getCellLineName(q.id) || q.id,
                     { xref: xa, yref: ya, ax: j % 2 ? 26 : -26, ay: j % 2 ? -10 : -20, font: { size: 9, color: '#111' }, borderpad: 1 })));
@@ -24076,7 +24105,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 traces.push({ x: [lo, hi], y: [b0 + s.slope * lo, b0 + s.slope * hi], xaxis: xa, yaxis: ya, type: 'scatter', mode: 'lines', line: { color: '#6ba544', width: 1.5 }, hoverinfo: 'skip', showlegend: false });
             }
             const h = d.filter(look.isHl);
-            if (h.length) traces.push({ ...base, x: h.map(q => q.x), y: h.map(q => q.y), text: h.map(q => q.cellLineName), customdata: ids(h), showlegend: false, marker: this._hlMarker(9) });
+            if (h.length) traces.push({ ...base, x: h.map(q => q.x), y: h.map(q => q.y), text: h.map(q => q.cellLineName), customdata: ids(h), showlegend: false, marker: this._hlMarker(9, this._hlFill(traces, ids(h), xa)) });
             if (h.length && h.length <= 12) h.forEach(q => annotations.push(this._hlLabel(q.x, q.y, q.cellLineName, { xref: xa, yref: ya, ay: -16, font: { size: 9, color: '#111' }, borderpad: 1 })));
         });
         layout.annotations = annotations;
