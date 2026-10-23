@@ -49501,6 +49501,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const out = {};
         for (const [g, s] of Object.entries(map)) out[g] = [...s].sort();
         this._focalGenePartnersCache = out;
+        this._focalGeneComplexes = COMPLEXES;
         return out;
     }
 
@@ -50395,6 +50396,16 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             }
             const sc = e.target.closest('[data-gb-scatter]');
             if (sc && this._gbGene) { e.preventDefault(); this._gbScatter(this._gbGene, sc.dataset.gbScatter, 'ge', 'ge'); return; }
+            const set = e.target.closest('[data-gb-set]');
+            if (set && this._gbGene) {
+                const x = this._gbNamedCache?.[+set.dataset.gbSet];
+                if (!x) return;
+                if (set.dataset.gbSetDo === 'hm') { this._gbHeatmap(x.genes); return; }
+                this.closeGeneBrowser();
+                this._openGenesFromLink(x.genes.join(','));
+                document.getElementById('resultsCard')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                return;
+            }
             const act = e.target.closest('[data-gb-act]');
             if (act && this._gbGene) this._gbAction(act.dataset.gbAct);
         });
@@ -50634,6 +50645,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const html = [];
         html.push(this._gbSection('About the gene', this._gbLoading('Loading the gene description...'), '', 'gbAboutCard'));
         html.push(this._gbSection('Summary', `<div id="gbSummary" class="gb-summary">${this._gbSummaryHtml(s)}</div>`, 'Generated from the DepMap layers shown below.'));
+        if (s.hasGe) html.push(this._gbSection('Related genes', this._gbLoading('Comparing the gene-effect profile with every other gene...'), '', 'gbRelCard'));
         if (s.hasGe) html.push(this._gbDependencyCard(s));
         const hasExprGene = !this.expressionGeneIndex || this.expressionGeneIndex.has(gene);
         if (hasExprGene) html.push(this._gbSection('Expression (mRNA)', this._gbLoading('Loading expression data...'), '', 'gbExprCard'));
@@ -50642,7 +50654,6 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         html.push(this._gbSection('Copy number', this._gbLoading('Loading copy-number data...'), '', 'gbCnCard'));
         const drugs = this._gbDrugCard(s);
         if (drugs) html.push(drugs);
-        if (s.hasGe) html.push(this._gbSection('Related genes', this._gbLoading('Comparing the gene-effect profile with every other gene...'), '', 'gbRelCard'));
         html.push(this._gbLinksCard(gene));
         cards.innerHTML = html.join('');
         document.getElementById('gbBody').scrollTop = 0;
@@ -50841,8 +50852,9 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         ].join('');
         const body = this._gbDesc('How much cell lines depend on this gene in the CRISPR screen. More negative means the lines grow worse without it; 0 means no effect.')
             + `<div class="gb-grid"><div><div id="gbGeHist" class="gb-hist"></div></div><div>${stats}</div></div>`
-            + (topT.length ? `<div class="gb-sub">Most dependent tissues <span class="gb-m">(mean gene effect, tissues with 5 or more lines)</span></div>${this._gbTissueRows(topT, r => this._gbNum(r.mean))}` : '')
-            + `<div class="gb-sub">Most dependent cell lines</div>${this._gbTopLines(topL)}`
+            + `<div class="gb-grid">`
+            + `<div>${topT.length ? `<div class="gb-sub">Most dependent tissues <span class="gb-m">(mean gene effect, 5 or more lines)</span></div>${this._gbTissueRows(topT, r => this._gbNum(r.mean))}` : ''}</div>`
+            + `<div><div class="gb-sub">Most dependent cell lines</div>${this._gbTopLines(topL)}</div></div>`
             + `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="ge" title="Open this gene in the Gene effect view, by tissue">Open in Gene effect view</button></div>`;
         return this._gbSection('Dependency (CRISPR gene effect)', body, 'DepMap 26Q1 CRISPRGeneEffect (Chronos).');
     }
@@ -50933,7 +50945,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const mk = this._gbMutKind(s.gene);
         const mkWord = { hotspot: 'hotspot-mutated', damaging: 'functional-loss', translocation: 'fused' }[mk];
         const body = this._gbDesc('How often this gene is mutated or fused across the cell lines, and whether mutated lines depend on it differently.')
-            + rows + vars + tis + cmp
+            + `<div class="gb-grid"><div>${rows}${cmp}</div><div>${vars}${tis}</div></div>`
             + (mk ? `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="mut" title="Open Mutation analysis split on ${this.esc(s.gene)} (${mkWord} vs the rest) and run it: which genes do these lines depend on more or less?">Mutation analysis for this gene</button></div>` : '');
         return this._gbSection('Mutations and fusions', body, 'DepMap 26Q1 hotspot and damaging mutation calls, fusion calls and the integrated functional-loss call; specific variants from the inferred-subtype layer.');
     }
@@ -50975,8 +50987,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         ].join('');
         const body = this._gbDesc('Gene-level copy number relative to each line’s own baseline: above 1 is a gain, below 1 a loss.')
             + `<div class="gb-grid"><div><div id="gbCnHist" class="gb-hist"></div></div><div>${stats}</div></div>`
-            + (ampT.length ? `<div class="gb-sub">Tissues most often amplified</div>${this._gbTissueRows(ampT, r => this._gbFmtPct(r.k, r.n))}` : '')
-            + (delT.length ? `<div class="gb-sub">Tissues most often deleted</div>${this._gbTissueRows(delT, r => this._gbFmtPct(r.k, r.n))}` : '')
+            + ((ampT.length || delT.length) ? `<div class="gb-grid"><div>${ampT.length ? `<div class="gb-sub">Tissues most often amplified</div>${this._gbTissueRows(ampT, r => this._gbFmtPct(r.k, r.n))}` : ''}</div>`
+                + `<div>${delT.length ? `<div class="gb-sub">Tissues most often deleted</div>${this._gbTissueRows(delT, r => this._gbFmtPct(r.k, r.n))}` : ''}</div></div>` : '')
             + (s.exprVec ? `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="sc-cn-expr" title="A scatter of each cell line's copy number of this gene against its expression">Copy number vs expression scatter</button></div>` : '');
         card.outerHTML = this._gbSection('Copy number', body, 'DepMap gene-level relative copy number (OmicsCNGene).', 'gbCnCard');
         this._gbHist('gbCnHist', vals.map(v => Math.min(v, 6)), { measure: 'cn', xTitle: 'Relative copy number (capped at 6)' });
@@ -51041,9 +51053,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (this._gbGene !== gene) return;
         const card = document.getElementById('gbRelCard');
         if (!card) return;
-        const chip = (g) => `<button class="gb-chip" data-gb-gene="${this.esc(g)}">${this.gi(g)}</button>`;
+        const chip = (g, me) => me
+            ? `<span class="gb-chip gb-chip-me">${this.gi(g)}</span>`
+            : `<button class="gb-chip" data-gb-gene="${this.esc(g)}">${this.gi(g)}</button>`;
         const list = (arr, cap) => {
-            const shown = arr.slice(0, cap).map(chip).join('');
+            const shown = arr.slice(0, cap).map(x => chip(x, x === gene)).join('');
             return shown + (arr.length > cap ? ` <span class="gb-m">and ${arr.length - cap} more</span>` : '');
         };
         const corum = (this.corumPartners?.partners?.[gene] || []).filter(g => g !== gene);
@@ -51051,22 +51065,97 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const mice = Object.keys(this.orthologs?.mouseToHuman || {}).filter(k => this.orthologs.mouseToHuman[k] === gene)
             .map(k => k.charAt(0) + k.slice(1).toLowerCase());
         const g = this.gi(gene);
-        const co = top.length ? `<div class="gb-sub">Co-dependencies <span class="gb-m">(lines that depend on ${g} also depend on these, and the other way round)</span></div>`
-            + `<div class="gb-trow gb-m"><span class="gb-trow-n">Gene</span><span class="gb-trow-v" style="font-weight:400;">r</span><span class="gb-trow-c">p, cell lines</span></div>`
-            + top.map(h => `<div class="gb-trow"><span class="gb-trow-n"><a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a></span><span class="gb-trow-v">${this._gbNum(h.r)}</span><span class="gb-trow-c">p = ${this._gbP(h.p)}, ${h.n.toLocaleString()} lines <a href="#" class="gb-act" data-gb-scatter="${this.esc(h.gene)}" title="Open the correlation scatter of ${this.esc(gene)} against ${this.esc(h.gene)}">Scatter &#9656;</a></span></div>`).join('')
+        const maxR = Math.max(0.01, ...top.map(h => h.r));
+        const co = top.length ? `<div class="gb-sub">Co-dependencies <span class="gb-m">(lines that depend on ${g} also depend on these)</span></div>`
+            + `<div class="gb-rtab"><span class="gb-m">Gene</span><span class="gb-m">r</span><span></span><span class="gb-m">p</span><span></span>`
+            + top.map(h => `<a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a>`
+                + `<span class="gb-rbar"><span style="width:${(100 * Math.max(0, h.r) / maxR).toFixed(0)}%"></span></span>`
+                + `<b>${this._gbNum(h.r)}</b>`
+                + `<span class="gb-m" title="${h.n.toLocaleString()} cell lines">${this._gbP(h.p)}</span>`
+                + `<button class="gb-scatter-btn" data-gb-scatter="${this.esc(h.gene)}" title="Open the correlation scatter of ${this.esc(gene)} against ${this.esc(h.gene)}">Scatter</button>`).join('')
+            + `</div><div class="gb-m" style="margin-top:3px;">Pearson r of gene effect across ${top[0].n.toLocaleString()} cell lines (1 = identical pattern).</div>`
             + `<div class="gb-actions">`
             + `<button class="btn btn-outline btn-sm" data-gb-act="net-codep" title="Run Gene set analysis on ${this.esc(gene)} and these ${top.length} genes, drawn as a correlation network">Network of these genes</button>`
-            + `<button class="btn btn-outline btn-sm" data-gb-act="hm-codep" title="Show ${this.esc(gene)} and these ${top.length} genes as a heatmap across the cell lines">Heatmap of these genes</button>`
+            + `<button class="btn btn-outline btn-sm" data-gb-act="hm-codep" title="Show ${this.esc(gene)} and these ${top.length} genes as a heatmap across the cell lines">Heatmap</button>`
             + `<button class="btn btn-outline btn-sm" data-gb-act="expand" title="Search every gene in the screen for ones whose gene effect correlates with ${this.esc(gene)}, drawn as a network (Gene set analysis, Expand my set)">Find more correlated genes</button>`
             + `</div>` : '';
-        const body = this._gbDesc(`Genes linked to ${g} in two ways: by the data (co-dependencies, genes whose gene effect rises and falls with ${g}'s across the screened cell lines; r is the Pearson correlation, 1 = identical pattern) and by prior knowledge (proteins in the same complex or pathway). Click a gene name to open it here; hover for a summary.`)
-            + co
-            + (corum.length ? `<div class="gb-sub">Complex partners <span class="gb-m">(same protein complex, CORUM)</span></div><div class="gb-chips">${list(corum, 15)}</div>`
-                + `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="net-corum" title="Run Gene set analysis on ${this.esc(gene)} and its complex partners: do they behave as one unit in the screen?">Network of the complex</button>`
-                + `<button class="btn btn-outline btn-sm" data-gb-act="hm-corum" title="Show ${this.esc(gene)} and its complex partners as a heatmap across the cell lines">Heatmap of the complex</button></div>` : '')
-            + (reactome.length ? `<div class="gb-sub">Pathway partners <span class="gb-m">(same Reactome pathway)</span></div><div class="gb-chips">${list(reactome, 15)}</div>` : '')
+        const scheme = this._gbRelSchematic(gene, top, corum);
+        const figure = scheme ? `<div id="gbRelFig" style="background:#fff;">${scheme}</div>`
+            + `<div class="gb-m" style="display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; margin-top:2px;">`
+            + `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#5d9239" stroke-width="3"/></svg> co-dependency (thicker = higher r)</span>`
+            + `<span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#4a6fa5" stroke-width="1.5" stroke-dasharray="4 3"/></svg> same protein complex (CORUM)</span>`
+            + `<button class="btn btn-outline btn-sm mobile-hide" data-gb-act="copy-relfig" style="font-size:10px; padding:1px 8px; margin-left:auto;" title="Copy this figure as an image">Copy figure</button></div>` : '';
+        // Named sets the app already curates (cancer pathway panel, complexes,
+        // gene set library), which say what the link is; the database lists
+        // below only say that one exists.
+        const named = this._gbNamedSets(gene);
+        const sets = named.length ? `<div class="gb-sub">Pathways and complexes it belongs to</div>`
+            + named.map((x, k) => `<div class="gb-set"><div><b>${this.esc(x.name)}</b> <span class="gb-m">${this.esc(x.kind)} · ${x.genes.length} genes</span>`
+                + `<span class="gb-set-acts"><button class="gb-scatter-btn" data-gb-set="${k}" data-gb-set-do="net" title="Run Gene set analysis on this set">Network</button><button class="gb-scatter-btn" data-gb-set="${k}" data-gb-set-do="hm" title="Show this set as a heatmap across the cell lines">Heatmap</button></span></div>`
+                + (x.note ? `<div class="gb-m" style="margin:1px 0 3px;">${this._italicizeGenesInHtml(this.esc(x.note))}</div>` : '')
+                + `<div class="gb-chips">${list(x.genes, 24)}</div></div>`).join('') : '';
+        this._gbNamedCache = named;
+        const db = (corum.length || reactome.length) ? `<details class="gb-details"><summary>All database partners: ${corum.length ? `${corum.length} in CORUM complexes` : ''}${corum.length && reactome.length ? ', ' : ''}${reactome.length ? `${reactome.length} in Reactome pathways` : ''}</summary>`
+            + `<div class="gb-m" style="margin:4px 0;">Every protein recorded in a complex with ${g} (CORUM), and every gene sharing at least one Reactome pathway of 5 to 100 genes with it. The databases do not say which complex or pathway each comes from.</div>`
+            + (corum.length ? `<div class="gb-sub" style="margin-top:6px;">CORUM complex partners</div><div class="gb-chips">${list(corum, 40)}</div>`
+                + `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="net-corum" title="Run Gene set analysis on ${this.esc(gene)} and its complex partners">Network of the complex</button>`
+                + `<button class="btn btn-outline btn-sm" data-gb-act="hm-corum" title="Show ${this.esc(gene)} and its complex partners as a heatmap">Heatmap of the complex</button></div>` : '')
+            + (reactome.length ? `<div class="gb-sub">Reactome pathway partners</div><div class="gb-chips">${list(reactome, 60)}</div>` : '')
+            + `</details>` : '';
+        const body = this._gbDesc(`Genes linked to ${g} by the data (co-dependencies: their gene effect rises and falls with ${g}'s across the cell lines) and by prior knowledge (the same complex or pathway). Click a gene to open it here, hover for a summary.`)
+            + (scheme ? `<div class="gb-grid"><div>${co}</div><div>${figure}</div></div>` : co)
+            + sets + db
             + (mice.length ? this._gbRow('Mouse ortholog', this.esc(mice.join(', '))) : '');
-        card.outerHTML = this._gbSection('Related genes', body, 'DepMap 26Q1 CRISPRGeneEffect (correlation), CORUM complexes, Reactome pathways, mouse orthologs.', 'gbRelCard');
+        card.outerHTML = this._gbSection('Related genes', body, 'DepMap 26Q1 CRISPRGeneEffect (correlation); the app’s curated pathway, complex and gene set lists; CORUM complexes; Reactome pathways; mouse orthologs.', 'gbRelCard');
+    }
+
+    // The named sets that contain the gene, from the app's own curated lists.
+    _gbNamedSets(gene) {
+        const out = [];
+        for (const [name, v] of Object.entries(this._WIKI_PATHWAYS?.() || {})) {
+            if ((v.genes || []).includes(gene)) out.push({ name, kind: 'cancer pathway', genes: v.genes, note: v.note || '' });
+        }
+        this._FOCAL_GENE_COMPLEX_PARTNERS?.();
+        for (const [name, genes] of Object.entries(this._focalGeneComplexes || {})) {
+            if (genes.includes(gene)) out.push({ name, kind: 'complex / machinery', genes, note: '' });
+        }
+        for (const v of Object.values(this._GENE_SET_LIBRARY?.() || {})) {
+            if ((v.genes || []).includes(gene) && !out.some(o => o.name === v.label)) out.push({ name: v.label, kind: `gene set, ${String(v.category || '').toLowerCase()}`, genes: v.genes, note: v.note || '' });
+        }
+        return out;
+    }
+
+    // The gene in the middle, co-dependencies (solid, width by r) and CORUM
+    // complex partners (dashed) around it; genes that are both get both.
+    _gbRelSchematic(gene, top, corum) {
+        const codep = top.slice(0, 10);
+        const cset = new Set(corum);
+        const extra = corum.filter(x => !codep.some(h => h.gene === x)).slice(0, 8);
+        const nodes = [...codep.map(h => ({ g: h.gene, r: h.r, cx: cset.has(h.gene) })), ...extra.map(x => ({ g: x, r: null, cx: true }))];
+        if (!nodes.length) return '';
+        const W = 460, H = 300, cx0 = W / 2, cy0 = H / 2, rx = 168, ry = 112;
+        const rs = codep.map(h => h.r), rMin = rs.length ? Math.min(...rs) : 0, rMax = rs.length ? Math.max(...rs) : 1;
+        const font = 'Open Sans, Arial, sans-serif';
+        const pillW = (t) => t.length * 6.6 + 16;
+        let edges = '', pills = '';
+        nodes.forEach((n, i) => {
+            const a = -Math.PI / 2 + 2 * Math.PI * i / nodes.length;
+            const x = cx0 + rx * Math.cos(a), y = cy0 + ry * Math.sin(a);
+            if (n.r !== null) {
+                const w = 1.5 + 5 * (n.r - rMin) / ((rMax - rMin) || 1);
+                edges += `<line x1="${cx0}" y1="${cy0}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#5d9239" stroke-width="${w.toFixed(1)}" stroke-linecap="round" opacity="0.75"/>`;
+            }
+            if (n.cx) edges += `<line x1="${cx0}" y1="${cy0}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#4a6fa5" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+            const pw = pillW(n.g), green = n.r !== null;
+            pills += `<g data-gb-gene="${this.esc(n.g)}" style="cursor:pointer;"><rect x="${(x - pw / 2).toFixed(1)}" y="${(y - 11).toFixed(1)}" width="${pw.toFixed(1)}" height="22" rx="11" fill="${green ? '#eef6e8' : '#eaf0f8'}" stroke="${green ? '#5d9239' : '#4a6fa5'}" stroke-width="${n.cx && green ? 2 : 1.2}"${n.cx && green ? ' stroke-dasharray="none"' : ''}/>`
+                + `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" font-size="11" font-style="italic" font-weight="600" fill="#374151" font-family="${font}">${this.esc(n.g)}</text>`
+                + (n.r !== null ? `<text x="${x.toFixed(1)}" y="${(y + 22).toFixed(1)}" text-anchor="middle" font-size="9" fill="#6b7280" stroke="#ffffff" stroke-width="3" paint-order="stroke" font-family="${font}">r ${n.r.toFixed(2)}</text>` : '')
+                + `</g>`;
+        });
+        const cw = pillW(gene) + 12;
+        const center = `<rect x="${cx0 - cw / 2}" y="${cy0 - 15}" width="${cw}" height="30" rx="15" fill="#4c782e"/>`
+            + `<text x="${cx0}" y="${cy0 + 5}" text-anchor="middle" font-size="13" font-style="italic" font-weight="700" fill="#ffffff" font-family="${font}">${this.esc(gene)}</text>`;
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px; display:block; margin:0 auto;" role="img" aria-label="${this.esc(gene)} with its co-dependencies and complex partners">${edges}${center}${pills}</svg>`;
     }
 
     // Hand-offs from the cards to the rest of the app, each through the
@@ -51077,6 +51166,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const coDep = (this._gbCoDepCache?.get(gene) || []).map(h => h.gene);
         const corum = (this.corumPartners?.partners?.[gene] || []).filter(g => g !== gene);
         if (act === 'ge' || act === 'expr') { this.openGeneEffectModal(gene, 'tissue', { dataType: act }); return; }
+        if (act === 'copy-relfig') { this.copyPlotToClipboard('gbRelFig', 'Related genes figure'); return; }
         if (act === 'copy-ideogram') { this.copyPlotToClipboard('gbIdeogram', 'Chromosome figure'); return; }
         if (act === 'sc-expr-ge') { this._gbScatter(gene, gene, 'expr', 'ge'); return; }
         if (act === 'sc-cn-expr') { this._gbScatter(gene, gene, 'cn', 'expr'); return; }

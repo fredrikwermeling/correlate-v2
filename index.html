@@ -1727,10 +1727,20 @@
         .gb-scope .gb-kv { display:flex; gap:12px; padding:3px 0; align-items:baseline; }
         .gb-scope .gb-kv-l { flex:0 0 170px; color:#6b7280; font-size:11px; }
         .gb-scope .gb-kv-v { flex:1; min-width:0; }
-        .gb-scope .gb-trow { display:flex; gap:10px; padding:2px 0; align-items:baseline; border-bottom:1px solid #f3f4f6; }
-        .gb-scope .gb-trow-n { flex:1 1 0; min-width:0; overflow-wrap:anywhere; }
-        .gb-scope .gb-trow-v { flex:0 0 auto; font-weight:600; }
-        .gb-scope .gb-trow-c { flex:0 0 38%; max-width:38%; text-align:right; font-size:10px; color:#6b7280; }
+        .gb-scope .gb-trow { display:grid; grid-template-columns:minmax(0,1fr) 56px minmax(0,auto); gap:10px; padding:2px 0; align-items:baseline; border-bottom:1px solid #f3f4f6; max-width:460px; }
+        .gb-scope .gb-trow-n { min-width:0; overflow-wrap:anywhere; }
+        .gb-scope .gb-trow-v { font-weight:600; text-align:right; }
+        .gb-scope .gb-trow-c { text-align:right; font-size:10px; color:#6b7280; white-space:nowrap; }
+        .gb-scope .gb-rtab { display:grid; grid-template-columns:max-content minmax(50px,110px) max-content max-content max-content; column-gap:10px; row-gap:3px; align-items:center; }
+        .gb-scope .gb-rbar { height:6px; background:#eef2e9; border-radius:3px; overflow:hidden; }
+        .gb-scope .gb-rbar > span { display:block; height:100%; background:#6ba544; border-radius:3px; }
+        .gb-scope .gb-scatter-btn { border:1px solid #6ba544; background:#f3faee; color:#3f6b25; font-weight:600; font-size:10px; border-radius:10px; padding:1px 9px; cursor:pointer; line-height:1.5; }
+        .gb-scope .gb-scatter-btn:hover { background:#6ba544; color:#fff; }
+        .gb-scope .gb-set { padding:6px 0; border-bottom:1px solid #f3f4f6; }
+        .gb-scope .gb-set-acts { float:right; display:inline-flex; gap:4px; }
+        .gb-scope .gb-chip.gb-chip-me { background:#4c782e; color:#fff; border-color:#4c782e; cursor:default; }
+        .gb-scope .gb-details { margin-top:8px; }
+        .gb-scope .gb-details > summary { cursor:pointer; font-size:11px; color:#4c782e; font-weight:600; }
         .gb-scope .gb-drug { padding:5px 0; border-bottom:1px solid #f3f4f6; }
         .gb-scope .gb-cl { color:#3730a3; text-decoration:none; }
         .gb-scope .gb-cl:hover { text-decoration:underline; }
@@ -2896,6 +2906,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.49 (2026-10-23)</strong></p>
+                <ul>
+                    <li><b>Gene Browser: Related genes reworked and moved up</b>, right after the summary. Co-dependencies sit in a compact table with a bar for r and a Scatter button per gene, beside a figure of the gene with its co-dependencies and complex partners (click a gene to open it; Copy figure). The pathways and complexes the gene belongs to are now named, with a short note, the members and Network / Heatmap buttons; the unnamed CORUM and Reactome lists are folded away below.</li>
+                    <li>Gene Browser: tables are compact and the shorter lists sit side by side.</li>
+                </ul>
                 <p><strong>v.90.48 (2026-10-23)</strong></p>
                 <ul>
                     <li>Gene Browser: the gene description is retried once if MyGene.info does not answer, and is shown only when the record is for exactly this gene symbol.</li>
@@ -8288,7 +8303,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.48</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.49</a>
         </span>
     </div>
 
@@ -11595,7 +11610,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_48"></script>
+    <script src="app.js?v=v90_49"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
