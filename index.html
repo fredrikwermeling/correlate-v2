@@ -2896,6 +2896,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.46 (2026-10-23)</strong></p>
+                <ul>
+                    <li>Gene Browser: the gene card no longer pops up for the gene the page is about, or for the example genes; it stays on related genes only, and any open card closes when a gene is opened.</li>
+                </ul>
                 <p><strong>v.90.45 (2026-10-23)</strong></p>
                 <ul>
                     <li>Gene Browser: for a gene right at a band edge, the outlined band on the chromosome close-up now matches the band named in its label.</li>
@@ -8276,7 +8280,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.45</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.46</a>
         </span>
     </div>
 
@@ -11583,7 +11587,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_45"></script>
+    <script src="app.js?v=v90_46"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

@@ -50393,10 +50393,13 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         });
         // Cell line names show the same hover card as the dots on a plot.
         let timer = null;
-        // Gene names show the shared gene card, as gene links do elsewhere.
+        // Related gene names show the shared gene card, as gene links do
+        // elsewhere; the page's own gene and the example chips do not, since
+        // the page already holds everything the card would say.
         body?.addEventListener('mouseover', (e) => {
             const cl = e.target.closest('[data-gb-cl]');
-            const g = cl ? null : e.target.closest('[data-gb-gene]');
+            let g = cl ? null : e.target.closest('#gbRelCard [data-gb-gene]');
+            if (g && g.dataset.gbGene === this._gbGene) g = null;
             if (!cl && !g) return;
             const ev = { clientX: e.clientX, clientY: e.clientY };
             clearTimeout(timer);
@@ -50418,6 +50421,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (!box?.value) return;
         const gene = await this._resolveGeneBox(box, (g) => this._gbHas(g), 'the gene-effect or expression data');
         if (!gene) return;
+        this.hideGeneTooltip?.(true);
         this._gbGene = gene;
         await this._gbRender(gene);
     }
