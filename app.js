@@ -61,10 +61,36 @@
             : 0;
         el.style.height = (h + extra) + 'px';
     };
+    // An annotation's hovertext box was drawn over the annotation and caught
+    // the click meant for it (draggable labels click without captureevents).
+    // Its text moves to _hint and is shown as the browser's own tooltip (an
+    // SVG <title>), which never blocks a click. Plotly redraws annotation
+    // groups on every relayout, hence afterplot.
+    const hintAnns = (layout) => (layout?.annotations || []).forEach(a => {
+        if (a && a.hovertext) { a._hint = a.hovertext; delete a.hovertext; }
+    });
+    const applyHints = (gd) => {
+        const anns = gd?.layout?.annotations || [];
+        gd?.querySelectorAll?.('g.annotation').forEach(g => {
+            const hint = anns[+g.getAttribute('data-index')]?._hint;
+            let t = g.querySelector(':scope > title');
+            if (!hint) { t?.remove(); return; }
+            if (!t) { t = document.createElementNS('http://www.w3.org/2000/svg', 'title'); g.prepend(t); }
+            t.textContent = hint;
+        });
+    };
+    const wireHints = (gd) => {
+        if (!gd?.on) return;
+        if (!gd._hintFn) gd._hintFn = () => applyHints(gd);
+        if (!(gd._ev?.listeners?.('plotly_afterplot') || []).includes(gd._hintFn)) gd.on('plotly_afterplot', gd._hintFn);
+        applyHints(gd);
+    };
+    window.__annotationHints = applyHints;
     ['newPlot', 'react'].forEach((fn) => {
         const orig = Plotly[fn];
         if (typeof orig !== 'function') return;
         Plotly[fn] = function(div, data, layout, config) {
+            hintAnns(layout);
             // A responsive chart refits to its box on every window resize,
             // browser zoom included, and a box without a height of its own
             // gives Plotly's 450 px default: a tall chart was squashed for
@@ -76,6 +102,7 @@
             // Phone only, and only if a Run / Update press armed it.
             if (r && typeof r.then === 'function') {
                 r.then((gd) => { try { window.__phoneRevealResult?.(gd || div); } catch (e) {} });
+                r.then((gd) => { try { wireHints(gd || (typeof div === 'string' ? document.getElementById(div) : div)); } catch (e) {} });
             }
             return r;
         };
@@ -86,6 +113,7 @@
         Plotly.relayout = function(div, update, ...rest) {
             const el = typeof div === 'string' ? document.getElementById(div) : div;
             if (el?._context?.responsive && update && typeof update === 'object' && typeof update.height === 'number') pinHeight(el, update.height);
+            if (update && typeof update === 'object' && Array.isArray(update.annotations)) hintAnns(update);
             return origRelayout.call(this, div, update, ...rest);
         };
     }
@@ -12317,7 +12345,7 @@ class CorrelationExplorer {
             if (hits.length) traces.push({ type: 'scatter', mode: 'markers', showlegend: false, name: 'Highlighted',
                 x: hits.map(p => p.x), y: hits.map(p => p.y), customdata: hits.map(p => p.cellLineId),
                 text: hits.map(p => `${p.cellLineName || p.cellLineId}<br>${p.lineage || ''}<br>GE: ${p.x.toFixed(2)}`), hoverinfo: 'text',
-                marker: this._hlMarker(10) });
+                marker: this._hlMarker(10, this._hlFill(traces, hits.map(p => p.cellLineId))) });
             if (hits.length <= 12) hits.forEach(p => layout.annotations.push(this._hlLabel(p.x, p.y, p.cellLineName || p.cellLineId)));
         }
 
@@ -19824,19 +19852,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // One look for a highlighted cell line in every chart: an orange
     // diamond, and (when a dozen or fewer) the name in a white box with an
     // orange edge. Clicking a dot adds it to the view's highlight box.
-    // Native tooltips on annotations that carry _hint. Plotly redraws its
-    // annotation groups on every relayout, so call this after each plot.
-    _annotationHints(gd) {
-        const anns = gd?.layout?.annotations || [];
-        gd?.querySelectorAll?.('g.annotation').forEach(g => {
-            const hint = anns[+g.getAttribute('data-index')]?._hint;
-            let t = g.querySelector(':scope > title');
-            if (!hint) { t?.remove(); return; }
-            if (!t) { t = document.createElementNS('http://www.w3.org/2000/svg', 'title'); g.prepend(t); }
-            t.textContent = hint;
-        });
-    }
-
     // fill: per-point colours from _hlFill. When the dots carry a legend
     // colour, a highlighted dot keeps it and only the shape and the dark rim
     // mark it; orange there read as one more legend group.
@@ -20773,7 +20788,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     // effect popout.
                     _cellLabel: d.cellLineName,
                     captureevents: true,
-                    _hint: `Click to remove the ${d.cellLineName} highlight`,
+                    hovertext: `Click to remove the ${d.cellLineName} highlight`,
                     x: d.x, y: d.y,
                     xref: 'x', yref: 'y',
                     text: d.cellLineName,
@@ -27785,11 +27800,6 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             ev.event?.preventDefault?.();
             this.removeHighlight(name);
         });
-        // Plotly's hovertext box sat over the label and caught the click
-        // meant for it; the browser's own tooltip shows under the pointer.
-        this._annotationHints(hoverEl);
-        hoverEl.removeAllListeners?.('plotly_afterplot');
-        hoverEl.on('plotly_afterplot', () => this._annotationHints(hoverEl));
         let scatterHoverTimer = null;
         hoverEl.removeAllListeners?.('plotly_hover');
         hoverEl.removeAllListeners?.('plotly_unhover');
@@ -32061,7 +32071,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     x: cells.map(c => c.geneEffect), y: cells.map(() => labelFor.get(s.group)),
                     text: cells.map(c => c.cellLineName), customdata: cells.map(c => c.cellLineId),
                     hovertemplate: `<b>%{text}</b><br>${hoverMetric}: %{x:.3f}<br>Highlighted<extra></extra>`,
-                    marker: this._hlMarker(10) });
+                    marker: this._hlMarker(10, this._hlFill(traces, cells.map(c => c.cellLineId))) });
             });
         }
         const geLabelIds = new Set(geMatched.length <= GE_LABEL_MAX ? geMatched.map(([, c]) => c.cellLineId) : []);
@@ -58247,15 +58257,6 @@ ${clone.innerHTML}
         const dataTypeLabel = document.getElementById('clbUmapDataType').value === 'ge' ? 'Gene Effect' :
                               document.getElementById('clbUmapDataType').value === 'expr' ? 'Expression' : 'GE + Expression';
 
-        const colors = [
-            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
-            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
-            '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5',
-            '#c49c94', '#f7b6d2', '#c7c7c7', '#dbdb8d', '#9edae5',
-            '#393b79', '#5254a3', '#6b6ecf', '#9c9ede', '#637939',
-            '#8ca252', '#b5cf6b', '#cedb9c', '#8c6d31', '#bd9e39'
-        ];
-
         const markerSize = parseInt(document.getElementById("clbUmapMarkerSize")?.value) || 9;
 
         // Hover text uses the precomputed per-cell-line counts (populated in
@@ -58294,7 +58295,7 @@ ${clone.innerHTML}
                     x: idx.map(i => x[i]), y: idx.map(i => y[i]),
                     text: idx.map(i => makeHoverText(i)), customdata: idx.map(i => cellLines[i]),
                     mode: 'markers', type: 'scattergl', name: `${cat} (${idx.length})`,
-                    marker: { size: markerSize, color: colors[ci % colors.length], opacity: 0.85 },
+                    marker: CorrelationExplorer.categoryMarker(ci, markerSize, 0.85),
                     hoverinfo: 'text', showlegend: showLegend
                 };
             });
