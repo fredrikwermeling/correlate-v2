@@ -1731,6 +1731,9 @@
         .gb-scope .gb-trow-n { min-width:0; overflow-wrap:anywhere; }
         .gb-scope .gb-trow-v { font-weight:600; text-align:right; }
         .gb-scope .gb-trow-c { text-align:right; font-size:10px; color:#6b7280; white-space:nowrap; }
+        .gb-scope .gb-relgrid { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:24px; align-items:start; }
+        .gb-scope .gb-relfig { min-width:0; padding-top:2px; }
+        @media (max-width: 900px) { .gb-scope .gb-relgrid { grid-template-columns:minmax(0,1fr); } }
         .gb-scope .gb-edge:hover .gb-edge-line { stroke:#1e40af; }
         .gb-scope .gb-node:hover circle { stroke-width:2.4; }
         .gb-scope .gb-table { width:auto; min-width:min(100%, 320px); font-size:11.5px; margin-bottom:2px; }
@@ -2912,6 +2915,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.53 (2026-10-23)</strong></p>
+                <ul>
+                    <li><b>Gene Browser: sequence downloads work reliably</b> and include <b>GenBank files</b> (.gb) that open in SnapGene, Benchling, ApE and other sequence editors with the exons, coding sequence, translation and hotspot codons annotated, for the genomic region or the mRNA. The sequence is fetched from the UCSC Genome Browser (Ensembl as a fallback) as soon as the card opens.</li>
+                    <li>Gene structure: any of the gene's transcripts can be chosen, with a clear note that the default is the reference (MANE Select) transcript and that others exist, plus where to compare them and quick tools (UCSC BLAT, In-Silico PCR) to check primers. The exon figure is restyled and marks hotspot codons sized by how many cell lines carry them.</li>
+                    <li>Related genes: the table and the figure line up side by side without overlapping.</li>
+                </ul>
                 <p><strong>v.90.52 (2026-10-23)</strong></p>
                 <ul>
                     <li>Gene Browser: the related-genes figure is redrawn with co-dependencies in a column on the right (sorted by r, with the value) and complex partners on the left, so no line crosses a name. Clicking a line opens the correlation plot of the two genes, clicking a gene opens its gene effect view, and Shift-click opens it in the Gene Browser.</li>
@@ -8322,7 +8331,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.52</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.53</a>
         </span>
     </div>
 
@@ -11629,7 +11638,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_52"></script>
+    <script src="app.js?v=v90_53"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

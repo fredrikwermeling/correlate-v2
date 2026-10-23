@@ -15663,8 +15663,12 @@ Results:
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
+        // Attached and revoked a moment later: some browsers drop the download
+        // of a detached link, or of a URL revoked before the save starts.
+        a.style.display = 'none';
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 2000);
     }
 
     // The banner describes the results on screen, so it uses the filter state
@@ -50819,86 +50823,181 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     }
 
     // Ensembl's record for the gene with every transcript and its exons; MANE
-    // Select (the agreed reference) when there is one, else Ensembl canonical.
+    // Select (the agreed reference) first. Each transcript is reduced to the
+    // same shape: {tx, exons (transcription order, with coding stretch),
+    // protein, cdsLength}; the gene-level object carries the reference's.
     async _gbFetchStructure(gene) {
         const cache = (this._gbStructCache ||= new Map());
         if (cache.has(gene)) return cache.get(gene);
         const ens = this.geneInfoCache?.[gene]?.ensembl;
-        const url = ens
-            ? `https://rest.ensembl.org/lookup/id/${encodeURIComponent(ens)}?expand=1;mane=1;content-type=application/json`
-            : `https://rest.ensembl.org/lookup/symbol/homo_sapiens/${encodeURIComponent(gene)}?expand=1;mane=1;content-type=application/json`;
-        const d = JSON.parse(await this._gbEnsemblText(url.replace('https://rest.ensembl.org/', '')));
-        const tx = d.Transcript || [];
-        const pick = tx.find(t => (t.MANE || []).some(m => m.type === 'MANE_Select')) || tx.find(t => t.is_canonical) || tx[0];
-        if (!pick) throw new Error('no transcript');
-        const mane = (pick.MANE || []).find(m => m.type === 'MANE_Select');
-        const plus = tx.filter(t => t !== pick && (t.MANE || []).some(m => m.type === 'MANE_Plus_Clinical'))
-            .map(t => ({ id: t.id, name: t.display_name, refseq: t.MANE.find(m => m.type === 'MANE_Plus_Clinical').refseq_match }));
-        const strand = pick.strand;
-        // Exons in transcription order, each with its coding stretch.
-        const tl = pick.Translation || null;
-        const exons = [...(pick.Exon || [])].sort((a, b) => strand === -1 ? b.start - a.start : a.start - b.start).map(e => {
-            const len = e.end - e.start + 1;
-            let c0 = null, c1 = null;
-            if (tl) {
-                const a = Math.max(e.start, tl.start), b = Math.min(e.end, tl.end);
-                if (a <= b) {
-                    // Offsets from the exon's 5' end, in the direction of transcription.
-                    c0 = strand === -1 ? e.end - b : a - e.start;
-                    c1 = strand === -1 ? e.end - a + 1 : b - e.start + 1;
+        const path = ens
+            ? `lookup/id/${encodeURIComponent(ens)}?expand=1;mane=1;content-type=application/json`
+            : `lookup/symbol/homo_sapiens/${encodeURIComponent(gene)}?expand=1;mane=1;content-type=application/json`;
+        const d = JSON.parse(await this._gbEnsemblText(path));
+        const all = d.Transcript || [];
+        if (!all.length) throw new Error('no transcript');
+        const manes = (t) => (t.MANE || []).map(m => m.type);
+        const mk = (t) => {
+            const strand = t.strand, tl = t.Translation || null;
+            const exons = [...(t.Exon || [])].sort((a, b) => strand === -1 ? b.start - a.start : a.start - b.start).map(e => {
+                let c0 = null, c1 = null;
+                if (tl) {
+                    const a = Math.max(e.start, tl.start), b = Math.min(e.end, tl.end);
+                    if (a <= b) { c0 = strand === -1 ? e.end - b : a - e.start; c1 = strand === -1 ? e.end - a + 1 : b - e.start + 1; }
                 }
-            }
-            return { id: e.id, start: e.start, end: e.end, len, c0, c1 };
-        });
+                return { id: e.id, start: e.start, end: e.end, len: e.end - e.start + 1, c0, c1 };
+            });
+            const mane = (t.MANE || []).find(m => m.type === 'MANE_Select') || (t.MANE || []).find(m => m.type === 'MANE_Plus_Clinical');
+            return {
+                tx: { id: t.id, version: t.version, name: t.display_name, biotype: t.biotype, length: t.length, start: t.start, end: t.end,
+                    refseq: mane?.refseq_match || null, mane: manes(t).includes('MANE_Select'), plus: manes(t).includes('MANE_Plus_Clinical'), canonical: !!t.is_canonical },
+                protein: tl ? { id: tl.id, length: tl.length } : null,
+                cdsLength: exons.reduce((n, e) => n + (e.c0 !== null ? e.c1 - e.c0 : 0), 0),
+                exons
+            };
+        };
+        const rank = (t) => manes(t).includes('MANE_Select') ? 0 : t.is_canonical ? 1 : manes(t).includes('MANE_Plus_Clinical') ? 2 : t.biotype === 'protein_coding' ? 3 : 4;
+        const transcripts = [...all].sort((a, b) => rank(a) - rank(b) || (b.Translation?.length || 0) - (a.Translation?.length || 0) || b.length - a.length).map(mk);
+        const ref = transcripts[0];
         const out = {
-            geneId: d.id, chr: d.seq_region_name, start: d.start, end: d.end, strand, biotype: d.biotype,
-            tx: { id: pick.id, version: pick.version, name: pick.display_name, biotype: pick.biotype, length: pick.length, refseq: mane?.refseq_match || null, mane: !!mane, canonical: !!pick.is_canonical },
-            protein: tl ? { id: tl.id, length: tl.length } : null,
-            cdsLength: exons.reduce((n, e) => n + (e.c0 !== null ? e.c1 - e.c0 : 0), 0),
-            exons, nTranscripts: tx.length, plus
+            geneId: d.id, chr: d.seq_region_name, start: d.start, end: d.end, strand: d.strand, biotype: d.biotype,
+            ...ref, transcripts, nTranscripts: transcripts.length,
+            plus: transcripts.filter(t => t.tx.plus && t !== ref).map(t => ({ id: t.tx.id, name: t.tx.name, refseq: t.tx.refseq }))
         };
         cache.set(gene, out);
         return out;
     }
 
-    // Exons to scale along the mRNA, introns all drawn the same short width
-    // (to scale they would hide the exons). Coding parts tall, UTRs short.
-    _gbStructureSvg(gene, st) {
-        const W = 720, x0 = 30, x1 = W - 30, mid = 46, font = 'Arial, sans-serif';
-        const ex = st.exons, n = ex.length;
-        const intronW = n > 1 ? Math.max(6, Math.min(26, 180 / (n - 1))) : 0;
-        const exonSpace = x1 - x0 - intronW * (n - 1);
+    // Residue-level hotspot calls for the gene (DepMap inferred subtypes),
+    // one per codon. A codon-level call ("p.G12") already counts every line
+    // with a change at that codon, so it is the count when present; the
+    // specific changes are listed beside it.
+    _gbHotspots(gene) {
+        const byCl = this.inferredSubtypes?.byCellLine || {};
+        const ids = new Set(this.metadata?.cellLines || []);
+        const codon = new Map();
+        for (const [cl, v] of Object.entries(byCl)) {
+            if (!ids.has(cl)) continue;
+            for (const h of v.hotspots || []) {
+                if (!h.startsWith(gene + ' p.')) continue;
+                const m = /^p\.([A-Z*])(\d+)([A-Z*]*)$/.exec(h.slice(gene.length + 1));
+                if (!m) continue;
+                const pos = +m[2], key = `${m[1]}${pos}`;
+                const c = codon.get(pos) || { pos, label: key, generic: 0, specific: new Map() };
+                if (m[3]) c.specific.set(key + m[3], (c.specific.get(key + m[3]) || 0) + 1); else c.generic++;
+                codon.set(pos, c);
+            }
+        }
+        return [...codon.values()].map(c => ({
+            pos: c.pos, label: c.label,
+            n: c.generic || [...c.specific.values()].reduce((a, b) => a + b, 0),
+            detail: [...c.specific.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(', ')
+        })).sort((a, b) => a.pos - b.pos);
+    }
+
+    // Where a coding nucleotide (1-based, from the A of ATG) sits: exon index
+    // and offset in that exon from its 5' end.
+    _gbCdsToExon(t, cdsNt) {
+        let k = 0;
+        for (let i = 0; i < t.exons.length; i++) {
+            const e = t.exons[i];
+            if (e.c0 === null) continue;
+            const n = e.c1 - e.c0;
+            if (cdsNt <= k + n) return { i, off: e.c0 + (cdsNt - k - 1) };
+            k += n;
+        }
+        return null;
+    }
+
+    // Exons to scale along the mRNA, introns all drawn the same short width;
+    // coding exon parts tall and filled, UTRs low and pale, the start and
+    // stop codons flagged, hotspot codons as lollipops (reference only).
+    _gbStructureSvg(gene, st, t, hot) {
+        const W = 760, x0 = 34, x1 = W - 34, font = 'Arial, sans-serif';
+        const ex = t.exons, n = ex.length;
+        // Hotspot codons placed first: codons closer than a label's width
+        // share one stem, their heads stacked, so labels never collide.
+        const hotX = [];
+        const intronW0 = n > 1 ? Math.max(5, Math.min(24, 200 / (n - 1))) : 0;
+        {
+            const space0 = x1 - x0 - intronW0 * (n - 1), tot0 = ex.reduce((a2, e) => a2 + e.len, 0) || 1;
+            let w0 = ex.map(e => Math.max(3, space0 * e.len / tot0));
+            const k0 = space0 / w0.reduce((a2, b) => a2 + b, 0);
+            w0 = w0.map(w => w * k0);
+            const xs0 = []; let xx = x0;
+            w0.forEach((w, i2) => { xs0.push(xx); xx += w + (i2 < n - 1 ? intronW0 : 0); });
+            for (const h of hot) {
+                const loc = this._gbCdsToExon(t, (h.pos - 1) * 3 + 2);
+                if (loc) hotX.push({ ...h, px: xs0[loc.i] + w0[loc.i] * loc.off / ex[loc.i].len });
+            }
+        }
+        const groups = [];
+        for (const h of hotX.sort((a2, b) => a2.px - b.px)) {
+            const g0 = groups[groups.length - 1];
+            if (g0 && h.px - g0[0].px < 40) g0.push(h); else groups.push([h]);
+        }
+        const tallest = groups.reduce((m2, g0) => Math.max(m2, g0.length), 0);
+        const mid = 22 + (groups.length ? 18 + tallest * 15 : 0);
+        const intronW = n > 1 ? Math.max(5, Math.min(24, 200 / (n - 1))) : 0;
+        const space = x1 - x0 - intronW * (n - 1);
         const total = ex.reduce((a, e) => a + e.len, 0) || 1;
-        const minW = 3;
-        // Exon widths by length, with a floor so tiny exons stay visible.
-        let widths = ex.map(e => Math.max(minW, exonSpace * e.len / total));
-        const k = exonSpace / widths.reduce((a, b) => a + b, 0);
+        let widths = ex.map(e => Math.max(3, space * e.len / total));
+        const k = space / widths.reduce((a, b) => a + b, 0);
         widths = widths.map(w => w * k);
-        let x = x0, body = '', labels = '';
-        body += `<line x1="${x0}" y1="${mid}" x2="${x1}" y2="${mid}" stroke="#6b7280" stroke-width="1.2"/>`;
-        let startX = null, stopX = null;
+        const xs = [];
+        let x = x0;
+        widths.forEach((w, i) => { xs.push(x); x += w + (i < n - 1 ? intronW : 0); });
+        const at = (i, off) => xs[i] + widths[i] * off / ex[i].len;
+        const defs = `<defs><linearGradient id="gbCds" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#86bd5f"/><stop offset="1" stop-color="#5d9239"/></linearGradient></defs>`;
+        let g = `<line x1="${x0}" y1="${mid}" x2="${x1}" y2="${mid}" stroke="#9ca3af" stroke-width="1.2"/>`;
+        let labels = '', startX = null, stopX = null;
         ex.forEach((e, i) => {
-            const w = widths[i], px = (off) => x + w * off / e.len;
-            body += `<rect x="${x.toFixed(2)}" y="${mid - 6}" width="${w.toFixed(2)}" height="12" fill="#cde6b8" stroke="#5d9239" stroke-width="0.8"><title>Exon ${i + 1}: ${e.len.toLocaleString()} nt${e.c0 !== null ? ', coding' : ', untranslated'}</title></rect>`;
+            const w = widths[i], xi = xs[i];
+            g += `<rect x="${xi.toFixed(2)}" y="${mid - 5}" width="${w.toFixed(2)}" height="10" rx="2" fill="#e3f0d9" stroke="#6ba544" stroke-width="0.9"><title>Exon ${i + 1}: ${e.len.toLocaleString()} nt${e.c0 !== null ? `, ${(e.c1 - e.c0).toLocaleString()} coding` : ', untranslated'}</title></rect>`;
             if (e.c0 !== null) {
-                const a = px(e.c0), b = px(e.c1);
-                body += `<rect x="${a.toFixed(2)}" y="${mid - 11}" width="${Math.max(1, b - a).toFixed(2)}" height="22" fill="#6ba544" stroke="#000000" stroke-width="1"><title>Exon ${i + 1}: ${e.len.toLocaleString()} nt, ${(e.c1 - e.c0).toLocaleString()} nt coding</title></rect>`;
+                const a = at(i, e.c0), b = at(i, e.c1);
+                g += `<rect x="${a.toFixed(2)}" y="${mid - 11}" width="${Math.max(1.5, b - a).toFixed(2)}" height="22" rx="3" fill="url(#gbCds)" stroke="#2f4f1d" stroke-width="1"><title>Exon ${i + 1}: ${e.len.toLocaleString()} nt, ${(e.c1 - e.c0).toLocaleString()} coding</title></rect>`;
                 if (startX === null) startX = a;
                 stopX = b;
             }
-            if (n <= 40 || i % Math.ceil(n / 40) === 0) labels += `<text x="${(x + w / 2).toFixed(1)}" y="${mid - 16}" text-anchor="middle" font-size="9.5" fill="#6b7280" font-family="${font}">${i + 1}</text>`;
-            x += w;
+            if (n <= 40 || i % Math.ceil(n / 40) === 0) labels += `<text x="${(xi + w / 2).toFixed(1)}" y="${mid + 25}" text-anchor="middle" font-size="9" fill="#9ca3af" font-family="${font}">${i + 1}</text>`;
             if (i < n - 1) {
-                // Chevrons on the intron point the way the gene is read.
-                const c = x + intronW / 2;
-                body += `<path d="M${(c - 2).toFixed(1)},${mid - 3} L${(c + 1.5).toFixed(1)},${mid} L${(c - 2).toFixed(1)},${mid + 3}" fill="none" stroke="#6b7280" stroke-width="1"/>`;
-                x += intronW;
+                const c = xi + w + intronW / 2;
+                g += `<path d="M${(c - 2).toFixed(1)},${mid - 3} L${(c + 1.5).toFixed(1)},${mid} L${(c - 2).toFixed(1)},${mid + 3}" fill="none" stroke="#9ca3af" stroke-width="1"/>`;
             }
         });
-        const mark = (px, t) => px === null ? '' : `<line x1="${px.toFixed(1)}" y1="${mid + 12}" x2="${px.toFixed(1)}" y2="${mid + 22}" stroke="#dc2626" stroke-width="1.5"/><text x="${px.toFixed(1)}" y="${mid + 33}" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="700" font-family="${font}">${t}</text>`;
-        const ends = `<text x="${x0 - 6}" y="${mid + 4}" text-anchor="end" font-size="10" fill="#374151" font-family="${font}">5′</text><text x="${x1 + 6}" y="${mid + 4}" font-size="10" fill="#374151" font-family="${font}">3′</text>`;
-        const title = `<text x="${x0}" y="12" font-size="11" font-weight="700" fill="#374151" font-family="${font}"><tspan font-style="italic">${this.esc(gene)}</tspan>  ${this.esc(st.tx.name || st.tx.id)}  ·  ${n} exon${n === 1 ? '' : 's'}${st.protein ? `  ·  ${st.protein.length} aa` : ''}</text>`;
-        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${mid + 40}" width="100%" style="max-width:${W}px; display:block;" role="img" aria-label="Exon structure of ${this.esc(gene)}">${title}${labels}${body}${mark(startX, 'ATG')}${mark(stopX, 'Stop')}${ends}</svg>`;
+        // Start and stop as small flags under the backbone, the coding span
+        // as a bracket with its length.
+        const flag = (px, t2) => px === null ? '' : `<path d="M${px.toFixed(1)},${mid + 12} v18" stroke="#2f4f1d" stroke-width="1.2"/><text x="${px.toFixed(1)}" y="${mid + 41}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#2f4f1d" font-family="${font}">${t2}</text>`;
+        let span = '';
+        if (startX !== null && t.protein) {
+            const yb = mid + 52;
+            span = `<path d="M${(startX + 10).toFixed(1)},${yb} H${(stopX - 10).toFixed(1)}" stroke="#9ca3af" stroke-width="0.8" stroke-dasharray="2 2"/>`
+                + `<text x="${((startX + stopX) / 2).toFixed(1)}" y="${yb + 4}" text-anchor="middle" font-size="9.5" fill="#6b7280" font-family="${font}" stroke="#ffffff" stroke-width="3" paint-order="stroke">coding ${t.cdsLength.toLocaleString()} nt · ${t.protein.length.toLocaleString()} aa</text>`;
+        }
+        // Hotspot lollipops: one stem per group, heads stacked upwards,
+        // each labelled to its right with the codon and the line count.
+        let pops = '';
+        if (groups.length) {
+            const maxN = Math.max(...hotX.map(h => h.n));
+            for (const g0 of groups) {
+                const px = g0[0].px, topY = mid - 12 - 15 * g0.length;
+                pops += `<line x1="${px.toFixed(1)}" y1="${mid - 11}" x2="${px.toFixed(1)}" y2="${(topY + 4).toFixed(1)}" stroke="#9ca3af" stroke-width="1"/>`;
+                g0.forEach((h, k2) => {
+                    const y = mid - 18 - 15 * k2;
+                    pops += `<g><title>${this.esc(gene)} ${h.label}: ${h.n} cell line${h.n === 1 ? '' : 's'}${h.detail ? ` (${h.detail})` : ''}</title>`
+                        + `<circle cx="${px.toFixed(1)}" cy="${y.toFixed(1)}" r="${(3 + 3 * Math.sqrt(h.n / maxN)).toFixed(1)}" fill="#dc2626" stroke="#ffffff" stroke-width="1.2"/>`
+                        + `<text x="${(px + 9).toFixed(1)}" y="${(y + 3.5).toFixed(1)}" font-size="10" font-weight="700" fill="#b91c1c" font-family="${font}" stroke="#ffffff" stroke-width="3" paint-order="stroke">${h.label}<tspan font-weight="400" fill="#6b7280"> ${h.n}</tspan></text></g>`;
+                });
+            }
+        }
+        const ends = `<text x="${x0 - 8}" y="${mid + 4}" text-anchor="end" font-size="10" fill="#6b7280" font-family="${font}">5′</text><text x="${x1 + 8}" y="${mid + 4}" font-size="10" fill="#6b7280" font-family="${font}">3′</text>`;
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${mid + 62}" width="100%" style="max-width:${W}px; display:block;" role="img" aria-label="Exon structure of ${this.esc(gene)}">${defs}${pops}${g}${labels}${flag(startX, 'ATG')}${flag(stopX, 'Stop')}${span}${ends}</svg>`;
+    }
+
+    _gbTxLabel(t) {
+        const tags = [t.tx.mane ? 'MANE Select' : '', t.tx.plus ? 'MANE Plus Clinical' : '', !t.tx.mane && t.tx.canonical ? 'Ensembl canonical' : ''].filter(Boolean).join(', ');
+        return `${t.tx.name || t.tx.id} · ${t.exons.length} exons · ${t.protein ? `${t.protein.length} aa` : String(t.tx.biotype || '').replace(/_/g, ' ')}${tags ? ` · ${tags}` : ''}`;
     }
 
     async _gbFillStructure(s) {
@@ -50911,54 +51010,95 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (this._gbGene !== gene) return;
         const card = document.getElementById('gbStructCard');
         if (!card) return;
-        const e = (t) => this.esc(String(t));
-        const a = (href, t) => `<a href="${href}" target="_blank" rel="noopener" style="color:#3730a3;">${t} &#8599;</a>`;
+        this._gbStructure = st;
+        this._gbTxSel = st ? st.transcripts[0] : null;
+        if (!st) {
+            card.outerHTML = this._gbSection('Gene structure', this._gbDesc('The exon structure could not be loaded from Ensembl (it needs an internet connection). The sequences can be viewed and downloaded at these sites:')
+                + `<div style="font-size:11px;">${this._gbStructLinks(gene, null, null)}</div>`, 'Ensembl REST API, GRCh38 (fetched live).', 'gbStructCard');
+            return;
+        }
+        card.outerHTML = this._gbSection('Gene structure', `<div id="gbStructBody">${this._gbStructBody(gene, st, this._gbTxSel)}</div>`,
+            'Ensembl REST API (structure) and UCSC Genome Browser API (sequence), GRCh38, fetched live; hotspot calls from DepMap inferred subtypes. MANE Select is the reference transcript agreed by NCBI and EMBL-EBI.', 'gbStructCard');
+        this._gbWireStruct(gene);
+        // Fetch the sequence now so a download is instant.
+        this._gbGenomic(st).then(() => this._gbSeqStatus('Sequence ready.'), () => this._gbSeqStatus(''));
+    }
+
+    _gbWireStruct(gene) {
+        const sel = document.getElementById('gbTxSelect');
+        if (!sel) return;
+        sel.addEventListener('change', () => {
+            const st = this._gbStructure;
+            if (!st || this._gbGene !== gene) return;
+            this._gbTxSel = st.transcripts[+sel.value] || st.transcripts[0];
+            const body = document.getElementById('gbStructBody');
+            if (body) { body.innerHTML = this._gbStructBody(gene, st, this._gbTxSel); this._gbWireStruct(gene); }
+            if (st._genomic) this._gbSeqStatus('Sequence ready.');
+        });
+        this._enhanceSelect?.('gbTxSelect');
+    }
+
+    _gbSeqStatus(t) {
+        const el = document.getElementById('gbSeqStatus');
+        if (el) el.textContent = t;
+    }
+
+    _gbStructLinks(gene, st, t) {
+        const a = (href, txt) => `<a href="${href}" target="_blank" rel="noopener" style="color:#3730a3;">${txt} &#8599;</a>`;
         const ensGene = st?.geneId || this.geneInfoCache?.[gene]?.ensembl || '';
         const loc = this.geneLocations?.[gene];
         const pos = st ? `chr${st.chr}:${st.start}-${st.end}` : (loc?.start != null ? `chr${loc.chr}:${loc.start}-${loc.end}` : '');
-        const links = [
+        return [
             ensGene ? a(`https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=${encodeURIComponent(ensGene)}`, 'Ensembl gene') : '',
-            st ? a(`https://www.ensembl.org/Homo_sapiens/Transcript/Exons?t=${encodeURIComponent(st.tx.id)}`, 'Ensembl exons and sequence') : '',
+            t ? a(`https://www.ensembl.org/Homo_sapiens/Transcript/Exons?t=${encodeURIComponent(t.tx.id)}`, 'Ensembl exons') : '',
             pos ? a(`https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&position=${encodeURIComponent(pos)}`, 'UCSC Genome Browser') : '',
-            st?.tx.refseq ? a(`https://www.ncbi.nlm.nih.gov/nuccore/${encodeURIComponent(st.tx.refseq)}`, `NCBI RefSeq ${e(st.tx.refseq)}`) : '',
-            this.geneInfoCache?.[gene]?.uniprot ? a(`https://www.uniprot.org/uniprotkb/${encodeURIComponent(this.geneInfoCache[gene].uniprot)}/entry#sequences`, 'UniProt sequence') : '',
+            t?.tx.refseq ? a(`https://www.ncbi.nlm.nih.gov/nuccore/${encodeURIComponent(t.tx.refseq)}`, `NCBI RefSeq ${this.esc(t.tx.refseq)}`) : '',
+            this.geneInfoCache?.[gene]?.uniprot ? a(`https://www.uniprot.org/uniprotkb/${encodeURIComponent(this.geneInfoCache[gene].uniprot)}/entry#sequences`, 'UniProt') : '',
         ].filter(Boolean).join(' <span style="color:#9ca3af;">&middot;</span> ');
-        if (!st) {
-            card.outerHTML = this._gbSection('Gene structure', this._gbDesc('The exon structure could not be loaded from Ensembl (it needs an internet connection). The sequences can be viewed and downloaded at these sites:')
-                + `<div style="font-size:11px;">${links || '<span class="gb-m">No record found.</span>'}</div>`, 'Ensembl REST API, GRCh38 (fetched live).', 'gbStructCard');
-            return;
-        }
-        this._gbStructure = st;
-        const coding = st.exons.filter(x => x.c0 !== null).length;
+    }
+
+    _gbStructBody(gene, st, t) {
+        const e = (x) => this.esc(String(x));
+        const isRef = t === st.transcripts[0];
+        const hot = isRef && t.protein ? this._gbHotspots(gene) : [];
+        const coding = t.exons.filter(x => x.c0 !== null).length;
         const span = st.end - st.start + 1;
+        const others = st.nTranscripts - 1;
+        const a = (href, txt) => `<a href="${href}" target="_blank" rel="noopener" style="color:#3730a3;">${txt} &#8599;</a>`;
+        const opts = st.transcripts.map((x, i) => `<option value="${i}"${x === t ? ' selected' : ''}>${e(this._gbTxLabel(x))}</option>`).join('');
+        const pos = `chr${st.chr}:${st.start}-${st.end}`;
+        const note = `<div style="padding:7px 10px; background:#fffbeb; border-left:3px solid #f59e0b; font-size:11px; color:#78350f; margin:4px 0 10px;">`
+            + `<b>One of ${st.nTranscripts.toLocaleString()} transcripts.</b> ${isRef && t.tx.mane ? `Shown is the MANE Select transcript${t.tx.refseq ? ` (${e(t.tx.refseq)})` : ''}, the reference NCBI and Ensembl agreed on and the one clinical variant reports use. It is not necessarily the form every cell type makes.` : `Shown is ${e(t.tx.name || t.tx.id)}, not the reference transcript.`}`
+            + `${others ? ` ${e(gene)} has ${others.toLocaleString()} other annotated transcript${others === 1 ? '' : 's'} (splice variants and non-coding forms) that can differ in exons, UTRs and protein: pick one in the menu to draw and download it, compare them all in ${a(`https://www.ensembl.org/Homo_sapiens/Gene/Splice?g=${encodeURIComponent(st.geneId)}`, 'Ensembl’s transcript view')} or the ${a(`https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&position=${encodeURIComponent(pos)}`, 'UCSC Genome Browser')}.` : ''}`
+            + ` To check where a primer or sequence matches, UCSC ${a('https://genome.ucsc.edu/cgi-bin/hgBlat?db=hg38', 'BLAT')} and ${a('https://genome.ucsc.edu/cgi-bin/hgPcr?db=hg38', 'In-Silico PCR')} are quicker than BLAST for human sequences.</div>`;
         const stats = [
-            this._gbRow('Reference transcript', `${e(st.tx.name || st.tx.id)} <span class="gb-m">${e(st.tx.id)}${st.tx.version ? '.' + st.tx.version : ''}${st.tx.refseq ? ` · RefSeq ${e(st.tx.refseq)}` : ''} · ${st.tx.mane ? 'MANE Select' : st.tx.canonical ? 'Ensembl canonical' : 'first listed'}</span>`),
+            this._gbRow('Transcript', `${e(t.tx.name || t.tx.id)} <span class="gb-m">${e(t.tx.id)}${t.tx.version ? '.' + t.tx.version : ''}${t.tx.refseq ? ` · RefSeq ${e(t.tx.refseq)}` : ''}${t.tx.mane ? ' · MANE Select' : t.tx.plus ? ' · MANE Plus Clinical' : t.tx.canonical ? ' · Ensembl canonical' : ''}</span>`),
             this._gbRow('Strand', st.strand === -1 ? 'Minus (read right to left on the chromosome)' : 'Plus'),
-            this._gbRow('Exons', `${st.exons.length}${st.protein ? ` <span class="gb-m">(${coding} with coding sequence)</span>` : ''}`),
-            this._gbRow('Lengths', `gene ${(span / 1000).toFixed(1)} kb · mRNA ${st.tx.length?.toLocaleString?.() || '?'} nt${st.protein ? ` · coding ${st.cdsLength.toLocaleString()} nt · protein ${st.protein.length.toLocaleString()} aa` : ''}`),
-            this._gbRow('Other transcripts', `${(st.nTranscripts - 1).toLocaleString()}${st.plus.length ? ` <span class="gb-m">(including ${st.plus.map(p => `${e(p.name)}${p.refseq ? ' / ' + e(p.refseq) : ''}`).join(', ')}, MANE Plus Clinical)</span>` : ''}`),
+            this._gbRow('Exons', `${t.exons.length}${t.protein ? ` <span class="gb-m">(${coding} with coding sequence)</span>` : ''}`),
+            this._gbRow('Lengths', `gene ${(span / 1000).toFixed(1)} kb · mRNA ${(t.tx.length || 0).toLocaleString()} nt${t.protein ? ` · coding ${t.cdsLength.toLocaleString()} nt · protein ${t.protein.length.toLocaleString()} aa` : ''}`),
+            hot.length ? this._gbRow('Hotspot codons', hot.map(h => `${e(h.label)} <span class="gb-m">(${h.n})</span>`).join(', ')) : '',
         ].join('');
-        const btn = (k, t, title) => `<button class="btn btn-outline btn-sm" data-gb-act="fasta-${k}" title="${title}">${t}</button>`;
-        const body = this._gbDesc(`The exons of the reference transcript, as read from 5′ to 3′. Tall boxes are protein-coding, short boxes untranslated (UTR); exons are to scale, introns shortened.`)
-            + `<div id="gbStructFig" style="background:#fff; padding:4px 0;">${this._gbStructureSvg(gene, st)}</div>`
-            + `<div class="gb-m" style="display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; margin:2px 0 8px;">`
-            + `<span><svg width="18" height="12" style="vertical-align:-2px;"><rect x="1" y="1" width="16" height="10" fill="#6ba544" stroke="#000" stroke-width="1"/></svg> coding</span>`
-            + `<span><svg width="18" height="12" style="vertical-align:-2px;"><rect x="1" y="3" width="16" height="6" fill="#cde6b8" stroke="#5d9239" stroke-width="0.8"/></svg> untranslated</span>`
-            + `<span>hover an exon for its length</span>`
-            + `<button class="btn btn-outline btn-sm mobile-hide" data-gb-act="copy-struct" style="font-size:10px; padding:1px 8px; margin-left:auto;" title="Copy the exon figure as an image">Copy figure</button></div>`
+        const btn = (k, txt, title) => `<button class="btn btn-outline btn-sm" data-gb-act="${k}" title="${title}">${txt}</button>`;
+        return this._gbDesc('The exons of one transcript, read from 5′ to 3′. Tall boxes are protein-coding, low boxes untranslated (UTR); exons are to scale, introns shortened.' + (hot.length ? ' Red marks are hotspot codons, sized by how many cell lines carry a change there.' : ''))
+            + `<div class="gb-kv" style="align-items:center;"><span class="gb-kv-l">Transcript shown</span><span class="gb-kv-v"><select id="gbTxSelect" class="form-control" style="font-size:11px; padding:2px 6px; max-width:460px;">${opts}</select></span></div>`
+            + note
+            + `<div id="gbStructFig" style="background:#fff; padding:2px 0;">${this._gbStructureSvg(gene, st, t, hot)}</div>`
+            + `<div class="gb-m" style="display:flex; justify-content:flex-end; margin:-2px 0 8px;"><button class="btn btn-outline btn-sm mobile-hide" data-gb-act="copy-struct" style="font-size:10px; padding:1px 8px;" title="Copy the exon figure as an image">Copy figure</button></div>`
             + stats
-            + `<div class="gb-sub">Download sequence (FASTA)</div>`
-            + `<div class="gb-actions mobile-hide" style="margin-top:4px;">`
-            + btn('genomic', `Genomic (${(span / 1000).toFixed(1)} kb)`, 'The whole gene region on the chromosome, exons and introns, from Ensembl (GRCh38)')
-            + btn('cdna', 'mRNA (cDNA)', 'The spliced transcript of the reference transcript, with its UTRs')
-            + (st.protein ? btn('cds', 'Coding sequence (CDS)', 'Start codon to stop codon of the reference transcript') + btn('protein', 'Protein', 'The amino-acid sequence of the reference protein') : '')
-            + `</div>`
-            + `<div style="font-size:11px; margin-top:8px;"><span class="gb-m">View or download elsewhere:</span> ${links}</div>`;
-        card.outerHTML = this._gbSection('Gene structure', body, 'Ensembl REST API, GRCh38 (fetched live); MANE Select is the reference transcript agreed by NCBI and EMBL-EBI.', 'gbStructCard');
+            + `<div class="gb-sub">Download this transcript</div>`
+            + `<div class="gb-m" style="margin-bottom:4px;">GenBank (.gb) opens in SnapGene, Benchling, ApE and most sequence editors with the exons, coding sequence and translation${hot.length ? ' and the hotspot codons' : ''} annotated. FASTA is the bare sequence.</div>`
+            + `<div class="gb-actions mobile-hide" style="margin-top:2px;">`
+            + btn('gbk-genomic', `GenBank, genomic (${(span / 1000).toFixed(1)} kb)`, 'The gene region with exons, introns, the coding sequence and its translation annotated')
+            + btn('gbk-mrna', 'GenBank, mRNA', 'The spliced transcript with its exon boundaries and coding sequence annotated')
+            + btn('fasta-genomic', 'FASTA genomic', 'The gene region, exons and introns, on the gene’s own strand')
+            + btn('fasta-cdna', 'FASTA mRNA', 'The spliced transcript with its UTRs')
+            + (t.protein ? btn('fasta-cds', 'FASTA coding', 'Start codon to stop codon') + btn('fasta-protein', 'FASTA protein', 'The amino-acid sequence') : '')
+            + `<span id="gbSeqStatus" class="gb-m" style="align-self:center; margin-left:4px;">${st._genomic ? 'Sequence ready.' : 'Fetching the sequence...'}</span></div>`
+            + `<div style="font-size:11px; margin-top:8px;"><span class="gb-m">View or download elsewhere:</span> ${this._gbStructLinks(gene, st, t)}</div>`;
     }
 
     // One Ensembl request with a time limit and a retry; the service has
-    // busy spells that answer 503.
+    // busy spells that answer 503 or take tens of seconds.
     async _gbEnsemblText(path, tries = 2) {
         let last = null;
         for (let k = 0; k < tries; k++) {
@@ -50974,23 +51114,44 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         throw last || new Error('Ensembl did not answer');
     }
 
-    // The gene's genomic sequence, already turned to the gene's own strand.
+    // The gene region on the gene's own strand. UCSC first (about a second),
+    // Ensembl if UCSC does not answer; one fetch serves every download.
     async _gbGenomic(st) {
         if (st._genomic) return st._genomic;
-        const txt = await this._gbEnsemblText(`sequence/id/${encodeURIComponent(st.geneId)}?type=genomic;content-type=text/plain`);
-        const seq = txt.replace(/\s+/g, '').toUpperCase();
-        if (seq.length !== st.end - st.start + 1) throw new Error('unexpected sequence length');
-        st._genomic = seq;
-        return seq;
+        if (st._genomicP) return st._genomicP;
+        const len = st.end - st.start + 1;
+        const rc = (x) => x.split('').reverse().map(c => ({ A: 'T', T: 'A', G: 'C', C: 'G' }[c] || 'N')).join('');
+        st._genomicP = (async () => {
+            try {
+                const ctl = new AbortController();
+                const timer = setTimeout(() => ctl.abort(), 20000);
+                const res = await fetch(`https://api.genome.ucsc.edu/getData/sequence?genome=hg38;chrom=chr${encodeURIComponent(st.chr)};start=${st.start - 1};end=${st.end}`, { signal: ctl.signal });
+                clearTimeout(timer);
+                if (!res.ok) throw new Error(`UCSC ${res.status}`);
+                let seq = String((await res.json()).dna || '').toUpperCase();
+                if (seq.length !== len) throw new Error('UCSC length');
+                if (st.strand === -1) seq = rc(seq);
+                return seq;
+            } catch (e) {
+                const txt = await this._gbEnsemblText(`sequence/id/${encodeURIComponent(st.geneId)}?type=genomic;content-type=text/plain`);
+                const seq = txt.replace(/\s+/g, '').toUpperCase();
+                if (seq.length !== len) throw new Error('unexpected sequence length');
+                return seq;
+            }
+        })();
+        try { st._genomic = await st._genomicP; return st._genomic; }
+        finally { st._genomicP = null; }
     }
 
-    // mRNA and coding sequence spliced from the genomic sequence with the
-    // exon coordinates already loaded, so they need only one request.
-    _gbSplice(st, seq, coding) {
-        const off = (e) => st.strand === -1 ? st.end - e.end : e.start - st.start;
-        return st.exons.map(e => {
-            if (!coding) return seq.substr(off(e), e.len);
-            return e.c0 === null ? '' : seq.substr(off(e) + e.c0, e.c1 - e.c0);
+    // Exon and coding offsets (1-based, inclusive) within the gene-strand
+    // genomic sequence, and within the spliced mRNA.
+    _gbOff(st, e) { return st.strand === -1 ? st.end - e.end : e.start - st.start; }
+
+    _gbSplice(st, seq, coding, t = st) {
+        return t.exons.map(e => {
+            const o = this._gbOff(st, e);
+            if (!coding) return seq.substr(o, e.len);
+            return e.c0 === null ? '' : seq.substr(o + e.c0, e.c1 - e.c0);
         }).join('');
     }
 
@@ -50998,8 +51159,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const b = 'TCAG', aa = 'FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG';
         let p = '';
         for (let i = 0; i + 2 < cds.length; i += 3) {
-            const k = b.indexOf(cds[i]) * 16 + b.indexOf(cds[i + 1]) * 4 + b.indexOf(cds[i + 2]);
-            p += k >= 0 && b.includes(cds[i]) && b.includes(cds[i + 1]) && b.includes(cds[i + 2]) ? aa[k] : 'X';
+            const a1 = b.indexOf(cds[i]), a2 = b.indexOf(cds[i + 1]), a3 = b.indexOf(cds[i + 2]);
+            p += a1 < 0 || a2 < 0 || a3 < 0 ? 'X' : aa[a1 * 16 + a2 * 4 + a3];
         }
         return p;
     }
@@ -51008,40 +51169,116 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         return `>${header}\n${seq.match(/.{1,60}/g)?.join('\n') || ''}\n`;
     }
 
-    async _gbDownloadFasta(kind) {
-        const st = this._gbStructure, gene = this._gbGene;
-        if (!st || !gene) return;
-        const btn = document.querySelector(`[data-gb-act="fasta-${kind}"]`);
-        const label = btn?.textContent;
-        if (btn) { btn.disabled = true; btn.textContent = 'Downloading...'; }
-        const tx = `${st.tx.id}${st.tx.version ? '.' + st.tx.version : ''}`;
-        const ref = `${st.tx.mane ? 'MANE Select' : 'Ensembl canonical'}${st.tx.refseq ? ' ' + st.tx.refseq : ''}`;
-        const strand = st.strand === -1 ? '-' : '+';
-        try {
-            let text, name;
-            if (kind === 'protein') {
-                try {
-                    text = await this._gbEnsemblText(`sequence/id/${encodeURIComponent(st.protein.id)}?type=protein;content-type=text/x-fasta`, 1);
-                } catch (e) {
-                    const cds = this._gbSplice(st, await this._gbGenomic(st), true);
-                    text = this._gbFasta(`${gene} ${st.protein.id} protein, translated from ${tx} (${ref})`, this._gbTranslate(cds).replace(/\*$/, ''));
-                }
-                name = `${gene}_protein_${st.protein.id}.fa`;
-            } else {
-                const seq = await this._gbGenomic(st);
-                if (kind === 'genomic') {
-                    text = this._gbFasta(`${gene} ${st.geneId} genomic GRCh38 chr${st.chr}:${st.start}-${st.end}(${strand}), gene strand`, seq);
-                    name = `${gene}_genomic_GRCh38.fa`;
-                } else {
-                    const coding = kind === 'cds';
-                    const out = this._gbSplice(st, seq, coding);
-                    text = this._gbFasta(`${gene} ${tx} ${coding ? 'CDS' : 'mRNA (cDNA)'} ${out.length} nt GRCh38 (${ref})`, out);
-                    name = `${gene}_${coding ? 'cds' : 'mrna'}_${st.tx.id}.fa`;
+    // A GenBank flat file for the genomic region or the spliced mRNA of one
+    // transcript, with gene, mRNA, exon, CDS (+ translation) and hotspot
+    // codon features, in the gene's own orientation so nothing is complement.
+    _gbGenBank(kind, gene, st, t, seq) {
+        const genomic = kind === 'genomic';
+        const exR = [], cdsR = [];
+        let m = 0;
+        t.exons.forEach(e => {
+            const o = genomic ? this._gbOff(st, e) : m;
+            exR.push([o + 1, o + e.len]);
+            if (e.c0 !== null) cdsR.push([o + e.c0 + 1, o + e.c1]);
+            m += e.len;
+        });
+        // On the spliced mRNA the coding sequence is one continuous stretch.
+        if (!genomic && cdsR.length > 1) cdsR.splice(0, cdsR.length, [cdsR[0][0], cdsR[cdsR.length - 1][1]]);
+        const body = genomic ? seq : this._gbSplice(st, seq, false, t);
+        const L = body.length;
+        const cds = cdsR.map(([a, b]) => body.slice(a - 1, b)).join('');
+        const prot = t.protein ? this._gbTranslate(cds).replace(/\*$/, '') : '';
+        const join = (r) => r.length === 1 ? `${r[0][0]}..${r[0][1]}` : `join(${r.map(([a, b]) => `${a}..${b}`).join(',')})`;
+        const pad = ' '.repeat(21);
+        const wrapLoc = (loc) => {
+            const out = []; let line = '';
+            for (const part of loc.split(/(?<=,)/)) { if ((line + part).length > 58) { out.push(line); line = part; } else line += part; }
+            if (line) out.push(line);
+            return out;
+        };
+        const feat = (key, loc, quals) => {
+            const lines = wrapLoc(loc);
+            let s2 = `     ${key.padEnd(16)}${lines[0]}\n` + lines.slice(1).map(l => pad + l + '\n').join('');
+            for (const [k2, v, raw] of quals) {
+                const text = raw ? `/${k2}=${v}` : `/${k2}="${String(v).replace(/"/g, "'")}"`;
+                for (let i = 0; i < text.length; i += 58) s2 += pad + text.slice(i, i + 58) + '\n';
+            }
+            return s2;
+        };
+        const txv = `${t.tx.id}${t.tx.version ? '.' + t.tx.version : ''}`;
+        const refTag = t.tx.mane ? `MANE Select${t.tx.refseq ? ' ' + t.tx.refseq : ''}` : t.tx.plus ? `MANE Plus Clinical${t.tx.refseq ? ' ' + t.tx.refseq : ''}` : t.tx.canonical ? 'Ensembl canonical' : 'not the reference transcript';
+        let f = feat('source', `1..${L}`, [['organism', 'Homo sapiens'], ['mol_type', genomic ? 'genomic DNA' : 'mRNA'], ['db_xref', 'taxon:9606'], ['chromosome', String(st.chr)]]);
+        f += feat('gene', `1..${L}`, [['gene', gene], ['db_xref', `Ensembl:${st.geneId}`]]);
+        if (genomic) f += feat(t.protein ? 'mRNA' : 'misc_RNA', join(exR), [['gene', gene], ['note', `${t.tx.name || t.tx.id} ${txv} (${refTag})`]]);
+        exR.forEach(([a, b], i) => { f += feat('exon', `${a}..${b}`, [['gene', gene], ['number', String(i + 1), true]]); });
+        if (t.protein && cdsR.length) {
+            f += feat('CDS', join(cdsR), [['gene', gene], ['codon_start', '1', true], ['product', `${gene} protein`], ['protein_id', t.protein.id], ['note', `${t.cdsLength} nt, ${t.protein.length} aa; ${refTag}`], ['translation', prot]]);
+            if (t === st.transcripts[0]) {
+                for (const h of this._gbHotspots(gene)) {
+                    // The codon's three bases, which can straddle an exon junction.
+                    const pos = [];
+                    for (let k = 0; k < 3; k++) {
+                        let nt = (h.pos - 1) * 3 + k + 1, acc = 0;
+                        for (const [a, b] of cdsR) { const n = b - a + 1; if (nt <= acc + n) { pos.push(a + nt - acc - 1); break; } acc += n; }
+                    }
+                    if (pos.length === 3) {
+                        const loc = pos[2] - pos[0] === 2 ? `${pos[0]}..${pos[2]}` : `join(${pos.map(p => `${p}..${p}`).join(',')})`;
+                        f += feat('variation', loc, [['gene', gene], ['note', `hotspot codon ${h.label}: ${h.n} DepMap cell line${h.n === 1 ? '' : 's'}${h.detail ? ` (${h.detail})` : ''}`]]);
+                    }
                 }
             }
-            this.downloadFile(text, name, 'text/x-fasta');
+        }
+        const date = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-').toUpperCase();
+        const name = `${gene}_${genomic ? 'gen' : 'mRNA'}`.slice(0, 16);
+        const head = `LOCUS       ${name.padEnd(16)} ${String(L).padStart(11)} bp    ${(genomic ? 'DNA' : 'mRNA').padEnd(6)}  linear   PRI ${date}\n`
+            + `DEFINITION  Homo sapiens ${gene}, ${genomic ? `genomic region chr${st.chr}:${st.start}-${st.end} (GRCh38), gene strand` : 'mRNA'}, transcript ${t.tx.name || ''} ${txv}.\n`
+            + `ACCESSION   ${genomic ? st.geneId : txv}\n`
+            + `KEYWORDS    ${refTag}.\n`
+            + `SOURCE      Homo sapiens (human)\n  ORGANISM  Homo sapiens\n`
+            + `COMMENT     Written by Correlate from Ensembl (structure) and UCSC/Ensembl\n            (sequence), GRCh38. ${gene} has ${st.nTranscripts} annotated transcripts; this\n            file describes ${t.tx.name || t.tx.id} only.${genomic && st.strand === -1 ? '\n            Minus-strand gene: the sequence is the reverse complement of the\n            reference, so it reads 5\' to 3\' along the gene.' : ''}\n`
+            + `FEATURES             Location/Qualifiers\n`;
+        let origin = 'ORIGIN\n';
+        const low = body.toLowerCase();
+        for (let i = 0; i < L; i += 60) {
+            const chunk = low.slice(i, i + 60).match(/.{1,10}/g).join(' ');
+            origin += `${String(i + 1).padStart(9)} ${chunk}\n`;
+        }
+        return head + f + origin + '//\n';
+    }
+
+    async _gbDownloadSeq(kind) {
+        const st = this._gbStructure, t = this._gbTxSel, gene = this._gbGene;
+        if (!st || !t || !gene) return;
+        const btn = document.querySelector(`[data-gb-act="${kind}"]`);
+        const label = btn?.textContent;
+        if (btn) { btn.disabled = true; btn.textContent = 'Preparing...'; }
+        if (!st._genomic) this._gbSeqStatus('Fetching the sequence...');
+        const txv = `${t.tx.id}${t.tx.version ? '.' + t.tx.version : ''}`;
+        const refTag = t.tx.mane ? `MANE Select${t.tx.refseq ? ' ' + t.tx.refseq : ''}` : t.tx.plus ? 'MANE Plus Clinical' : t.tx.canonical ? 'Ensembl canonical' : 'alternative transcript';
+        const strand = st.strand === -1 ? '-' : '+';
+        try {
+            const seq = await this._gbGenomic(st);
+            let text, name, mime = 'text/plain';
+            if (kind === 'gbk-genomic' || kind === 'gbk-mrna') {
+                text = this._gbGenBank(kind === 'gbk-genomic' ? 'genomic' : 'mrna', gene, st, t, seq);
+                name = `${gene}_${kind === 'gbk-genomic' ? 'genomic' : 'mRNA'}_${t.tx.name || t.tx.id}.gb`;
+            } else if (kind === 'fasta-genomic') {
+                text = this._gbFasta(`${gene} ${st.geneId} genomic GRCh38 chr${st.chr}:${st.start}-${st.end}(${strand}), gene strand`, seq);
+                name = `${gene}_genomic_GRCh38.fa`;
+            } else if (kind === 'fasta-protein') {
+                const cds = this._gbSplice(st, seq, true, t);
+                text = this._gbFasta(`${gene} ${t.protein.id} protein ${t.protein.length} aa, from ${txv} (${refTag})`, this._gbTranslate(cds).replace(/\*$/, ''));
+                name = `${gene}_protein_${t.tx.name || t.tx.id}.fa`;
+            } else {
+                const coding = kind === 'fasta-cds';
+                const out = this._gbSplice(st, seq, coding, t);
+                text = this._gbFasta(`${gene} ${txv} ${coding ? 'CDS' : 'mRNA'} ${out.length} nt GRCh38 (${refTag})`, out);
+                name = `${gene}_${coding ? 'cds' : 'mRNA'}_${t.tx.name || t.tx.id}.fa`;
+            }
+            this.downloadFile(text, name, mime);
+            this._gbSeqStatus(`Saved ${name}`);
         } catch (e) {
-            this.showCopyNotification?.('Ensembl did not answer, so the sequence could not be downloaded. Try again shortly, or use the Ensembl link below.');
+            this._gbSeqStatus('The sequence services did not answer. Try again in a moment, or use the Ensembl link below.');
         } finally {
             if (btn) { btn.disabled = false; btn.textContent = label; }
         }
@@ -51315,8 +51552,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             .map(k => k.charAt(0) + k.slice(1).toLowerCase());
         const g = this.gi(gene);
         const maxR = Math.max(0.01, ...top.map(h => h.r));
-        const co = top.length ? `<div class="gb-sub">Co-dependencies <span class="gb-m">(lines that depend on ${g} also depend on these)</span></div>`
-            + this._gbTable(['Gene', 'r', 'p', ''], top.map(h => [
+        const coHead = top.length ? `<div class="gb-sub">Co-dependencies <span class="gb-m">(lines that depend on ${g} also depend on these)</span></div>` : '';
+        const co = top.length ? this._gbTable(['Gene', 'r', 'p', ''], top.map(h => [
                 `<a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a>`,
                 `<span class="corr-positive">${h.r.toFixed(3)}</span>`,
                 `<span class="gb-m" title="${h.n.toLocaleString()} cell lines">${this._gbP(h.p)}</span>`,
@@ -51352,7 +51589,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             + (reactome.length ? `<div class="gb-sub">Reactome pathway partners</div><div class="gb-chips">${list(reactome, 60)}</div>` : '')
             + `</details>` : '';
         const body = this._gbDesc(`Genes linked to ${g} by the data (co-dependencies: their gene effect rises and falls with ${g}'s across the cell lines) and by prior knowledge (the same complex or pathway). Click a gene to open it here, hover for a summary.`)
-            + (scheme ? `<div class="gb-grid"><div>${co}</div><div>${figure}</div></div>` : co)
+            + coHead
+            + (scheme ? `<div class="gb-relgrid"><div>${co}</div><div class="gb-relfig">${figure}</div></div>` : co)
             + sets + db
             + (mice.length ? this._gbRow('Mouse ortholog', this.esc(mice.join(', '))) : '');
         card.outerHTML = this._gbSection('Related genes', body, 'DepMap 26Q1 CRISPRGeneEffect (correlation); the app’s curated pathway, complex and gene set lists; CORUM complexes; Reactome pathways; mouse orthologs.', 'gbRelCard');
@@ -51432,7 +51670,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (act === 'ge' || act === 'expr') { this.openGeneEffectModal(gene, 'tissue', { dataType: act }); return; }
         if (act === 'copy-relfig') { this.copyPlotToClipboard('gbRelFig', 'Related genes figure'); return; }
         if (act === 'copy-struct') { this.copyPlotToClipboard('gbStructFig', 'Gene structure'); return; }
-        if (act && act.startsWith('fasta-')) { this._gbDownloadFasta(act.slice(6)); return; }
+        if (act && (act.startsWith('fasta-') || act.startsWith('gbk-'))) { this._gbDownloadSeq(act); return; }
         if (act === 'copy-ideogram') { this.copyPlotToClipboard('gbIdeogram', 'Chromosome figure'); return; }
         if (act === 'sc-expr-ge') { this._gbScatter(gene, gene, 'expr', 'ge'); return; }
         if (act === 'sc-cn-expr') { this._gbScatter(gene, gene, 'cn', 'expr'); return; }
