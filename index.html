@@ -2925,6 +2925,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.63 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Network: an unlocked network now always comes to rest within a few seconds of drawing, shuffling or dropping a dragged node, instead of being able to drift for a long time; dragging a node still moves its neighbours.</li>
+                </ul>
                 <p><strong>v.90.62 (2026-10-24)</strong></p>
                 <ul>
                     <li>Gene Browser: "Network" opens the network in a popout with a Back to Gene Browser button; closing it, or the browser's back arrow, returns to the gene's page. Mutation analysis opened from the Gene Browser returns there the same way.</li>
@@ -8387,7 +8391,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.62</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.63</a>
         </span>
     </div>
 
@@ -11706,7 +11710,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_62"></script>
+    <script src="app.js?v=v90_63"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

@@ -13989,6 +13989,7 @@ class CorrelationExplorer {
             // already taken hold of the view.
             this.network.setOptions({ physics: { enabled: true } });
             this.physicsEnabled = true;
+            this._netSettleCap();
             let runUserTouched = false;
             const runMarkTouched = () => { runUserTouched = true; };
             this.network.once('dragStart', runMarkTouched);
@@ -14010,6 +14011,7 @@ class CorrelationExplorer {
         // Track drag start
         this.network.on('dragStart', (params) => {
             isDragging = true;
+            this._netDragging = true;
             dragStartPos = params.pointer.canvas;
             // Don't let a queued hover tooltip pop up mid-drag.
             clearTimeout(this._networkTooltipTimer);
@@ -14032,6 +14034,8 @@ class CorrelationExplorer {
 
         // Track drag end
         this.network.on('dragEnd', (params) => {
+            this._netDragging = false;
+            this._netSettleCap();
             // Hand-placed satellites go back on their pin wherever they were
             // dropped, so a later solver release cannot tow them away.
             if (this._dragUnpinned?.length && this.networkData?.nodes) {
@@ -14278,6 +14282,19 @@ class CorrelationExplorer {
 
         // Update edge thickness legend with actual data values
         this.updateEdgeLegend(edgeWidthBase, cutoff);
+    }
+
+    // An unlocked network floats, but a layout that never quite reaches the
+    // solver's rest velocity (loose clusters drifting under weak gravity)
+    // would move for ever: stop it a few seconds after each release unless a
+    // node is being dragged. Dragging wakes the solver again.
+    _netSettleCap(ms = 5000) {
+        clearTimeout(this._netCapTimer);
+        const net = this.network;
+        this._netCapTimer = setTimeout(() => {
+            if (net !== this.network || this._netDragging || !this.physicsEnabled) return;
+            if (net.physics && !net.physics.stabilized) { try { net.stopSimulation(); } catch (e) { /* destroyed */ } }
+        }, ms);
     }
 
     resolveEdgeCrossings() {
@@ -17931,6 +17948,7 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
                 // Re-frame once it settles, unless the user took hold.
                 this.network.setOptions({ physics: { enabled: true } });
                 this.physicsEnabled = true;
+                this._netSettleCap();
                 if (lockBtn) { lockBtn.textContent = 'Lock'; lockBtn.classList.remove('btn-active'); }
                 let shUserTouched = false;
                 const shMarkTouched = () => { shUserTouched = true; };
