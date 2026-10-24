@@ -2970,6 +2970,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.81 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Gene Browser: the co-expression heatmap now sits to the right of the expression-correlation table (it moves below on narrow screens).</li>
+                </ul>
                 <p><strong>v.90.80 (2026-10-24)</strong></p>
                 <ul>
                     <li>Sequence viewer: editing now happens in the annotated sequence. Click to place the cursor and type, use Backspace / Delete, or select bases to delete or replace them; Undo and Discard edits are on the edit bar. Inserted bases are purple and underlined, deleted bases stay visible, struck through in red, and both are marked on the overview strip.</li>
@@ -8520,7 +8524,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.80</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.81</a>
         </span>
     </div>
 
@@ -11868,7 +11872,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_80"></script>
+    <script src="app.js?v=v90_81"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
