@@ -29,6 +29,9 @@ def read_float(bin_path, meta):
     out = a.astype(np.float32)
     out[a == meta["naValue"]] = np.nan
     out /= meta["scaleFactor"]
+    # Values past the int16 range ship exactly as [gene index, column index, value].
+    for g, c, v in meta.get("overflow", []):
+        out[g, c] = v
     return out
 
 

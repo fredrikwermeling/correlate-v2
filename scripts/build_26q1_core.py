@@ -27,6 +27,9 @@ import sys
 
 import numpy as np
 
+# DepMap 25Q3/26Q1 CellLineName typos (StrippedCellLineName and Cellosaurus agree).
+NAME_FIXES = {"ACH-001683": "UACC-3133"}
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 Q = os.path.join(ROOT, "26Q1")
@@ -160,7 +163,7 @@ def build_cell_line_metadata(cohort):
             out["primaryDisease"][cl] = "Unknown"
             out["subtype"][cl] = ""
             continue
-        out["cellLineName"][cl] = m.get("CellLineName", "")
+        out["cellLineName"][cl] = NAME_FIXES.get(cl, m.get("CellLineName", ""))
         out["strippedCellLineName"][cl] = m.get("StrippedCellLineName", "")
         out["lineage"][cl] = m.get("OncotreeLineage", "")
         out["primaryDisease"][cl] = m.get("OncotreePrimaryDisease", "")

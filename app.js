@@ -24282,7 +24282,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             if (n < nMin) continue;
             const den = Math.sqrt((n * sxx - sx * sx) * (n * syy - sy * sy));
             if (!(den > 0)) continue;
-            out.push({ gene: String(genes[g]).toUpperCase(), r: (n * sxy - sx * sy) / den, n });
+            out.push({ gene: String(genes[g]).toUpperCase(), name: String(genes[g]), r: (n * sxy - sx * sy) / den, n });
         }
         out.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
         return { top: out.slice(0, k) };
@@ -38627,6 +38627,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     typeOfGene: hit.type_of_gene || '',
                     aliases: [].concat(hit.alias || []),
                     ensembl: [].concat(hit.ensembl || []).map(e => e && e.gene).filter(Boolean)[0] || null,
+                    // Several when the gene also sits on alternate-haplotype patches.
+                    ensemblIds: [].concat(hit.ensembl || []).map(e => e && e.gene).filter(Boolean),
                     uniprot: [].concat(hit.uniprot?.['Swiss-Prot'] || [])[0] || null,
                     mim: hit.MIM || null
                 };
@@ -38853,7 +38855,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     // function to the front; the rest follows in its original order.
     _leadWithFunction(summary) {
         if (!summary || summary.length < 120) return summary;
-        const sentences = summary.match(/[^.!?]+[.!?]+(\s|$)/g);
+        // NCBI ends with a "[provided by ...]" credit, often with no space
+        // before it; set it aside so no sentence is lost, and put it back.
+        const credit = (summary.match(/\s*\[provided by[^\]]*\]\.?\s*$/i) || [''])[0];
+        const body = summary.slice(0, summary.length - credit.length);
+        const sentences = body.match(/[^.!?]+(?:[.!?]+(?=\s|$)|$)\s*/g)?.filter(x => x.trim());
         if (!sentences || sentences.length < 2) return summary;
         const FUNCTION_CUE = /\b(encod|function|regulat|involved in|acts? as|plays? (?:a|an) [a-z]+ role|inhibit|activat|binds?|catalyz|transcription factor|receptor|kinase|suppressor)/i;
         const BOILERPLATE = /\b(transcript variant|alternatively spliced|splice variant|read-through|pseudogene|this locus|nomenclature|provided by RefSeq|has been observed)/i;
@@ -38862,11 +38868,14 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // as inhibitors of CDK4 kinase" mentions splicing but is still the best
         // available description.
         const STRONG = /\b(function|inhibit|activat|suppress|encodes? an? |catalyz|binds?|receptor|kinase|transcription factor)/i;
-        const idx = sentences.findIndex(x => FUNCTION_CUE.test(x) && (STRONG.test(x) || !BOILERPLATE.test(x)));
+        // A sentence about this gene's own product beats one that only names
+        // a function (a background sentence can be about another protein).
+        const own = sentences.findIndex(x => /\b(this gene|the encoded protein|this protein)\b/i.test(x) && FUNCTION_CUE.test(x));
+        const idx = own >= 0 ? own : sentences.findIndex(x => FUNCTION_CUE.test(x) && (STRONG.test(x) || !BOILERPLATE.test(x)));
         if (idx <= 0) return summary;
         const lead = sentences[idx];
         const rest = sentences.filter((_, i) => i !== idx);
-        return (lead + rest.join('')).replace(/\s+/g, ' ').trim();
+        return [lead, ...rest].map(x => x.trim()).join(' ') + (credit ? ' ' + credit.trim() : '');
     }
 
     // The button a first edge tap leaves by the finger on a touch screen: the
@@ -40181,6 +40190,10 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 }
                 if (end < _cnLen) await new Promise(resolve => setTimeout(resolve, 0));
             }
+            // int16 at scale 1000 stops at 32.767; the few stronger amplicons
+            // ship exactly as [gene index, cell-line index, value].
+            const nCl = meta.nCellLines;
+            for (const [g, c, v] of meta.overflow || []) out[g * nCl + c] = v;
             this.cnData = out;
             this.cnMetadata = meta;
             this.cnGeneIndex = new Map();
@@ -50300,6 +50313,27 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     get _gbDepCut() { return this._ctDefault('ge', 'below'); }
     get _gbExprCut() { return this._ctDefault('expr', 'below'); }
 
+    // Aliases from NCBI (MyGene.info) once loaded; the app's synonym table,
+    // which is upper-cased and broader, only until then.
+    _gbAliases(gene) {
+        const info = this.geneInfoCache?.[gene];
+        const src = info && String(info.symbol || '').toUpperCase() === gene && info.aliases?.length ? info.aliases : this._gbSynonymsOf(gene);
+        const seen = new Set();
+        return src.map(a => String(a).replace(/^['"\s]+|['"\s]+$/g, ''))
+            .filter(a => a && a.toUpperCase() !== gene && !seen.has(a.toUpperCase()) && seen.add(a.toUpperCase()));
+    }
+
+    _gbSetSubtitle(gene) {
+        const el = document.getElementById('gbSubtitle');
+        if (!el || this._gbGene !== gene) return;
+        const parts = [gene];
+        const loc = this.geneLocations?.[gene];
+        if (loc) parts.push(this._gbLocText(loc));
+        const syn = this._gbAliases(gene).slice(0, 3);
+        if (syn.length) parts.push(syn.join(', '));
+        el.textContent = parts.join('  |  ');
+    }
+
     _gbSynonymsOf(gene) {
         if (!this._gbSynMap && this.synonymLookup) {
             const m = new Map();
@@ -50491,6 +50525,16 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         s.any = this._mutCalls(`${gene} (any mutation)`);
         s.lof = this._mutCalls(`${gene} (functional loss)`);
         s.fus = this.translocations?.geneData?.[gene]?.translocations || null;
+        const rare = this._gbRare;
+        if (!this.damagingMutations?.geneData?.[gene] && rare?.damaging?.[gene]) {
+            s.any = { ...(s.any || {}) };
+            for (const id of rare.damaging[gene]) s.any[id] = 1;
+            s.anyRare = true;
+        }
+        if (!s.fus && rare?.fusion?.[gene]) {
+            s.fus = Object.fromEntries(Object.keys(rare.fusion[gene]).map(id => [id, 1]));
+            s.fusRare = true;
+        }
         s.nHot = countIn(s.hot); s.nAny = countIn(s.any); s.nLof = countIn(s.lof); s.nFus = countIn(s.fus);
         // Lines carrying a specific codon call (KRAS p.G12D ...).
         const vc = new Map();
@@ -50528,8 +50572,15 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     }
 
     _gbPct(k, n) { return n ? (100 * k / n) : 0; }
-    _gbFmtPct(k, n) { const p = this._gbPct(k, n); return p >= 10 || p === 0 ? p.toFixed(0) + '%' : p.toFixed(1) + '%'; }
-    _gbNum(v, d = 2) { return v === null || v === undefined || v !== v ? 'n/a' : (v < 0 ? '−' : '') + Math.abs(v).toFixed(d); }
+    // Never rounds a partial share up to 100% or down to 0%.
+    _gbFmtPct(k, n) {
+        const p = this._gbPct(k, n);
+        if (p === 0 || p === 100) return p.toFixed(0) + '%';
+        if (p >= 99.5 || p < 0.1) return (p >= 99.5 ? Math.min(p, 99.9) : Math.max(p, 0.1)).toFixed(1) + '%';
+        return p >= 10 ? p.toFixed(0) + '%' : p.toFixed(1) + '%';
+    }
+    _gbNum(v, d = 2) { return v === null || v === undefined || v !== v ? 'n/a' : (v < 0 && Math.abs(v) >= 0.5 * 10 ** -d ? '−' : '') + Math.abs(v).toFixed(d); }
+    _gbLines(k) { return `${k.toLocaleString()} ${k === 1 ? 'line' : 'lines'}`; }
     _gbP(p) { return p === null || p === undefined || p !== p ? 'n/a' : this.formatPValue(p); }
     _gbMedian(a) { return this.median(a); }
 
@@ -50576,7 +50627,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (s.hasGe) {
             const k = s.geVals.filter(v => v < this._gbDepCut).length;
             let t = `${head} is ${this._gbDepWords(s)}: gene effect below ${this._gbNum(this._gbDepCut, 1)} in ${this._gbFmtPct(k, s.geVals.length)} of ${s.geVals.length.toLocaleString()} screened lines`;
-            const top = (s.tissues || []).filter(x => x.mean < -0.3).slice(0, 2);
+            const top = (s.tissues || []).filter(x => x.mean < -0.3 && x.n >= 10).slice(0, 2);
             if (top.length && k > 0) t += `, strongest in ${top.map(x => this.esc(x.name)).join(' and ')}`;
             out.push(t + '.');
         } else {
@@ -50596,9 +50647,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         }
         if (s.nFus > 0) out.push(`Fused in ${s.nFus} ${s.nFus === 1 ? 'line' : 'lines'}.`);
         const sp = s.split;
-        if (sp && sp.t.p < 0.05) {
+        // Only a difference large enough to matter on the gene-effect scale.
+        if (sp && sp.t.p < 0.05 && Math.abs(this.mean(sp.mut) - this.mean(sp.wt)) >= 0.1) {
             const mm = this.mean(sp.mut), mw = this.mean(sp.wt);
-            out.push(`${sp.label.charAt(0).toUpperCase() + sp.label.slice(1)} lines depend on it ${mm < mw ? 'more' : 'less'} (mean gene effect ${this._gbNum(mm, 1)} vs ${this._gbNum(mw, 1)}).`);
+            out.push(`${sp.label.charAt(0).toUpperCase() + sp.label.slice(1)} lines depend on it ${mm < mw ? 'more' : 'less'} (mean gene effect ${this._gbNum(mm)} vs ${this._gbNum(mw)}).`);
         }
         return out.join(' ');
     }
@@ -50654,6 +50706,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         cards.innerHTML = this._gbLoading('Loading...');
         await this._ensureCommonEssentials();
         await this._ensureAliasTables?.();
+        await this._gbEnsureRare();
         if (this._gbGene !== gene) return;
         const s = this._gbCore(gene);
         this._gbState = s;
@@ -50665,14 +50718,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         s.mutTissues = this._gbMutTissues(s);
 
         // Subtitle: symbol | location | synonyms. Location fills in once loaded.
-        const setSub = () => {
-            const parts = [gene];
-            const loc = this.geneLocations?.[gene];
-            if (loc) parts.push(this._gbLocText(loc));
-            const syn = this._gbSynonymsOf(gene);
-            if (syn.length) parts.push(syn.join(', '));
-            document.getElementById('gbSubtitle').textContent = parts.join('  |  ');
-        };
+        const setSub = () => this._gbSetSubtitle(gene);
         setSub();
 
         const html = [];
@@ -50827,6 +50873,14 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         return overview + zoom;
     }
 
+    // Damaging mutations and fusions seen in only 1-2 lines, which the main
+    // layers drop (they keep genes with at least 3).
+    async _gbEnsureRare() {
+        if (this._gbRare !== undefined) return;
+        try { this._gbRare = await (await fetch(this._dataUrl('web_data/rare_events.json'))).json(); }
+        catch (e) { this._gbRare = null; }
+    }
+
     async _gbEnsureCytobands() {
         if (this._cytobands !== undefined) return;
         try { this._cytobands = await (await fetch(this._dataUrl('web_data/cytobands.json'))).json(); }
@@ -50840,11 +50894,20 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     async _gbFetchStructure(gene) {
         const cache = (this._gbStructCache ||= new Map());
         if (cache.has(gene)) return cache.get(gene);
-        const ens = this.geneInfoCache?.[gene]?.ensembl;
-        const path = ens
-            ? `lookup/id/${encodeURIComponent(ens)}?expand=1;mane=1;content-type=application/json`
-            : `lookup/symbol/homo_sapiens/${encodeURIComponent(gene)}?expand=1;mane=1;content-type=application/json`;
-        const d = JSON.parse(await this._gbEnsemblText(path));
+        // The symbol lookup returns the primary-assembly gene; MyGene's ids can
+        // include a copy on a patch scaffold (HSCHR...), so they are only the
+        // fallback, and only an id on a main chromosome is accepted.
+        const q = '?expand=1;mane=1;content-type=application/json';
+        const main = (x) => /^([1-9]|1\d|2[0-2]|X|Y|MT)$/.test(String(x?.seq_region_name));
+        const ids = this.geneInfoCache?.[gene]?.ensemblIds || [];
+        let d = null, err = null;
+        for (const path of [`lookup/symbol/homo_sapiens/${encodeURIComponent(gene)}${q}`, ...ids.map(id => `lookup/id/${encodeURIComponent(id)}${q}`)]) {
+            try {
+                const x = JSON.parse(await this._gbEnsemblText(path, 3));
+                if (main(x)) { d = x; break; }
+            } catch (e) { err = e; }
+        }
+        if (!d) throw err || new Error('no gene on a main chromosome');
         const all = d.Transcript || [];
         if (!all.length) throw new Error('no transcript');
         const manes = (t) => (t.MANE || []).map(m => m.type);
@@ -51024,9 +51087,17 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         this._gbStructure = st;
         this._gbTxSel = st ? st.transcripts[0] : null;
         if (!st) {
-            card.outerHTML = this._gbSection('Gene structure', this._gbDesc('The exon structure could not be loaded from Ensembl (it needs an internet connection). The sequences can be viewed and downloaded at these sites:')
+            card.outerHTML = this._gbSection('Gene structure', this._gbDesc('Ensembl did not answer in time, so the exon structure could not be loaded. It is often busy for a moment; try again, or view and download the sequences at these sites:')
+                + `<div class="gb-actions" style="margin-top:0;"><button class="btn btn-outline btn-sm" data-gb-act="struct-retry">Try again</button></div>`
                 + `<div style="font-size:11px;">${this._gbStructLinks(gene, null, null)}</div>`, 'Ensembl REST API, GRCh38 (fetched live).', 'gbStructCard');
             return;
+        }
+        // The About card may have shown a patch-scaffold Ensembl id.
+        const info = this.geneInfoCache?.[gene];
+        if (info && info.ensembl && info.ensembl !== st.geneId) {
+            const about = document.getElementById('gbAboutCard');
+            if (about) about.innerHTML = about.innerHTML.split(info.ensembl).join(st.geneId);
+            info.ensembl = st.geneId;
         }
         card.outerHTML = this._gbSection('Gene structure', `<div id="gbStructBody">${this._gbStructBody(gene, st, this._gbTxSel)}</div>`,
             'Ensembl REST API (structure) and UCSC Genome Browser API (sequence), GRCh38, fetched live; hotspot calls from DepMap inferred subtypes. MANE Select is the reference transcript agreed by NCBI and EMBL-EBI.', 'gbStructCard');
@@ -51079,7 +51150,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const opts = st.transcripts.map((x, i) => `<option value="${i}"${x === t ? ' selected' : ''}>${e(this._gbTxLabel(x))}</option>`).join('');
         const pos = `chr${st.chr}:${st.start}-${st.end}`;
         const note = `<div style="padding:7px 10px; background:#fffbeb; border-left:3px solid #f59e0b; font-size:11px; color:#78350f; margin:4px 0 10px;">`
-            + `<b>One of ${st.nTranscripts.toLocaleString()} transcripts.</b> ${isRef && t.tx.mane ? `Shown is the MANE Select transcript${t.tx.refseq ? ` (${e(t.tx.refseq)})` : ''}, the reference NCBI and Ensembl agreed on and the one clinical variant reports use. It is not necessarily the form every cell type makes.` : `Shown is ${e(t.tx.name || t.tx.id)}, not the reference transcript.`}`
+            + `<b>${st.nTranscripts === 1 ? 'The only annotated transcript.' : `One of ${st.nTranscripts.toLocaleString()} transcripts.`}</b> ${isRef && t.tx.mane ? `Shown is the MANE Select transcript${t.tx.refseq ? ` (${e(t.tx.refseq)})` : ''}, the reference NCBI and Ensembl agreed on and the one clinical variant reports use. It is not necessarily the form every cell type makes.` : `Shown is ${e(t.tx.name || t.tx.id)}, not the reference transcript.`}`
             + `${others ? ` ${e(gene)} has ${others.toLocaleString()} other annotated transcript${others === 1 ? '' : 's'} (splice variants and non-coding forms) that can differ in exons, UTRs and protein: pick one in the menu to draw and download it, compare them all in ${a(`https://www.ensembl.org/Homo_sapiens/Gene/Splice?g=${encodeURIComponent(st.geneId)}`, 'Ensembl’s transcript view')} or the ${a(`https://genome.ucsc.edu/cgi-bin/hgTracks?db=hg38&position=${encodeURIComponent(pos)}`, 'UCSC Genome Browser')}.` : ''}`
             + ` To check where a primer or sequence matches, UCSC ${a('https://genome.ucsc.edu/cgi-bin/hgBlat?db=hg38', 'BLAT')} and ${a('https://genome.ucsc.edu/cgi-bin/hgPcr?db=hg38', 'In-Silico PCR')} are quicker than BLAST for human sequences.</div>`;
         const stats = [
@@ -51308,10 +51379,11 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const card = document.getElementById('gbAboutCard');
         if (!card) return;
         const loc = this.geneLocations?.[gene] || null;
-        const syn = [...new Set([...(info?.aliases || []), ...this._gbSynonymsOf(gene)]
-            .map(a => String(a).replace(/^['"\s]+|['"\s]+$/g, '')))].filter(a => a && a !== gene).slice(0, 8);
+        const syn = this._gbAliases(gene).slice(0, 8);
+        this._gbSetSubtitle(gene);
         const typeWord = { 'protein-coding': 'Protein-coding gene', ncRNA: 'Non-coding RNA gene', pseudo: 'Pseudogene' }[info?.typeOfGene] || (info?.typeOfGene ? `${info.typeOfGene} gene` : '');
-        const summary = info?.summary ? (this._leadWithFunction?.(info.summary) || info.summary) : '';
+        // The full record: NCBI's summary as written, not reordered.
+        const summary = info?.summary || '';
         const a = (href, t) => `<a href="${href}" target="_blank" rel="noopener" style="color:#3730a3;">${t} &#8599;</a>`;
         const ids = [
             info?.entrezgene ? a(`https://www.ncbi.nlm.nih.gov/gene/${info.entrezgene}`, `NCBI Gene ${info.entrezgene}`) : '',
@@ -51343,8 +51415,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const stats = [
             this._gbRow('Cell lines screened', n.toLocaleString()),
             this._gbRow('Mean / median gene effect', `${this._gbNum(this.mean(v))} / ${this._gbNum(this._gbMedian(v))}`),
-            this._gbRow(`Below ${this._gbNum(this._gbDepCut, 1)}`, `${this._gbFmtPct(below(this._gbDepCut), n)} <span class="gb-m">(${below(this._gbDepCut).toLocaleString()} lines)</span>`),
-            this._gbRow('Below −1', `${this._gbFmtPct(below(-1), n)} <span class="gb-m">(${below(-1).toLocaleString()} lines)</span>`),
+            this._gbRow(`Below ${this._gbNum(this._gbDepCut, 1)}`, `${this._gbFmtPct(below(this._gbDepCut), n)} <span class="gb-m">(${this._gbLines(below(this._gbDepCut))})</span>`),
+            this._gbRow('Below −1', `${this._gbFmtPct(below(-1), n)} <span class="gb-m">(${this._gbLines(below(-1))})</span>`),
             this._gbRow('Common essential', ce ? 'Yes' : 'No'),
         ].join('');
         const body = this._gbDesc('How much cell lines depend on this gene in the CRISPR screen. More negative means the lines grow worse without it; 0 means no effect.')
@@ -51392,13 +51464,13 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const stats = [
             this._gbRow('Cell lines with data', vals.length.toLocaleString()),
             this._gbRow('Median expression', `${this._gbNum(this._gbMedian(vals))} <span class="gb-m">log₂ TPM+1</span>`),
-            this._gbRow(`Expressed (at least ${this._gbNum(cut, 0)})`, `${this._gbFmtPct(s.expr.nOn, vals.length)} <span class="gb-m">(${s.expr.nOn.toLocaleString()} lines)</span>`),
+            this._gbRow(`Expressed (at least ${this._gbNum(cut, 0)})`, `${this._gbFmtPct(s.expr.nOn, vals.length)} <span class="gb-m">(${this._gbLines(s.expr.nOn)})</span>`),
         ];
         let link = '';
         if (s.hasGe) {
             const r = this.pearsonWithSlope(ex, s.ge);
             if (r.n >= 10 && r.correlation === r.correlation) {
-                const words = r.pValue < 0.01 && Math.abs(r.correlation) >= 0.1
+                const words = r.pValue < 0.01 && Math.abs(r.correlation) >= 0.2
                     ? (r.correlation < 0 ? 'lines that express more depend on it more' : 'lines that express more depend on it less')
                     : 'no clear link between expression and dependency';
                 link = this._gbRow('Expression vs gene effect', `r = ${this._gbNum(r.correlation)}, p = ${this._gbP(r.pValue)}, n = ${r.n.toLocaleString()} <span class="gb-m">: ${words}</span>`);
@@ -51417,14 +51489,18 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     }
 
     _gbMutationCard(s) {
-        if (s.nHot + s.nAny + s.nLof + s.nFus === 0) return '';
         const N = s.N;
+        const src = 'DepMap 26Q1 hotspot and damaging mutation calls, fusion calls and the integrated functional-loss call; specific variants from the inferred-subtype layer.';
+        if (s.nHot + s.nAny + s.nLof + s.nFus === 0) {
+            return this._gbSection('Mutations and fusions', this._gbDesc(`No hotspot or damaging mutation, functional-loss call or fusion in any of the ${N.toLocaleString()} cell lines.`), src);
+        }
+        const rareNote = (on) => on ? ' <span class="gb-m" title="Too few lines to split on in Mutation analysis or the filters, which need at least 3">(too few for Mutation analysis)</span>' : '';
         const cnt = (k) => `${this._gbFmtPct(k, N)} <span class="gb-m">(${k.toLocaleString()} of ${N.toLocaleString()} lines)</span>`;
         const rows = [
             s.hot ? this._gbRow('Hotspot mutation', cnt(s.nHot)) : '',
-            s.any && s.nAny !== s.nHot ? this._gbRow('Any mutation call', `${cnt(s.nAny)} <span class="gb-m">(hotspot or likely loss-of-function)</span>`) : '',
+            s.any && s.nAny !== s.nHot ? this._gbRow('Any mutation call', `${cnt(s.nAny)} <span class="gb-m">(hotspot or likely loss-of-function)</span>${rareNote(s.anyRare)}`) : '',
             s.lof ? this._gbRow('Functional loss', cnt(s.nLof)) : '',
-            s.fus ? this._gbRow('Fusion', cnt(s.nFus)) : '',
+            s.fus ? this._gbRow('Fusion', `${cnt(s.nFus)}${rareNote(s.fusRare)}`) : '',
         ].join('');
         const vars = s.variants.length ? `<div class="gb-sub">Most common variants</div>`
             + this._gbTable(['Variant', 'Lines', 'Share'], s.variants.map(([v, k]) => [`${this.gi(s.gene)} ${this.esc(v)}`, `<b>${k}</b>`, `<span class="gb-m">${this._gbFmtPct(k, N)}</span>`])) : '';
@@ -51435,8 +51511,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (sp) {
             const mm = this.mean(sp.mut), mw = this.mean(sp.wt);
             cmp = `<div class="gb-sub">Dependency in mutated vs wild-type lines</div>`
-                + this._gbRow(`Mean gene effect, ${sp.label}`, `${this._gbNum(mm)} <span class="gb-m">(n = ${sp.mut.length})</span>`)
-                + this._gbRow('Mean gene effect, wild-type', `${this._gbNum(mw)} <span class="gb-m">(n = ${sp.wt.length})</span>`)
+                + this._gbRow(`Mean gene effect, ${sp.label}`, `${this._gbNum(mm)} <span class="gb-m">(n = ${sp.mut.length.toLocaleString()})</span>`)
+                + this._gbRow('Mean gene effect, wild-type', `${this._gbNum(mw)} <span class="gb-m">(n = ${sp.wt.length.toLocaleString()})</span>`)
                 + this._gbRow('Welch t-test', `p = ${this._gbP(sp.t.p)}`);
         }
         const mk = this._gbMutKind(s.gene);
@@ -51444,7 +51520,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const body = this._gbDesc('How often this gene is mutated or fused across the cell lines, and whether mutated lines depend on it differently.')
             + `<div class="gb-grid"><div>${rows}${cmp}</div><div>${vars}${tis}</div></div>`
             + (mk ? `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="mut" title="Open Mutation analysis split on ${this.esc(s.gene)} (${mkWord} vs the rest) and run it: which genes do these lines depend on more or less?">Mutation analysis for this gene</button></div>` : '');
-        return this._gbSection('Mutations and fusions', body, 'DepMap 26Q1 hotspot and damaging mutation calls, fusion calls and the integrated functional-loss call; specific variants from the inferred-subtype layer.');
+        return this._gbSection('Mutations and fusions', body, src);
     }
 
     async _gbFillCn(s) {
@@ -51478,8 +51554,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const stats = [
             this._gbRow('Cell lines with data', vals.length.toLocaleString()),
             this._gbRow('Median relative CN', `${this._gbNum(this._gbMedian(vals))} <span class="gb-m">(1.0 = the line’s own baseline)</span>`),
-            this._gbRow(`Amplified (at least ${AMP.toFixed(0)})`, `${this._gbFmtPct(nAmp, vals.length)} <span class="gb-m">(${nAmp.toLocaleString()} lines)</span>`),
-            this._gbRow(`Deleted (below ${DEL})`, `${this._gbFmtPct(nDel, vals.length)} <span class="gb-m">(${nDel.toLocaleString()} lines)</span>`),
+            this._gbRow(`Amplified (at least ${AMP.toFixed(0)})`, `${this._gbFmtPct(nAmp, vals.length)} <span class="gb-m">(${this._gbLines(nAmp)})</span>`),
+            this._gbRow(`Deleted (below ${DEL})`, `${this._gbFmtPct(nDel, vals.length)} <span class="gb-m">(${this._gbLines(nDel)})</span>`),
             link,
         ].join('');
         const body = this._gbDesc('Gene-level copy number relative to each line’s own baseline: above 1 is a gain, below 1 a loss.')
@@ -51487,7 +51563,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             + ((ampT.length || delT.length) ? `<div class="gb-grid"><div>${ampT.length ? `<div class="gb-sub">Tissues most often amplified</div>${this._gbTissueRows(ampT, r => this._gbFmtPct(r.k, r.n), 'Amplified')}` : ''}</div>`
                 + `<div>${delT.length ? `<div class="gb-sub">Tissues most often deleted</div>${this._gbTissueRows(delT, r => this._gbFmtPct(r.k, r.n), 'Deleted')}` : ''}</div></div>` : '')
             + (s.exprVec ? `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="sc-cn-expr" title="A scatter of each cell line's copy number of this gene against its expression">Copy number vs expression scatter</button></div>` : '');
-        card.outerHTML = this._gbSection('Copy number', body, 'DepMap gene-level relative copy number (OmicsCNGene).', 'gbCnCard');
+        card.outerHTML = this._gbSection('Copy number', body, 'DepMap 24Q4 gene-level relative copy number (OmicsCNGene).', 'gbCnCard');
         this._gbHist('gbCnHist', vals.map(v => Math.min(v, 6)), { measure: 'cn', xTitle: 'Relative copy number (capped at 6)' });
     }
 
@@ -51563,7 +51639,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             .map(k => k.charAt(0) + k.slice(1).toLowerCase());
         const g = this.gi(gene);
         const maxR = Math.max(0.01, ...top.map(h => h.r));
-        const coHead = top.length ? `<div class="gb-sub">Co-dependencies <span class="gb-m">(lines that depend on ${g} also depend on these)</span></div>` : '';
+        const coHead = top.length ? `<div class="gb-sub">Co-dependencies <span class="gb-m">(lines that depend on ${g} also depend on these)</span></div>`
+            : `<div class="gb-sub">Co-dependencies</div><div class="gb-m">${s.geVals.length < 100 ? `None listed: ${g} was screened in only ${s.geVals.length} lines, and a co-dependency needs at least 100 lines screened for both genes.` : 'No gene correlates positively with it.'}</div>`;
         const co = top.length ? this._gbTable(['Gene', 'r', 'p', ''], top.map(h => [
                 `<a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a>`,
                 `<span class="corr-positive">${h.r.toFixed(3)}</span>`,
@@ -51632,14 +51709,16 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 if (!has) continue;
                 const r = await this._compTopCorrelates(gene, m.tx, m.ty, 300, 0, ids);
                 if (this._gbGene !== gene) return;
-                res[m.key] = (r.top || []).filter(h => h.n >= 100).slice(0, 10).map(h => ({ ...h, p: this._pearsonP(h.r, h.n) }));
+                res[m.key] = (r.top || []).filter(h => h.n >= 100).slice(0, 10).map(h => ({ ...h, gene: h.name || h.gene, p: this._pearsonP(h.r, h.n) }));
             }
             cache.set(gene, res);
         }
         const box = document.getElementById('gbExprCorr');
         if (!box) return;
         const lists = CorrelationExplorer.GB_XCORR.filter(m => res?.[m.key]?.length);
-        if (!lists.length) { box.remove(); return; }
+        const fewGe = s.hasGe && s.geVals.length < 100
+            ? `<div class="gb-m" style="margin-top:3px;">${this.gi(gene)} was screened in only ${s.geVals.length} lines, fewer than the 100 shared lines the gene-effect lists need.</div>` : '';
+        if (!lists.length) { if (fewGe) box.innerHTML = fewGe; else box.remove(); return; }
         await this.loadGeneLocations().catch(() => null);
         if (this._gbGene !== gene) return;
         const g = this.gi(gene);
@@ -51668,7 +51747,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         box.innerHTML = `<div class="gb-sub" style="margin-top:10px;">Expression correlations <span class="gb-m">(mRNA against gene effect and mRNA)</span></div>`
             + `<div class="gb-xtabs">${tabs}</div>${panels}`
             + `<div class="gb-m" style="margin-top:3px;">Pearson r across the cell lines with both values (hover p for n), strongest in either direction, genes measured in at least 100 lines. `
-            + `${g} is at ${this.esc(this.geneLocations?.[gene]?.band || 'an unknown band')}; <span class="gb-near">amber</span> marks genes within ${near} Mb on the same chromosome. Neighbours are often gained or lost together, so their mRNA can correlate through shared copy number rather than shared function.</div>`;
+            + `${g} is at ${this.esc(this.geneLocations?.[gene]?.band || 'an unknown band')}; <span class="gb-near">amber</span> marks genes within ${near} Mb on the same chromosome. Neighbours are often gained or lost together, so their mRNA can correlate through shared copy number rather than shared function.</div>` + fewGe;
         box.querySelectorAll('[data-gb-xtab]').forEach(b => b.addEventListener('click', () => {
             this._gbXCorrTab = b.dataset.gbXtab;
             box.querySelectorAll('[data-gb-xtab]').forEach(x => x.classList.toggle('on', x === b));
@@ -51766,6 +51845,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (act === 'ge' || act === 'expr') { this.openGeneEffectModal(gene, 'tissue', { dataType: act }); return; }
         if (act === 'copy-relfig') { this.copyPlotToClipboard('gbRelFig', 'Related genes figure'); return; }
         if (act === 'copy-struct') { this.copyPlotToClipboard('gbStructFig', 'Gene structure'); return; }
+        if (act === 'struct-retry') {
+            const card = document.getElementById('gbStructCard');
+            if (card) card.outerHTML = this._gbSection('Gene structure', this._gbLoading('Loading the gene structure from Ensembl...'), '', 'gbStructCard');
+            this._gbFillStructure(this._gbState);
+            return;
+        }
         if (act && (act.startsWith('fasta-') || act.startsWith('gbk-'))) { this._gbDownloadSeq(act); return; }
         if (act === 'copy-ideogram') { this.copyPlotToClipboard('gbIdeogram', 'Chromosome figure'); return; }
         if (act === 'sc-expr-ge') { this._gbScatter(gene, gene, 'expr', 'ge'); return; }

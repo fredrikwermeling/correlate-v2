@@ -2920,6 +2920,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.56 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Data fixes from an independent check of 50 random genes against the original DepMap files and NCBI, Ensembl and UniProt: copy number above 10.9 was capped (it now keeps the true value, up to 232, which changes copy-number correlations for strongly amplified genes); the common-essential list is now DepMap 26Q1's 1,827 genes (it was an older list of 1,247); cell line ACH-001683 is named UACC-3133.</li>
+                    <li>Gene Browser: damaging mutations and fusions seen in only 1 or 2 lines are now shown (marked as too few for Mutation analysis) instead of left out; a gene with none says so.</li>
+                    <li>Gene Browser: the gene description is NCBI's text in full and in order, aliases come from NCBI, and the Ensembl gene is always the one on the main chromosome (a few genes picked a copy on an alternate haplotype). If Ensembl does not answer, a Try again button appears.</li>
+                    <li>Gene Browser wording: shares are never rounded to 100% or 0%, no "−0.00", "1 line", and the summary only says mutated lines depend more or less when the difference is at least 0.1; the copy-number card names its release (24Q4); lists that need 100 screened lines say so when a gene has fewer.</li>
+                </ul>
                 <p><strong>v.90.55 (2026-10-24)</strong></p>
                 <ul>
                     <li>Gene Browser, expression correlations: each gene's chromosome band, with genes within 10 Mb of the browsed gene marked in amber and counted on each list's button, since neighbours often correlate through shared copy-number changes. The three lists now share one table with buttons to switch between them.</li>
@@ -8345,7 +8352,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.55</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.56</a>
         </span>
     </div>
 
@@ -11652,7 +11659,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_55"></script>
+    <script src="app.js?v=v90_56"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

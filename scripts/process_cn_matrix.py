@@ -27,7 +27,7 @@ Output:
   web_data/cn.bin.gz        — gzipped int16 matrix, nGenes × nCellLines
   web_data/cn_metadata.json — gene + cell-line lists, scaleFactor, naValue.
 
-Scale factor: 3000 → range ±10.92 in CN units (1.0 = diploid).
+Scale factor: 1000 → range ±32.77 in CN units (1.0 = diploid); 3000 clipped real amplicons at 10.92.
 """
 import csv, gzip, json, os, re, sys
 import numpy as np
@@ -37,7 +37,7 @@ HYBRID_PATH = os.path.join(ROOT, 'OmicsCNGene.csv')
 OUT_BIN = os.path.join(ROOT, 'web_data', 'cn.bin.gz')
 OUT_META = os.path.join(ROOT, 'web_data', 'cn_metadata.json')
 GREENLISTED_LIB_DIR = '/Users/fredrikwermeling/Documents/greenlistedv2/libraries'
-SCALE_FACTOR = 3000
+SCALE_FACTOR = 1000
 NA_VALUE = -32768
 
 META_COLS = {'SequencingID', 'ModelID', 'IsDefaultEntryForModel',
@@ -222,7 +222,7 @@ def main():
     print(f'  valid values: {valid.sum():,} / {data.size:,} ({100*valid.mean():.1f}%)')
     print(f'  min={np.nanmin(data):.3f} max={np.nanmax(data):.3f} median={np.nanmedian(data):.3f}')
     above_clip = np.sum(data[valid] > 32767/SCALE_FACTOR)
-    print(f'  would clip {above_clip} extreme amps (≥ {32767/SCALE_FACTOR:.2f})')
+    print(f'  {above_clip} extreme amps (≥ {32767/SCALE_FACTOR:.2f}) go to the overflow list')
 
     print(f'  quantising to int16, scaleFactor={SCALE_FACTOR}')
     q = np.full(data.shape, NA_VALUE, dtype=np.int16)
@@ -236,7 +236,7 @@ def main():
     print(f'  binary size: {size_mb:.1f} MB')
 
     meta = {
-        '_doc': 'CN matrix from DepMap OmicsCNGene.csv (24Q4 release) — DepMap\'s gene-level CN file that already chooses WGS or WES per line based on availability. Gene list is intersected with the greenlisted CRISPR libraries (Brunello, Gattinara, GeCKO v2, Jacquere, VBC, MinLibCas9, TKOv3, Yusa v1) expanded through the human synonym table; genes not reachable by any major library are dropped. Values are relative copy number (1.0 = the line\'s own modal baseline). Int16, gene-major (matrix[gi * nCellLines + ci]). NaN encoded as -32768. Scale factor 3000.',
+        '_doc': 'CN matrix from DepMap OmicsCNGene.csv (24Q4 release) — DepMap\'s gene-level CN file that already chooses WGS or WES per line based on availability. Gene list is intersected with the greenlisted CRISPR libraries (Brunello, Gattinara, GeCKO v2, Jacquere, VBC, MinLibCas9, TKOv3, Yusa v1) expanded through the human synonym table; genes not reachable by any major library are dropped. Values are relative copy number (1.0 = the line\'s own modal baseline). Int16, gene-major (matrix[gi * nCellLines + ci]). NaN encoded as -32768. Scale factor 1000; values past 32.767 go to overflow as [gene index, cell-line index, value].',
         'source': 'OmicsCNGene.csv (DepMap 24Q4)',
         'genes': gene_syms,
         'cellLines': cl_ids,
@@ -244,6 +244,7 @@ def main():
         'nCellLines': n_cl,
         'scaleFactor': SCALE_FACTOR,
         'naValue': NA_VALUE,
+        'overflow': [[int(g), int(c), round(float(data[g, c]), 3)] for g, c in np.argwhere(valid & (np.nan_to_num(data) > 32767 / SCALE_FACTOR))],
         'interpretation': '1.0 = the cell line\'s own modal baseline (≈ 2 copies for a diploid line, ≈ 4 for WGD). 3.0 = amplification. 5.0 = strong amplification. 0.5 = single-copy loss. 0.3 = deep deletion.'
     }
     with open(OUT_META, 'w') as f:
