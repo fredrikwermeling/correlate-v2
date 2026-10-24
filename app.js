@@ -51640,8 +51640,6 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         };
         const corum = (this.corumPartners?.partners?.[gene] || []).filter(g => g !== gene);
         const reactome = (this.reactomePartners?.partners?.[gene] || []).filter(g => g !== gene);
-        const mice = Object.keys(this.orthologs?.mouseToHuman || {}).filter(k => this.orthologs.mouseToHuman[k] === gene)
-            .map(k => k.charAt(0) + k.slice(1).toLowerCase());
         const g = this.gi(gene);
         this._gbNamedCache = this._gbNamedSets(gene);
         const known = top.map(h => this._gbKnownLink(gene, h.gene));
@@ -51650,14 +51648,15 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             ? `Known partners among them: ${[nCx ? `${nCx} in the same complex` : '', nPw ? `${nPw} in a shared pathway` : ''].filter(Boolean).join(', ')} (tagged); the rest are links found only in the data.`
             : 'None is a known complex or pathway partner: every link here comes from the data alone.'}</div>` : '';
         const maxR = Math.max(0.01, ...top.map(h => h.r));
-        const coHead = top.length ? `<div class="gb-sub">Co-dependencies <span class="gb-m">(lines that depend on ${g} also depend on these)</span></div>`
+        const nDep = s.geVals.filter(v => v < this._gbDepCut).length;
+        const coHead = top.length ? `<div class="gb-sub">Co-dependencies <span class="gb-m">(${nDep >= 10 ? `lines that depend on ${g} also depend on these` : `genes whose gene effect varies with ${g}'s; few lines depend on ${g}, so this is shared variation rather than shared dependency`})</span></div>`
             : `<div class="gb-sub">Co-dependencies</div><div class="gb-m">${s.geVals.length < 100 ? `None listed: ${g} was screened in only ${s.geVals.length} lines, and a co-dependency needs at least 100 lines screened for both genes.` : 'No gene correlates positively with it.'}</div>`;
         const co = top.length ? knownLine + this._gbTable(['Gene', 'r', 'p', ''], top.map(h => [
                 `<a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a>${this._gbKnownTag(gene, h.gene)}`,
                 `<span class="corr-positive">${h.r.toFixed(3)}</span>`,
                 `<span class="gb-m" title="${h.n.toLocaleString()} cell lines">${this._gbP(h.p)}</span>`,
                 `<button class="btn btn-sm inspect-btn" style="padding:2px 6px; font-size:10px; background:#6ba544; color:white;" data-gb-scatter="${this.esc(h.gene)}" title="Open the correlation plot of ${this.esc(gene)} against ${this.esc(h.gene)}">Correlation</button>`]))
-            + `<div class="gb-m" style="margin-top:3px;">Pearson r of gene effect across ${top[0].n.toLocaleString()} cell lines (1 = identical pattern).</div>`
+            + `<div class="gb-m" style="margin-top:3px;">Pearson r of gene effect across the cell lines screened for both genes (${(() => { const ns = top.map(h => h.n); const a = Math.min(...ns), b = Math.max(...ns); return a === b ? a.toLocaleString() : `${a.toLocaleString()} to ${b.toLocaleString()}`; })()}; hover p for each n). 1 = identical pattern.</div>`
             + `<div class="gb-actions">`
             + `<button class="btn btn-outline btn-sm" data-gb-act="net-codep" title="Run Gene set analysis on ${this.esc(gene)} and these ${top.length} genes, drawn as a correlation network">Network of these genes</button>`
             + `<button class="btn btn-outline btn-sm" data-gb-act="hm-codep" title="Show ${this.esc(gene)} and these ${top.length} genes as a heatmap across the cell lines">Heatmap</button>`
@@ -51679,8 +51678,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 + `<span class="gb-set-acts"><button class="gb-scatter-btn" data-gb-set="${k}" data-gb-set-do="net" title="Run Gene set analysis on this set">Network</button><button class="gb-scatter-btn" data-gb-set="${k}" data-gb-set-do="hm" title="Show this set as a heatmap across the cell lines">Heatmap</button></span></div>`
                 + (x.note ? `<div class="gb-m" style="margin:1px 0 3px;">${this._italicizeGenesInHtml(this.esc(x.note))}</div>` : '')
                 + `<div class="gb-chips">${list(x.genes, 24)}</div></div>`).join('') : '';
-        const db = (corum.length || reactome.length) ? `<details class="gb-details"><summary>All database partners: ${corum.length ? `${corum.length} in CORUM complexes` : ''}${corum.length && reactome.length ? ', ' : ''}${reactome.length ? `${reactome.length} in Reactome pathways` : ''}</summary>`
-            + `<div class="gb-m" style="margin:4px 0;">Every protein recorded in a complex with ${g} (CORUM), and every gene sharing at least one Reactome pathway of 5 to 100 genes with it. The databases do not say which complex or pathway each comes from.</div>`
+        const db = (corum.length || reactome.length) ? `<details class="gb-details"><summary>All database partners: ${corum.length ? `${corum.length} in CORUM complexes` : ''}${corum.length && reactome.length ? ', ' : ''}${reactome.length ? `${reactome.length >= 120 ? 'the 120 closest' : reactome.length} in Reactome pathways` : ''}</summary>`
+            + `<div class="gb-m" style="margin:4px 0;">Every protein recorded in a complex with ${g} (CORUM), and the genes sharing a Reactome pathway of 5 to 100 genes with it (at most 120, those sharing the most pathways). This list does not say which complex or pathway each comes from; the CORUM and Reactome sites do.</div>`
             + (corum.length ? `<div class="gb-sub" style="margin-top:6px;">CORUM complex partners</div><div class="gb-chips">${list(corum, 40)}</div>`
                 + `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="net-corum" title="Run Gene set analysis on ${this.esc(gene)} and its complex partners">Network of the complex</button>`
                 + `<button class="btn btn-outline btn-sm" data-gb-act="hm-corum" title="Show ${this.esc(gene)} and its complex partners as a heatmap">Heatmap of the complex</button></div>` : '')
@@ -51691,9 +51690,35 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             + (scheme ? `<div class="gb-relgrid"><div>${co}</div><div class="gb-relfig">${figure}</div></div>` : co)
             + `<div id="gbExprCorr">${this._gbLoading('Comparing with every gene’s mRNA...')}</div>`
             + sets + db
-            + (mice.length ? this._gbRow('Mouse ortholog', this.esc(mice.join(', '))) : '');
-        card.outerHTML = this._gbSection('Related genes', body, 'DepMap 26Q1 CRISPRGeneEffect and OmicsExpressionTPMLogp1 (correlations); the app’s curated pathway, complex and gene set lists; CORUM complexes (Steinkamp et al. 2025); Reactome pathways (Milacic et al. 2024); mouse orthologs from the app’s mouse-to-human gene table. References under Links.', 'gbRelCard');
+            + `<div id="gbMouseRow"></div>`;
+        card.outerHTML = this._gbSection('Related genes', body, 'DepMap 26Q1 CRISPRGeneEffect and OmicsExpressionTPMLogp1 (correlations); the app’s curated pathway, complex and gene set lists; CORUM complexes (Steinkamp et al. 2025); Reactome pathways (Milacic et al. 2024); mouse orthologs from NCBI HomoloGene (fetched live). References under Links.', 'gbRelCard');
         this._gbFillExprCorr(s);
+        this._gbMouseOrthologs(gene).then(list => {
+            const row = document.getElementById('gbMouseRow');
+            if (!row || this._gbGene !== gene || !list) return;
+            row.outerHTML = this._gbRow('Mouse ortholog', list.length
+                ? list.map(m => `<a href="https://www.ncbi.nlm.nih.gov/gene/${m.id}" target="_blank" rel="noopener" style="color:#3730a3; font-style:italic;">${this.esc(m.symbol)} &#8599;</a>`).join(', ') + ' <span class="gb-m">(NCBI HomoloGene)</span>'
+                : '<span class="gb-m">None listed in NCBI HomoloGene</span>');
+        });
+    }
+
+    // Mouse orthologs from NCBI HomoloGene (via MyGene.info), not the app's
+    // name-resolution table, which also maps human symbols to themselves.
+    // null when the lookup failed.
+    async _gbMouseOrthologs(gene) {
+        const cache = (this._gbMouseCache ||= new Map());
+        if (cache.has(gene)) return cache.get(gene);
+        try {
+            const q = await (await fetch(`https://mygene.info/v3/query?q=symbol:${encodeURIComponent(gene)}&species=human&fields=homologene&size=1`)).json();
+            const ids = (q.hits?.[0]?.homologene?.genes || []).filter(x => x[0] === 10090).map(x => x[1]);
+            let list = [];
+            if (ids.length) {
+                const r = await (await fetch(`https://mygene.info/v3/gene?ids=${ids.join(',')}&fields=symbol`, { method: 'POST' })).json();
+                list = [].concat(r || []).filter(x => x && x.symbol).map(x => ({ symbol: x.symbol, id: x._id }));
+            }
+            cache.set(gene, list);
+            return list;
+        } catch (e) { return null; }
     }
 
     // What prior knowledge links two genes: the same CORUM complex, else a
@@ -51810,7 +51835,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         }
         for (const v of Object.values(this._GENE_SET_LIBRARY?.() || {})) {
             if (!['Pathway members', 'Immune'].includes(v.category)) continue;
-            if ((v.genes || []).includes(gene) && !out.some(o => o.name === v.label)) out.push({ name: v.label, kind: v.category === 'Immune' ? 'immune pathway' : 'pathway, extended membership', genes: v.genes, note: v.note || '' });
+            if ((v.genes || []).includes(gene) && !out.some(o => o.name === v.label)) out.push({ name: v.label, kind: v.category === 'Immune' ? 'immune pathway' : 'extended member list', genes: v.genes, note: v.note || '' });
         }
         return out;
     }
@@ -51823,10 +51848,12 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     _gbRelSchematic(gene, top, corum) {
         const cset = new Set(corum);
         const right = top.slice(0, 10).map(h => ({ g: h.gene, r: h.r, cx: cset.has(h.gene), known: this._gbKnownLink(gene, h.gene) }));
-        const left = corum.filter(x => !right.some(n => n.g === x)).slice(0, 10).map(g => ({ g, r: null, cx: true }));
+        const leftAll = corum.filter(x => !right.some(n => n.g === x));
+        const left = leftAll.slice(0, 10).map(g => ({ g, r: null, cx: true }));
+        const extra = leftAll.length - left.length;
         if (!right.length && !left.length) return '';
         const rowH = 25, head = 26, rows = Math.max(right.length, left.length, 3);
-        const W = 560, H = head + rows * rowH + 8, cx = W / 2, cy = head + (rows * rowH) / 2;
+        const W = 560, H = head + rows * rowH + 8 + (extra ? 14 : 0), cx = W / 2, cy = head + (rows * rowH) / 2;
         const colX = 128, font = 'Arial, sans-serif';
         const rs = right.map(n => n.r), rMin = rs.length ? Math.min(...rs) : 0, rMax = rs.length ? Math.max(...rs) : 1;
         const ys = (list) => list.map((_, i) => head + rowH / 2 + i * rowH + (rows - list.length) * rowH / 2);
@@ -51854,7 +51881,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         side(right, 1);
         side(left, -1);
         const heads = (right.length ? `<text x="${cx + colX - 8}" y="14" font-size="10.5" fill="#6b7280" font-family="${font}">Co-dependency (r)</text>` : '')
-            + (left.length ? `<text x="${cx - colX + 8}" y="14" text-anchor="end" font-size="10.5" fill="#6b7280" font-family="${font}">Same complex (CORUM)</text>` : '');
+            + (left.length ? `<text x="${cx - colX + 8}" y="14" text-anchor="end" font-size="10.5" fill="#6b7280" font-family="${font}">Same complex (CORUM)</text>` : '')
+            + (extra ? `<text x="${cx - colX + 8}" y="${H - 6}" text-anchor="end" font-size="10.5" fill="#6b7280" font-family="${font}">+${extra} more (listed below)</text>` : '');
         const center = `<g class="gb-node" data-gb-node="${this.esc(gene)}" style="cursor:pointer;"><title>${this.esc(gene)}: click for its gene effect</title>`
             + `<circle cx="${cx}" cy="${cy}" r="14" fill="#6ba544" stroke="#000000" stroke-width="1.6"/>`
             + `<text x="${cx}" y="${cy - 21}" text-anchor="middle" font-size="14" font-weight="700" font-style="italic" fill="#333333" font-family="${font}">${this.esc(gene)}</text></g>`;
@@ -52057,7 +52085,8 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
                 : 'Not computed: the page had not finished comparing this gene with every other gene when the file was made.',
             complexPartnersCorum: corum.slice(0, 50), complexPartnersCorumTotal: corum.length,
             pathwayPartnersReactome: reactome.slice(0, 50), pathwayPartnersReactomeTotal: reactome.length,
-            mouseOrthologs: Object.keys(this.orthologs?.mouseToHuman || {}).filter(k => this.orthologs.mouseToHuman[k] === gene)
+            mouseOrthologs: this._gbMouseCache?.get(gene)?.map(m => m.symbol) ?? null,
+            mouseOrthologs_readMe: 'NCBI HomoloGene via MyGene.info; null if it was not loaded'
         };
         const xc = this._gbXCorrCache?.get(gene);
         const nb = (h) => { const d = this._gbNeighbour(gene, h.gene); return d ? { band: d.band, mbFromGene: d.mb === null ? null : +d.mb.toFixed(2) } : {}; };
@@ -52074,7 +52103,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         { name: 'PRISM', what: 'drug sensitivity', url: 'https://depmap.org/repurposing/', cite: 'Corsello SM et al. Discovering the anticancer potential of non-oncology drugs by systematic viability profiling. Nat Cancer 2020;1:235-248.' },
         { name: 'CORUM', what: 'protein complex partners', url: 'https://mips.helmholtz-muenchen.de/corum/', cite: 'Steinkamp R et al. CORUM in 2024: protein complexes as drug targets. Nucleic Acids Res 2025;53:D651-D657.' },
         { name: 'Reactome', what: 'pathway partners', url: 'https://reactome.org/', cite: 'Milacic M et al. The Reactome Pathway Knowledgebase 2024. Nucleic Acids Res 2024;52:D672-D678.' },
-        { name: 'NCBI Gene', what: 'gene description and aliases; RefSeq and Alliance of Genome Resources summaries, credited in the text', url: 'https://www.ncbi.nlm.nih.gov/gene/', cite: 'Brown GR et al. Gene: a gene-centered information resource at NCBI. Nucleic Acids Res 2015;43:D36-D42.' },
+        { name: 'NCBI Gene', what: 'gene description and aliases (RefSeq and Alliance of Genome Resources summaries, credited in the text), mouse orthologs (HomoloGene)', url: 'https://www.ncbi.nlm.nih.gov/gene/', cite: 'Brown GR et al. Gene: a gene-centered information resource at NCBI. Nucleic Acids Res 2015;43:D36-D42.' },
         { name: 'MyGene.info', what: 'live access to the NCBI, HGNC, Ensembl, UniProt and OMIM records', url: 'https://mygene.info/', cite: 'Xin J et al. High-performance web services for querying gene and variant annotation. Genome Biol 2016;17:91.' },
         { name: 'Ensembl', what: 'transcripts and exons, GRCh38', url: 'https://www.ensembl.org/', cite: 'Dyer SC et al. Ensembl 2025. Nucleic Acids Res 2025;53:D948-D957.' },
         { name: 'MANE', what: 'reference transcript', url: 'https://www.ncbi.nlm.nih.gov/refseq/MANE/', cite: 'Morales J et al. A joint NCBI and EMBL-EBI transcript set for clinical genomics and research. Nature 2022;604:310-315.' },

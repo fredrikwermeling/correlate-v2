@@ -2923,6 +2923,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.59 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Gene Browser, Related genes: the mouse ortholog now comes from NCBI HomoloGene with a link to the mouse gene. The app's own name table listed some that do not exist, e.g. Znf891, or paralogs.</li>
+                    <li>Related genes wording: the Reactome count says "the 120 closest" when the per-gene cap applies; the co-dependency note gives the range of cell lines behind the r values; for a gene few lines depend on, the heading says the list is shared variation rather than shared dependency; the figure says how many complex partners are not drawn; set labels read cleanly.</li>
+                </ul>
                 <p><strong>v.90.58 (2026-10-24)</strong></p>
                 <ul>
                     <li>Gene Browser, Related genes: co-dependencies that are also known partners are tagged "complex" (same CORUM complex) or "pathway" (a shared curated or Reactome pathway), in the table, the figure (ringed) and the expression lists, and a line above the table counts them, so links found only in the data stand apart from known biology.</li>
@@ -8365,7 +8370,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.58</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.59</a>
         </span>
     </div>
 
@@ -11672,7 +11677,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_58"></script>
+    <script src="app.js?v=v90_59"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
