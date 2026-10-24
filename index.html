@@ -1718,6 +1718,9 @@
            stays readable instead of running together as tiny comma-separated
            text. */
         /* Gene Browser */
+        /* Gene Browser / Wiki header: one row of equal-height buttons that never wrap; the title side shrinks instead. */
+        .pop-head-btns { flex:0 0 auto; margin-left:12px; }
+        .pop-head-btns .btn { white-space:nowrap; height:28px; display:inline-flex; align-items:center; line-height:1; }
         .gb-scope .gb-card { margin-bottom:16px; background:#fff; border:1px solid #e5e7eb; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.04); overflow:hidden; }
         .gb-scope .gb-card-head { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid #eef2f7; background:#f7fbf8; }
         .gb-scope .gb-dot { width:8px; height:8px; border-radius:50%; background:#4c782e; flex:0 0 auto; }
@@ -2962,6 +2965,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.78 (2026-10-24)</strong></p>
+                <ul>
+                    <li>PCA / UMAP: new <b>Rank classes</b> button. It compares every curated gene class by how much variation PC1 captures on the current cell lines and data, against random gene sets of the same size, and runs the analysis on a class when you click it.</li>
+                    <li>The "Druggable genome" class is now "Druggable genome (incl. potential)": most of its genes are potential targets without an approved drug.</li>
+                    <li>Top Genes: correlations with the axes are graded; |r| below 0.3 is shown as weak, 0.3 to 0.5 as moderate.</li>
+                    <li>Gene Browser and Cell Line Wiki headers: buttons sit on one row at the same height.</li>
+                </ul>
                 <p><strong>v.90.77 (2026-10-24)</strong></p>
                 <ul>
                     <li>PCA loadings: gene labels now stay inside the loadings box; arrows are scaled so every label fits.</li>
@@ -8493,7 +8503,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.77</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.78</a>
         </span>
     </div>
 
@@ -11023,7 +11033,7 @@
             <img src="web_data/gb_banner.png" alt="Gene Browser" style="display:block; height:44px; width:auto; max-width:100%; object-fit:contain; object-position:left center;">
             <div id="gbSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px; min-height:14px;"></div>
           </div>
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div class="pop-head-btns" style="display:flex; align-items:center; gap:8px;">
             <button id="gbDownloadBtn" class="btn btn-outline btn-sm mobile-hide gb-needs-gene" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" disabled title="Save this page as a multi-page PDF (charts embedded as images, white background)">Export PDF</button>
             <button id="gbExportImageBtn" class="btn btn-outline btn-sm mobile-hide gb-needs-gene" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" disabled title="Save the page as an image, choosing format, resolution and whether to capture the whole page or just what is on screen">Export image...</button>
             <button id="gbExportCsvBtn" class="btn btn-outline btn-sm mobile-hide gb-needs-gene" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" disabled title="Export this gene across every cell line (gene effect, expression, copy number, mutations, functional loss and fusions) as a CSV">Export cell line info (.csv)</button>
@@ -11048,11 +11058,11 @@
     <div id="clbWikiModal" style="display:none; position:fixed; inset:0; z-index:1370; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:0 20px 20px; overflow-y:auto;">
       <div style="background:#fff; width:100%; max-width:min(96vw, 1100px); margin-top:20px; border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
         <div style="position:sticky; top:0; z-index:3; display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg, #f0fdf4 0%, #fff 100%); border-radius:8px 8px 0 0; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
-          <div>
+          <div style="min-width:0;">
             <h3 id="clbWikiTitle" style="margin:0; font-size:17px; color:#4c782e;">Cell Line Wiki</h3>
             <div id="clbWikiSubtitle" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
           </div>
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div class="pop-head-btns" style="display:flex; align-items:center; gap:8px;">
             <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--green-700); border-color:var(--green-400);" title="Save this Wiki as a multi-page PDF (charts embedded as images, white background)">Export PDF</button>
             <button onclick="app.screenshotPopout('clbWikiBody','correlate_wiki')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Save the wiki as an image, choosing format, resolution and whether to capture the whole page or just what is on screen">Export image...</button>
             <button id="clbWikiExportGenesBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px; color:var(--earth-700); border-color:var(--earth-300);" title="Export the full per-gene profile for this cell line (GE, Expression, Hotspot, Damaging, Fusion, focal CN amplifications / deletions) as a CSV">Export gene info (.csv)</button>
@@ -11434,12 +11444,13 @@
                     <option value="expr">Expression</option>
                     <option value="both">GE + Expression</option>
                 </select>
-                <input type="text" id="clbUmapGeneList" class="clb-umap-ctl" placeholder="Genes (optional)" title="Optional: restrict the analysis to this gene list (comma / semicolon / whitespace separated). Leave empty to use the top-variance genes across the dataset." style="width:160px;" autocomplete="off">
+                <input type="text" id="clbUmapGeneList" class="clb-umap-ctl" placeholder="Genes (optional)" title="Optional: restrict the analysis to this gene list (comma / semicolon / whitespace separated). Leave empty to use the top-variance genes across the dataset." style="width:120px;" autocomplete="off">
                 <button id="clbUmapGeneListClear" class="clb-umap-btn" style="display:none;" title="Clear custom gene list">&times;</button>
                 <select id="clbUmapGeneClass" class="clb-umap-ctl" style="max-width:165px;" title="Restrict the analysis to one curated class of genes (the lists Green Listed uses); the most variable genes within it are used. A gene list typed in the box takes precedence.">
                     <option value="">Genes: most variable</option>
                 </select>
-                <select id="clbUmapTissueFilter" class="clb-umap-ctl" style="width:auto; max-width:330px;" title="Which cell lines to include: the ones the list above currently shows (after its search and filters), every cell line, or one tissue">
+                <button id="clbUmapRankBtn" class="clb-umap-btn" title="Compare every gene class: PC1 % on the current cell lines and data, against random gene sets of the same size">Rank classes</button>
+                <select id="clbUmapTissueFilter" class="clb-umap-ctl" style="width:auto; max-width:260px;" title="Which cell lines to include: the ones the list above currently shows (after its search and filters), every cell line, or one tissue">
                     <option value="">All cell lines</option>
                 </select>
                 <select id="clbUmapSubtypeFilter" class="clb-umap-ctl" style="width:150px; display:none;">
@@ -11523,6 +11534,17 @@
                     <button onclick="document.getElementById('clbUmapTopGenesPanel').style.display='none'" style="background:none;border:none;font-size:16px;cursor:pointer;color:#6b7280;line-height:1;">&times;</button>
                 </div>
                 <div id="clbUmapTopGenesContent"></div>
+            </div>
+            <div id="clbUmapRankPanel" style="display:none; position:fixed; z-index:1000; width:400px; max-height:560px; overflow-y:auto; padding:8px 12px; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.15); font-size:11px; cursor:default;">
+                <div id="clbUmapRankDragHandle" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; cursor:move; user-select:none;">
+                    <div>
+                        <strong style="font-size:12px;">Gene classes by PC1</strong>
+                        <span style="font-size:10px; color:#6b7280; margin-left:6px;" id="clbUmapRankSubtitle"></span>
+                    </div>
+                    <button onclick="document.getElementById('clbUmapRankPanel').style.display='none'; app._umapRankJob = (app._umapRankJob || 0) + 1;" style="background:none;border:none;font-size:16px;cursor:pointer;color:#6b7280;line-height:1;">&times;</button>
+                </div>
+                <div style="font-size:10px; color:#6b7280; margin-bottom:6px; line-height:1.35;">How much of the variation PC1 captures with each class, against random gene sets of the same size. Small sets explain more by chance, so the ratio to random is the fairer comparison.</div>
+                <div id="clbUmapRankContent"></div>
             </div>
             <div id="clbUmapClusterStatsPanel" style="display:none; position:fixed; z-index:1000; width:380px; max-height:520px; overflow-y:auto; padding:8px 12px; background:white; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.15); font-size:11px; cursor:default;">
                 <div id="clbUmapClusterStatsDragHandle" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; cursor:move; user-select:none;">
@@ -11828,7 +11850,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_77"></script>
+    <script src="app.js?v=v90_78"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
