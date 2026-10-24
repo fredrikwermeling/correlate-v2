@@ -2931,6 +2931,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.68 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Cell Line Browser PCA / UMAP: a Genes menu restricts the analysis to one curated class, using its most variable genes: cancer genes, oncogenes, tumor suppressors, kinases, phosphatases, transcription factors, DNA damage response, cell surface, CD markers, druggable genome, FDA-approved drug targets, GPCRs, ion channels, transporters or proteases. The lists are Green Listed's curated ones (with their sources), and oncogenes / tumor suppressors are split from OncoKB's gene types. The plot title and Methods name the class; a typed gene list still takes precedence.</li>
+                </ul>
                 <p><strong>v.90.67 (2026-10-24)</strong></p>
                 <ul>
                     <li>Cell Line Browser PCA / UMAP on GE + Expression: every feature is now scaled to unit variance, so both layers count (before, expression's wider range left CRISPR about 1% of each component). Loadings say which layer each gene comes from: tagged CRISPR or mRNA in the tables, green or red arrows in the loadings plot, and a layer note on the PC1 line and the loadings title in single-layer runs; clicking a gene colours the plot by that layer.</li>
@@ -8418,7 +8422,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.67</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.68</a>
         </span>
     </div>
 
@@ -11360,6 +11364,9 @@
                 </select>
                 <input type="text" id="clbUmapGeneList" class="clb-umap-ctl" placeholder="Genes (optional)" title="Optional: restrict the analysis to this gene list (comma / semicolon / whitespace separated). Leave empty to use the top-variance genes across the dataset." style="width:160px;" autocomplete="off">
                 <button id="clbUmapGeneListClear" class="clb-umap-btn" style="display:none;" title="Clear custom gene list">&times;</button>
+                <select id="clbUmapGeneClass" class="clb-umap-ctl" style="max-width:190px;" title="Restrict the analysis to one curated class of genes (the lists Green Listed uses); the most variable genes within it are used. A gene list typed in the box takes precedence.">
+                    <option value="">Genes: most variable</option>
+                </select>
                 <select id="clbUmapTissueFilter" class="clb-umap-ctl" style="max-width:180px;">
                     <option value="">All tissues</option>
                 </select>
@@ -11749,7 +11756,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_67"></script>
+    <script src="app.js?v=v90_68"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
