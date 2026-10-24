@@ -2931,6 +2931,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.65 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Network: after leaving Full page, the network kept the full-window drawing size and spilled over the legend, oversized; it is now resized to its box and re-fitted, and can no longer draw outside it.</li>
+                </ul>
                 <p><strong>v.90.64 (2026-10-24)</strong></p>
                 <ul>
                     <li>Network: a Full page button (top right of the network) opens it across the whole window with every setting, the export buttons and the legend in a column beside it; Exit full page, the × or Esc puts it back.</li>
@@ -8402,7 +8406,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.64</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.65</a>
         </span>
     </div>
 
@@ -9025,7 +9029,7 @@
                         </div>
                     </div>
 
-                    <div id="networkWrap" style="position:relative; display:flex; flex-direction:column; height:440px; border:1px solid var(--gray-200); border-radius:6px; background:white;">
+                    <div id="networkWrap" style="position:relative; overflow:hidden; display:flex; flex-direction:column; height:440px; border:1px solid var(--gray-200); border-radius:6px; background:white;">
                         <button id="netFullBtn" class="btn btn-outline btn-sm mobile-hide" style="position:absolute; top:6px; right:6px; z-index:5; font-size:11px; padding:2px 9px; background:#fff;" title="Open the network in a full-window view with all its settings beside it">&#10530; Full page</button>
                         <div id="networkHeader" style="display:none; padding:8px 14px; border-bottom:1px solid var(--gray-200); background:#f9fafb; font-size:11px; color:#374151;"></div>
                         <!-- Why the highlighted genes are highlighted. Written
@@ -11732,7 +11736,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_64"></script>
+    <script src="app.js?v=v90_65"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
