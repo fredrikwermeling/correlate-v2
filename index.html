@@ -2960,6 +2960,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.75 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Gene Browser co-dependencies include the negative side: a Negative r toggle lists the 10 genes whose gene effect runs most opposite to this gene's (lines that depend on one depend less on the other), with its own red-linked figure, network and heatmap. Methods and Export for AI carry both lists.</li>
+                </ul>
                 <p><strong>v.90.74 (2026-10-24)</strong></p>
                 <ul>
                     <li>Gene Browser: a sequence viewer (View sequence, in Gene structure). It shows the genomic, mRNA, coding or protein sequence of the chosen transcript. Coding exon bases are coloured and upper case, untranslated exon bases paler, introns lower case grey, and hotspot codons red; each line names its exon or intron. It searches DNA on both strands or protein (matches highlighted, stepped through), jumps to a position, and copies all, a range or a mouse selection as bare sequence. It downloads FASTA and switches to an editable text view. Long genes scroll smoothly, since only the lines on screen are drawn.</li>
@@ -8478,7 +8482,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.74</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.75</a>
         </span>
     </div>
 
@@ -11813,7 +11817,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_74"></script>
+    <script src="app.js?v=v90_75"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
