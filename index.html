@@ -2931,6 +2931,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.71 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Cell Line Browser: Dimensionality reduction is now a large popout opened with the PCA / UMAP button at the top of the browser, instead of a small panel at the bottom; it keeps every control, gates and loadings, and closes with ×, Esc or a click outside, leaving the browser and its filtered list as they were. The plot starts wider (700 px).</li>
+                </ul>
                 <p><strong>v.90.70 (2026-10-24)</strong></p>
                 <ul>
                     <li>Dimensionality reduction: the loadings are shown by default after a PCA, and Copy now copies the plot together with the loadings (and the CRISPR / mRNA colour key) when they are shown, as Export image already did; loading labels keep their font in both.</li>
@@ -8431,7 +8435,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.70</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.71</a>
         </span>
     </div>
 
@@ -11109,6 +11113,7 @@
           <div style="margin-left:auto; display:flex; align-items:center; gap:6px;">
             <button id="clbInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols, warnings and where each piece of data comes from">?</button>
             <button id="clbExportImageBtn" class="btn btn-outline btn-sm mobile-hide" title="Capture the Cell Line Browser as an image (PNG / TIFF / PDF / PowerPoint)">Export image...</button>
+            <button id="clbUmapOpenBtn" class="btn btn-outline btn-sm mobile-hide" title="Open PCA / UMAP of the cell lines in a large window: lasso selection, gates, loadings">PCA / UMAP</button>
             <button id="clbHeatmapBtn" class="btn btn-outline btn-sm mobile-hide" title="Show a gene set across the cell lines currently listed, as a heatmap">Heatmap</button>
             <button id="clbExportAIBtn" class="btn btn-outline btn-sm mobile-hide" title="Send the cell lines currently listed, with their alterations and gene-effect data, to an AI assistant for analysis">Export for AI</button>
             <button class="btn btn-outline btn-sm mobile-hide" onclick="app.openMethods('clb')" title="Write out how this list was arrived at, as a methods paragraph and as a plain walk-through">Methods</button>
@@ -11352,14 +11357,14 @@
              opens on the cell-line list; everything lives inside
              #clbUmapSection, so the whole block can be dropped in one piece.
              Hidden on phones as well, it is a heavy interactive analysis. -->
-        <div id="clbUmapSection" class="mobile-hide" style="border-top:1px solid #e5e7eb; padding:10px 16px; position:relative;">
-            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <button id="clbUmapToggle" class="btn btn-outline btn-sm" aria-expanded="false" aria-controls="clbUmapBody" style="font-size:12px;">
-                    <span id="clbUmapToggleCaret">&#9656;</span> Dimensionality reduction
-                </button>
-                <span id="clbUmapToggleHint" style="font-size:11px; color:var(--gray-500);">PCA or UMAP over the filtered cell lines, with lasso selection and gate comparison.</span>
+        <div id="clbUmapSection" class="mobile-hide" style="display:none; position:fixed; inset:0; z-index:1356; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:0 20px 20px; overflow-y:auto;">
+          <div id="clbUmapCard" style="background:#fff; width:100%; max-width:min(98vw, 1600px); margin-top:20px; border-radius:8px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); position:relative;">
+            <div style="position:sticky; top:0; z-index:4; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg,#f3faee,#fff); border-radius:8px 8px 0 0;">
+              <div><h3 style="margin:0; font-size:17px; color:#4c782e;">Dimensionality reduction</h3>
+                <div id="clbUmapToggleHint" style="font-size:11px; color:var(--gray-500); margin-top:1px;">PCA or UMAP over the cell lines, with lasso selection and gate comparison. "Cell lines filtered above" uses the Cell Line Browser's current list.</div></div>
+              <button id="clbUmapCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;" title="Close (Esc); the Cell Line Browser stays open behind">&times;</button>
             </div>
-            <div id="clbUmapBody" style="display:none; margin-top:10px;">
+            <div id="clbUmapBody" style="padding:12px 18px 16px;">
             <!-- Row 1: Compute, what to analyze + run -->
             <div class="clb-umap-row">
                 <select id="clbUmapMethod" class="clb-umap-ctl">
@@ -11405,7 +11410,7 @@
                 <input type="range" id="clbUmapMarkerSize" min="2" max="14" value="9" style="width:60px; vertical-align:middle;" title="Marker size">
                 <span class="clb-umap-lbl">W</span>
                 <button onclick="app.adjustNumber('clbUmapPlotWidth', -20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">−</button>
-                <input type="number" id="clbUmapPlotWidth" class="clb-umap-ctl" value="500" min="300" max="1200" step="20" style="width:50px; text-align:center;" title="Plot width">
+                <input type="number" id="clbUmapPlotWidth" class="clb-umap-ctl" value="700" min="300" max="1200" step="20" style="width:50px; text-align:center;" title="Plot width">
                 <button onclick="app.adjustNumber('clbUmapPlotWidth', 20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">+</button>
                 <span class="clb-umap-lbl">H</span>
                 <button onclick="app.adjustNumber('clbUmapPlotHeight', -20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">−</button>
@@ -11517,12 +11522,13 @@
                     <div id="clbUmapGateGenePlot" style="margin-top:8px;"></div>
                 </div>
             </div>
+          </div>
+        </div>
         </div>
 
         <div style="padding: 8px 16px; border-top: 1px solid var(--gray-200); font-size: 11px; color: var(--gray-500); text-align: center;">
           Data from <a href="https://depmap.org/" target="_blank" rel="noopener" style="color: var(--green-700);">DepMap</a> (Broad Institute). Please acknowledge DepMap when using this data in publications.
         </div>
-            </div>
         </div><!-- /clbScrollableBody -->
       </div>
     </div>
@@ -11764,7 +11770,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_70"></script>
+    <script src="app.js?v=v90_71"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

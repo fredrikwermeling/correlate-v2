@@ -39,6 +39,7 @@ REMOVE_LINES = [
     ("showCutoffDirect", "Options > Other > Threshold scan"),
     ("mutHeatmapBtn", "mutation analysis Heatmap button"),
     ("clbHeatmapBtn", "Cell Line Browser Heatmap button"),
+    ("clbUmapOpenBtn", "Cell Line Browser PCA / UMAP button"),
     ("clbHelpHeatmap", "Cell Line Browser help line on the heatmap"),
 ]
 
