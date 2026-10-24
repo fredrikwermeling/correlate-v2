@@ -51640,16 +51640,56 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         if (!box) return;
         const lists = CorrelationExplorer.GB_XCORR.filter(m => res?.[m.key]?.length);
         if (!lists.length) { box.remove(); return; }
+        await this.loadGeneLocations().catch(() => null);
+        if (this._gbGene !== gene) return;
         const g = this.gi(gene);
+        const near = CorrelationExplorer.GB_NEAR_MB;
+        const locCell = (h) => {
+            const d = this._gbNeighbour(gene, h.gene);
+            if (!d) return '<span class="gb-m">n/a</span>';
+            if (d.mb === null || d.mb > near) return `<span class="gb-m">${this.esc(d.band)}</span>`;
+            return `<span class="gb-near" title="${d.mb < 0.05 ? 'Overlaps or touches' : d.mb.toFixed(1) + ' Mb from'} ${this.esc(gene)} on chromosome ${this.esc(d.chr)}">${this.esc(d.band)} · ${d.mb < 0.05 ? '&lt;0.1' : d.mb.toFixed(1)} Mb</span>`;
+        };
+        const isNear = (h) => { const d = this._gbNeighbour(gene, h.gene); return !!d && d.mb !== null && d.mb <= near; };
+        const pick = lists.some(m => m.key === this._gbXCorrTab) ? this._gbXCorrTab : lists[0].key;
+        const tabs = lists.map(m => {
+            const k = res[m.key].filter(isNear).length;
+            return `<button class="gb-scatter-btn gb-xtab${m.key === pick ? ' on' : ''}" data-gb-xtab="${m.key}">${m.head(g)}${k ? ` <span class="gb-near">${k} nearby</span>` : ''}</button>`;
+        }).join('');
+        const panels = lists.map(m => `<div class="gb-xpanel" data-gb-xpanel="${m.key}"${m.key === pick ? '' : ' hidden'}>`
+            + `<div class="gb-m" style="margin:2px 0 3px;">${m.note(g)}</div>`
+            + this._gbTable(['Gene', 'r', 'p', 'Location', ''], res[m.key].map(h => [
+                `<a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a>`,
+                `<span class="${h.r < 0 ? 'corr-negative' : 'corr-positive'}">${h.r.toFixed(3)}</span>`,
+                `<span class="gb-m" title="${h.n.toLocaleString()} cell lines">${this._gbP(h.p)}</span>`,
+                locCell(h),
+                `<button class="btn btn-sm inspect-btn" style="padding:2px 6px; font-size:10px; background:#6ba544; color:white;" data-gb-scatter="${this.esc(h.gene)}" data-gb-x="${m.tx}" data-gb-y="${m.ty}" title="Open the correlation plot">Correlation</button>`]))
+            + `</div>`).join('');
         box.innerHTML = `<div class="gb-sub" style="margin-top:10px;">Expression correlations <span class="gb-m">(mRNA against gene effect and mRNA)</span></div>`
-            + `<div class="gb-xcorr">` + lists.map(m => `<div><div class="gb-m" style="margin-bottom:2px;"><b style="color:#374151;">${m.head(g)}</b><br>${m.note(g)}</div>`
-                + this._gbTable(['Gene', 'r', 'p', ''], res[m.key].map(h => [
-                    `<a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a>`,
-                    `<span class="${h.r < 0 ? 'corr-negative' : 'corr-positive'}">${h.r.toFixed(3)}</span>`,
-                    `<span class="gb-m" title="${h.n.toLocaleString()} cell lines">${this._gbP(h.p)}</span>`,
-                    `<button class="btn btn-sm inspect-btn" style="padding:2px 6px; font-size:10px; background:#6ba544; color:white;" data-gb-scatter="${this.esc(h.gene)}" data-gb-x="${m.tx}" data-gb-y="${m.ty}" title="Open the correlation plot">Correlation</button>`]))
-                + `</div>`).join('') + `</div>`
-            + `<div class="gb-m" style="margin-top:3px;">Pearson r across the cell lines with both values (hover p for n), strongest in either direction, genes measured in at least 100 lines.</div>`;
+            + `<div class="gb-xtabs">${tabs}</div>${panels}`
+            + `<div class="gb-m" style="margin-top:3px;">Pearson r across the cell lines with both values (hover p for n), strongest in either direction, genes measured in at least 100 lines. `
+            + `${g} is at ${this.esc(this.geneLocations?.[gene]?.band || 'an unknown band')}; <span class="gb-near">amber</span> marks genes within ${near} Mb on the same chromosome. Neighbours are often gained or lost together, so their mRNA can correlate through shared copy number rather than shared function.</div>`;
+        box.querySelectorAll('[data-gb-xtab]').forEach(b => b.addEventListener('click', () => {
+            this._gbXCorrTab = b.dataset.gbXtab;
+            box.querySelectorAll('[data-gb-xtab]').forEach(x => x.classList.toggle('on', x === b));
+            box.querySelectorAll('[data-gb-xpanel]').forEach(x => { x.hidden = x.dataset.gbXpanel !== b.dataset.gbXtab; });
+        }));
+    }
+
+    // Distance window for "nearby" in the expression-correlation tables.
+    static GB_NEAR_MB = 10;
+
+    // Band and gap in Mb (0 when the genes overlap) between two genes; mb is
+    // null on another chromosome or without coordinates.
+    _gbNeighbour(a, b) {
+        const la = this.geneLocations?.[a], lb = this.geneLocations?.[b];
+        if (!lb) return null;
+        const chr = String(lb.chr).replace(/^chr/i, '');
+        const out = { chr, band: lb.band || ('chr' + chr), mb: null };
+        if (!la || String(la.chr).replace(/^chr/i, '') !== chr || la.start == null || lb.start == null) return out;
+        const gap = Math.max(0, Math.max(la.start, lb.start) - Math.min(la.end ?? la.start, lb.end ?? lb.start));
+        out.mb = gap / 1e6;
+        return out;
     }
 
     // The curated pathways and complexes that list the gene as a member.
@@ -51909,9 +51949,10 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             mouseOrthologs: Object.keys(this.orthologs?.mouseToHuman || {}).filter(k => this.orthologs.mouseToHuman[k] === gene)
         };
         const xc = this._gbXCorrCache?.get(gene);
-        out.relatedGenes.expressionCorrelations = xc ? Object.fromEntries(CorrelationExplorer.GB_XCORR.filter(m => xc[m.key]).map(m => [m.key, xc[m.key].map(h => ({ gene: h.gene, r: r3(h.r), p: pv(h.p), n: h.n }))])) : null;
+        const nb = (h) => { const d = this._gbNeighbour(gene, h.gene); return d ? { band: d.band, mbFromGene: d.mb === null ? null : +d.mb.toFixed(2) } : {}; };
+        out.relatedGenes.expressionCorrelations = xc ? Object.fromEntries(CorrelationExplorer.GB_XCORR.filter(m => xc[m.key]).map(m => [m.key, xc[m.key].map(h => ({ gene: h.gene, r: r3(h.r), p: pv(h.p), n: h.n, ...nb(h) }))])) : null;
         out.relatedGenes.expressionCorrelations_readMe = xc
-            ? 'Top 10 by |r| (Pearson, all cell lines with both values, genes with at least 100 lines). geneEffectVsMrna: this gene\'s gene effect against every gene\'s mRNA (negative r: higher expression goes with stronger dependency on this gene). mrnaVsMrna: co-expression. mrnaVsGeneEffect: this gene\'s mRNA against every gene\'s gene effect. p not corrected for the number of genes tested.'
+            ? `Top 10 by |r| (Pearson, all cell lines with both values, genes with at least 100 lines). geneEffectVsMrna: this gene\'s gene effect against every gene\'s mRNA (negative r: higher expression goes with stronger dependency on this gene). mrnaVsMrna: co-expression. mrnaVsGeneEffect: this gene\'s mRNA against every gene\'s gene effect. p not corrected for the number of genes tested. band / mbFromGene: cytoband and gap in Mb from this gene (null = another chromosome); neighbours within ${CorrelationExplorer.GB_NEAR_MB} Mb can correlate through shared copy-number changes rather than function.`
             : 'Not computed: expression data or the scan had not finished when the file was made.';
         return out;
     }

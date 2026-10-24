@@ -1734,7 +1734,11 @@
         .gb-scope .gb-relgrid { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:24px; align-items:start; }
         .gb-scope .gb-relfig { min-width:0; padding-top:2px; }
         @media (max-width: 900px) { .gb-scope .gb-relgrid { grid-template-columns:minmax(0,1fr); } }
-        .gb-scope .gb-xcorr { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px 18px; align-items:start; }
+        .gb-scope .gb-xtabs { display:flex; flex-wrap:wrap; gap:5px; margin:2px 0 4px; }
+        .gb-scope .gb-xtab { font-size:11px; padding:2px 10px; }
+        .gb-scope .gb-xtab.on { background:#6ba544; color:#fff; }
+        .gb-scope .gb-xtab.on .gb-near { background:#fff7db; }
+        .gb-scope .gb-near { background:#fef3c7; color:#92400e; border-radius:8px; padding:0 6px; font-size:10px; white-space:nowrap; font-weight:600; }
         .gb-scope .gb-edge:hover .gb-edge-line { stroke:#1e40af; }
         .gb-scope .gb-node:hover circle { stroke-width:2.4; }
         .gb-scope .gb-table { width:auto; min-width:min(100%, 320px); font-size:11.5px; margin-bottom:2px; }
@@ -2916,6 +2920,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.55 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Gene Browser, expression correlations: each gene's chromosome band, with genes within 10 Mb of the browsed gene marked in amber and counted on each list's button, since neighbours often correlate through shared copy-number changes. The three lists now share one table with buttons to switch between them.</li>
+                </ul>
                 <p><strong>v.90.54 (2026-10-24)</strong></p>
                 <ul>
                     <li>Gene Browser, Related genes: new expression correlations, three top-10 lists with r and p: mRNA that tracks the gene's dependency, genes co-expressed with it, and dependencies that track its mRNA. Each row opens the matching correlation plot.</li>
@@ -8337,7 +8345,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.54</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.55</a>
         </span>
     </div>
 
@@ -11644,7 +11652,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_54"></script>
+    <script src="app.js?v=v90_55"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
