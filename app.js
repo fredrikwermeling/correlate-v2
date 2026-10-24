@@ -25595,7 +25595,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const long = this._mBlocks([
             this._methodsHeaderBlock(title, 'both'),
             `THE GENE\n   ${gene}${s.loc ? `, ${this._gbLocText(s.loc)}` : ''}. Every number on the page uses all cell lines with data for that layer; no tissue or other filter is applied.`,
-            `DEPENDENCY\n   ${this._mNum(nGe)} screened lines. "Dependent" means a gene effect below ${dep}, the Threshold scan's default. The wording in the summary (a common essential gene, a dependency in most lines, a selective dependency, a dependency in a few lines, rarely a dependency) follows the common-essentials list first, then the share of lines below the cutoff (50% or more, 5%, 1%).`,
+            `DEPENDENCY\n   ${this._mNum(nGe)} screened lines. "Dependent" means a gene effect below ${dep}, the app's default dependency cutoff. The wording in the summary (a common essential gene, a dependency in most lines, a selective dependency, a dependency in a few lines, rarely a dependency) follows the common-essentials list first, then the share of lines below the cutoff (50% or more, 5%, 1%).`,
             nEx ? `EXPRESSION\n   ${this._mNum(nEx)} lines. "Expressed" means at least ${ex} log2(TPM+1).` : '',
             `MUTATIONS AND FUSIONS\n   Hotspot, any-mutation, functional-loss and fusion calls as used across the app. Percentages use all ${this._mNum(s.N)} lines as the denominator, including lines that were never sequenced. Specific variants come from the inferred-subtype layer.${s.split ? ` Mutated (${s.split.label}, n = ${s.split.mut.length}) and wild-type (n = ${s.split.wt.length}) lines were compared with a two-sided Welch t-test on gene effect.` : ''}`,
             'COPY NUMBER\n   Gene-level relative copy number (1 = the line\'s own baseline). The app\'s copy-number tiers: amplified from 3, deep deletion below 0.3.',
@@ -51659,7 +51659,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             + `<div class="gb-m" style="margin-top:3px;">Pearson r of gene effect across the cell lines screened for both genes (${(() => { const ns = top.map(h => h.n); const a = Math.min(...ns), b = Math.max(...ns); return a === b ? a.toLocaleString() : `${a.toLocaleString()} to ${b.toLocaleString()}`; })()}; hover p for each n). 1 = identical pattern.</div>`
             + `<div class="gb-actions">`
             + `<button class="btn btn-outline btn-sm" data-gb-act="net-codep" title="Run Gene set analysis on ${this.esc(gene)} and these ${top.length} genes, drawn as a correlation network">Network of these genes</button>`
-            + `<button class="btn btn-outline btn-sm" data-gb-act="hm-codep" title="Show ${this.esc(gene)} and these ${top.length} genes as a heatmap across the cell lines">Heatmap</button>`
+            + (this._hasHeatmap() ? `<button class="btn btn-outline btn-sm" data-gb-act="hm-codep" title="Show ${this.esc(gene)} and these ${top.length} genes as a heatmap across the cell lines">Heatmap</button>` : '')
             + `<button class="btn btn-outline btn-sm" data-gb-act="expand" title="Search every gene in the screen for ones whose gene effect correlates with ${this.esc(gene)}, drawn as a network (Gene set analysis, Expand my set)">Find more correlated genes</button>`
             + `</div>` : '';
         const scheme = this._gbRelSchematic(gene, top, corum);
@@ -51673,16 +51673,16 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         // below only say that one exists.
         const named = this._gbNamedCache;
         const sets = named.length ? `<div class="gb-sub">Curated pathways and complexes that include ${g}</div>`
-            + `<div class="gb-m" style="margin-bottom:2px;">Hand-picked member lists the app also uses in the cell line wiki and the heatmap. ${g} is highlighted in each; Network and Heatmap draw the whole list across the cell lines.</div>`
+            + `<div class="gb-m" style="margin-bottom:2px;">Hand-picked member lists the app also uses in the cell line wiki${this._hasHeatmap() ? ' and the heatmap' : ''}. ${g} is highlighted in each; ${this._hasHeatmap() ? 'Network and Heatmap draw' : 'Network draws'} the whole list across the cell lines.</div>`
             + named.map((x, k) => `<div class="gb-set"><div><b>${this.esc(x.name)}</b> <span class="gb-m">${this.esc(x.kind)} · ${x.genes.length} genes</span>`
-                + `<span class="gb-set-acts"><button class="gb-scatter-btn" data-gb-set="${k}" data-gb-set-do="net" title="Run Gene set analysis on this set">Network</button><button class="gb-scatter-btn" data-gb-set="${k}" data-gb-set-do="hm" title="Show this set as a heatmap across the cell lines">Heatmap</button></span></div>`
+                + `<span class="gb-set-acts"><button class="gb-scatter-btn" data-gb-set="${k}" data-gb-set-do="net" title="Run Gene set analysis on this set">Network</button>${this._hasHeatmap() ? `<button class="gb-scatter-btn" data-gb-set="${k}" data-gb-set-do="hm" title="Show this set as a heatmap across the cell lines">Heatmap</button>` : ''}</span></div>`
                 + (x.note ? `<div class="gb-m" style="margin:1px 0 3px;">${this._italicizeGenesInHtml(this.esc(x.note))}</div>` : '')
                 + `<div class="gb-chips">${list(x.genes, 24)}</div></div>`).join('') : '';
         const db = (corum.length || reactome.length) ? `<details class="gb-details"><summary>All database partners: ${corum.length ? `${corum.length} in CORUM complexes` : ''}${corum.length && reactome.length ? ', ' : ''}${reactome.length ? `${reactome.length >= 120 ? 'the 120 closest' : reactome.length} in Reactome pathways` : ''}</summary>`
             + `<div class="gb-m" style="margin:4px 0;">Every protein recorded in a complex with ${g} (CORUM), and the genes sharing a Reactome pathway of 5 to 100 genes with it (at most 120, those sharing the most pathways). This list does not say which complex or pathway each comes from; the CORUM and Reactome sites do.</div>`
             + (corum.length ? `<div class="gb-sub" style="margin-top:6px;">CORUM complex partners</div><div class="gb-chips">${list(corum, 40)}</div>`
                 + `<div class="gb-actions"><button class="btn btn-outline btn-sm" data-gb-act="net-corum" title="Run Gene set analysis on ${this.esc(gene)} and its complex partners">Network of the complex</button>`
-                + `<button class="btn btn-outline btn-sm" data-gb-act="hm-corum" title="Show ${this.esc(gene)} and its complex partners as a heatmap">Heatmap of the complex</button></div>` : '')
+                + (this._hasHeatmap() ? `<button class="btn btn-outline btn-sm" data-gb-act="hm-corum" title="Show ${this.esc(gene)} and its complex partners as a heatmap">Heatmap of the complex</button>` : '') + `</div>` : '')
             + (reactome.length ? `<div class="gb-sub">Reactome pathway partners</div><div class="gb-chips">${list(reactome, 60)}</div>` : '')
             + `</details>` : '';
         const body = this._gbDesc(`Genes linked to ${g} by the data (co-dependencies: their gene effect rises and falls with ${g}'s across the cell lines) and by prior knowledge (the same complex or pathway). Click a gene to open it here, hover for a summary.`)
