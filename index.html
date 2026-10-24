@@ -1745,6 +1745,35 @@
         .gb-scope .gb-tag { display:inline-block; margin-left:5px; padding:0 5px; border-radius:7px; font-size:9.5px; line-height:1.45; font-style:normal; vertical-align:1px; border:1px solid; }
         .gb-scope .gb-tag-complex { background:#f3faee; color:#3f6b25; border-color:#6ba544; }
         .gb-scope .gb-tag-pathway { background:#f3f4f6; color:#4b5563; border-color:#d1d5db; }
+        #gbSeqModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:20px; }
+        #gbSeqModal .sq-card { background:#fff; width:100%; max-width:min(98vw, 1180px); max-height:calc(100vh - 40px); border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; }
+        #gbSeqModal .sq-head { display:flex; justify-content:space-between; align-items:center; padding:10px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg,#f3faee,#fff); }
+        #gbSeqModal h3 { margin:0; font-size:17px; color:#4c782e; }
+        #gbSeqModal .sq-x { background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280; }
+        #gbSeqModal .sq-m { font-size:11px; color:#6b7280; }
+        #gbSeqModal .sq-bar { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:8px 18px; border-bottom:1px solid #f1f5f9; font-size:12px; }
+        #gbSeqModal .sq-bar input[type=text] { width:170px; font-family:ui-monospace, Menlo, monospace; font-size:12px; padding:3px 6px; border:1px solid #d1d5db; border-radius:4px; }
+        #gbSeqModal .sq-bar input[type=number] { width:74px; font-size:12px; padding:3px 6px; border:1px solid #d1d5db; border-radius:4px; }
+        #gbSeqModal .sq-bar select { font-size:12px; padding:3px 6px; border:1px solid #d1d5db; border-radius:4px; }
+        #gbSeqModal .sq-bar .btn { font-size:11px; padding:3px 9px; }
+        #gbSeqModal .sq-sep { width:1px; height:18px; background:#e5e7eb; }
+        #gbSeqModal .sq-legend { padding:6px 18px; font-size:11px; color:#374151; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+        #gbSeqModal .sq-chip { font-family:ui-monospace, Menlo, monospace; font-size:11px; padding:0 5px; border-radius:3px; }
+        #gbSeqModal .sq-scroll { position:relative; flex:1; min-height:300px; height:calc(100vh - 220px); overflow-y:auto; font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12.5px; border-top:1px solid #f1f5f9; }
+        #gbSeqModal .sq-line { position:absolute; left:0; right:0; height:20px; line-height:20px; white-space:nowrap; display:flex; }
+        #gbSeqModal .sq-num { width:92px; flex:0 0 92px; text-align:right; padding-right:12px; color:#9ca3af; user-select:none; -webkit-user-select:none; }
+        #gbSeqModal .sq-seq { letter-spacing:0.5px; }
+        #gbSeqModal .sq-reg { margin-left:16px; color:#9ca3af; font-family:Arial, sans-serif; font-size:10.5px; user-select:none; -webkit-user-select:none; }
+        #gbSeqModal .sq-g { margin-left:7px; }
+        #gbSeqModal .sq-cds { background:#cfe8bb; color:#1f3d12; }
+        #gbSeqModal .sq-utr { background:#eef6e7; color:#3f6b25; }
+        #gbSeqModal .sq-intron { color:#9ca3af; }
+        #gbSeqModal .sq-flank { color:#c4c9d1; }
+        #gbSeqModal .sq-hot { background:#fecaca; color:#991b1b; font-weight:700; }
+        #gbSeqModal .sq-hit { outline:1.5px solid #f59e0b; background:#fef3c7; color:#78350f; }
+        #gbSeqModal .sq-cur { outline:2px solid #d97706; background:#fde68a; color:#78350f; }
+        #gbSeqModal #sqEditWrap { padding:0 18px 14px; }
+        #gbSeqModal #sqEditBox { width:100%; height:calc(100vh - 260px); font-family:ui-monospace, Menlo, monospace; font-size:12.5px; border:1px solid #d1d5db; border-radius:6px; padding:8px; box-sizing:border-box; }
         .gb-scope .gb-xtabs { display:flex; flex-wrap:wrap; gap:5px; margin:2px 0 4px; }
         .gb-scope .gb-xtab { font-size:11px; padding:2px 10px; }
         .gb-scope .gb-xtab.on { background:#6ba544; color:#fff; }
@@ -2931,6 +2960,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.74 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Gene Browser: a sequence viewer (View sequence, in Gene structure). It shows the genomic, mRNA, coding or protein sequence of the chosen transcript. Coding exon bases are coloured and upper case, untranslated exon bases paler, introns lower case grey, and hotspot codons red; each line names its exon or intron. It searches DNA on both strands or protein (matches highlighted, stepped through), jumps to a position, and copies all, a range or a mouse selection as bare sequence. It downloads FASTA and switches to an editable text view. Long genes scroll smoothly, since only the lines on screen are drawn.</li>
+                    <li>Gene Browser: the "dependencies that track mRNA" list is removed (it mostly reflects tissue), leaving co-expression.</li>
+                    <li>Dimensionality reduction: the plot takes the correlation plot's look (grid, zero lines, Arial), sits in a soft border and starts at 600 px. Hovering a cell line shows the app's usual cell-line card, Shift-click opens its Wiki, and clicking an axis title picks the component on that axis. The axis titles no longer get cut off.</li>
+                </ul>
                 <p><strong>v.90.73 (2026-10-24)</strong></p>
                 <ul>
                     <li>Gene Browser GenBank files open cleanly in ApE, SnapGene and Benchling. There is no gene feature over the whole sequence (it shaded every base) and no joined mRNA in the genomic file (it was drawn through every intron). Every feature has a label ("exon 2", "KRAS CDS", "G12 hotspot") and an ApE colour (exons light green, CDS green, hotspots red), the mRNA file marks its 5' and 3' UTRs, and the header lines stay within GenBank's 80 columns.</li>
@@ -8443,7 +8478,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.73</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.74</a>
         </span>
     </div>
 
@@ -11418,7 +11453,7 @@
                 <input type="range" id="clbUmapMarkerSize" min="2" max="14" value="9" style="width:60px; vertical-align:middle;" title="Marker size">
                 <span class="clb-umap-lbl">W</span>
                 <button onclick="app.adjustNumber('clbUmapPlotWidth', -20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">−</button>
-                <input type="number" id="clbUmapPlotWidth" class="clb-umap-ctl" value="700" min="300" max="1200" step="20" style="width:50px; text-align:center;" title="Plot width">
+                <input type="number" id="clbUmapPlotWidth" class="clb-umap-ctl" value="600" min="300" max="1200" step="20" style="width:50px; text-align:center;" title="Plot width">
                 <button onclick="app.adjustNumber('clbUmapPlotWidth', 20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">+</button>
                 <span class="clb-umap-lbl">H</span>
                 <button onclick="app.adjustNumber('clbUmapPlotHeight', -20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">−</button>
@@ -11495,7 +11530,7 @@
                 </div>
                 <div id="clbUmapClusterStatsContent"></div>
             </div>
-            <div id="clbUmapPlotWrap" style="display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+            <div id="clbUmapPlotWrap" style="display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap; border:1px solid #e5e7eb; border-radius:10px; padding:10px 12px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
                 <div id="clbUmapPlot" style="min-height:50px;"></div>
                 <div id="clbUmapLoadingsSidecar" style="display:none;"></div>
             </div>
@@ -11778,7 +11813,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_73"></script>
+    <script src="app.js?v=v90_74"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
