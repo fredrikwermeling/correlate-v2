@@ -2931,6 +2931,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.73 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Gene Browser GenBank files open cleanly in ApE, SnapGene and Benchling. There is no gene feature over the whole sequence (it shaded every base) and no joined mRNA in the genomic file (it was drawn through every intron). Every feature has a label ("exon 2", "KRAS CDS", "G12 hotspot") and an ApE colour (exons light green, CDS green, hotspots red), the mRNA file marks its 5' and 3' UTRs, and the header lines stay within GenBank's 80 columns.</li>
+                </ul>
                 <p><strong>v.90.72 (2026-10-24)</strong></p>
                 <ul>
                     <li>Gene Browser, gene structure: hotspot codons no longer overlap. Each has its own stem at its real position, labels go on the lowest free row and read "G12 · 139 lines", and a key under the figure says what the red marks are. The Hotspot codons row spells out the lines per codon and the commonest changes (e.g. G12D 55), and the coding-length rule no longer runs through its text.</li>
@@ -8439,7 +8443,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.72</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.73</a>
         </span>
     </div>
 
@@ -11774,7 +11778,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_72"></script>
+    <script src="app.js?v=v90_73"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
