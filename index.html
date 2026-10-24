@@ -1777,8 +1777,13 @@
         #gbSeqModal .sq-hot { background:#fecaca; color:#991b1b; font-weight:700; }
         #gbSeqModal .sq-hit { outline:1.5px solid #f59e0b; background:#fef3c7; color:#78350f; }
         #gbSeqModal .sq-cur { outline:2px solid #d97706; background:#fde68a; color:#78350f; }
-        #gbSeqModal #sqEditWrap { padding:0 18px 14px; }
-        #gbSeqModal #sqEditBox { width:100%; height:calc(100vh - 260px); font-family:ui-monospace, Menlo, monospace; font-size:12.5px; border:1px solid #d1d5db; border-radius:6px; padding:8px; box-sizing:border-box; }
+        #gbSeqModal .sq-ins { background:#ede9fe; color:#6d28d9; font-weight:700; text-decoration:underline; text-decoration-color:#7c3aed; text-decoration-thickness:2px; text-underline-offset:2px; }
+        #gbSeqModal .sq-del { background:#fee2e2; color:#b91c1c; text-decoration:line-through; text-decoration-color:#dc2626; text-decoration-thickness:2px; }
+        #gbSeqModal .sq-caret { display:inline-block; width:0; height:16px; vertical-align:-3px; border-left:2px solid #111827; margin-right:-2px; animation:sqBlink 1s steps(1) infinite; }
+        @keyframes sqBlink { 50% { border-left-color:transparent; } }
+        #gbSeqModal .sq-editbar { background:#faf5ff; }
+        #gbSeqModal .sq-scroll.sq-editing { cursor:text; box-shadow:inset 0 0 0 2px #ddd6fe; outline:none; }
+        #gbSeqModal .btn.sq-on { background:#7c3aed; color:#fff; border-color:#7c3aed; }
         .gb-scope .gb-xtabs { display:flex; flex-wrap:wrap; gap:5px; margin:2px 0 4px; }
         .gb-scope .gb-xtab { font-size:11px; padding:2px 10px; }
         .gb-scope .gb-xtab.on { background:#6ba544; color:#fff; }
@@ -2965,6 +2970,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.80 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Sequence viewer: editing now happens in the annotated sequence. Click to place the cursor and type, use Backspace / Delete, or select bases to delete or replace them; Undo and Discard edits are on the edit bar. Inserted bases are purple and underlined, deleted bases stay visible, struck through in red, and both are marked on the overview strip.</li>
+                    <li>Search, Go to position, Copy region, Copy all and FASTA all work on the edited sequence; edits are kept per view while the Gene Browser stays on the gene.</li>
+                </ul>
                 <p><strong>v.90.79 (2026-10-24)</strong></p>
                 <ul>
                     <li>Gene Browser: the co-expressed genes now come with a heatmap of how they correlate with each other (mRNA r for every pair, nearby genes in amber); click a square for that pair's plot.</li>
@@ -8510,7 +8520,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.79</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.80</a>
         </span>
     </div>
 
@@ -11858,7 +11868,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_79"></script>
+    <script src="app.js?v=v90_80"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
