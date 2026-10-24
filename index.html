@@ -2931,6 +2931,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.72 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Gene Browser, gene structure: hotspot codons no longer overlap. Each has its own stem at its real position, labels go on the lowest free row and read "G12 · 139 lines", and a key under the figure says what the red marks are. The Hotspot codons row spells out the lines per codon and the commonest changes (e.g. G12D 55), and the coding-length rule no longer runs through its text.</li>
+                </ul>
                 <p><strong>v.90.71 (2026-10-24)</strong></p>
                 <ul>
                     <li>Cell Line Browser: Dimensionality reduction is now a large popout opened with the PCA / UMAP button at the top of the browser, instead of a small panel at the bottom; it keeps every control, gates and loadings, and closes with ×, Esc or a click outside, leaving the browser and its filtered list as they were. The plot starts wider (700 px).</li>
@@ -8435,7 +8439,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.71</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.72</a>
         </span>
     </div>
 
@@ -11770,7 +11774,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_71"></script>
+    <script src="app.js?v=v90_72"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
