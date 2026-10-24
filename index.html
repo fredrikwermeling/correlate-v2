@@ -2920,6 +2920,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.57 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Gene Browser links, after checking all 1,352 links on 50 gene pages: the NCBI Gene search matches only the official symbol (it listed a different gene first when the symbol is another gene's alias, e.g. CSN2 and FADS6), the COSMIC link is gone (it only reached a login page), and the Ensembl id is chosen on the main chromosome as soon as the gene record arrives.</li>
+                    <li>References: CORUM is cited with its current paper (Steinkamp et al. 2025), NCBI Gene is cited for the descriptions, and the mouse orthologs are described as the app's own table.</li>
+                </ul>
                 <p><strong>v.90.56 (2026-10-24)</strong></p>
                 <ul>
                     <li>Data fixes from an independent check of 50 random genes against the original DepMap files and NCBI, Ensembl and UniProt: copy number above 10.9 was capped (it now keeps the true value, up to 232, which changes copy-number correlations for strongly amplified genes); the common-essential list is now DepMap 26Q1's 1,827 genes (it was an older list of 1,247); cell line ACH-001683 is named UACC-3133.</li>
@@ -8352,7 +8357,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.56</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.57</a>
         </span>
     </div>
 
@@ -11659,7 +11664,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_56"></script>
+    <script src="app.js?v=v90_57"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>

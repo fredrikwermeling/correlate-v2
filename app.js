@@ -25589,7 +25589,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             `Pearson correlations were computed over the cell lines with both values: expression against gene effect, copy number against expression, drug sensitivity (PRISM AUC) against gene effect for compounds annotated to target ${gene}, and ${gene}'s gene effect against that of every other gene in the screen (genes with at least 100 shared lines).`,
             `Genes whose mRNA expression correlated with ${gene}'s gene effect, with ${gene}'s mRNA, and genes whose gene effect correlated with ${gene}'s mRNA were ranked by absolute Pearson r (genes with at least 100 shared lines).`,
             'Relative copy number of at least 3 was counted as amplification and below 0.3 as deep deletion.',
-            'Complex partners came from CORUM (Tsitsiridis et al., 2023) and pathway partners from Reactome (Milacic et al., 2024); gene annotation from MyGene.info, transcripts from Ensembl with the MANE Select reference, and genomic sequence from the UCSC Genome Browser (GRCh38).',
+            'Complex partners came from CORUM (Steinkamp et al., 2025) and pathway partners from Reactome (Milacic et al., 2024); gene annotation from MyGene.info, transcripts from Ensembl with the MANE Select reference, and genomic sequence from the UCSC Genome Browser (GRCh38).',
             this._methodsCitation()
         ]);
         const long = this._mBlocks([
@@ -38614,7 +38614,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (this.geneInfoCache[gene]) return this.geneInfoCache[gene];
 
         try {
-            const res = await fetch(`https://mygene.info/v3/query?q=symbol:${encodeURIComponent(gene)}&species=human&fields=symbol,name,summary,entrezgene,HGNC,type_of_gene,alias,ensembl.gene,uniprot.Swiss-Prot,MIM&size=1`);
+            const res = await fetch(`https://mygene.info/v3/query?q=symbol:${encodeURIComponent(gene)}&species=human&fields=symbol,name,summary,entrezgene,HGNC,type_of_gene,alias,ensembl.gene,genomic_pos,uniprot.Swiss-Prot,MIM&size=1`);
             const data = await res.json();
             if (data.hits && data.hits.length > 0) {
                 const hit = data.hits[0];
@@ -38626,12 +38626,17 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                     hgnc: hit.HGNC || null,
                     typeOfGene: hit.type_of_gene || '',
                     aliases: [].concat(hit.alias || []),
-                    ensembl: [].concat(hit.ensembl || []).map(e => e && e.gene).filter(Boolean)[0] || null,
-                    // Several when the gene also sits on alternate-haplotype patches.
-                    ensemblIds: [].concat(hit.ensembl || []).map(e => e && e.gene).filter(Boolean),
+                    // Several ids when the gene also sits on alternate-haplotype
+                    // patches; the one on a main chromosome comes first.
+                    ensemblIds: (() => {
+                        const ids = [].concat(hit.ensembl || []).map(e => e && e.gene).filter(Boolean);
+                        const main = new Set([].concat(hit.genomic_pos || []).filter(p => /^([1-9]|1\d|2[0-2]|X|Y|MT)$/.test(String(p?.chr))).map(p => p.ensemblgene));
+                        return [...ids.filter(i => main.has(i)), ...ids.filter(i => !main.has(i))];
+                    })(),
                     uniprot: [].concat(hit.uniprot?.['Swiss-Prot'] || [])[0] || null,
                     mim: hit.MIM || null
                 };
+                info.ensembl = info.ensemblIds[0] || null;
                 this.geneInfoCache[gene] = info;
                 return info;
             }
@@ -51682,7 +51687,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             + `<div id="gbExprCorr">${this._gbLoading('Comparing with every gene’s mRNA...')}</div>`
             + sets + db
             + (mice.length ? this._gbRow('Mouse ortholog', this.esc(mice.join(', '))) : '');
-        card.outerHTML = this._gbSection('Related genes', body, 'DepMap 26Q1 CRISPRGeneEffect and OmicsExpressionTPMLogp1 (correlations); the app’s curated pathway, complex and gene set lists; CORUM complexes (Tsitsiridis et al. 2023); Reactome pathways (Milacic et al. 2024); mouse orthologs. Full references under Links.', 'gbRelCard');
+        card.outerHTML = this._gbSection('Related genes', body, 'DepMap 26Q1 CRISPRGeneEffect and OmicsExpressionTPMLogp1 (correlations); the app’s curated pathway, complex and gene set lists; CORUM complexes (Steinkamp et al. 2025); Reactome pathways (Milacic et al. 2024); mouse orthologs from the app’s mouse-to-human gene table. References under Links.', 'gbRelCard');
         this._gbFillExprCorr(s);
     }
 
@@ -52046,27 +52051,27 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     static GB_REFS = [
         { name: 'DepMap', what: 'CRISPR gene effect, expression, mutations, fusions, copy number', url: 'https://depmap.org/portal/', cite: 'Tsherniak A et al. Defining a cancer dependency map. Cell 2017;170:564-576. Gene effect: Dempster JM et al. Chronos. Genome Biol 2021;22:343.' },
         { name: 'PRISM', what: 'drug sensitivity', url: 'https://depmap.org/repurposing/', cite: 'Corsello SM et al. Discovering the anticancer potential of non-oncology drugs by systematic viability profiling. Nat Cancer 2020;1:235-248.' },
-        { name: 'CORUM', what: 'protein complex partners', url: 'https://mips.helmholtz-muenchen.de/corum/', cite: 'Tsitsiridis G et al. CORUM: the comprehensive resource of mammalian protein complexes, 2022. Nucleic Acids Res 2023;51:D539-D545.' },
+        { name: 'CORUM', what: 'protein complex partners', url: 'https://mips.helmholtz-muenchen.de/corum/', cite: 'Steinkamp R et al. CORUM in 2024: protein complexes as drug targets. Nucleic Acids Res 2025;53:D651-D657.' },
         { name: 'Reactome', what: 'pathway partners', url: 'https://reactome.org/', cite: 'Milacic M et al. The Reactome Pathway Knowledgebase 2024. Nucleic Acids Res 2024;52:D672-D678.' },
-        { name: 'MyGene.info', what: 'gene description, aliases, identifiers', url: 'https://mygene.info/', cite: 'Xin J et al. High-performance web services for querying gene and variant annotation. Genome Biol 2016;17:91.' },
-        { name: 'Ensembl', what: 'transcripts and exons (GRCh38)', url: 'https://www.ensembl.org/', cite: 'Dyer SC et al. Ensembl 2025. Nucleic Acids Res 2025;53:D948-D957.' },
+        { name: 'NCBI Gene', what: 'gene description and aliases; RefSeq and Alliance of Genome Resources summaries, credited in the text', url: 'https://www.ncbi.nlm.nih.gov/gene/', cite: 'Brown GR et al. Gene: a gene-centered information resource at NCBI. Nucleic Acids Res 2015;43:D36-D42.' },
+        { name: 'MyGene.info', what: 'live access to the NCBI, HGNC, Ensembl, UniProt and OMIM records', url: 'https://mygene.info/', cite: 'Xin J et al. High-performance web services for querying gene and variant annotation. Genome Biol 2016;17:91.' },
+        { name: 'Ensembl', what: 'transcripts and exons, GRCh38', url: 'https://www.ensembl.org/', cite: 'Dyer SC et al. Ensembl 2025. Nucleic Acids Res 2025;53:D948-D957.' },
         { name: 'MANE', what: 'reference transcript', url: 'https://www.ncbi.nlm.nih.gov/refseq/MANE/', cite: 'Morales J et al. A joint NCBI and EMBL-EBI transcript set for clinical genomics and research. Nature 2022;604:310-315.' },
-        { name: 'UCSC Genome Browser', what: 'genomic sequence and chromosome bands (hg38)', url: 'https://genome.ucsc.edu/', cite: 'Perez G et al. The UCSC Genome Browser database: 2025 update. Nucleic Acids Res 2025;53:D1243-D1249.' }
+        { name: 'UCSC Genome Browser', what: 'genomic sequence and chromosome bands, hg38', url: 'https://genome.ucsc.edu/', cite: 'Perez G et al. The UCSC Genome Browser database: 2025 update. Nucleic Acids Res 2025;53:D1243-D1249.' }
     ];
 
     _gbLinksCard(gene) {
         const e = encodeURIComponent(gene);
         const a = (href, t) => `<a href="${href}" target="_blank" rel="noopener" style="color:#3730a3; font-weight:600;">${t} &#8599;</a>`;
         const links = [
-            a(`https://www.ncbi.nlm.nih.gov/gene/?term=${e}%5BGene+Name%5D+AND+human%5BOrganism%5D`, 'NCBI Gene'),
+            a(`https://www.ncbi.nlm.nih.gov/gene/?term=${e}%5BPreferred+Symbol%5D+AND+human%5BOrganism%5D`, 'NCBI Gene'),
             a(`https://www.genecards.org/cgi-bin/carddisp.pl?gene=${e}`, 'GeneCards'),
             a(`https://depmap.org/portal/gene/${e}`, 'DepMap portal'),
             a(`https://www.uniprot.org/uniprotkb?query=gene_exact%3A${e}+AND+organism_id%3A9606`, 'UniProt'),
             a(`https://reactome.org/content/query?q=${e}&species=Homo+sapiens`, 'Reactome'),
-            a(`https://cancer.sanger.ac.uk/cosmic/gene/analysis?ln=${e}`, 'COSMIC'),
         ];
         const refs = CorrelationExplorer.GB_REFS.map(r => `<li><a href="${r.url}" target="_blank" rel="noopener" style="color:#3730a3; font-weight:600;">${r.name}</a> <span style="color:#6b7280;">(${r.what})</span>: ${this.esc(r.cite)}</li>`).join('');
-        return this._gbSection('Links', `<div style="padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">Primary records:</b> ${links.join(' <span style="color:#9ca3af;">&middot;</span> ')}<div style="font-size:10px; color:#6b7280; margin-top:3px;">Opens the gene’s page at each site. Only the gene description (MyGene.info), the gene structure (Ensembl) and the sequences (UCSC) are fetched live; everything else comes from the app’s own data.</div></div>`
+        return this._gbSection('Links', `<div style="padding:6px 10px; background:#eef2ff; border-left:3px solid #3730a3; font-size:11px;"><b style="color:#3730a3;">Primary records:</b> ${links.join(' <span style="color:#9ca3af;">&middot;</span> ')}<div style="font-size:10px; color:#6b7280; margin-top:3px;">Opens each site’s page or search for the gene (a gene missing from Reactome finds nothing there). Only the gene description (MyGene.info), the gene structure (Ensembl) and the sequences (UCSC) are fetched live; everything else comes from the app’s own data.</div></div>`
             + `<div class="gb-sub" style="margin-top:10px;">Data sources and references</div><ul style="margin:2px 0 0; padding-left:18px; font-size:11px; line-height:1.5; color:#374151;">${refs}</ul>`);
     }
 
