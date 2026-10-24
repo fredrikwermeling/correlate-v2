@@ -1758,8 +1758,10 @@
         #gbSeqModal .sq-bar .btn { font-size:11px; padding:3px 9px; }
         #gbSeqModal .sq-sep { width:1px; height:18px; background:#e5e7eb; }
         #gbSeqModal .sq-legend { padding:6px 18px; font-size:11px; color:#374151; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+        #gbSeqModal .sq-ov { padding:2px 18px 4px; user-select:none; -webkit-user-select:none; }
+        #gbSeqModal .sq-ov-scale { display:flex; justify-content:space-between; font-size:10px; color:#9ca3af; margin-top:1px; }
         #gbSeqModal .sq-chip { font-family:ui-monospace, Menlo, monospace; font-size:11px; padding:0 5px; border-radius:3px; }
-        #gbSeqModal .sq-scroll { position:relative; flex:1; min-height:300px; height:calc(100vh - 220px); overflow-y:auto; font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12.5px; border-top:1px solid #f1f5f9; }
+        #gbSeqModal .sq-scroll { position:relative; flex:1; min-height:240px; height:calc(100vh - 262px); overflow-y:auto; font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12.5px; border-top:1px solid #f1f5f9; }
         #gbSeqModal .sq-line { position:absolute; left:0; right:0; height:20px; line-height:20px; white-space:nowrap; display:flex; }
         #gbSeqModal .sq-num { width:92px; flex:0 0 92px; text-align:right; padding-right:12px; color:#9ca3af; user-select:none; -webkit-user-select:none; }
         #gbSeqModal .sq-seq { letter-spacing:0.5px; }
@@ -2960,6 +2962,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.76 (2026-10-24)</strong></p>
+                <ul>
+                    <li>Sequence viewer: an overview strip of the whole sequence above it, with exons (coding parts darker), hotspot codons in red and search matches in amber. A blue window shows the part in view and follows the scrolling; click or drag on the strip to move there.</li>
+                </ul>
                 <p><strong>v.90.75 (2026-10-24)</strong></p>
                 <ul>
                     <li>Gene Browser co-dependencies include the negative side: a Negative r toggle lists the 10 genes whose gene effect runs most opposite to this gene's (lines that depend on one depend less on the other), with its own red-linked figure, network and heatmap. Methods and Export for AI carry both lists.</li>
@@ -8482,7 +8488,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.75</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.76</a>
         </span>
     </div>
 
@@ -11817,7 +11823,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_75"></script>
+    <script src="app.js?v=v90_76"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
