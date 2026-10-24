@@ -25587,7 +25587,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             `For ${gene}, the share of cell lines with a gene effect below ${dep} (${this._mNum(nGe)} screened lines)${nEx ? ` and with an expression of at least ${ex} log2(TPM+1) (${this._mNum(nEx)} lines)` : ''} was calculated, and tissues with at least 5 lines were summarized by their mean gene effect and median expression.`,
             s.split ? `Gene effect in ${s.split.label} and wild-type lines was compared with a two-sided Welch t-test.` : '',
             `Pearson correlations were computed over the cell lines with both values: expression against gene effect, copy number against expression, drug sensitivity (PRISM AUC) against gene effect for compounds annotated to target ${gene}, and ${gene}'s gene effect against that of every other gene in the screen (genes with at least 100 shared lines).`,
-            `Genes whose mRNA expression correlated with ${gene}'s gene effect, with ${gene}'s mRNA, and genes whose gene effect correlated with ${gene}'s mRNA were ranked by absolute Pearson r (genes with at least 100 shared lines).`,
+            `Genes whose mRNA expression correlated with ${gene}'s mRNA, and genes whose gene effect correlated with ${gene}'s mRNA, were ranked by absolute Pearson r (genes with at least 100 shared lines).`,
             'Relative copy number of at least 3 was counted as amplification and below 0.3 as deep deletion.',
             'Complex partners came from CORUM (Steinkamp et al., 2025) and pathway partners from Reactome (Milacic et al., 2024); gene annotation from MyGene.info, transcripts from Ensembl with the MANE Select reference, and genomic sequence from the UCSC Genome Browser (GRCh38).',
             this._methodsCitation()
@@ -25600,7 +25600,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
             `MUTATIONS AND FUSIONS\n   Hotspot, any-mutation, functional-loss and fusion calls as used across the app. Percentages use all ${this._mNum(s.N)} lines as the denominator, including lines that were never sequenced. Specific variants come from the inferred-subtype layer.${s.split ? ` Mutated (${s.split.label}, n = ${s.split.mut.length}) and wild-type (n = ${s.split.wt.length}) lines were compared with a two-sided Welch t-test on gene effect.` : ''}`,
             'COPY NUMBER\n   Gene-level relative copy number (1 = the line\'s own baseline). The app\'s copy-number tiers: amplified from 3, deep deletion below 0.3.',
             this._gbStructure ? `GENE STRUCTURE\n   Exons, transcript, coding and protein lengths of the MANE Select transcript (else the Ensembl canonical one), fetched live from the Ensembl REST API (GRCh38).` : '',
-            `RELATED GENES\n   Co-dependencies: the 10 genes whose gene effect correlates most positively with ${gene}'s (Pearson r, genes with at least 100 shared lines, p from the t distribution, not corrected for the number of genes tested).\n   Expression correlations: the 10 genes with the largest absolute r in each of three comparisons across the cell lines with both values: ${gene}'s gene effect against every gene's mRNA, ${gene}'s mRNA against every gene's mRNA, and ${gene}'s mRNA against every gene's gene effect (same rules).\n   Complex partners from CORUM, pathway partners from Reactome (pathways of 5 to 100 genes).`,
+            `RELATED GENES\n   Co-dependencies: the 10 genes whose gene effect correlates most positively with ${gene}'s (Pearson r, genes with at least 100 shared lines, p from the t distribution, not corrected for the number of genes tested).\n   Expression correlations: the 10 genes with the largest absolute r in each of two comparisons across the cell lines with both values: ${gene}'s mRNA against every gene's mRNA, and ${gene}'s mRNA against every gene's gene effect (same rules). Co-dependencies that are also CORUM complex partners, or share a curated pathway or a Reactome pathway with ${gene}, are tagged.\n   Complex partners from CORUM, pathway partners from Reactome (pathways of 5 to 100 genes).`,
             'WHAT THIS DOES NOT SAY\nA correlation across cell lines does not show that two genes act together, and differences between tissues can drive it. A mutated-versus-wild-type difference across the whole panel can reflect lineage rather than the mutation; Mutation analysis inside one tissue separates the two.',
             'REFERENCES\n' + CorrelationExplorer.GB_REFS.map(r => `   ${r.name} (${r.url}): ${r.cite}`).join('\n')
         ]);
@@ -51643,11 +51643,17 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const mice = Object.keys(this.orthologs?.mouseToHuman || {}).filter(k => this.orthologs.mouseToHuman[k] === gene)
             .map(k => k.charAt(0) + k.slice(1).toLowerCase());
         const g = this.gi(gene);
+        this._gbNamedCache = this._gbNamedSets(gene);
+        const known = top.map(h => this._gbKnownLink(gene, h.gene));
+        const nCx = known.filter(k => k?.kind === 'complex').length, nPw = known.filter(k => k?.kind === 'pathway').length;
+        const knownLine = top.length ? `<div class="gb-m" style="margin:-2px 0 4px;">${nCx + nPw
+            ? `Known partners among them: ${[nCx ? `${nCx} in the same complex` : '', nPw ? `${nPw} in a shared pathway` : ''].filter(Boolean).join(', ')} (tagged); the rest are links found only in the data.`
+            : 'None is a known complex or pathway partner: every link here comes from the data alone.'}</div>` : '';
         const maxR = Math.max(0.01, ...top.map(h => h.r));
         const coHead = top.length ? `<div class="gb-sub">Co-dependencies <span class="gb-m">(lines that depend on ${g} also depend on these)</span></div>`
             : `<div class="gb-sub">Co-dependencies</div><div class="gb-m">${s.geVals.length < 100 ? `None listed: ${g} was screened in only ${s.geVals.length} lines, and a co-dependency needs at least 100 lines screened for both genes.` : 'No gene correlates positively with it.'}</div>`;
-        const co = top.length ? this._gbTable(['Gene', 'r', 'p', ''], top.map(h => [
-                `<a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a>`,
+        const co = top.length ? knownLine + this._gbTable(['Gene', 'r', 'p', ''], top.map(h => [
+                `<a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a>${this._gbKnownTag(gene, h.gene)}`,
                 `<span class="corr-positive">${h.r.toFixed(3)}</span>`,
                 `<span class="gb-m" title="${h.n.toLocaleString()} cell lines">${this._gbP(h.p)}</span>`,
                 `<button class="btn btn-sm inspect-btn" style="padding:2px 6px; font-size:10px; background:#6ba544; color:white;" data-gb-scatter="${this.esc(h.gene)}" title="Open the correlation plot of ${this.esc(gene)} against ${this.esc(h.gene)}">Correlation</button>`]))
@@ -51660,20 +51666,19 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const scheme = this._gbRelSchematic(gene, top, corum);
         const figure = scheme ? `<div id="gbRelFig" style="background:#fff;">${scheme}</div>`
             + `<div class="gb-m" style="display:flex; flex-wrap:wrap; gap:4px 14px; align-items:center; margin-top:2px;">`
-            + `<span>Click a line for the correlation plot, a gene for its gene effect.</span>`
+            + `<span>Click a line for the correlation plot, a gene for its gene effect. A ringed co-dependency is also a known partner.</span>`
 
             + `<button class="btn btn-outline btn-sm mobile-hide" data-gb-act="copy-relfig" style="font-size:10px; padding:1px 8px; margin-left:auto;" title="Copy this figure as an image">Copy figure</button></div>` : '';
         // Named sets the app already curates (cancer pathway panel, complexes,
         // gene set library), which say what the link is; the database lists
         // below only say that one exists.
-        const named = this._gbNamedSets(gene);
+        const named = this._gbNamedCache;
         const sets = named.length ? `<div class="gb-sub">Curated pathways and complexes that include ${g}</div>`
             + `<div class="gb-m" style="margin-bottom:2px;">Hand-picked member lists the app also uses in the cell line wiki and the heatmap. ${g} is highlighted in each; Network and Heatmap draw the whole list across the cell lines.</div>`
             + named.map((x, k) => `<div class="gb-set"><div><b>${this.esc(x.name)}</b> <span class="gb-m">${this.esc(x.kind)} · ${x.genes.length} genes</span>`
                 + `<span class="gb-set-acts"><button class="gb-scatter-btn" data-gb-set="${k}" data-gb-set-do="net" title="Run Gene set analysis on this set">Network</button><button class="gb-scatter-btn" data-gb-set="${k}" data-gb-set-do="hm" title="Show this set as a heatmap across the cell lines">Heatmap</button></span></div>`
                 + (x.note ? `<div class="gb-m" style="margin:1px 0 3px;">${this._italicizeGenesInHtml(this.esc(x.note))}</div>` : '')
                 + `<div class="gb-chips">${list(x.genes, 24)}</div></div>`).join('') : '';
-        this._gbNamedCache = named;
         const db = (corum.length || reactome.length) ? `<details class="gb-details"><summary>All database partners: ${corum.length ? `${corum.length} in CORUM complexes` : ''}${corum.length && reactome.length ? ', ' : ''}${reactome.length ? `${reactome.length} in Reactome pathways` : ''}</summary>`
             + `<div class="gb-m" style="margin:4px 0;">Every protein recorded in a complex with ${g} (CORUM), and every gene sharing at least one Reactome pathway of 5 to 100 genes with it. The databases do not say which complex or pathway each comes from.</div>`
             + (corum.length ? `<div class="gb-sub" style="margin-top:6px;">CORUM complex partners</div><div class="gb-chips">${list(corum, 40)}</div>`
@@ -51691,11 +51696,26 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         this._gbFillExprCorr(s);
     }
 
-    // Three rankings through the correlation plot's own scan
-    // (_compTopCorrelates, all lines, strongest r either way, n >= 100), so
-    // the Correlation button reopens the same r.
+    // What prior knowledge links two genes: the same CORUM complex, else a
+    // shared curated pathway / complex list, else a shared Reactome pathway.
+    _gbKnownLink(gene, other) {
+        if ((this.corumPartners?.partners?.[gene] || []).includes(other)) return { kind: 'complex', why: 'In the same protein complex (CORUM)' };
+        const set = (this._gbNamedCache || []).find(x => x.genes.includes(other));
+        if (set) return { kind: 'pathway', why: `Both in ${set.name} (${set.kind})` };
+        if ((this.reactomePartners?.partners?.[gene] || []).includes(other)) return { kind: 'pathway', why: 'Share a Reactome pathway' };
+        return null;
+    }
+
+    _gbKnownTag(gene, other) {
+        const k = this._gbKnownLink(gene, other);
+        return k ? ` <span class="gb-tag gb-tag-${k.kind}" title="${this.esc(k.why)}">${k.kind}</span>` : '';
+    }
+
+    // Two rankings through the correlation plot's own scan (_compTopCorrelates,
+    // all lines, strongest r either way, n >= 100), so the Correlation button
+    // reopens the same r. Gene effect against every mRNA is left out: it
+    // mostly ranks markers of the tissues that depend on the gene.
     static GB_XCORR = [
-        { tx: 'ge', ty: 'expr', key: 'geneEffectVsMrna', head: (g) => `mRNA that tracks ${g} dependency`, note: (g) => `Genes whose expression correlates with ${g}'s gene effect. Negative r: lines that express more depend on ${g} more.` },
         { tx: 'expr', ty: 'expr', key: 'mrnaVsMrna', head: (g) => `Co-expressed with ${g}`, note: (g) => `Genes whose mRNA rises and falls with ${g}'s.` },
         { tx: 'expr', ty: 'ge', key: 'mrnaVsGeneEffect', head: (g) => `Dependencies that track ${g} mRNA`, note: (g) => `Genes whose gene effect correlates with ${g}'s expression. Negative r: lines that express more ${g} depend more on that gene.` }
     ];
@@ -51743,7 +51763,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const panels = lists.map(m => `<div class="gb-xpanel" data-gb-xpanel="${m.key}"${m.key === pick ? '' : ' hidden'}>`
             + `<div class="gb-m" style="margin:2px 0 3px;">${m.note(g)}</div>`
             + this._gbTable(['Gene', 'r', 'p', 'Location', ''], res[m.key].map(h => [
-                `<a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a>`,
+                `<a href="#" data-gb-gene="${this.esc(h.gene)}" class="gb-cl">${this.gi(h.gene)}</a>${this._gbKnownTag(gene, h.gene)}`,
                 `<span class="${h.r < 0 ? 'corr-negative' : 'corr-positive'}">${h.r.toFixed(3)}</span>`,
                 `<span class="gb-m" title="${h.n.toLocaleString()} cell lines">${this._gbP(h.p)}</span>`,
                 locCell(h),
@@ -51802,7 +51822,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
     // A link opens the correlation plot, a gene its gene effect view.
     _gbRelSchematic(gene, top, corum) {
         const cset = new Set(corum);
-        const right = top.slice(0, 10).map(h => ({ g: h.gene, r: h.r, cx: cset.has(h.gene) }));
+        const right = top.slice(0, 10).map(h => ({ g: h.gene, r: h.r, cx: cset.has(h.gene), known: this._gbKnownLink(gene, h.gene) }));
         const left = corum.filter(x => !right.some(n => n.g === x)).slice(0, 10).map(g => ({ g, r: null, cx: true }));
         if (!right.length && !left.length) return '';
         const rowH = 25, head = 26, rows = Math.max(right.length, left.length, 3);
@@ -51817,17 +51837,18 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             const d = `M${x0},${cy} C${(x0 + dir * 60).toFixed(1)},${cy} ${(x1 - dir * 60).toFixed(1)},${y.toFixed(1)} ${x1},${y.toFixed(1)}`;
             const co = n.r !== null;
             const w = co ? 1.4 + 3.2 * (n.r - rMin) / ((rMax - rMin) || 1) : 1.4;
-            const what = co ? `r = ${n.r.toFixed(2)}` : 'same complex';
+            const what = co ? `r = ${n.r.toFixed(2)}${n.known ? `; ${n.known.why.charAt(0).toLowerCase() + n.known.why.slice(1)}` : ''}` : 'same complex (CORUM)';
             links += `<g class="gb-edge" data-gb-edge="${this.esc(n.g)}" style="cursor:pointer;"><title>${this.esc(gene)} and ${this.esc(n.g)}: ${what}. Click to open their correlation plot.</title>`
                 + `<path class="gb-edge-line" d="${d}" fill="none" stroke="${co ? '#3182ce' : '#9ca3af'}" stroke-width="${w.toFixed(1)}"${co ? '' : ' stroke-dasharray="4 3"'}/>`
                 + `<path d="${d}" fill="none" stroke="transparent" stroke-width="12"/></g>`;
             const filled = co;
             const tx = x + dir * 13, anchor = dir > 0 ? 'start' : 'end';
             nodes += `<g class="gb-node" data-gb-node="${this.esc(n.g)}" style="cursor:pointer;"><title>${this.esc(n.g)}: click for its gene effect, Shift-click to open it here</title>`
-                + (n.cx && filled ? `<circle cx="${x}" cy="${y.toFixed(1)}" r="11" fill="none" stroke="#6ba544" stroke-width="1.6" stroke-dasharray="3 2"/>` : '')
+                + (n.known && filled ? `<circle cx="${x}" cy="${y.toFixed(1)}" r="11" fill="none" stroke="${n.known.kind === 'complex' ? '#6ba544' : '#9ca3af'}" stroke-width="1.6" stroke-dasharray="3 2"/>` : '')
                 + `<circle cx="${x}" cy="${y.toFixed(1)}" r="7.5" fill="${filled ? '#6ba544' : '#ffffff'}" stroke="${filled ? '#000000' : '#6ba544'}" stroke-width="${filled ? 1.2 : 2}"/>`
                 + `<text x="${tx}" y="${(y + 4).toFixed(1)}" text-anchor="${anchor}" font-size="12" font-family="${font}" fill="#333333"><tspan font-style="italic">${this.esc(n.g)}</tspan>`
                 + (co ? `<tspan dx="6" font-size="10.5" fill="#2b6cb0">${n.r.toFixed(2)}</tspan>` : '')
+                + (co && n.known ? `<tspan dx="5" font-size="9.5" fill="${n.known.kind === 'complex' ? '#3f6b25' : '#6b7280'}">${n.known.kind}</tspan>` : '')
                 + `</text></g>`;
         });
         side(right, 1);
@@ -52042,7 +52063,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
         const nb = (h) => { const d = this._gbNeighbour(gene, h.gene); return d ? { band: d.band, mbFromGene: d.mb === null ? null : +d.mb.toFixed(2) } : {}; };
         out.relatedGenes.expressionCorrelations = xc ? Object.fromEntries(CorrelationExplorer.GB_XCORR.filter(m => xc[m.key]).map(m => [m.key, xc[m.key].map(h => ({ gene: h.gene, r: r3(h.r), p: pv(h.p), n: h.n, ...nb(h) }))])) : null;
         out.relatedGenes.expressionCorrelations_readMe = xc
-            ? `Top 10 by |r| (Pearson, all cell lines with both values, genes with at least 100 lines). geneEffectVsMrna: this gene\'s gene effect against every gene\'s mRNA (negative r: higher expression goes with stronger dependency on this gene). mrnaVsMrna: co-expression. mrnaVsGeneEffect: this gene\'s mRNA against every gene\'s gene effect. p not corrected for the number of genes tested. band / mbFromGene: cytoband and gap in Mb from this gene (null = another chromosome); neighbours within ${CorrelationExplorer.GB_NEAR_MB} Mb can correlate through shared copy-number changes rather than function.`
+            ? `Top 10 by |r| (Pearson, all cell lines with both values, genes with at least 100 lines). mrnaVsMrna: co-expression. mrnaVsGeneEffect: this gene\'s mRNA against every gene\'s gene effect. p not corrected for the number of genes tested. band / mbFromGene: cytoband and gap in Mb from this gene (null = another chromosome); neighbours within ${CorrelationExplorer.GB_NEAR_MB} Mb can correlate through shared copy-number changes rather than function.`
             : 'Not computed: expression data or the scan had not finished when the file was made.';
         return out;
     }
