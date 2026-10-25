@@ -286,7 +286,7 @@
             <p>Correlate compares every pair of genes in your set across ${nL} cell lines. Two genes that matter in the same cell lines are joined by a line, called an edge. Blue means they go together, red means they go opposite ways, thick means a strong connection. Genes that end up joined usually work together, in the same complex or pathway.</p>
             ${checks([
                 'Hover over a gene or an edge for details. Double-click a gene for its gene effect across the cell lines, or an edge for the correlation plot behind it.',
-                'Paste your own screen results next to the gene list (LFC and FDR) and the nodes take the screen colours.',
+                'Paste your own screen results (LFC and FDR) next to the gene list, and Correlate shows the set as a network coloured by your results, or as a correlation matrix.',
                 'Build the network from the CRISPR data or from the mRNA data.',
                 'Expand the set to find new partners, send a group to Enrichr, open the network full page.',
             ])}
