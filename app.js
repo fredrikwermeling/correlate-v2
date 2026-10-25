@@ -13908,6 +13908,18 @@ class CorrelationExplorer {
         // covering top nodes whatever pan we tried; a strip outside the
         // canvas is unambiguous and accessible. The strip auto-shows when
         // there's a banner and stays hidden otherwise.
+        const basisEl = document.getElementById('netBasisBadge');
+        if (basisEl) {
+            const ex = this.results?.basis === 'expr';
+            basisEl.textContent = ex ? 'Built on mRNA expression' : 'Built on gene effect (CRISPR)';
+            basisEl.title = ex ? 'Edges are correlations of mRNA levels (log2 TPM+1) across the cell lines' : 'Edges are correlations of CRISPR knockout gene effect (Chronos) across the cell lines';
+            basisEl.style.cssText += ex ? 'background:#f5f3ff; color:#6d28d9; border-color:#c4b5fd;' : 'background:#f0fdf4; color:#3f6b25; border-color:#a7d38a;';
+            basisEl.style.display = '';
+            const lt = document.getElementById('netLegendCorrTitle');
+            if (lt) lt.textContent = `Correlation (${ex ? 'mRNA' : 'gene effect'}):`;
+            const ft = document.getElementById('netFullTitle');
+            if (ft) ft.textContent = `Network: ${ex ? 'mRNA expression' : 'gene effect (CRISPR)'}`;
+        }
         const filterText = this._getNetworkFilterText();
         const headerEl = document.getElementById('networkHeader');
         // Clear any old overlay banner (back-compat with saved layouts).
@@ -16626,6 +16638,7 @@ ${svgNoteLines.map((ln, i) => `<text x="${width / 2}" y="${(filterText ? svgBann
         svg += `  <text x="${legendX + 42}" y="${legendY + 27}" class="legend-text">Positive</text>\n`;
         svg += `  <line x1="${legendX}" y1="${legendY + 48}" x2="${legendX + 35}" y2="${legendY + 48}" stroke="#e53e3e" stroke-width="4"/>\n`;
         svg += `  <text x="${legendX + 42}" y="${legendY + 53}" class="legend-text">Negative</text>\n`;
+        svg += `  <text x="${legendX}" y="${legendY + 80}" class="legend-text" fill="#6b7280">of ${this.results?.basis === 'expr' ? 'mRNA' : 'gene effect'}</text>\n`;
 
         legendX += 160;
 
@@ -18985,6 +18998,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         svg += `  <text x="${legendX + 42}" y="${legendY + 27}" class="legend-text">Positive</text>\n`;
         svg += `  <line x1="${legendX}" y1="${legendY + 48}" x2="${legendX + 35}" y2="${legendY + 48}" stroke="#e53e3e" stroke-width="4"/>\n`;
         svg += `  <text x="${legendX + 42}" y="${legendY + 53}" class="legend-text">Negative</text>\n`;
+        svg += `  <text x="${legendX}" y="${legendY + 80}" class="legend-text" fill="#6b7280">of ${this.results?.basis === 'expr' ? 'mRNA' : 'gene effect'}</text>\n`;
 
         legendX += 160;
 
