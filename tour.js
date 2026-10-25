@@ -184,8 +184,8 @@
     }
     const ACTIONS = {
         hero: (a) => { runExampleSet({ cutoff: 0.5 }); return networkHint(a); },
-        heroStats: (a) => runStatsExample(a, true),
-        heroMrna: () => runExampleSet({ cutoff: 0.3, basis: 'expr' }),
+        heroStats: (a) => { networkHint(a); return runStatsExample(a, true); },
+        heroMrna: (a) => { runExampleSet({ cutoff: 0.3, basis: 'expr' }); return networkHint(a); },
         pair: (a) => { a.openInspectByGenes('TP53', 'MDM2'); return plotHint(); },
         eda2r: (a) => { a._inspectPreset = { colorByGene: 'EDA2R', colorByGeneType: 'expr' }; a.openInspectByGenes('TP53', 'MDM2'); return plotHint(); },
         mutation: (a) => runMutationExample(a),
@@ -248,7 +248,7 @@
         </ul>
         </div>
         <div class="tour-hero-shot">
-            ${shot('net_p53', 'A network built from eleven p53 pathway and TSC genes', 'hero', { eager: true, cap: `A network from a list of ${nSet} genes: the p53 pathway and the TSC complex. Blue edges join genes that cells need together, red edges join opposites: cells that need ${gi('MDM2')} tolerate losing ${gi('TP53')}.`, btn: 'Try it: build this network' })}
+            ${shot('net_p53', 'A network built from eleven p53 pathway and TSC genes', 'hero', { eager: true, cap: `A network from a list of ${nSet} genes: the p53 pathway and the TSC complex. Blue edges join genes that cells need together, red edges join opposites: cells that need ${gi('MDM2')} tolerate losing ${gi('TP53')}. In the app, hover over genes and edges for details and double-click them to open their plots.`, btn: 'Try it: build and explore this network' })}
         </div>
     </div>
     <div class="tour-wrap tour-next-row">${nextBtn('tour-stats', 'Network')}</div>
@@ -264,18 +264,19 @@
 </section>
 
 <section class="tour-sec" id="tour-network">
-    <div class="tour-wrap tour-feature">
-        <div class="tour-text">
+    <div class="tour-wrap">
+        <div class="tour-text tour-text-wide">
             <p class="tour-eyebrow">1 &middot; Network</p>
             <h2>Paste a gene set, get a network</h2>
             <p>Correlate compares every pair of genes in your set across ${nL} cell lines. Two genes that matter in the same cell lines are joined by a line, called an edge. Blue means they go together, red means they go opposite ways, thick means a strong connection. Genes that end up joined usually work together, in the same complex or pathway.</p>
             ${checks([
+                'Hover over a gene or an edge for details. Double-click a gene for its gene effect across the cell lines, or an edge for the correlation plot behind it.',
                 'Paste your own screen results next to the gene list (LFC and FDR) and the network shows them: the nodes take the screen colours, and genes without a connection are shown too.',
                 'Build the network from the CRISPR data or from the mRNA data. A badge on the network says which.',
                 'Expand the set to find new partners, send a group to Enrichr, open the network full page.',
             ])}
         </div>
-        <div class="tour-stack">
+        <div class="tour-two tour-two-net">
             ${shot('net_stats', 'A list of 22 cancer genes with screen statistics pasted alongside, nodes coloured by LFC', 'heroStats', { cap: 'A list of 22 cancer genes with results from a screen pasted alongside: the nodes take the screen colours (LFC), and every gene in the list is shown.', btn: 'Build it with the screen results' })}
             ${shot('net_mrna', 'The same eleven genes built on mRNA expression', 'heroMrna', { cap: `The ${nSet} genes from the top of the page built on mRNA expression instead: a different wiring, because genes that are expressed together are not the same as genes that are needed together.`, btn: 'Build this set on mRNA' })}
         </div>
@@ -489,6 +490,8 @@ html.popout-open #tourNetHint { display: none; }
 #tourPage .tour-two .tour-shot { display: flex; flex-direction: column; }
 #tourPage .tour-two .tour-shot img { aspect-ratio: 5 / 6; object-fit: contain; padding: 6px; }
 #tourPage .tour-two .tour-shot figcaption { flex: 1; }
+#tourPage .tour-two-net { align-items: stretch; }
+#tourPage .tour-two-net .tour-shot img { aspect-ratio: 1 / 1; }
 #tourPage .tour-stack .tour-shot img { aspect-ratio: 4 / 3; object-fit: contain; padding: 6px; }
 #tourPage .tour-card-fig h3 { font-size: 19px; font-weight: 800; margin: 18px 0 8px; color: #111827; }
 #tourPage .tour-card-fig p { font-size: 15px; line-height: 1.55; color: #374151; margin: 0 0 14px; }
