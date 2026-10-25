@@ -299,7 +299,7 @@
             ${shot('net_p53', 'A network built from eleven p53 pathway and TSC genes', 'hero', { eager: true, cap: `A network from a list of ${nSet} genes: the p53 pathway and the TSC complex. Blue edges join genes that cells need together, red edges join opposites: cells that need ${gi('MDM2')} tolerate losing ${gi('TP53')}. In the app, hover over genes and edges for details and double-click them to open their plots.`, btn: 'Try it: build and explore this network' })}
         </div>
     </div>
-    <div class="tour-wrap tour-next-row">${nextBtn('tour-stats', 'Network')}</div>
+    <div class="tour-wrap tour-next-row">${nextBtn('tour-network', 'Network')}</div>
 </section>
 
 <section class="tour-stats" id="tour-stats">
@@ -620,7 +620,11 @@ html.popout-open #tourNetHint { display: none; }
             if (link) {
                 e.preventDefault();
                 const t = page.querySelector(link.getAttribute('href') || link.getAttribute('data-next'));
-                if (t) page.scrollTo({ top: t.offsetTop - 54, behavior: 'smooth' });
+                // Land with the section's heading at the top, just under the
+                // sticky bar, not with the section's empty top padding.
+                const head = t?.querySelector('.tour-eyebrow, h2, h3') || t;
+                const bar = page.querySelector('.tour-top')?.offsetHeight || 54;
+                if (head) page.scrollTo({ top: page.scrollTop + head.getBoundingClientRect().top - page.getBoundingClientRect().top - bar - 16, behavior: 'smooth' });
             }
         });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) close(); });
