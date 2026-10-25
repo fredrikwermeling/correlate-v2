@@ -1786,6 +1786,9 @@
         #gbSeqModal .sq-ov { padding:2px 18px 4px; user-select:none; -webkit-user-select:none; }
         #gbSeqModal .sq-ov-scale { display:flex; justify-content:space-between; font-size:10px; color:#9ca3af; margin-top:1px; }
         #gbSeqModal .sq-chip { font-family:ui-monospace, Menlo, monospace; font-size:11px; padding:0 5px; border-radius:3px; }
+        #gbSeqModal .sq-start, #gbSeqModal .sq-stop { font-weight:800; text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:3px; }
+        #gbSeqModal .sq-cds.sq-start { color:#14532d; }
+        #gbSeqModal .sq-cds.sq-stop { color:#b91c1c; }
         #gbSeqModal .sq-scroll { position:relative; flex:1; min-height:240px; height:calc(100vh - 262px); overflow-y:auto; font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12.5px; border-top:1px solid #f1f5f9; }
         #gbSeqModal .sq-line { position:absolute; left:0; right:0; height:20px; line-height:20px; white-space:nowrap; display:flex; }
         #gbSeqModal .sq-num { width:92px; flex:0 0 92px; text-align:right; padding-right:12px; color:#9ca3af; user-select:none; -webkit-user-select:none; }
@@ -3014,6 +3017,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.50 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Gene Browser, sequence viewer: the start codon (dark green) and the stop codon (red) are bold and underlined in the genomic, mRNA and coding views, with both in the legend; a codon split across an exon boundary is marked whole.</li>
+                </ul>
                 <p><strong>v.91.49 (2026-10-25)</strong></p>
                 <ul>
                     <li>Tour of the app: Next and the section links scroll so the next section's heading sits at the top, just under the menu bar.</li>
@@ -8848,7 +8855,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.49</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.50</a>
         </span>
     </div>
 
@@ -12226,7 +12233,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_48"></script>
+    <script src="app.js?v=v91_50"></script>
     <script src="tour.js?v=v91_49"></script>
 </body>
 </html>
