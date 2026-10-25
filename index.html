@@ -3014,6 +3014,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.24 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Comparison volcanos: gene names are placed so they no longer cover each other, the coloured dots or each other's leader lines, each name staying beside its own dot and on its own side of zero. Names can be dragged to a better spot (the leader line follows) and keep that spot when the cutoffs change; a click still removes a name. The tour's volcano picture is re-exported with the new placement.</li>
+                </ul>
                 <p><strong>v.91.23 (2026-10-25)</strong></p>
                 <ul>
                     <li>Tour of the app: building the first example network scrolls to it and shows a small card in the corner saying what hovering, double-clicking and Shift-clicking genes and edges does; the two correlation plot buttons show a similar card for the plot (hover, click and Shift-click a dot, drag to zoom, the panel on the left). The cards close with their own button, hide under popouts, and go when the next analysis runs or the popout closes.</li>
@@ -8741,7 +8745,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.23</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.24</a>
         </span>
     </div>
 
@@ -12119,7 +12123,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_14"></script>
-    <script src="tour.js?v=v91_23"></script>
+    <script src="app.js?v=v91_24"></script>
+    <script src="tour.js?v=v91_24"></script>
 </body>
 </html>
