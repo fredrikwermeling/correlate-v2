@@ -3014,6 +3014,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.44 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Tour of the app: "More" is now "Other features" and says these are found under Other in the app; the Gene Browser section shows the exon structure and the sequence viewer (TP53) with its own button, and the co-dependency block is reworded; the TP53 and MDM2 caption explains the negative correlation (MDM2 holds p53 in check); the row of three buttons at the end is removed.</li>
+                </ul>
                 <p><strong>v.91.43 (2026-10-25)</strong></p>
                 <ul>
                     <li>Tour of the app: the comparison, PCA and heatmap examples all use the same 50 BRAF-mutated melanoma cell lines, under a "Compare the cell lines in different ways" heading; the heatmap is sorted by TP53 mutation without disease blocks; cell lines and genes are described as comprehensive summaries (with the altered pathways and FACS antigen suggestions named for cell lines); US spelling throughout the tour.</li>
@@ -8824,7 +8828,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.43</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.44</a>
         </span>
     </div>
 
@@ -12203,6 +12207,6 @@
     </div>
 
     <script src="app.js?v=v91_40"></script>
-    <script src="tour.js?v=v91_43"></script>
+    <script src="tour.js?v=v91_44"></script>
 </body>
 </html>

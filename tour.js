@@ -221,6 +221,7 @@
         pca: (a) => pcaMelanoma(a),
         heatmap: (a) => heatmapMelanoma(a),
         myc: (a) => a.openGeneBrowser('MYC'),
+        tp53seq: async (a) => { a.openGeneBrowser('TP53'); await wait(2500); document.getElementById('gbStructCard')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); },
         tsc1: (a) => a.openGeneBrowser('TSC1'),
         clb: (a) => openMelanoma(a, 'BRAF'),
         oncoprint: async (a) => {
@@ -241,7 +242,6 @@
             }
         },
         wiki: (a) => a.openCellLineWiki(D.lineId('A375') || 'ACH-000219'),
-        stats: () => { const m = document.getElementById('infographicModal'); if (m) m.style.display = 'flex'; },
     };
 
     // ------------------------------------------------------------ page
@@ -273,7 +273,7 @@
             <a href="#tour-corr">Correlation plot</a>
             <a href="#tour-cells">Cell Line Browser</a>
             <a href="#tour-gene">Gene Browser</a>
-            <a href="#tour-more">More</a>
+            <a href="#tour-more">Other features</a>
         </nav>
         <button type="button" class="tour-close" id="tourClose" title="Close the tour (Esc)">Close tour <span aria-hidden="true">&times;</span></button>
     </div>
@@ -335,7 +335,7 @@
             <p>An edge in the network connects two genes. Double-click it and the correlation plot opens: each dot is a cell line, placed by its value for one gene against the other. The correlation (Pearson r) says how closely the two genes rise and fall together across the cell lines: 1 means they always move together, 0 means no relation, and −1 means one goes up when the other goes down. The p-value says how likely an r this strong would be by chance. The plot can also be opened on its own, from <b>Other</b> and then <b>Correlation</b>, to explore the correlation between any two genes without building a network.</p>
         </div>
         <div class="tour-wide-shot tour-edge-shot">
-            ${shot('edge_to_plot', 'Double-clicking the edge between TP53 and MDM2 opens their correlation plot', 'pair', { cap: `The edge between ${gi('TP53')} and ${gi('MDM2')}, and the plot behind it: ${nL} cell lines, r −0.72. Cell lines that tolerate losing ${gi('TP53')} depend on ${gi('MDM2')}.`, btn: 'Open TP53 vs MDM2, then hover, click and change the settings' })}
+            ${shot('edge_to_plot', 'Double-clicking the edge between TP53 and MDM2 opens their correlation plot', 'pair', { cap: `The edge between ${gi('TP53')} and ${gi('MDM2')} is red: a negative correlation, r −0.72 across ${nL} cell lines. MDM2 holds p53 in check, so cell lines with working p53 depend on ${gi('MDM2')} (negative gene effect), while knocking out ${gi('TP53')} lets them grow faster (positive gene effect).`, btn: 'Open TP53 vs MDM2, then hover, click and change the settings' })}
         </div>
         <div class="tour-feature tour-flip">
             <div class="tour-text">
@@ -421,21 +421,33 @@
         </div>
         <div class="tour-feature">
             <div class="tour-text">
-                <h3>Does the complex act as one unit?</h3>
+                <h3>Which genes work with it?</h3>
                 ${checks([
-                    `Protein complexes from the EBI Complex Portal, each member tagged with its co-dependency.`,
-                    `${gi('TSC2')} follows ${gi('TSC1')} at r 0.90. ${gi('TBC1D7')}, the third member, only at 0.25.`,
+                    'Co-dependencies: the genes whose knockout affects the same cell lines, with known complex and pathway partners marked.',
+                    'Protein complexes from the EBI Complex Portal, showing how closely each member follows the gene.',
                 ])}
             </div>
             ${shot('gb_codep', 'Co-dependencies of TSC1 as a table and a fan figure', 'tsc1', { cap: `Co-dependencies of ${gi('TSC1')}, complex partners ringed.`, btn: 'Open TSC1 in the Gene Browser' })}
         </div>
+        <div class="tour-text tour-text-wide" style="margin-top:56px;">
+            <h3>Exons and sequence</h3>
+            ${checks([
+                'The exon structure of the reference transcript (MANE Select) or any other transcript, with mutation hotspots marked.',
+                'A sequence viewer for the gene, mRNA, coding sequence or protein, with search and the exon junctions marked.',
+                'Download GenBank or FASTA files that open in SnapGene and other sequence editors.',
+            ])}
+        </div>
+        <div class="tour-wide-shot" style="margin-top:0;">
+            ${shot('gb_seq', 'The TP53 exon structure and its mRNA in the sequence viewer', 'tp53seq', { cap: `${gi('TP53')}: the exons of its MANE Select transcript, and the mRNA in the sequence viewer with the exon junctions marked.`, btn: 'Open TP53 in the Gene Browser' })}
+        </div>
     </div>
-    <div class="tour-wrap tour-next-row">${nextBtn('tour-more', 'More')}</div>
+    <div class="tour-wrap tour-next-row">${nextBtn('tour-more', 'Other features')}</div>
 </section>
 
 <section class="tour-sec" id="tour-more">
     <div class="tour-wrap">
-        <p class="tour-eyebrow">More</p>
+        <p class="tour-eyebrow">Other features</p>
+        <p class="tour-lead-note">Found under <b>Other</b> in the app: mutation analysis, gene effect or expression of one gene, the correlation plot, the gene set heatmap, the threshold scan, Paste from AI and opening a saved figure.</p>
         <div class="tour-feature">
             <div class="tour-text">
                 <h3>Mutation analysis</h3>
@@ -452,7 +464,6 @@
             </div>
             ${shot('export_dialog', 'The Export image dialog', null, { cls: 'tour-shot-dialog', cap: 'Export image: what to export, format, size in cm, resolution, background.' })}
         </div>
-        <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Build the example network')}${tryBtn('wiki', 'Open the A375 summary')}${tryBtn('stats', 'The statistics behind the app')}</div>
         <button type="button" class="tour-close-end" id="tourCloseEnd">Close the tour and start using Correlate</button>
         <p class="tour-foot">Data: DepMap 26Q1 (Broad Institute), with EBI Complex Portal, Reactome, PRISM and the other sources listed under Reference Data. Correlate is developed in the Wermeling lab.</p>
     </div>
@@ -489,7 +500,7 @@ html.popout-open #tourNetHint { display: none; }
 #tourPage .tour-close { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid #5d9239; background: #5d9239; border-radius: 999px; font: inherit; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; }
 #tourPage .tour-close span { font-size: 20px; line-height: 1; font-weight: 400; }
 #tourPage .tour-close:hover { background: #4f7f30; border-color: #4f7f30; }
-#tourPage .tour-close-end { display: block; margin: 8px auto 22px; font: inherit; font-size: 16px; font-weight: 700; color: #fff; background: #374151; border: 0; border-radius: 10px; padding: 13px 28px; cursor: pointer; }
+#tourPage .tour-close-end { display: block; margin: 48px auto 22px; font: inherit; font-size: 16px; font-weight: 700; color: #fff; background: #374151; border: 0; border-radius: 10px; padding: 13px 28px; cursor: pointer; }
 #tourPage .tour-close-end:hover { background: #111827; }
 #tourPage .tour-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #5d9239; margin: 0 0 10px; }
 #tourPage .tour-hero { background: linear-gradient(160deg, #1f3a12 0%, #3b5e23 55%, #4f7f30 100%); color: #fff; padding: 48px 0 26px; position: relative; display: flow-root; }
@@ -502,7 +513,6 @@ html.popout-open #tourNetHint { display: none; }
 #tourPage .tour-hero-list li { font-size: 18px; line-height: 1.5; color: #fff; padding: 4px 0 4px 26px; position: relative; }
 #tourPage .tour-hero-list li::before { content: ''; position: absolute; left: 4px; top: 13px; width: 9px; height: 9px; border-radius: 50%; background: #b9dd9a; }
 #tourPage .tour-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
-#tourPage .tour-cta-center { justify-content: center; margin: 28px 0 18px; }
 #tourPage .tour-try { font: inherit; font-size: 15px; font-weight: 700; color: #fff; background: #5d9239; border: 1px solid #5d9239; border-radius: 8px; padding: 11px 18px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 #tourPage .tour-try:hover { background: #4f7f30; border-color: #4f7f30; }
 #tourPage .tour-hero .tour-try { background: #fff; color: #2f4d1a; border-color: #fff; }
@@ -521,6 +531,7 @@ html.popout-open #tourNetHint { display: none; }
 #tourPage .tour-text h2 { font-size: 32px; line-height: 1.15; font-weight: 800; letter-spacing: -.02em; margin: 0 0 14px; color: #111827; }
 #tourPage .tour-text h3 { font-size: 21px; font-weight: 800; margin: 0 0 12px; color: #111827; letter-spacing: -.01em; }
 #tourPage .tour-text p { font-size: 16.5px; line-height: 1.6; color: #374151; margin: 0 0 14px; }
+#tourPage .tour-lead-note { font-size: 16px; line-height: 1.6; color: #374151; max-width: 820px; margin: 0 0 36px; }
 #tourPage .tour-text-wide { max-width: 820px; margin-bottom: 30px; }
 #tourPage .tour-checks { list-style: none; margin: 0; padding: 0; }
 #tourPage .tour-checks li { position: relative; padding-left: 28px; font-size: 15px; line-height: 1.55; color: #374151; margin: 0 0 10px; }
