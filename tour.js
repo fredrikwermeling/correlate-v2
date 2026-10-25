@@ -127,12 +127,67 @@
         await wait(400);
         a.showGeneEffectDistribution('BRAF');
     }
+    // A one-time card in the corner listing what hovering and clicking the
+    // network does; kept off the network itself, whose layout varies per run.
+    // Closed with its own button or by the next run.
+    async function networkHint(a) {
+        document.getElementById('tourNetHint')?.remove();
+        const before = a.results;
+        if (!await until(() => a.results && a.results !== before && a.results.success, 120)) return;
+        await wait(600);
+        const wrap = document.getElementById('networkWrap');
+        if (!wrap || !wrap.offsetParent) return;
+        const card = document.createElement('div');
+        card.id = 'tourNetHint';
+        card.innerHTML = `<button type="button" aria-label="Close">&times;</button>
+            <b>Explore the network</b>
+            <ul>
+                <li><span>Hover</span> a gene or an edge to see what it is.</li>
+                <li><span>Double-click a gene</span> for its gene effect across the cell lines.</li>
+                <li><span>Double-click an edge</span> for the correlation plot behind it.</li>
+                <li><span>Shift-click a gene</span> to open it in the Gene Browser.</li>
+            </ul>`;
+        card.querySelector('button').addEventListener('click', () => card.remove());
+        document.body.appendChild(card);
+        document.getElementById('runAnalysis')?.addEventListener('click', () => card.remove(), { once: true });
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    // The same kind of card for the correlation plot: it sits beside the
+    // popout's lower left corner and goes when the popout closes.
+    async function plotHint() {
+        document.getElementById('tourPlotHint')?.remove();
+        const modal = document.getElementById('inspectModal');
+        const vis = (m) => getComputedStyle(m).display !== 'none' && m.getClientRects().length > 0;
+        const shown = () => modal && vis(modal);
+        if (!await until(shown, 40)) return;
+        await wait(900);
+        const card = document.createElement('div');
+        card.id = 'tourPlotHint';
+        card.innerHTML = `<button type="button" aria-label="Close">&times;</button>
+            <b>Explore the plot</b>
+            <ul>
+                <li><span>Hover a dot</span> to see which cell line it is.</li>
+                <li><span>Click a dot</span> to label it, <span>Shift-click</span> to open the cell line's page.</li>
+                <li><span>Drag</span> over an area to zoom in, <span>double-click</span> to zoom out.</li>
+                <li>Use the panel on the left to filter, colour the dots or compare groups.</li>
+            </ul>`;
+        card.querySelector('button').addEventListener('click', () => card.remove());
+        document.body.appendChild(card);
+        // Follow the popout: gone when it closes, hidden under anything opened on top.
+        const iv = setInterval(() => {
+            if (!card.isConnected) { clearInterval(iv); return; }
+            if (!shown()) { card.remove(); clearInterval(iv); return; }
+            const top = [...document.querySelectorAll('.modal-overlay')].some(m => m !== modal && vis(m)
+                && (+getComputedStyle(m).zIndex || 0) >= 1300);
+            card.style.visibility = top ? 'hidden' : '';
+        }, 400);
+    }
     const ACTIONS = {
-        hero: () => runExampleSet({ cutoff: 0.5 }),
+        hero: (a) => { runExampleSet({ cutoff: 0.5 }); return networkHint(a); },
         heroStats: (a) => runStatsExample(a, true),
         heroMrna: () => runExampleSet({ cutoff: 0.3, basis: 'expr' }),
-        pair: (a) => a.openInspectByGenes('TP53', 'MDM2'),
-        eda2r: (a) => { a._inspectPreset = { colorByGene: 'EDA2R', colorByGeneType: 'expr' }; a.openInspectByGenes('TP53', 'MDM2'); },
+        pair: (a) => { a.openInspectByGenes('TP53', 'MDM2'); return plotHint(); },
+        eda2r: (a) => { a._inspectPreset = { colorByGene: 'EDA2R', colorByGeneType: 'expr' }; a.openInspectByGenes('TP53', 'MDM2'); return plotHint(); },
         mutation: (a) => runMutationExample(a),
         compare: (a) => compareMelanoma(a),
         pca: (a) => pcaMelanoma(a),
@@ -204,7 +259,7 @@
         <div><b>${nL}</b><span>cell lines with DepMap CRISPR gene effect</span></div>
         <div><b>${nE}</b><span>cell lines with DepMap mRNA expression</span></div>
         <div><b>${nG}</b><span>genes</span></div>
-        <div><b>10+</b><span>wiki pages per cell line, from DepMap, Cellosaurus and other sources</span></div>
+        <div><b>10+</b><span>other databases integrated, such as Cellosaurus, UniProt, Ensembl, Reactome, EBI Complex Portal and COSMIC</span></div>
     </div>
 </section>
 
@@ -232,8 +287,8 @@
     <div class="tour-wrap">
         <div class="tour-text tour-text-wide">
             <p class="tour-eyebrow">2 &middot; Correlation plot</p>
-            <h2>Double-click an edge to see the data behind it</h2>
-            <p>One dot per cell line, one gene against the other, with r and p. You can also open the plot on its own: type any two genes.</p>
+            <h2>Double-click an edge to see what the connection is based on</h2>
+            <p>An edge in the network connects two genes. Double-click it and the correlation plot opens: each dot is a cell line, placed by its value for one gene against the other. The correlation (r) and its p-value are shown on top. The plot can also be opened on its own for any two genes.</p>
         </div>
         <div class="tour-wide-shot">
             ${shot('edge_to_plot', 'Double-clicking the edge between TP53 and MDM2 opens their correlation plot', 'pair', { cap: `The edge between ${gi('TP53')} and ${gi('MDM2')}, and the plot behind it: ${nL} cell lines, r −0.72. Cell lines that tolerate losing ${gi('TP53')} depend on ${gi('MDM2')}.`, btn: 'Open TP53 vs MDM2' })}
@@ -259,7 +314,7 @@
         <div class="tour-feature">
             <div class="tour-text">
                 <p class="tour-eyebrow">3 &middot; Cell Line Browser</p>
-                <h2>Find the right cell lines</h2>
+                <h2>Find the right cell lines for your project</h2>
                 <p>Narrow the ${nL} cell lines down by cancer type, mutation, fusion, copy number, sex, drug response, or how much they express or need any gene. Every cell line has its own page.</p>
                 ${checks([
                     `Example: melanoma cell lines with mutated ${gi('BRAF')}. The count updates as you go.`,
@@ -349,6 +404,16 @@
 
     // ------------------------------------------------------------ style
     const CSS = `
+#tourPlotHint { position: fixed; bottom: 80px; left: 40px; z-index: 1350; width: 300px; }
+#tourNetHint { position: fixed; bottom: 20px; left: 20px; z-index: 1200; width: 300px; }
+#tourNetHint, #tourPlotHint { background: rgba(255,255,255,.96); border: 1px solid #b9dd9a; border-left: 4px solid #5d9239; border-radius: 8px; box-shadow: 0 6px 20px rgba(17,24,39,.14); padding: 10px 30px 8px 12px; font-size: 13px; line-height: 1.45; color: #374151; }
+#tourNetHint b, #tourPlotHint b { display: block; font-size: 13.5px; color: #2f4d1a; margin-bottom: 4px; }
+#tourNetHint ul, #tourPlotHint ul { margin: 0; padding: 0 0 0 16px; }
+#tourNetHint li, #tourPlotHint li { margin: 0 0 3px; }
+#tourNetHint li span, #tourPlotHint li span { font-weight: 600; color: #111827; }
+#tourNetHint button, #tourPlotHint button { position: absolute; top: 4px; right: 6px; border: 0; background: none; font-size: 18px; line-height: 1; color: #6b7280; cursor: pointer; padding: 2px 4px; }
+#tourNetHint button:hover, #tourPlotHint button:hover { color: #111827; }
+html.popout-open #tourNetHint { display: none; }
 #tourPage { position: fixed; inset: 0; z-index: 1500; overflow-y: auto; overflow-x: hidden; background: #fff; color: #111827; display: none; -webkit-overflow-scrolling: touch; }
 #tourPage.active { display: block; }
 #tourPage * { box-sizing: border-box; }
@@ -511,6 +576,8 @@
     }
 
     function open() {
+        document.getElementById('tourNetHint')?.remove();
+        document.getElementById('tourPlotHint')?.remove();
         build();
         render();
         const page = document.getElementById('tourPage');
