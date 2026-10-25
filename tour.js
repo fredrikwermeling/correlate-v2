@@ -246,7 +246,7 @@
             <a href="#tour-gene">Gene Browser</a>
             <a href="#tour-more">More</a>
         </nav>
-        <button type="button" class="tour-close" id="tourClose" aria-label="Close the tour">&times;</button>
+        <button type="button" class="tour-close" id="tourClose" title="Close the tour (Esc)">Close tour <span aria-hidden="true">&times;</span></button>
     </div>
 </header>
 
@@ -420,6 +420,7 @@
             ${shot('export_dialog', 'The Export image dialog', null, { cls: 'tour-shot-dialog', cap: 'Export image: what to export, format, size in cm, resolution, background.' })}
         </div>
         <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Build the example network')}${tryBtn('wiki', 'Open the A375 page')}${tryBtn('stats', 'The statistics behind the app')}</div>
+        <button type="button" class="tour-close-end" id="tourCloseEnd">Close the tour and start using Correlate</button>
         <p class="tour-foot">Data: DepMap 26Q1 (Broad Institute), with EBI Complex Portal, Reactome, PRISM and the other sources listed under Reference Data. Correlate is developed in the Wermeling lab.</p>
     </div>
 </section>`;
@@ -452,8 +453,11 @@ html.popout-open #tourNetHint { display: none; }
 #tourPage .tour-nav a { font-size: 13.5px; color: #374151; text-decoration: none; padding: 7px 10px; border-radius: 6px; white-space: nowrap; }
 #tourPage .tour-nav a:hover { background: #f3f4f6; }
 #tourPage .tour-nav a.on { color: #3b5e23; background: #eef6e6; font-weight: 600; }
-#tourPage .tour-close { flex: none; width: 38px; height: 38px; border: 1px solid #e5e7eb; background: #fff; border-radius: 50%; font-size: 24px; line-height: 1; color: #374151; cursor: pointer; }
-#tourPage .tour-close:hover { background: #f3f4f6; }
+#tourPage .tour-close { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid #5d9239; background: #5d9239; border-radius: 999px; font: inherit; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; }
+#tourPage .tour-close span { font-size: 20px; line-height: 1; font-weight: 400; }
+#tourPage .tour-close:hover { background: #4f7f30; border-color: #4f7f30; }
+#tourPage .tour-close-end { display: block; margin: 8px auto 22px; font: inherit; font-size: 16px; font-weight: 700; color: #fff; background: #374151; border: 0; border-radius: 10px; padding: 13px 28px; cursor: pointer; }
+#tourPage .tour-close-end:hover { background: #111827; }
 #tourPage .tour-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #5d9239; margin: 0 0 10px; }
 #tourPage .tour-hero { background: linear-gradient(160deg, #1f3a12 0%, #3b5e23 55%, #4f7f30 100%); color: #fff; padding: 48px 0 26px; position: relative; display: flow-root; }
 #tourPage .tour-hero .tour-wrap { max-width: 1280px; }
@@ -579,6 +583,7 @@ html.popout-open #tourNetHint { display: none; }
         const page = document.getElementById('tourPage');
         page.innerHTML = pageHTML();
         page.querySelector('#tourClose').addEventListener('click', close);
+        page.querySelector('#tourCloseEnd')?.addEventListener('click', close);
         // Section links follow the scroll.
         if (io) io.disconnect();
         const links = [...page.querySelectorAll('.tour-nav a')];
