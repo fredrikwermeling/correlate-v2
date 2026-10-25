@@ -182,8 +182,8 @@
 <section class="tour-hero">
     <div class="tour-wrap">
         <p class="tour-eyebrow">Correlate</p>
-        <h1>One app that combines omics data from ${nL} human cancer cell lines.</h1>
-        <p class="tour-sub">Which genes each cell line needs to survive (CRISPR screens), how much of each gene it expresses (mRNA), and its mutations, copy number and drug response, all from DepMap and linked together. With them you can:</p>
+        <h1>Omics data from 1,000+ human cancer cell lines, in one app.</h1>
+        <p class="tour-sub">Correlate brings together CRISPR knockout screens, mRNA expression, mutations, copy number and drug response from DepMap, and connects them. Use it to:</p>
         <ul class="tour-hero-list">
             <li>Discover connections between the genes in your gene set, without any prior assumptions.</li>
             <li>See in which cancer types, and with which mutations, a gene matters.</li>
