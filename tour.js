@@ -382,18 +382,11 @@
         <div class="tour-feature tour-flip">
             <div class="tour-text">
                 <h3>Take it with you</h3>
-                <p>Under every view: Export image (PNG, SVG, PDF, PowerPoint at print size), Methods and CSV. An exported PNG or SVG reopens in Correlate with its analysis. Every figure on this page is such an export.</p>
+                <p>Under every view: Export image (PNG, SVG, PDF, PowerPoint at print size) and CSV. An exported PNG or SVG reopens in Correlate with its analysis. Every figure on this page is such an export.</p>
+                <p><b>Methods</b> writes the methods for the view you are looking at, from its actual settings: the DepMap release, which cell lines were included, the filters and the statistics used. You get one paragraph ready to paste into a materials and methods section, and a longer plain-language version that explains what the figure shows. Copy either or download them as a text file.</p>
                 <p><b>Export for AI</b> writes the data behind the view into one file made for a language model. Upload it to ChatGPT, Claude or Gemini and discuss the results: which of these dependencies has a drug, which cell line fits my experiment, what links these genes?</p>
             </div>
             ${shot('export_dialog', 'The Export image dialog', null, { cls: 'tour-shot-dialog', cap: 'Export image: what to export, format, size in cm, resolution, background.' })}
-        </div>
-        <div class="tour-chips">
-            <div><b>Cell line pages</b>ten sections per cell line: origin, drivers, genome, dependencies, drug response</div>
-            <div><b>Compilation</b>a grid of correlation plots, one per pair</div>
-            <div><b>Threshold scan</b>how many edges the set keeps as the cutoff moves</div>
-            <div><b>Correlation matrix</b>of the set, on gene effect or mRNA</div>
-            <div><b>Heatmap</b>a gene set across the cell lines, with mutation and tissue rows</div>
-            <div><b>Green Listed</b>library genes and curated gene classes</div>
         </div>
         <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Build the example network')}${tryBtn('wiki', 'Open the A375 page')}${tryBtn('stats', 'The statistics behind the app')}</div>
         <p class="tour-foot">Data: DepMap 26Q1 (Broad Institute), with EBI Complex Portal, Reactome, PRISM and the other sources listed under Reference Data. Correlate is developed in the Wermeling lab.</p>
@@ -454,7 +447,6 @@ html.popout-open #tourNetHint { display: none; }
 #tourPage .tour-alt { background: #f6faf2; }
 #tourPage .tour-feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: center; }
 #tourPage .tour-feature + .tour-feature, #tourPage .tour-two + .tour-feature, #tourPage .tour-feature + .tour-two, #tourPage .tour-two + .tour-wide-shot, #tourPage .tour-wide-shot + .tour-feature { margin-top: 56px; }
-#tourPage .tour-feature + .tour-chips { margin-top: 56px; }
 #tourPage .tour-flip .tour-text { order: 2; }
 #tourPage .tour-text h2 { font-size: 32px; line-height: 1.15; font-weight: 800; letter-spacing: -.02em; margin: 0 0 14px; color: #111827; }
 #tourPage .tour-text h3 { font-size: 21px; font-weight: 800; margin: 0 0 12px; color: #111827; letter-spacing: -.01em; }
@@ -502,16 +494,12 @@ html.popout-open #tourNetHint { display: none; }
 #tourPage .tour-card b { display: block; font-size: 15px; color: #3b5e23; margin-bottom: 4px; }
 #tourPage .tour-card span { font-size: 13.5px; line-height: 1.5; color: #4b5563; }
 #tourPage .tour-more { padding: 56px 0 40px; border-top: 1px solid #e5e7eb; }
-#tourPage .tour-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-#tourPage .tour-chips div { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.45; color: #4b5563; }
-#tourPage .tour-chips b { display: block; color: #111827; font-size: 14px; margin-bottom: 2px; }
 #tourPage .tour-foot { text-align: center; font-size: 12.5px; color: #9ca3af; margin: 10px 0 0; }
 @media (max-width: 900px) {
   #tourPage .tour-feature, #tourPage .tour-two, #tourPage .tour-cards, #tourPage .tour-hero-grid { grid-template-columns: 1fr; }
   #tourPage .tour-feature { gap: 26px; }
   #tourPage .tour-flip .tour-text { order: 0; }
   #tourPage .tour-stats-in { grid-template-columns: 1fr 1fr; }
-  #tourPage .tour-chips { grid-template-columns: 1fr 1fr; }
   #tourPage .tour-hero h1 { font-size: 26px; }
   #tourPage .tour-text h2 { font-size: 26px; }
   #tourPage .tour-sec { padding: 48px 0; }
@@ -524,7 +512,6 @@ html.popout-open #tourNetHint { display: none; }
   #tourPage .tour-hero h1 { font-size: 22px; }
   #tourPage .tour-sub { font-size: 16px; }
   #tourPage .tour-stats-in b { font-size: 24px; }
-  #tourPage .tour-chips { grid-template-columns: 1fr; }
   #tourPage .tour-try { width: 100%; text-align: center; min-height: 44px; }
 }`;
 
