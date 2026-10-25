@@ -186,7 +186,7 @@
         <ul class="tour-hero-list">
             <li>Find connections between genes from unbiased correlations of CRISPR gene effect or mRNA across the cell lines.</li>
             <li>Find cell lines with specific mutations and mutation patterns, and compare omics data between groups of cell lines.</li>
-            <li>Get extensive information about any gene, on one page.</li>
+            <li>Get extensive information about any gene: dependency, expression, mutations, protein complexes, drugs and literature, gathered from DepMap, UniProt, Cellosaurus and other sources.</li>
             <li>Export any view for an AI and discuss the data with it.</li>
         </ul>
     </div>
