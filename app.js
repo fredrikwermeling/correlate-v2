@@ -21983,6 +21983,7 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         }
 
         container.style.display = 'block';
+        const canDrop = (document.getElementById('colorByPicked')?.value || '').trim() !== '*';
         let html = '<div style="display: flex; gap: 2px; margin-bottom: 4px;">';
         html += '<button id="colorByShowAll" class="btn btn-secondary btn-sm" style="font-size: 9px; padding: 1px 5px;">Show all</button>';
         html += '<button id="colorByHideAll" class="btn btn-secondary btn-sm" style="font-size: 9px; padding: 1px 5px;">Hide all</button>';
@@ -22002,10 +22003,21 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
                 ? `<span style="color: ${color}; font-size: 10px; line-height: 8px; flex-shrink: 0;">${glyph}</span>`
                 : `<span style="width: 8px; height: 8px; border-radius: 50%; background: ${color}; display: inline-block; flex-shrink: 0;"></span>`;
             html += `${cat}`;
+            if (canDrop && cat !== this.OTHER_GROUP_LABEL) html += `<span class="color-by-x" data-drop="${this.esc(cat)}" title="Stop colouring this group" style="margin-left:2px; color:#9ca3af; font-size:11px; line-height:8px;">&times;</span>`;
             html += `</span>`;
         });
         html += '</div>';
         container.innerHTML = html;
+        container.querySelectorAll('.color-by-x').forEach(x => x.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // An unticked group is recorded explicitly, or an empty value
+            // would fall back to the default top-N and put it straight back.
+            const remaining = categories.filter(c => c !== this.OTHER_GROUP_LABEL && c !== x.dataset.drop);
+            const picked = document.getElementById('colorByPicked');
+            if (picked) picked.value = remaining.length ? remaining.join('|') : 'none';
+            this._syncColorByGroupBtn();
+            this.updateInspectPlot();
+        }));
 
         // Track hidden categories
         const hidden = new Set();
@@ -45573,7 +45585,9 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         if (!box) return;
         const raw = (document.getElementById('colorByPicked')?.value || '').trim();
         const list = (categories || []).filter(c => c !== this.OTHER_GROUP_LABEL);
-        if (!list.length || raw === '*') { box.style.display = 'none'; box.innerHTML = ''; return; }
+        // The legend lists the same groups (with a remove cross), so this row
+        // stays hidden; it is kept for the restore paths that still call it.
+        if (!list.length || raw === '*' || document.getElementById('colorByLegend')) { box.style.display = 'none'; box.innerHTML = ''; return; }
         box.style.display = 'flex';
         box.innerHTML = list.map((c, i) => {
             const m = CorrelationExplorer.categoryMarker(i, 8, 1);

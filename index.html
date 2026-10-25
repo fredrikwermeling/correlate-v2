@@ -2995,6 +2995,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.88 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Correlation plot: the coloured groups are listed once (the legend), each with a cross to remove it; clicking a group still hides or shows it.</li>
+                </ul>
                 <p><strong>v.90.87 (2026-10-25)</strong></p>
                 <ul>
                     <li>Gene Browser: new <b>Protein complexes</b> section. Every named human complex containing the gene (EBI Complex Portal) gets a card with its name, what it does, its function terms and a link, and each member shows how closely its gene effect follows the gene's (r, tinted blue or red). A tag says whether the complex is co-dependent as a unit; most co-dependent complexes come first. Network and Heatmap per complex.</li>
@@ -8574,7 +8578,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.87</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.88</a>
         </span>
     </div>
 
@@ -11927,7 +11931,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_87"></script>
+    <script src="app.js?v=v90_88"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
