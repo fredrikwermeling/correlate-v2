@@ -85,6 +85,7 @@
     const ACTIONS = {
         hero: () => runExampleSet({ cutoff: 0.3, colorGE: true }),
         heroMrna: () => runExampleSet({ cutoff: 0.3, basis: 'expr' }),
+        pair: (a) => a.openInspectByGenes('SOX10', 'MITF'),
         tyr: (a) => { a._inspectPreset = { colorByGene: 'TYR', colorByGeneType: 'expr' }; a.openInspectByGenes('SOX10', 'MITF'); },
         braf: (a) => { a._inspectPreset = { hotspotGene: 'BRAF', hotspotMode: 'color' }; a.openInspectByGenes('BRAF', 'MAPK1'); },
         mutation: () => runMutationExample(),
@@ -120,11 +121,10 @@
         <div class="tour-brand"><b>Correlate</b><span>Tour of the app</span></div>
         <nav class="tour-nav" aria-label="Sections">
             <a href="#tour-network">Network</a>
-            <a href="#tour-links">Correlations</a>
-            <a href="#tour-compare">Compare groups</a>
+            <a href="#tour-corr">Correlation plot</a>
+            <a href="#tour-cells">Cell Line Browser</a>
             <a href="#tour-gene">Gene Browser</a>
-            <a href="#tour-cells">Cell lines</a>
-            <a href="#tour-export">Export</a>
+            <a href="#tour-more">More</a>
         </nav>
         <button type="button" class="tour-close" id="tourClose" aria-label="Close the tour">&times;</button>
     </div>
@@ -134,7 +134,7 @@
     <div class="tour-wrap">
         <p class="tour-eyebrow">Human cancer cell lines, DepMap 26Q1</p>
         <h1>From a gene list to a network of dependencies.</h1>
-        <p class="tour-sub">Correlate finds the genes whose CRISPR knockout effects, or mRNA levels, rise and fall together across the DepMap cancer cell lines, and turns that into networks, plots and pages you can take straight into a presentation or a manuscript.</p>
+        <p class="tour-sub">Correlate finds the genes whose CRISPR knockout effects, or mRNA levels, rise and fall together across the DepMap cancer cell lines. Four tools: a network from your gene set, the correlation plot behind every edge, a cell line browser and a gene browser.</p>
         <div class="tour-cta">
             ${tryBtn('hero', 'Build the example network')}
             ${tryBtn('kras', 'Open KRAS in the Gene Browser')}
@@ -157,150 +157,125 @@
 <section class="tour-sec" id="tour-network">
     <div class="tour-wrap tour-feature">
         <div class="tour-text">
-            <p class="tour-eyebrow">01 &middot; The network</p>
+            <p class="tour-eyebrow">1 &middot; Network</p>
             <h2>Paste a gene set, get a network</h2>
-            <p>Every pair of genes in your set is compared across the cell lines. Two genes whose profiles correlate above your cutoff are connected by an edge, a line between them: blue for a positive correlation, red for a negative one, thicker for a stronger one. Genes that end up in a tightly connected group usually belong to the same complex or pathway. A single edge to a gene outside such a group points to a partner you did not expect.</p>
+            <p>Two genes whose profiles correlate above your cutoff are connected by an edge. Blue is a positive correlation, red a negative one, thicker is stronger. A group of connected genes is usually a complex or a pathway.</p>
             ${checks([
-                `Build the network on CRISPR gene effect or on mRNA expression; a badge on the network says which one. The same gene set often gives two different networks, and the difference is informative: on mRNA (picture) the broadly expressed genes ${gi('MTOR')}, ${gi('RPTOR')}, ${gi('TSC1')}, ${gi('TSC2')} and ${gi('USP7')} merge into one block, while the melanocyte genes stay together.`,
-                'Colour the nodes by gene effect, by expression, or by your own screen statistics: paste LFC and FDR next to the gene list and your screen sits on top of the DepMap network.',
-                'Expand the set to find new partners, send any cluster to Enrichr, open a full-page view for large sets, and drag genes where you want them before you export.',
+                'Built on CRISPR gene effect or on mRNA expression. The badge on the network says which.',
+                'Colour the genes by gene effect, by expression, or by your own screen results (LFC and FDR pasted next to the gene list).',
+                'Expand the set to find new partners, send a cluster to Enrichr, open a full-page view.',
             ])}
         </div>
-        ${shot('net_mrna', 'The example set built on mRNA expression', 'heroMrna', { cap: `The same ${nSet} genes built on mRNA expression. Built on gene effect (top of the page) they split into the p53, mTORC1, MAPK and melanocyte groups.`, btn: 'Build the example set on mRNA' })}
+        ${shot('net_mrna', 'The example set built on mRNA expression', 'heroMrna', { cap: `The same ${nSet} genes built on mRNA expression. On gene effect (top of the page) they split into four groups.`, btn: 'Build the example set on mRNA' })}
     </div>
 </section>
 
-<section class="tour-sec tour-alt" id="tour-links">
-    <div class="tour-wrap tour-feature tour-flip">
-        <div class="tour-text">
-            <p class="tour-eyebrow">02 &middot; Behind every edge</p>
-            <h2>Every edge in the network is a plot you can open</h2>
-            <p>Double-click an edge, the line between two genes, and you see the cell lines behind it: one dot per cell line, one gene against the other, with r, p and the regression line. This is where you judge whether a correlation is real, driven by one cancer type, or explained by a third gene.</p>
-            ${checks([
-                'Filter to a cancer type, subtype or disease, to a mutation, a fusion or a copy-number change, or any combination. The statistics update with the filter.',
-                `Colour by tissue, by the mutation status of any gene, or by the expression or gene effect of a third gene. <b>Suggest</b> ranks the genes that explain the pattern best; here it points at ${gi('TYR')}.`,
-                'Highlight cell lines by name or group, draw gates to define cohorts, compare tissues side by side, and open any gene’s effect across all cell lines by tissue.',
-            ])}
-        </div>
-        <div class="tour-stack">
-            ${shot('scatter_tyr', 'SOX10 against MITF gene effect, coloured by TYR mRNA', 'tyr', { cap: `${gi('SOX10')} vs ${gi('MITF')} gene effect, coloured by ${gi('TYR')} mRNA: the cell lines that depend on both are the ones that express the pigmentation gene.`, btn: 'Open SOX10 vs MITF coloured by TYR' })}
-            ${shot('scatter_braf', 'BRAF against MAPK1 gene effect with BRAF-mutant cell lines coloured', 'braf', { cap: `${gi('BRAF')} vs ${gi('MAPK1')}, with ${gi('BRAF')}-mutant cell lines in colour.`, btn: 'Open BRAF vs MAPK1 by mutation' })}
-        </div>
-    </div>
-</section>
-
-<section class="tour-sec" id="tour-compare">
+<section class="tour-sec tour-alt" id="tour-corr">
     <div class="tour-wrap">
         <div class="tour-text tour-text-wide">
-            <p class="tour-eyebrow">03 &middot; Compare two groups</p>
-            <h2>Which genes separate two groups of cell lines?</h2>
-            <p>Two entrances to the same question. <b>Mutation analysis</b> splits the panel into wild-type and mutated for a gene you choose and ranks every gene by the difference in gene effect or expression. The <b>Cell Line Browser</b> compares any selection you can filter to against the rest, as volcano plots. Both use Welch’s t-test per gene, and both let you restrict the comparison to one lineage so a tissue difference is not mistaken for a mutation effect.</p>
+            <p class="tour-eyebrow">2 &middot; Correlation plot</p>
+            <h2>Double-click an edge to see the data behind it</h2>
+            <p>One dot per cell line, one gene against the other, with r and p. The plot is also a tool on its own: type any two genes.</p>
         </div>
-        <div class="tour-two">
-            <div class="tour-card-fig">
-                ${shot('mutation_table', 'Mutation analysis table for BRAF in skin cell lines', 'mutation', { btn: 'Open BRAF mutation analysis in skin' })}
-                <h3>Mutation analysis: ${gi('BRAF')} in skin</h3>
-                <p>Wild-type, all mutated and double-mutant cell lines in separate column groups, with the differences and p-values beside them. Search the table, send the list to Enrichr or a heatmap, open any gene’s plot.</p>
+        <div class="tour-wide-shot">
+            ${shot('edge_to_plot', 'Double-clicking the edge between SOX10 and MITF opens their correlation plot', 'pair', { cap: `The edge between ${gi('SOX10')} and ${gi('MITF')}, and the plot behind it: 1,208 cell lines, r 0.51.`, btn: 'Open SOX10 vs MITF' })}
+        </div>
+        <div class="tour-feature tour-flip">
+            <div class="tour-text">
+                <h3>Then ask why</h3>
+                ${checks([
+                    'Filter to a cancer type or a mutation. r and p follow the filter.',
+                    `Colour the dots by tissue, by a mutation, or by a third gene. <b>Suggest</b> finds the gene that explains the pattern best.`,
+                    'Highlight cell lines, draw gates, compare tissues side by side.',
+                ])}
             </div>
-            <div class="tour-card-fig">
-                ${shot('volcano', 'Volcano plots comparing BRAF-mutant skin cell lines with the other skin lines', 'compare', { btn: 'Compare BRAF-mutant skin cell lines' })}
-                <h3>Selection compare: 50 ${gi('BRAF')}-mutant skin cell lines vs the other 25</h3>
-                <p>Gene effect and mRNA side by side, q-values from Benjamini-Hochberg, the top genes labelled and listed. Adjust the thresholds and the plots redraw; the lists go straight to a network or Enrichr.</p>
+            ${shot('scatter_tyr', 'SOX10 against MITF gene effect, coloured by TYR mRNA', 'tyr', { cap: `The same plot coloured by ${gi('TYR')} mRNA: the cell lines that depend on both are the ones that express the pigmentation gene.`, btn: 'Open it coloured by TYR' })}
+        </div>
+    </div>
+</section>
+
+<section class="tour-sec" id="tour-cells">
+    <div class="tour-wrap">
+        <div class="tour-feature">
+            <div class="tour-text">
+                <p class="tour-eyebrow">3 &middot; Cell Line Browser</p>
+                <h2>Find the right cell lines</h2>
+                <p>Filter the panel by tissue, mutation, fusion, copy number, sex, drug response, or the expression or dependency of any gene. Every cell line has a page of ten sections or more.</p>
+                ${checks([
+                    `Example: skin, ${gi('BRAF')} mutated, female, sensitive to vemurafenib. The count updates as you go.`,
+                    'Compare your selection with the rest as volcano plots, on gene effect and on mRNA.',
+                    'Download a cell line’s full tables, or the list on screen, as CSV.',
+                ])}
             </div>
+            ${shot('clb', 'The Cell Line Browser filtered to skin cell lines with mutated BRAF, A375 selected', 'clb', { cap: `Skin cell lines with mutated ${gi('BRAF')}, A375 opened in the side panel.`, btn: 'Open the browser with these filters' })}
+        </div>
+        <div class="tour-two tour-two-tight">
+            ${shot('wiki', 'The wiki page for A375', 'wiki', { cap: 'The A375 page: summary, origin, classification, genome, dependencies, drug response.', btn: 'Open the A375 page' })}
+            ${shot('volcano', 'Volcano plots comparing BRAF-mutant skin cell lines with the other skin lines', 'compare', { cap: `Compare: 50 ${gi('BRAF')}-mutant skin cell lines against the other 25.`, btn: 'Compare BRAF-mutant skin cell lines' })}
         </div>
     </div>
 </section>
 
 <section class="tour-sec tour-alt" id="tour-gene">
     <div class="tour-wrap">
-        <div class="tour-text tour-text-wide">
-            <p class="tour-eyebrow">04 &middot; The Gene Browser</p>
-            <h2>One gene, everything the data says about it</h2>
-            <p>Type a gene and get its page: what it is, how essential it is and where, how it is expressed, which genes co-depend and co-express with it, which protein complexes and pathways it belongs to, its mutations, fusions, copy number, structure and sequence. The page exports as a PDF of five pages or more, and as a file for a language model.</p>
+        <div class="tour-feature tour-flip">
+            <div class="tour-text">
+                <p class="tour-eyebrow">4 &middot; Gene Browser</p>
+                <h2>One gene, one page</h2>
+                <p>Type a gene. The page says how essential it is and where, how it is expressed, which genes follow it, and which complexes and pathways it belongs to. Export it as a PDF.</p>
+                ${checks([
+                    `A verdict for dependency and for expression, ranked against every gene. ${gi('KRAS')}: essential in half of the screened cell lines, most in pancreas and bowel.`,
+                    'Co-dependencies and co-expression, with complex partners ringed.',
+                    'Mutations, fusions, copy number, drug response, structure and sequence.',
+                ])}
+            </div>
+            ${shot('gb_top', 'The Gene Browser page for KRAS: description, ideogram and summary', 'kras', { cap: `${gi('KRAS')} in the Gene Browser: description, chromosome position and the summary.`, btn: 'Open KRAS in the Gene Browser' })}
+        </div>
+        <div class="tour-two tour-two-tight">
+            ${shot('gb_dependency', 'Dependency section for KRAS with the gene effect distribution', 'kras', { cap: 'Dependency: where the gene sits among all genes, and the most dependent tissues.' })}
+            ${shot('gb_expression', 'Expression section for KRAS with the mRNA distribution', 'kras', { cap: 'Expression: the same for mRNA, with the highest and lowest tissues.' })}
         </div>
         <div class="tour-feature">
             <div class="tour-text">
-                <h3>A summary written from the data</h3>
-                ${checks([
-                    `A verdict for dependency and for expression, ranked against every gene: common essential or selective, expressed everywhere or restricted to a few cancers. ${gi('KRAS')} is essential in half of the screened lines, most strongly in pancreas and bowel, and hotspot-mutated cell lines depend on it most.`,
-                    'The most dependent tissues and cell lines, the highest and lowest expressing tissues, and the distributions behind them, each with a Copy figure button.',
-                    'Hotspot mutations by position and cancer type, fusions, copy number, and drug response from PRISM where the gene is a known target.',
-                ])}
-            </div>
-            ${shot('gb_top', 'The Gene Browser page for KRAS: description, ideogram and summary', 'kras', { cap: `${gi('KRAS')} in the Gene Browser: description, chromosome position and the summary line.`, btn: 'Open KRAS in the Gene Browser' })}
-        </div>
-        <div class="tour-two tour-two-tight">
-            ${shot('gb_dependency', 'Dependency section for KRAS with the gene effect distribution', 'kras', { cap: 'Dependency: the gene effect distribution with the gene marked, the most dependent tissues and lines.' })}
-            ${shot('gb_expression', 'Expression section for KRAS with the mRNA distribution', 'kras', { cap: 'Expression: the same for mRNA, with the highest and lowest tissues.' })}
-        </div>
-        <div class="tour-feature tour-flip">
-            <div class="tour-text">
                 <h3>Does the complex act as one unit?</h3>
                 ${checks([
-                    'Co-dependencies: the genes whose knockout effect follows this gene’s across the lines, as a table and a figure, with known partners from the same complex or pathway ringed.',
-                    'Co-expression as a heatmap of every pair, with genes on the same chromosome arm flagged so an amplicon is not mistaken for shared function.',
-                    `Protein complexes from the EBI Complex Portal and Reactome pathways, each member tagged with its co-dependency. ${gi('TSC2')} follows ${gi('TSC1')} at r 0.90; ${gi('TBC1D7')}, the third member, at 0.25.`,
+                    `Protein complexes from the EBI Complex Portal, each member tagged with its co-dependency.`,
+                    `${gi('TSC2')} follows ${gi('TSC1')} at r 0.90. ${gi('TBC1D7')}, the third member, only at 0.25.`,
                 ])}
             </div>
             <div class="tour-stack">
-                ${shot('gb_codep', 'Co-dependencies of TSC1 as a table and a fan figure', 'tsc1', { cap: `Co-dependencies of ${gi('TSC1')}: the table and the figure, complex partners ringed.`, btn: 'Open TSC1 in the Gene Browser' })}
-                ${shot('gb_complex', 'The TSC1-TSC2 complex card with co-dependency per member', 'tsc1', { cap: `The ${gi('TSC1')}-${gi('TSC2')} complex card, each member with its co-dependency.` })}
+                ${shot('gb_codep', 'Co-dependencies of TSC1 as a table and a fan figure', 'tsc1', { cap: `Co-dependencies of ${gi('TSC1')}, complex partners ringed.`, btn: 'Open TSC1 in the Gene Browser' })}
+                ${shot('gb_complex', 'The TSC1-TSC2 complex card with co-dependency per member', 'tsc1', { cap: `The ${gi('TSC1')}-${gi('TSC2')} complex card.` })}
             </div>
         </div>
-        <div class="tour-wide-shot">
-            ${shot('gb_coexpr', 'Co-expression table and heatmap for TSC1', 'tsc1', { cap: `Co-expression with ${gi('TSC1')}: the heatmap shows how the correlated genes relate to each other; names in amber sit within 10 Mb on the same chromosome.` })}
-        </div>
     </div>
 </section>
 
-<section class="tour-sec" id="tour-cells">
-    <div class="tour-wrap tour-feature">
-        <div class="tour-text">
-            <p class="tour-eyebrow">05 &middot; Cell lines</p>
-            <h2>Find the right cell lines, then read their pages</h2>
-            <p>The Cell Line Browser filters the panel by tissue, subtype and disease, by sex and loss of Y, by mutations, fusions and copy number, by expression or dependency of any gene, and by drug response, in any combination. Every cell line has a page of ten sections or more assembled from DepMap and other sources.</p>
-            ${checks([
-                `Combine filters: skin, ${gi('BRAF')} mutated, female, sensitive to vemurafenib. The count updates as you go, and the list is one click from a heatmap, PCA or UMAP.`,
-                'Each cell line opens with a plain-language summary: origin, candidate drivers, derived cell lines, genome state. The wiki adds provenance, STR, signatures, dependencies, expression and drug response.',
-                'Download a cell line’s full gene effect, expression and mutation tables, or the list on screen, as CSV.',
-            ])}
-        </div>
-        <div class="tour-stack">
-            ${shot('clb', 'The Cell Line Browser filtered to skin cell lines with mutated BRAF, A375 selected', 'clb', { cap: `Skin cell lines with mutated ${gi('BRAF')}, with A375 opened in the side panel.`, btn: 'Open the browser with these filters' })}
-            ${shot('wiki', 'The wiki page for A375', 'wiki', { cap: 'The A375 wiki page: executive summary, provenance, classification and onwards.', btn: 'Open the A375 page' })}
-        </div>
-    </div>
-</section>
-
-<section class="tour-sec tour-alt" id="tour-export">
-    <div class="tour-wrap tour-feature tour-flip">
-        <div class="tour-text">
-            <p class="tour-eyebrow">06 &middot; Take it with you</p>
-            <h2>Every view leaves with you</h2>
-            <p>The same buttons sit under every network, plot, table and page.</p>
-            <div class="tour-cards">
-                <div class="tour-card"><b>Export image</b><span>PNG, SVG, TIFF, PDF or PowerPoint at the print size you choose. PNG and SVG carry their settings, so opening the image in Correlate later brings the analysis back.</span></div>
-                <div class="tour-card"><b>Export for AI</b><span>One file with the data behind the view, written for a language model. Upload it and ask: which of these dependencies has a drug? Which cell line should I use for this experiment?</span></div>
-                <div class="tour-card"><b>Methods</b><span>How the numbers on screen were calculated, as a paragraph for a methods section and as a plain walk-through.</span></div>
-                <div class="tour-card"><b>Tables</b><span>CSV of every result; every gene for a cell line; every cell line for a gene.</span></div>
-            </div>
-        </div>
-        ${shot('export_dialog', 'The Export image dialog', null, { cls: 'tour-shot-dialog', cap: 'Export image: what to export, format, size in cm, resolution, background.' })}
-    </div>
-</section>
-
-<section class="tour-sec tour-more">
+<section class="tour-sec" id="tour-more">
     <div class="tour-wrap">
-        <p class="tour-eyebrow">Also in Correlate</p>
+        <p class="tour-eyebrow">More</p>
+        <div class="tour-feature">
+            <div class="tour-text">
+                <h3>Mutation analysis</h3>
+                <p>Wild-type against mutated for any gene, every gene ranked by the difference in gene effect or mRNA.</p>
+            </div>
+            ${shot('mutation_table', 'Mutation analysis table for BRAF in skin cell lines', 'mutation', { cap: `${gi('BRAF')} in skin: wild-type, mutated and double-mutant cell lines in separate column groups.`, btn: 'Open BRAF mutation analysis in skin' })}
+        </div>
+        <div class="tour-feature tour-flip">
+            <div class="tour-text">
+                <h3>Take it with you</h3>
+                <p>Under every view: Export image (PNG, SVG, PDF, PowerPoint at print size), Export for AI, Methods and CSV. An exported PNG or SVG reopens in Correlate with its analysis.</p>
+            </div>
+            ${shot('export_dialog', 'The Export image dialog', null, { cls: 'tour-shot-dialog', cap: 'Export image: what to export, format, size in cm, resolution, background.' })}
+        </div>
         <div class="tour-chips">
-            <div><b>Heatmap</b>a gene set across the cell lines, clustered, with annotation rows</div>
-            <div><b>Compilation</b>a grid of correlation plots or gene effect panels, one per pair or gene</div>
-            <div><b>Threshold scan</b>how many edges your set keeps as the cutoff moves</div>
-            <div><b>PCA and UMAP</b>of cell lines or genes, with gene classes and loadings</div>
+            <div><b>Heatmap</b>a gene set across the cell lines, clustered</div>
+            <div><b>Compilation</b>a grid of correlation plots, one per pair</div>
+            <div><b>Threshold scan</b>how many edges the set keeps as the cutoff moves</div>
+            <div><b>PCA and UMAP</b>of cell lines or genes</div>
             <div><b>Correlation matrix</b>of the set, on gene effect or mRNA</div>
-            <div><b>Gates</b>draw a cohort on any plot and carry it to the next view</div>
-            <div><b>Open saved figure</b>drop an exported PNG or SVG back in and continue</div>
-            <div><b>Green Listed</b>library genes and curated gene classes, offline</div>
+            <div><b>Gates</b>draw a cohort on any plot and carry it on</div>
+            <div><b>Green Listed</b>library genes and curated gene classes</div>
         </div>
         <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Build the example network')}${tryBtn('stats', 'The statistics behind the app')}</div>
         <p class="tour-foot">Data: DepMap 26Q1 (Broad Institute), with EBI Complex Portal, Reactome, PRISM and the other sources listed under Reference Data. Correlate is developed in the Wermeling lab.</p>
@@ -346,7 +321,8 @@
 #tourPage .tour-sec { padding: 72px 0; }
 #tourPage .tour-alt { background: #f6faf2; }
 #tourPage .tour-feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: center; }
-#tourPage .tour-feature + .tour-feature, #tourPage .tour-two + .tour-feature, #tourPage .tour-feature + .tour-two, #tourPage .tour-two + .tour-wide-shot { margin-top: 56px; }
+#tourPage .tour-feature + .tour-feature, #tourPage .tour-two + .tour-feature, #tourPage .tour-feature + .tour-two, #tourPage .tour-two + .tour-wide-shot, #tourPage .tour-wide-shot + .tour-feature { margin-top: 56px; }
+#tourPage .tour-feature + .tour-chips { margin-top: 56px; }
 #tourPage .tour-flip .tour-text { order: 2; }
 #tourPage .tour-text h2 { font-size: 32px; line-height: 1.15; font-weight: 800; letter-spacing: -.02em; margin: 0 0 14px; color: #111827; }
 #tourPage .tour-text h3 { font-size: 21px; font-weight: 800; margin: 0 0 12px; color: #111827; letter-spacing: -.01em; }
