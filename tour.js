@@ -122,9 +122,13 @@
         setVal('hmLineage', 'Skin'); await wait(400);
         setVal('hmSubtype', 'Melanoma'); await wait(400);
         setVal('hmHotspotFilter', 'BRAF'); await wait(400);
-        // One annotation row, TP53 mutation, so the columns are not split
-        // into disease blocks.
-        a._hmAnnRows = [{ mode: 'hotspot', gene: 'TP53', sortDir: null, sortKey: 'cat-asc' }];
+        // Lineage as the one block, TP53 wild-type first inside it, then
+        // clustered: the layout of the figure.
+        a._hmAnnRows = [
+            { mode: 'lineage', gene: null, sortDir: 'desc', sortKey: 'mag' },
+            { mode: 'hotspot', gene: 'TP53', sortDir: 'asc', sortKey: 'cat-asc' },
+            { mode: 'cluster', gene: null, sortDir: 'asc', sortKey: null },
+        ];
         a._hmRenderAnnRowsBlock?.();
         setVal('hmPreset', 'tp53_members');
     }
@@ -387,7 +391,7 @@
             ${shot('pca_mitf', 'PCA of the melanoma cell lines on mRNA, colored by MITF expression, with loadings', 'pca', { cap: `PCA of the same 50 cell lines on mRNA, colored by ${gi('MITF')} expression. The loadings name the genes behind the axes.`, btn: 'Open this PCA' })}
         </div>
         <div class="tour-wide-shot">
-            ${shot('heatmap_tp53', 'Heatmap of the TP53 pathway members across the 50 BRAF-mutated melanoma cell lines, with a TP53 mutation row', 'heatmap', { cap: `Heatmap: the ${gi('TP53')} pathway members across the same 50 cell lines. Those with wild-type ${gi('TP53')} depend on ${gi('MDM2')} and ${gi('USP7')}; the ${gi('TP53')}-mutated ones, on the right, do not.`, btn: 'Open this heatmap' })}
+            ${shot('heatmap_tp53', 'Heatmap of the TP53 pathway members across the 50 BRAF-mutated melanoma cell lines, with a TP53 mutation row', 'heatmap', { cap: `Heatmap: each column is one of the same 50 cell lines, each row a gene of the ${gi('TP53')} pathway. Cell lines with wild-type ${gi('TP53')} depend on ${gi('MDM2')} and ${gi('USP7')}; the ${gi('TP53')}-mutated ones, on the right, do not.`, btn: 'Open this heatmap' })}
         </div>
         <div class="tour-feature">
             <div class="tour-text">
