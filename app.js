@@ -7472,10 +7472,11 @@ class CorrelationExplorer {
         // Changing what the legend states only relabels the traces, but the
         // labels are built during the redraw, so the plot is redrawn.
         document.getElementById('colorByLegendStat')?.addEventListener('change', () => this.updateInspectPlot());
-        document.getElementById('colorByTissueBtn')?.addEventListener('click', () => {
+        document.getElementById('colorBySeg')?.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-color-by]');
             const sel = document.getElementById('colorByCategory');
-            if (!sel) return;
-            sel.value = sel.value === 'tissue' ? '' : 'tissue';
+            if (!b || !sel || sel.value === b.dataset.colorBy) return;
+            sel.value = b.dataset.colorBy;
             sel.dispatchEvent(new Event('change', { bubbles: true }));
         });
         document.getElementById('colorByCategory').addEventListener('change', () => {
@@ -20579,6 +20580,8 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         // The chip strip mirrors these controls, redrawn from the same place the
         // plot is, so it can never describe a different cohort from the one shown.
         this._renderFilterChips('scatter');
+        // Several resets and restores set the Color by select directly.
+        this._syncColorByGroupBtn();
         if (this._compBorrowed) this._compRedrawSoon();
         if (!this.currentInspect) return;
 
@@ -45129,13 +45132,11 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
     _syncColorByGroupBtn() {
         const btn = document.getElementById('colorByGroupBtn');
         const mode = document.getElementById('colorByCategory')?.value;
-        const tBtn = document.getElementById('colorByTissueBtn');
-        if (tBtn) {
-            const on = mode === 'tissue';
-            tBtn.setAttribute('aria-pressed', String(on));
-            tBtn.classList.toggle('btn-active', on);
-            tBtn.textContent = on ? 'Colored by tissue' : 'Color by tissue';
-        }
+        document.querySelectorAll('#colorBySeg [data-color-by]').forEach(b => {
+            const on = b.dataset.colorBy === (mode || '');
+            b.classList.toggle('btn-active', on);
+            b.setAttribute('aria-pressed', String(on));
+        });
         if (!btn) return;
         const on = mode === 'tissue' || mode === 'subtype' || mode === 'disease' || mode === 'medium';
         btn.style.display = on ? '' : 'none';
