@@ -31276,10 +31276,27 @@ ${filterText ? `<text x="${this._netBannerPos ? this._netBannerPos.x : width / 2
         const m = document.getElementById('geneEffectModal');
         if (!btn || !m) return;
         const isCondensed = m.classList.contains('ge-condensed');
+        this._geMoveHighlightBox(isCondensed);
         btn.innerHTML = isCondensed ? '&#10530; Full view' : '&#10529; Chart only';
         btn.title = isCondensed
             ? 'Show the full analysis: filters and the statistics table'
             : 'Back to the chart on its own, without the filters and table';
+    }
+
+    // The chart-only view hides the filter bar, which holds the highlight box.
+    // The same box (with its group picker and name suggestions) moves to a
+    // row above the chart while compact, and back when expanded.
+    _geMoveHighlightBox(condensed) {
+        const input = document.getElementById('geCellLineSearch');
+        const slot = document.getElementById('geCondensedHl');
+        if (!input || !slot) return;
+        const pick = input._groupPicker ? (input._groupPicker.closest('.select-proxy') || input._groupPicker) : null;
+        if (condensed && !slot.contains(input)) {
+            if (!this._geHlHome) { this._geHlHome = document.createComment('geCellLineSearch home'); input.before(this._geHlHome); }
+            slot.append(input, ...(pick ? [pick] : []));
+        } else if (!condensed && slot.contains(input) && this._geHlHome) {
+            this._geHlHome.after(input, ...(pick ? [pick] : []));
+        }
     }
 
     switchGeneEffectView(view) {

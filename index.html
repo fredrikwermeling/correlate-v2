@@ -2309,6 +2309,7 @@
         #geneEffectModal.ge-condensed #geInlineCompareTable,
         #geneEffectModal.ge-condensed #geGateCompareSection { display: none !important; }
         #geneEffectModal.ge-condensed #geChartContainer { flex: 1 1 100% !important; }
+        #geneEffectModal.ge-condensed #geCondensedHl { display: flex !important; }
         /* The button is a toggle wherever a compact view makes sense, which is
            when this popout was opened over another modal (the browser, the
            wiki). On a top-level popout there is nothing to be compact for, so
@@ -3008,6 +3009,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.99 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Gene effect popout, chart-only view (opened from another popout): the highlight box is shown above the chart, so one or more cell lines, or a whole tissue, subtype or disease, can be highlighted by searching without expanding to the full view.</li>
+                </ul>
                 <p><strong>v.90.98 (2026-10-25)</strong></p>
                 <ul>
                     <li>Correlation plot: Color by <b>Gene</b> colours every point by a chosen gene's mRNA expression, gene effect or copy number in that cell line, with a colour key; lines without a value are grey.</li>
@@ -8632,7 +8637,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.98</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.99</a>
         </span>
     </div>
 
@@ -9996,6 +10001,8 @@
                     </div>
                 </div>
 
+                <!-- Highlight box while the view is chart-only (the filter bar is hidden). -->
+                <div id="geCondensedHl" class="mobile-hide" style="display:none; align-items:center; gap:6px; margin-bottom:8px;"><span style="font-size:11px; font-weight:600; color:#374151;">Highlight:</span></div>
                 <!-- Summary stats -->
                 <div id="geneEffectSummary" style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 10px 14px; margin-bottom: 15px; display: none;">
                     <div style="display: flex; gap: 25px; flex-wrap: wrap; font-size: 12px;">
@@ -12005,7 +12012,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_98"></script>
+    <script src="app.js?v=v90_99"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
