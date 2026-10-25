@@ -363,7 +363,7 @@
             <div class="tour-text">
                 <p class="tour-eyebrow">3 &middot; Cell Line Browser</p>
                 <h2>Find the right cell lines for your project</h2>
-                <p>Narrow the ${nL} cell lines down by cancer type, mutation, fusion, copy number, sex, drug response, or how much they express or need any gene. Every cell line has its own comprehensive summary.</p>
+                <p>Narrow the ${nL} cell lines down by cancer type, mutation, fusion, copy number, sex, drug response, or how much they express or need any gene. Every cell line has its own Wiki, a comprehensive summary.</p>
                 ${checks([
                     `Example: melanoma cell lines with mutated ${gi('BRAF')}. The count updates as you go.`,
                     'From the list: compare the selection with the rest, a PCA or UMAP, a heatmap of any gene set.',
@@ -395,14 +395,15 @@
         </div>
         <div class="tour-feature">
             <div class="tour-text">
-                <h3>A comprehensive summary of every cell line</h3>
+                <h3>The Wiki: a comprehensive summary of every cell line</h3>
                 ${checks([
                     'Many sections, gathered from DepMap, Cellosaurus and other sources: origin and history, classification, mutations, copy number, dependencies, drug response and more.',
                     'Which pathways are altered, pointing to the ones involved in transforming the cell line.',
                     'Suggested antigens for FACS: surface proteins the cell line expresses strongly and fairly uniquely.',
+                    'Open it from the Cell Line Browser, or Shift-click a cell line in any plot.',
                 ])}
             </div>
-            ${shot('wiki_a375', 'The summary for A375: overview, history and cancer classification', 'wiki', { cap: 'The start of the A375 summary: an overview, its history and derived cell lines, and how it is classified.', btn: 'Open the A375 summary' })}
+            ${shot('wiki_a375', 'The Wiki for A375: overview, history and cancer classification', 'wiki', { cap: 'The start of the A375 Wiki: an overview, its history and derived cell lines, and how it is classified.', btn: 'Open the A375 Wiki' })}
         </div>
     </div>
     <div class="tour-wrap tour-next-row">${nextBtn('tour-gene', 'Gene Browser')}</div>
