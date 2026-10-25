@@ -169,7 +169,8 @@
                 <li><span>Hover a dot</span> to see which cell line it is.</li>
                 <li><span>Click a dot</span> to label it, <span>Shift-click</span> to open the cell line's page.</li>
                 <li><span>Drag</span> over an area to zoom in, <span>double-click</span> to zoom out.</li>
-                <li>Use the panel on the left to filter, colour the dots or compare groups.</li>
+                <li>Use the panel on the left to filter, colour the dots, highlight cell lines or compare tissues.</li>
+                <li><span>Settings</span> under the plot changes sizes and fonts.</li>
             </ul>`;
         card.querySelector('button').addEventListener('click', () => card.remove());
         document.body.appendChild(card);
@@ -291,8 +292,8 @@
             <h2>Double-click an edge to see what the connection is based on</h2>
             <p>An edge in the network connects two genes. Double-click it and the correlation plot opens: each dot is a cell line, placed by its value for one gene against the other. The correlation (r) and its p-value are shown on top. The plot can also be opened on its own for any two genes.</p>
         </div>
-        <div class="tour-wide-shot">
-            ${shot('edge_to_plot', 'Double-clicking the edge between TP53 and MDM2 opens their correlation plot', 'pair', { cap: `The edge between ${gi('TP53')} and ${gi('MDM2')}, and the plot behind it: ${nL} cell lines, r −0.72. Cell lines that tolerate losing ${gi('TP53')} depend on ${gi('MDM2')}.`, btn: 'Open TP53 vs MDM2' })}
+        <div class="tour-wide-shot tour-edge-shot">
+            ${shot('edge_to_plot', 'Double-clicking the edge between TP53 and MDM2 opens their correlation plot', 'pair', { cap: `The edge between ${gi('TP53')} and ${gi('MDM2')}, and the plot behind it: ${nL} cell lines, r −0.72. Cell lines that tolerate losing ${gi('TP53')} depend on ${gi('MDM2')}.`, btn: 'Open TP53 vs MDM2, then hover, click and change the settings' })}
         </div>
         <div class="tour-feature tour-flip">
             <div class="tour-text">
@@ -300,7 +301,7 @@
                 ${checks([
                     'Filter to a cancer type or a mutation. r and p follow the filter.',
                     `Colour the dots by tissue, by a mutation, or by a third gene. <b>Suggest</b> finds the gene that explains the pattern best.`,
-                    'Draw gates around two groups of cell lines and <b>Compare</b> them: genes, tissues and mutations that differ, in the same view the Cell Line Browser uses.',
+                    'Highlight cell lines by typing their names or clicking their dots, and compare tissues or mutation groups side by side.',
                     '<b>Export for AI</b> sends the plot with the data behind it, so you can ask an AI what could explain the pattern.',
                 ])}
             </div>
@@ -325,7 +326,7 @@
             </div>
             ${shot('clb_mel', 'The Cell Line Browser filtered to melanoma cell lines with mutated BRAF, A375 selected', 'clb', { cap: `Melanoma cell lines with mutated ${gi('BRAF')}, A375 opened in the side panel.`, btn: 'Open the browser with these filters' })}
         </div>
-        <div class="tour-two tour-two-tight">
+        <div class="tour-two tour-two-tight tour-two-pca">
             ${shot('volcano_mel', 'Volcano plot comparing the 50 BRAF-mutant melanoma cell lines with every other cell line', 'compare', { cap: `Compare: the 50 selected cell lines against the other 1,158. ${gi('BRAF')}, ${gi('SOX10')} and ${gi('MAPK1')} are their dependencies.`, btn: 'Compare these cell lines with the rest' })}
             ${shot('pca_mitf', 'PCA of the melanoma cell lines on mRNA, coloured by MITF expression, with loadings', 'pca', { cap: `PCA of the melanoma cell lines on mRNA, coloured by ${gi('MITF')} expression. The loadings name the genes behind the axes.`, btn: 'Open this PCA' })}
         </div>
@@ -362,10 +363,7 @@
                     `${gi('TSC2')} follows ${gi('TSC1')} at r 0.90. ${gi('TBC1D7')}, the third member, only at 0.25.`,
                 ])}
             </div>
-            <div class="tour-stack">
-                ${shot('gb_codep', 'Co-dependencies of TSC1 as a table and a fan figure', 'tsc1', { cap: `Co-dependencies of ${gi('TSC1')}, complex partners ringed.`, btn: 'Open TSC1 in the Gene Browser' })}
-                ${shot('gb_complex', 'The TSC1-TSC2 complex card with co-dependency per member', 'tsc1', { cap: `The ${gi('TSC1')}-${gi('TSC2')} complex card.` })}
-            </div>
+            ${shot('gb_codep', 'Co-dependencies of TSC1 as a table and a fan figure', 'tsc1', { cap: `Co-dependencies of ${gi('TSC1')}, complex partners ringed.`, btn: 'Open TSC1 in the Gene Browser' })}
         </div>
     </div>
     <div class="tour-wrap tour-next-row">${nextBtn('tour-more', 'More')}</div>
@@ -394,7 +392,7 @@
             <div><b>Compilation</b>a grid of correlation plots, one per pair</div>
             <div><b>Threshold scan</b>how many edges the set keeps as the cutoff moves</div>
             <div><b>Correlation matrix</b>of the set, on gene effect or mRNA</div>
-            <div><b>Gates</b>draw a cohort on any plot and carry it on</div>
+            <div><b>Heatmap</b>a gene set across the cell lines, with mutation and tissue rows</div>
             <div><b>Green Listed</b>library genes and curated gene classes</div>
         </div>
         <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Build the example network')}${tryBtn('wiki', 'Open the A375 page')}${tryBtn('stats', 'The statistics behind the app')}</div>
@@ -491,11 +489,14 @@ html.popout-open #tourNetHint { display: none; }
 #tourPage .tour-two .tour-shot img { aspect-ratio: 5 / 6; object-fit: contain; padding: 6px; }
 #tourPage .tour-two .tour-shot figcaption { flex: 1; }
 #tourPage .tour-two-net { align-items: stretch; }
+#tourPage .tour-two-pca { grid-template-columns: minmax(0, 99fr) minmax(0, 133fr); align-items: stretch; }
+#tourPage .tour-two-pca .tour-shot img { aspect-ratio: auto; }
 #tourPage .tour-two-net .tour-shot img { aspect-ratio: 1 / 1; }
 #tourPage .tour-stack .tour-shot img { aspect-ratio: 4 / 3; object-fit: contain; padding: 6px; }
 #tourPage .tour-card-fig h3 { font-size: 19px; font-weight: 800; margin: 18px 0 8px; color: #111827; }
 #tourPage .tour-card-fig p { font-size: 15px; line-height: 1.55; color: #374151; margin: 0 0 14px; }
 #tourPage .tour-wide-shot { margin-top: 40px; }
+#tourPage .tour-edge-shot { max-width: 920px; margin-left: auto; margin-right: auto; }
 #tourPage .tour-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 6px; }
 #tourPage .tour-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px 16px; }
 #tourPage .tour-card b { display: block; font-size: 15px; color: #3b5e23; margin-bottom: 4px; }
