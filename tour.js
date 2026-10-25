@@ -351,7 +351,7 @@
                     '<b>Export for AI</b> sends the plot with the data behind it, so you can ask an AI what could explain the pattern.',
                 ])}
             </div>
-            ${shot('scatter_eda2r', 'TP53 against MDM2 gene effect, colored by EDA2R mRNA', 'eda2r', { cap: `The same plot colored by ${gi('EDA2R')} mRNA, a p53 target gene: the cell lines that depend on ${gi('MDM2')} are the ones with active p53.`, btn: 'Open it colored by EDA2R' })}
+            ${shot('scatter_eda2r', 'TP53 against MDM2 gene effect, colored by EDA2R mRNA', 'eda2r', { cap: `The same plot, each dot a cell line, colored by its ${gi('EDA2R')} mRNA (a p53 target gene): the cell lines that depend on ${gi('MDM2')} are the ones with active p53.`, btn: 'Open it colored by EDA2R' })}
         </div>
     </div>
     <div class="tour-wrap tour-next-row">${nextBtn('tour-cells', 'Cell Line Browser')}</div>
