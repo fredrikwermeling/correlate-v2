@@ -52584,10 +52584,23 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             + `${panels}</div>${this._gbCoexprHeatmap(gene, (res.mrnaVsMrna || []).map(h => h.gene), isNear)}</div>`
             + `<div class="gb-m" style="margin-top:3px;">Pearson r across the cell lines with both values (hover p for n), strongest in either direction, genes measured in at least 100 lines. `
             + `${g} is at ${this.esc(this.geneLocations?.[gene]?.band || 'an unknown band')}; <span class="gb-near">amber</span> marks genes within ${near} Mb on the same chromosome. Neighbours are often gained or lost together, so their mRNA can correlate through shared copy number rather than shared function.</div>` + fewGe;
+        // The heatmap's grid (not its column labels) starts level with the table.
+        const level = () => {
+            const svg = box.querySelector('svg[data-grid-top]'), fig = svg?.closest('.gb-relfig');
+            const tbl = [...box.querySelectorAll('.gb-xpanel')].find(x => !x.hidden)?.querySelector('table');
+            if (!fig || !tbl) return;
+            fig.style.marginTop = '0px';
+            const sc = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width || 1;
+            const d = tbl.getBoundingClientRect().top - (svg.getBoundingClientRect().top + svg.dataset.gridTop * sc);
+            // Stacked under the table (narrow screens): leave it in place.
+            if (fig.getBoundingClientRect().top < tbl.getBoundingClientRect().bottom) fig.style.marginTop = `${Math.round(d)}px`;
+        };
+        requestAnimationFrame(level);
         box.querySelectorAll('[data-gb-xtab]').forEach(b => b.addEventListener('click', () => {
             this._gbXCorrTab = b.dataset.gbXtab;
             box.querySelectorAll('[data-gb-xtab]').forEach(x => x.classList.toggle('on', x === b));
             box.querySelectorAll('[data-gb-xpanel]').forEach(x => { x.hidden = x.dataset.gbXpanel !== b.dataset.gbXtab; });
+            level();
         }));
     }
 
@@ -52629,7 +52642,7 @@ The "⚠ atypical" badge means the cell line tissue isn't the usual disease for 
             return `rgb(${mix(R1)},${mix(G1)},${mix(B1)})`;
         };
         const labCol = (g) => g === gene ? '#111827' : isNear({ gene: g }) ? '#b45309' : '#374151';
-        let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="max-width:100%; height:auto; display:block; margin:0 auto; font-family:${font};">`;
+        let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" data-grid-top="${lab}" style="max-width:100%; height:auto; display:block; margin:0 auto; font-family:${font};">`;
         order.forEach((gi, p) => {
             const g = genes[gi], y = lab + p * cell + cell / 2 + 4, x = lab + p * cell + cell / 2;
             const w = g === gene ? '700' : '400';
