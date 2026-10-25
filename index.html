@@ -2995,6 +2995,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.91 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Matrix: by default shows only the genes with at least one partner above the cutoff; "All genes" shows the whole set. Either way at most 40 genes, those with the strongest correlation kept. Values now show whenever the cells are large enough to read.</li>
+                </ul>
                 <p><strong>v.90.90 (2026-10-25)</strong></p>
                 <ul>
                     <li>Network full page draws the same picture as the normal view, only larger: labels keep the same size relative to the nodes instead of being rescaled for the bigger panel.</li>
@@ -8586,7 +8590,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.90</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.91</a>
         </span>
     </div>
 
@@ -9297,9 +9301,13 @@
                 <!-- Matrix Tab: the whole set against itself -->
                 <div class="tab-content" id="tab-matrix">
                     <div class="tip-box">
-                        <strong>Tip:</strong> Every pair in the set, including the ones below the cutoff, on the same cell lines the network was built from. Click a cell to open that pair's scatter. Rows follow the network's clusters.
+                        <strong>Tip:</strong> The genes against each other, every pair including those below the cutoff, on the same cell lines the network was built from. Click a cell to open that pair's scatter. Rows follow the network's clusters.
                     </div>
                     <div class="table-controls">
+                        <select id="matrixGeneSet" class="form-control" style="width:auto; font-size:11px; padding:2px 6px;" title="Which genes the grid shows. At most 40 either way, those with the strongest correlation kept.">
+                            <option value="linked" selected>Genes linked above the cutoff</option>
+                            <option value="all">All genes (top 40 by r)</option>
+                        </select>
                         <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;"><input type="checkbox" id="matrixShowValues" checked> Show values</label>
                         <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Order the genes by the network's clusters; unticked, they follow the order you entered them in"><input type="checkbox" id="matrixClusterOrder" checked> Cluster order</label>
                         <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Blank every pair whose correlation did not clear the cutoff, so only the pairs in the network are colored"><input type="checkbox" id="matrixAboveCutoff"> Above cutoff only</label>
@@ -11944,7 +11952,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_90"></script>
+    <script src="app.js?v=v90_91"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
