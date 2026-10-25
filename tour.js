@@ -375,7 +375,7 @@
         <div class="tour-feature">
             <div class="tour-text">
                 <h3>Mutation analysis</h3>
-                <p>Wild-type against mutated for any gene, every gene ranked by the difference in gene effect or mRNA. Any gene in the table opens as a strip plot.</p>
+                <p>Pick an alteration from curated lists of cancer-relevant hotspot mutations, functional losses and amplifications, or any fusion. The cell lines that carry it are compared with those that do not, and every gene is ranked by the difference in gene effect or mRNA. Any gene in the table opens as a strip plot.</p>
             </div>
             ${shot('strip_braf', 'BRAF gene effect in skin cell lines by BRAF mutation status', 'mutation', { cap: `${gi('BRAF')} gene effect in skin cell lines, split by ${gi('BRAF')} mutation: the mutated cell lines depend on it, the wild-type ones do not.`, btn: 'Open BRAF mutation analysis in skin' })}
         </div>
