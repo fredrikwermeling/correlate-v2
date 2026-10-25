@@ -161,6 +161,8 @@
     const tryBtn = (act, label) => `<button type="button" class="tour-try" data-act="${act}">${label}<span aria-hidden="true"> &rarr;</span></button>`;
     const checks = (items) => `<ul class="tour-checks">${items.map(t => `<li>${t}</li>`).join('')}</ul>`;
 
+    const nextBtn = (id, label) => `<button type="button" class="tour-next" data-next="#${id}">Next: ${label} <span aria-hidden="true">&darr;</span></button>`;
+
     function pageHTML() {
         const nL = num(D.nLines()), nE = num(D.nExprLines()), nG = num(D.nGenes()), nSet = HERO_SET.length;
         return `
@@ -179,7 +181,8 @@
 </header>
 
 <section class="tour-hero">
-    <div class="tour-wrap">
+    <div class="tour-wrap tour-hero-grid">
+        <div class="tour-hero-text">
         <h1>Correlate brings together CRISPR knockout screens, mRNA expression, mutations, copy number and drug response from DepMap, adds gene and cell line information from many other databases, and connects them.</h1>
         <p class="tour-sub">Use it to:</p>
         <ul class="tour-hero-list">
@@ -188,13 +191,15 @@
             <li>Get extensive information about any gene: dependency, expression, mutations, protein complexes, drugs and literature, gathered from DepMap, UniProt, Cellosaurus and other sources.</li>
             <li>Export any view for an AI and discuss the data with it.</li>
         </ul>
+        </div>
+        <div class="tour-hero-shot">
+            ${shot('net_p53', 'A network built from eleven p53 pathway and TSC genes', 'hero', { eager: true, cap: `A network from a list of ${nSet} genes: the p53 pathway and the TSC complex. Blue edges join genes that cells need together, red edges join opposites: cells that need ${gi('MDM2')} tolerate losing ${gi('TP53')}.`, btn: 'Try it: build this network' })}
+        </div>
     </div>
-    <div class="tour-wrap tour-hero-shot">
-        ${shot('net_p53', 'A network built from eleven p53 pathway and TSC genes', 'hero', { eager: true, cap: `A network from a list of ${nSet} genes: the p53 pathway and the TSC complex. Blue edges join genes that cells need together, red edges join opposites: cells that need ${gi('MDM2')} tolerate losing ${gi('TP53')}.`, btn: 'Try it: build this network' })}
-    </div>
+    <div class="tour-wrap tour-next-row">${nextBtn('tour-stats', 'Network')}</div>
 </section>
 
-<section class="tour-stats">
+<section class="tour-stats" id="tour-stats">
     <div class="tour-wrap tour-stats-in">
         <div><b>${nL}</b><span>cell lines with DepMap CRISPR gene effect</span></div>
         <div><b>${nE}</b><span>cell lines with DepMap mRNA expression</span></div>
@@ -220,6 +225,7 @@
             ${shot('net_mrna', 'The same eleven genes built on mRNA expression', 'heroMrna', { cap: `The ${nSet} genes from the top of the page built on mRNA expression instead: a different wiring, because genes that are expressed together are not the same as genes that are needed together.`, btn: 'Build this set on mRNA' })}
         </div>
     </div>
+    <div class="tour-wrap tour-next-row">${nextBtn('tour-corr', 'Correlation plot')}</div>
 </section>
 
 <section class="tour-sec tour-alt" id="tour-corr">
@@ -245,6 +251,7 @@
             ${shot('scatter_eda2r', 'TP53 against MDM2 gene effect, coloured by EDA2R mRNA', 'eda2r', { cap: `The same plot coloured by ${gi('EDA2R')} mRNA, a p53 target gene: the cell lines that depend on ${gi('MDM2')} are the ones with active p53.`, btn: 'Open it coloured by EDA2R' })}
         </div>
     </div>
+    <div class="tour-wrap tour-next-row">${nextBtn('tour-cells', 'Cell Line Browser')}</div>
 </section>
 
 <section class="tour-sec" id="tour-cells">
@@ -270,6 +277,7 @@
             ${shot('heatmap_tp53', 'Heatmap of the TP53 pathway members across the melanoma cell lines, with a TP53 mutation row', 'heatmap', { cap: `Heatmap: the ${gi('TP53')} pathway members across the melanoma cell lines, sorted by ${gi('TP53')} mutation. Wild-type cell lines depend on ${gi('MDM2')} and ${gi('USP7')}; mutant ones do not.`, btn: 'Open this heatmap' })}
         </div>
     </div>
+    <div class="tour-wrap tour-next-row">${nextBtn('tour-gene', 'Gene Browser')}</div>
 </section>
 
 <section class="tour-sec tour-alt" id="tour-gene">
@@ -304,6 +312,7 @@
             </div>
         </div>
     </div>
+    <div class="tour-wrap tour-next-row">${nextBtn('tour-more', 'More')}</div>
 </section>
 
 <section class="tour-sec" id="tour-more">
@@ -357,12 +366,14 @@
 #tourPage .tour-close { flex: none; width: 38px; height: 38px; border: 1px solid #e5e7eb; background: #fff; border-radius: 50%; font-size: 24px; line-height: 1; color: #374151; cursor: pointer; }
 #tourPage .tour-close:hover { background: #f3f4f6; }
 #tourPage .tour-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #5d9239; margin: 0 0 10px; }
-#tourPage .tour-hero { background: linear-gradient(160deg, #1f3a12 0%, #3b5e23 55%, #4f7f30 100%); color: #fff; padding: 64px 0 0; position: relative; display: flow-root; }
+#tourPage .tour-hero { background: linear-gradient(160deg, #1f3a12 0%, #3b5e23 55%, #4f7f30 100%); color: #fff; padding: 48px 0 26px; position: relative; display: flow-root; }
+#tourPage .tour-hero .tour-wrap { max-width: 1280px; }
+#tourPage .tour-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 500px); gap: 56px; align-items: center; }
 #tourPage .tour-hero .tour-eyebrow { color: #b9dd9a; }
-#tourPage .tour-hero h1 { font-size: 34px; line-height: 1.25; font-weight: 700; letter-spacing: -.01em; margin: 0 0 18px; max-width: 980px; }
-#tourPage .tour-sub { font-size: 21px; line-height: 1.6; color: #e3efd8; max-width: 800px; margin: 0 0 6px; }
-#tourPage .tour-hero-list { list-style: none; margin: 0 0 26px; padding: 0; max-width: 800px; }
-#tourPage .tour-hero-list li { font-size: 20px; line-height: 1.5; color: #fff; padding: 4px 0 4px 26px; position: relative; }
+#tourPage .tour-hero h1 { font-size: 31px; line-height: 1.25; font-weight: 700; letter-spacing: -.01em; margin: 0 0 16px; }
+#tourPage .tour-sub { font-size: 19px; line-height: 1.6; color: #e3efd8; margin: 0 0 4px; }
+#tourPage .tour-hero-list { list-style: none; margin: 0; padding: 0; }
+#tourPage .tour-hero-list li { font-size: 18px; line-height: 1.5; color: #fff; padding: 4px 0 4px 26px; position: relative; }
 #tourPage .tour-hero-list li::before { content: ''; position: absolute; left: 4px; top: 13px; width: 9px; height: 9px; border-radius: 50%; background: #b9dd9a; }
 #tourPage .tour-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 #tourPage .tour-cta-center { justify-content: center; margin: 28px 0 18px; }
@@ -370,8 +381,7 @@
 #tourPage .tour-try:hover { background: #4f7f30; border-color: #4f7f30; }
 #tourPage .tour-hero .tour-try { background: #fff; color: #2f4d1a; border-color: #fff; }
 #tourPage .tour-hero .tour-try:hover { background: #eef6e6; }
-#tourPage .tour-hero-shot { margin-top: 44px; margin-bottom: -90px; position: relative; z-index: 1; }
-#tourPage .tour-stats { background: #fff; padding: 120px 0 10px; }
+#tourPage .tour-stats { background: #fff; padding: 40px 0 10px; }
 #tourPage .tour-stats-in { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; padding: 22px 0; }
 #tourPage .tour-stats-in div { text-align: center; }
 #tourPage .tour-stats-in b { display: block; font-size: 32px; font-weight: 800; color: #3b5e23; letter-spacing: -.02em; line-height: 1.1; }
@@ -397,10 +407,14 @@
 #tourPage .tour-shot figcaption { font-size: 13px; line-height: 1.45; color: #6b7280; padding: 9px 12px 10px; border-top: 1px solid #eef0f3; background: #fff; }
 #tourPage .tour-shot-act { padding: 2px 12px 12px; background: #fff; }
 #tourPage .tour-shot-act .tour-try { width: 100%; }
-#tourPage .tour-hero-shot { max-width: 600px; }
 #tourPage .tour-hero-shot .tour-shot { box-shadow: 0 30px 70px rgba(0,0,0,.35); }
 #tourPage .tour-hero .tour-shot-act .tour-try { background: #5d9239; color: #fff; border-color: #5d9239; }
 #tourPage .tour-hero .tour-shot-act .tour-try:hover { background: #4f7f30; border-color: #4f7f30; }
+#tourPage .tour-next-row { display: flex; justify-content: center; }
+#tourPage .tour-next { font: inherit; font-size: 15px; font-weight: 700; color: #3b5e23; background: #fff; border: 1px solid #b9dd9a; border-radius: 999px; padding: 9px 22px; margin-top: 48px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+#tourPage .tour-next:hover { background: #eef6e6; }
+#tourPage .tour-hero .tour-next { margin-top: 26px; color: #fff; background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.45); }
+#tourPage .tour-hero .tour-next:hover { background: rgba(255,255,255,.22); }
 #tourPage .tour-stack { display: flex; flex-direction: column; gap: 18px; }
 #tourPage .tour-shot-dialog { max-width: 420px; margin: 0 auto; }
 #tourPage .tour-two { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: start; }
@@ -424,7 +438,7 @@
 #tourPage .tour-chips b { display: block; color: #111827; font-size: 14px; margin-bottom: 2px; }
 #tourPage .tour-foot { text-align: center; font-size: 12.5px; color: #9ca3af; margin: 10px 0 0; }
 @media (max-width: 900px) {
-  #tourPage .tour-feature, #tourPage .tour-two, #tourPage .tour-cards { grid-template-columns: 1fr; }
+  #tourPage .tour-feature, #tourPage .tour-two, #tourPage .tour-cards, #tourPage .tour-hero-grid { grid-template-columns: 1fr; }
   #tourPage .tour-feature { gap: 26px; }
   #tourPage .tour-flip .tour-text { order: 0; }
   #tourPage .tour-stats-in { grid-template-columns: 1fr 1fr; }
@@ -440,8 +454,6 @@
   #tourPage .tour-hero { padding-top: 40px; }
   #tourPage .tour-hero h1 { font-size: 22px; }
   #tourPage .tour-sub { font-size: 16px; }
-  #tourPage .tour-hero-shot { margin-bottom: -40px; }
-  #tourPage .tour-stats { padding-top: 64px; }
   #tourPage .tour-stats-in b { font-size: 24px; }
   #tourPage .tour-chips { grid-template-columns: 1fr; }
   #tourPage .tour-try { width: 100%; text-align: center; min-height: 44px; }
@@ -463,10 +475,10 @@
         page.addEventListener('click', (e) => {
             const act = e.target.closest('[data-act]');
             if (act) { e.preventDefault(); run(act.getAttribute('data-act')); return; }
-            const link = e.target.closest('.tour-nav a');
+            const link = e.target.closest('.tour-nav a, [data-next]');
             if (link) {
                 e.preventDefault();
-                const t = page.querySelector(link.getAttribute('href'));
+                const t = page.querySelector(link.getAttribute('href') || link.getAttribute('data-next'));
                 if (t) page.scrollTo({ top: t.offsetTop - 54, behavior: 'smooth' });
             }
         });
