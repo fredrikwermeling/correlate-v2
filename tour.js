@@ -74,7 +74,7 @@
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
     const tick = (id) => { const cb = document.getElementById(id); if (cb && !cb.checked) cb.click(); };
     const until = async (test, max) => { for (let i = 0; i < (max || 80); i++) { if (test()) return true; await wait(250); } return false; };
-    // The "Test Genes" set with pasted screen statistics, nodes coloured by
+    // The "Test Genes" set with pasted screen statistics, nodes colored by
     // LFC, genes without a correlation shown too.
     async function runStatsExample(a, withStats) {
         document.getElementById('modeGeneSetBtn')?.click();
@@ -101,7 +101,7 @@
         a._runBusy({ button: 'clbInspectGEBtn', label: 'Comparing' }, () => a.inspectSelectionGE());
     }
     async function pcaMelanoma(a) {
-        await openMelanoma(a, '');
+        await openMelanoma(a, 'BRAF');
         [...document.querySelectorAll('#clbModalCard button')].find(b => /PCA \/ UMAP/.test(b.textContent))?.click();
         await wait(800);
         setVal('clbUmapMethod', 'pca'); setVal('clbUmapDataType', 'expr');
@@ -116,14 +116,16 @@
         document.getElementById('clbUmapColorGeneBtn')?.click();
     }
     async function heatmapMelanoma(a) {
-        await openMelanoma(a, '');
+        await openMelanoma(a, 'BRAF');
         document.getElementById('clbHeatmapBtn')?.click();
         await wait(800);
         setVal('hmLineage', 'Skin'); await wait(400);
         setVal('hmSubtype', 'Melanoma'); await wait(400);
-        const rows = a._hmAnnRows || [];
-        const mut = rows.find(r => r.mode === 'hotspot');
-        if (mut) { mut.gene = 'TP53'; mut.sortKey = 'cat-asc'; a._hmRenderAnnRowsBlock?.(); }
+        setVal('hmHotspotFilter', 'BRAF'); await wait(400);
+        // One annotation row, TP53 mutation, so the columns are not split
+        // into disease blocks.
+        a._hmAnnRows = [{ mode: 'hotspot', gene: 'TP53', sortDir: null, sortKey: 'cat-asc' }];
+        a._hmRenderAnnRowsBlock?.();
         setVal('hmPreset', 'tp53_members');
     }
     async function runMutationExample(a) {
@@ -194,7 +196,7 @@
                 <li><span>Hover a dot</span> to see which cell line it is.</li>
                 <li><span>Click a dot</span> to label it, <span>Shift-click</span> to open the cell line's page.</li>
                 <li><span>Drag</span> over an area to zoom in, <span>double-click</span> to zoom out.</li>
-                <li>Use the panel on the left to filter, colour the dots, highlight cell lines or compare tissues.</li>
+                <li>Use the panel on the left to filter, color the dots, highlight cell lines or compare tissues.</li>
                 <li><span>Settings</span> under the plot changes sizes and fonts.</li>
             </ul>`;
         card.querySelector('button').addEventListener('click', () => card.remove());
@@ -286,7 +288,7 @@
             <li>Find connections within your own gene list, for example hits from a CRISPR screen or a transcriptomics experiment, from unbiased correlations of CRISPR gene effect or mRNA across the cell lines.</li>
             <li>Find the right cell lines for your project, by mutations, mutation patterns and cancer type, and compare omics data between groups of cell lines.</li>
             <li>Get extensive information about any gene: dependency, expression, mutations, protein complexes, drugs and literature, gathered from DepMap, UniProt, Cellosaurus and other sources.</li>
-            <li>Export any view for AI, to discuss the data with your favourite language model.</li>
+            <li>Export any view for AI, to discuss the data with your favorite language model.</li>
         </ul>
         </div>
         <div class="tour-hero-shot">
@@ -313,12 +315,12 @@
             <p>Correlate calculates the correlation (Pearson r) between every pair of genes in your set across the cell lines, on CRISPR gene effect (${nL} cell lines) or on mRNA expression. Pairs whose correlation passes the cutoff you set are joined by a line in the network: blue for a positive correlation, red for a negative one, thicker for a stronger one. Genes that end up joined often work together, in the same complex or pathway.</p>
             ${checks([
                 'Hover over a gene or an edge for details. Double-click a gene for its gene effect across the cell lines, or an edge for the correlation plot behind it.',
-                'Paste your own screen results (LFC and FDR) next to the gene list, and Correlate shows the set as a network coloured by your results, or as a correlation matrix.',
+                'Paste your own screen results (LFC and FDR) next to the gene list, and Correlate shows the set as a network colored by your results, or as a correlation matrix.',
                 'Expand the set to find new partners that are not in your list, and send genes to Enrichr to see which known gene sets (Reactome, GO and others) they overlap with.',
             ])}
         </div>
         <div class="tour-two tour-two-net">
-            ${shot('net_stats', 'A list of 22 cancer genes with screen statistics pasted alongside, nodes coloured by LFC', 'heroStats', { cap: 'A network of 22 genes with statistics from your own experiment added: each gene is coloured by its value, here the log fold change (LFC) from a screen.', btn: 'Build it with the screen results' })}
+            ${shot('net_stats', 'A list of 22 cancer genes with screen statistics pasted alongside, nodes colored by LFC', 'heroStats', { cap: 'A network of 22 genes with statistics from your own experiment added: each gene is colored by its value, here the log fold change (LFC) from a screen.', btn: 'Build it with the screen results' })}
             ${shot('net_mrna', 'The same eleven genes built on mRNA expression', 'heroMrna', { cap: `The ${nSet} genes from the top of the page, as a network built on mRNA expression data.`, btn: 'Build this set on mRNA' })}
         </div>
     </div>
@@ -340,12 +342,12 @@
                 <h3>Then ask why</h3>
                 ${checks([
                     'Filter to a cancer type or a mutation. r and p follow the filter.',
-                    `Colour the dots by tissue, by a mutation, or by a third gene. <b>Suggest</b> finds the gene that explains the pattern best.`,
+                    `Color the dots by tissue, by a mutation, or by a third gene. <b>Suggest</b> finds the gene that explains the pattern best.`,
                     'Highlight cell lines by typing their names or clicking their dots, and compare tissues or mutation groups side by side.',
                     '<b>Export for AI</b> sends the plot with the data behind it, so you can ask an AI what could explain the pattern.',
                 ])}
             </div>
-            ${shot('scatter_eda2r', 'TP53 against MDM2 gene effect, coloured by EDA2R mRNA', 'eda2r', { cap: `The same plot coloured by ${gi('EDA2R')} mRNA, a p53 target gene: the cell lines that depend on ${gi('MDM2')} are the ones with active p53.`, btn: 'Open it coloured by EDA2R' })}
+            ${shot('scatter_eda2r', 'TP53 against MDM2 gene effect, colored by EDA2R mRNA', 'eda2r', { cap: `The same plot colored by ${gi('EDA2R')} mRNA, a p53 target gene: the cell lines that depend on ${gi('MDM2')} are the ones with active p53.`, btn: 'Open it colored by EDA2R' })}
         </div>
     </div>
     <div class="tour-wrap tour-next-row">${nextBtn('tour-cells', 'Cell Line Browser')}</div>
@@ -357,7 +359,7 @@
             <div class="tour-text">
                 <p class="tour-eyebrow">3 &middot; Cell Line Browser</p>
                 <h2>Find the right cell lines for your project</h2>
-                <p>Narrow the ${nL} cell lines down by cancer type, mutation, fusion, copy number, sex, drug response, or how much they express or need any gene. Every cell line has its own page.</p>
+                <p>Narrow the ${nL} cell lines down by cancer type, mutation, fusion, copy number, sex, drug response, or how much they express or need any gene. Every cell line has its own comprehensive summary.</p>
                 ${checks([
                     `Example: melanoma cell lines with mutated ${gi('BRAF')}. The count updates as you go.`,
                     'From the list: compare the selection with the rest, a PCA or UMAP, a heatmap of any gene set.',
@@ -376,23 +378,27 @@
             </div>
             ${shot('oncoprint_mel', 'The mutation grid for the 67 melanoma cell lines, BRAF mutated kept, TP53 and CDKN2A mutated left out', 'oncoprint', { cap: `The 67 melanoma cell lines: ${gi('BRAF')}-mutated kept (green), ${gi('TP53')}- and ${gi('CDKN2A')}-mutated left out (red), which leaves 38.`, btn: 'Open the mutation grid with these picks' })}
         </div>
+        <div class="tour-text tour-text-wide" style="margin-top:56px;">
+            <h3>Compare the cell lines in different ways</h3>
+            <p>The same 50 <i>BRAF</i>-mutated melanoma cell lines, three ways: against all other cell lines, as a PCA, and as a heatmap of a gene set.</p>
+        </div>
         <div class="tour-two tour-two-tight tour-two-pca">
             ${shot('volcano_mel', 'Volcano plot comparing the 50 BRAF-mutant melanoma cell lines with every other cell line', 'compare', { cap: `Compare: the 50 selected cell lines against the other 1,158. ${gi('BRAF')}, ${gi('SOX10')} and ${gi('MAPK1')} are their dependencies.`, btn: 'Compare these cell lines with the rest' })}
-            ${shot('pca_mitf', 'PCA of the melanoma cell lines on mRNA, coloured by MITF expression, with loadings', 'pca', { cap: `PCA of the melanoma cell lines on mRNA, coloured by ${gi('MITF')} expression. The loadings name the genes behind the axes.`, btn: 'Open this PCA' })}
+            ${shot('pca_mitf', 'PCA of the melanoma cell lines on mRNA, colored by MITF expression, with loadings', 'pca', { cap: `PCA of the same 50 cell lines on mRNA, colored by ${gi('MITF')} expression. The loadings name the genes behind the axes.`, btn: 'Open this PCA' })}
         </div>
         <div class="tour-wide-shot">
-            ${shot('heatmap_tp53', 'Heatmap of the TP53 pathway members across the melanoma cell lines, with a TP53 mutation row', 'heatmap', { cap: `Heatmap: the ${gi('TP53')} pathway members across the melanoma cell lines, sorted by ${gi('TP53')} mutation. Wild-type cell lines depend on ${gi('MDM2')} and ${gi('USP7')}; mutant ones do not.`, btn: 'Open this heatmap' })}
+            ${shot('heatmap_tp53', 'Heatmap of the TP53 pathway members across the 50 BRAF-mutated melanoma cell lines, with a TP53 mutation row', 'heatmap', { cap: `Heatmap: the ${gi('TP53')} pathway members across the same 50 cell lines. Those with wild-type ${gi('TP53')} depend on ${gi('MDM2')} and ${gi('USP7')}; the ${gi('TP53')}-mutated ones, on the right, do not.`, btn: 'Open this heatmap' })}
         </div>
         <div class="tour-feature">
             <div class="tour-text">
-                <h3>A page for every cell line</h3>
+                <h3>A comprehensive summary of every cell line</h3>
                 ${checks([
-                    'A summary on top: cancer type, patient, drivers and genome.',
-                    'Where the cell line came from and which lines were derived from it, from Cellosaurus.',
-                    'Mutations, copy number, dependencies and drug response, each with its source.',
+                    'Many sections, gathered from DepMap, Cellosaurus and other sources: origin and history, classification, mutations, copy number, dependencies, drug response and more.',
+                    'Which pathways are altered, pointing to the ones involved in transforming the cell line.',
+                    'Suggested antigens for FACS: surface proteins the cell line expresses strongly and fairly uniquely.',
                 ])}
             </div>
-            ${shot('wiki_a375', 'The cell line page for A375: summary, history and cancer classification', 'wiki', { cap: 'The page for A375: a summary, its history and derived lines, and how it is classified.', btn: 'Open the A375 page' })}
+            ${shot('wiki_a375', 'The summary for A375: overview, history and cancer classification', 'wiki', { cap: 'The start of the A375 summary: an overview, its history and derived cell lines, and how it is classified.', btn: 'Open the A375 summary' })}
         </div>
     </div>
     <div class="tour-wrap tour-next-row">${nextBtn('tour-gene', 'Gene Browser')}</div>
@@ -403,8 +409,8 @@
         <div class="tour-feature tour-flip">
             <div class="tour-text">
                 <p class="tour-eyebrow">4 &middot; Gene Browser</p>
-                <h2>One gene, one page</h2>
-                <p>Type a gene. Its page says how much cells need it and which cancers need it most, how it is expressed, which genes follow it, and which complexes and pathways it belongs to. Save it as a PDF.</p>
+                <h2>A comprehensive summary of every gene</h2>
+                <p>Type a gene and get a summary over many sections: how much cells need it and which cancers need it most, how it is expressed, which genes follow it, which complexes and pathways it belongs to, its mutations, structure and sequence. Save it as a PDF.</p>
                 ${checks([
                     'A verdict for dependency and for expression, ranked against every gene.',
                     'Co-dependencies and co-expression, with complex partners ringed.',
@@ -446,7 +452,7 @@
             </div>
             ${shot('export_dialog', 'The Export image dialog', null, { cls: 'tour-shot-dialog', cap: 'Export image: what to export, format, size in cm, resolution, background.' })}
         </div>
-        <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Build the example network')}${tryBtn('wiki', 'Open the A375 page')}${tryBtn('stats', 'The statistics behind the app')}</div>
+        <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Build the example network')}${tryBtn('wiki', 'Open the A375 summary')}${tryBtn('stats', 'The statistics behind the app')}</div>
         <button type="button" class="tour-close-end" id="tourCloseEnd">Close the tour and start using Correlate</button>
         <p class="tour-foot">Data: DepMap 26Q1 (Broad Institute), with EBI Complex Portal, Reactome, PRISM and the other sources listed under Reference Data. Correlate is developed in the Wermeling lab.</p>
     </div>
