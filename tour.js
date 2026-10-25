@@ -180,9 +180,8 @@
 
 <section class="tour-hero">
     <div class="tour-wrap">
-        <p class="tour-eyebrow">Correlate</p>
-        <h1>Omics data from 1,000+ human cancer cell lines, in one app.</h1>
-        <p class="tour-sub">Correlate brings together CRISPR knockout screens, mRNA expression, mutations, copy number and drug response from DepMap, and connects them. Use it to:</p>
+        <h1>Correlate brings together CRISPR knockout screens, mRNA expression, mutations, copy number and drug response from DepMap, adds gene and cell line information from many other databases, and connects them.</h1>
+        <p class="tour-sub">Use it to:</p>
         <ul class="tour-hero-list">
             <li>Find connections between genes from unbiased correlations of CRISPR gene effect or mRNA across the cell lines.</li>
             <li>Find cell lines with specific mutations and mutation patterns, and compare omics data between groups of cell lines.</li>
@@ -359,10 +358,10 @@
 #tourPage .tour-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #5d9239; margin: 0 0 10px; }
 #tourPage .tour-hero { background: linear-gradient(160deg, #1f3a12 0%, #3b5e23 55%, #4f7f30 100%); color: #fff; padding: 64px 0 0; position: relative; display: flow-root; }
 #tourPage .tour-hero .tour-eyebrow { color: #b9dd9a; }
-#tourPage .tour-hero h1 { font-size: 46px; line-height: 1.08; font-weight: 800; letter-spacing: -.02em; margin: 0 0 18px; max-width: 760px; }
-#tourPage .tour-sub { font-size: 18px; line-height: 1.6; color: #e3efd8; max-width: 720px; margin: 0 0 14px; }
-#tourPage .tour-hero-list { list-style: none; margin: 0 0 26px; padding: 0; max-width: 720px; }
-#tourPage .tour-hero-list li { font-size: 17px; line-height: 1.5; color: #fff; padding: 4px 0 4px 26px; position: relative; }
+#tourPage .tour-hero h1 { font-size: 34px; line-height: 1.25; font-weight: 700; letter-spacing: -.01em; margin: 0 0 18px; max-width: 980px; }
+#tourPage .tour-sub { font-size: 21px; line-height: 1.6; color: #e3efd8; max-width: 800px; margin: 0 0 6px; }
+#tourPage .tour-hero-list { list-style: none; margin: 0 0 26px; padding: 0; max-width: 800px; }
+#tourPage .tour-hero-list li { font-size: 20px; line-height: 1.5; color: #fff; padding: 4px 0 4px 26px; position: relative; }
 #tourPage .tour-hero-list li::before { content: ''; position: absolute; left: 4px; top: 13px; width: 9px; height: 9px; border-radius: 50%; background: #b9dd9a; }
 #tourPage .tour-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 #tourPage .tour-cta-center { justify-content: center; margin: 28px 0 18px; }
@@ -397,7 +396,7 @@
 #tourPage .tour-shot figcaption { font-size: 13px; line-height: 1.45; color: #6b7280; padding: 9px 12px 10px; border-top: 1px solid #eef0f3; background: #fff; }
 #tourPage .tour-shot-act { padding: 2px 12px 12px; background: #fff; }
 #tourPage .tour-shot-act .tour-try { width: 100%; }
-#tourPage .tour-hero-shot { max-width: 820px; }
+#tourPage .tour-hero-shot { max-width: 600px; }
 #tourPage .tour-hero-shot .tour-shot { box-shadow: 0 30px 70px rgba(0,0,0,.35); }
 #tourPage .tour-hero .tour-shot-act .tour-try { background: #5d9239; color: #fff; border-color: #5d9239; }
 #tourPage .tour-hero .tour-shot-act .tour-try:hover { background: #4f7f30; border-color: #4f7f30; }
@@ -429,7 +428,7 @@
   #tourPage .tour-flip .tour-text { order: 0; }
   #tourPage .tour-stats-in { grid-template-columns: 1fr 1fr; }
   #tourPage .tour-chips { grid-template-columns: 1fr 1fr; }
-  #tourPage .tour-hero h1 { font-size: 34px; }
+  #tourPage .tour-hero h1 { font-size: 26px; }
   #tourPage .tour-text h2 { font-size: 26px; }
   #tourPage .tour-sec { padding: 48px 0; }
 }
@@ -438,7 +437,7 @@
   #tourPage .tour-brand span, #tourPage .tour-nav { display: none; }
   #tourPage .tour-close { margin-left: auto; }
   #tourPage .tour-hero { padding-top: 40px; }
-  #tourPage .tour-hero h1 { font-size: 28px; }
+  #tourPage .tour-hero h1 { font-size: 22px; }
   #tourPage .tour-sub { font-size: 16px; }
   #tourPage .tour-hero-shot { margin-bottom: -40px; }
   #tourPage .tour-stats { padding-top: 64px; }
