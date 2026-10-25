@@ -442,7 +442,7 @@
             ])}
         </div>
         <div class="tour-wide-shot" style="margin-top:0;">
-            ${shot('gb_seq', 'The TP53 exon structure and its mRNA in the sequence viewer', 'tp53seq', { cap: `${gi('TP53')}: the exons of its MANE Select transcript, and the mRNA in the sequence viewer with the exon junctions marked.`, btn: 'Open TP53 in the Gene Browser' })}
+            ${shot('gb_seq', 'The TP53 exon structure and its genomic sequence in the sequence viewer', 'tp53seq', { cap: `${gi('TP53')}: the exons of its MANE Select transcript, and the gene in the sequence viewer, exons in green between the introns and the start codon marked.`, btn: 'Open TP53 in the Gene Browser' })}
         </div>
     </div>
     <div class="tour-wrap tour-next-row">${nextBtn('tour-more', 'Other features')}</div>
