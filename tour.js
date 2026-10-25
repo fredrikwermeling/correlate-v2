@@ -221,7 +221,23 @@
         myc: (a) => a.openGeneBrowser('MYC'),
         tsc1: (a) => a.openGeneBrowser('TSC1'),
         clb: (a) => openMelanoma(a, 'BRAF'),
-        oncoprint: async (a) => { await openMelanoma(a, ''); a.showOncoprint('clb', 'hotspot'); },
+        oncoprint: async (a) => {
+            await openMelanoma(a, '');
+            a.showOncoprint('clb', 'hotspot');
+            await wait(700);
+            // The picks shown in the figure, made through the grid's own click
+            // handler: BRAF mutated kept, TP53 and CDKN2A mutated left out.
+            const d = a._oncoprintData;
+            const cv = [...document.querySelectorAll('#oncoprintPopup canvas')].find(c => c.getBoundingClientRect().width > 0 && c.getBoundingClientRect().width < 260);
+            if (!d || !cv) return;
+            const r = cv.getBoundingClientRect();
+            for (const [gene, state] of [['BRAF', 'mut'], ['TP53', 'wt'], ['CDKN2A', 'wt']]) {
+                const row = d.topGenes.findIndex(g => g.gene === gene);
+                if (row < 0) continue;
+                const x = 2 + (state === 'mut' ? d.boxW / 2 : d.boxW + d.boxGap + d.boxW / 2);
+                cv.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + x, clientY: r.top + row * d.cellH + d.cellH / 2 }));
+            }
+        },
         wiki: (a) => a.openCellLineWiki(D.lineId('A375') || 'ACH-000219'),
         stats: () => { const m = document.getElementById('infographicModal'); if (m) m.style.display = 'flex'; },
     };
@@ -355,10 +371,10 @@
                 <h3>Select cell lines by their mutations</h3>
                 ${checks([
                     'The mutation grid (oncoprint) shows the most often mutated genes across the cell lines on screen, one column per cell line.',
-                    'Tick a gene to keep the cell lines that carry its mutation, or to leave them out, then apply. Copy number and fusions have their own grids.',
+                    'Tick green to keep the cell lines that carry a mutation and red to leave them out, combine several genes, then apply. Copy number and fusions have their own grids.',
                 ])}
             </div>
-            ${shot('oncoprint_mel', 'The mutation grid for the 67 melanoma cell lines with BRAF ticked', 'oncoprint', { cap: `The 67 melanoma cell lines, with ${gi('BRAF')} ticked: 50 of them carry a ${gi('BRAF')} hotspot mutation.`, btn: 'Open the mutation grid for melanoma' })}
+            ${shot('oncoprint_mel', 'The mutation grid for the 67 melanoma cell lines, BRAF mutated kept, TP53 and CDKN2A mutated left out', 'oncoprint', { cap: `The 67 melanoma cell lines: ${gi('BRAF')}-mutated kept (green), ${gi('TP53')}- and ${gi('CDKN2A')}-mutated left out (red), which leaves 38.`, btn: 'Open the mutation grid with these picks' })}
         </div>
         <div class="tour-two tour-two-tight tour-two-pca">
             ${shot('volcano_mel', 'Volcano plot comparing the 50 BRAF-mutant melanoma cell lines with every other cell line', 'compare', { cap: `Compare: the 50 selected cell lines against the other 1,158. ${gi('BRAF')}, ${gi('SOX10')} and ${gi('MAPK1')} are their dependencies.`, btn: 'Compare these cell lines with the rest' })}
