@@ -178,9 +178,15 @@
 
 <section class="tour-hero">
     <div class="tour-wrap">
-        <p class="tour-eyebrow">Human cancer cell lines, DepMap 26Q1</p>
-        <h1>From a gene list to a network of dependencies.</h1>
-        <p class="tour-sub">Correlate finds the genes whose CRISPR knockout effects, or mRNA levels, rise and fall together across the DepMap cancer cell lines. Four tools: a network from your gene set, the correlation plot behind every edge, a cell line browser and a gene browser.</p>
+        <p class="tour-eyebrow">${nL} human cancer cell lines</p>
+        <h1>See which genes work together in cancer cells.</h1>
+        <p class="tour-sub">Correlate combines several data sets from human cancer cell lines: which genes each cell line needs to survive (CRISPR), how much of each gene it expresses (mRNA), and its mutations, copy number and drug response. With them you can:</p>
+        <ul class="tour-hero-list">
+            <li>Discover connections between the genes in your gene set, without any prior assumptions.</li>
+            <li>See in which cancer types, and with which mutations, a gene matters.</li>
+            <li>Find the right cell lines for your experiment.</li>
+            <li>Read everything the data says about one gene, on one page.</li>
+        </ul>
         <div class="tour-cta">
             ${tryBtn('hero', 'Build the example network')}
             ${tryBtn('myc', 'Open MYC in the Gene Browser')}
@@ -205,11 +211,11 @@
         <div class="tour-text">
             <p class="tour-eyebrow">1 &middot; Network</p>
             <h2>Paste a gene set, get a network</h2>
-            <p>Two genes whose profiles correlate above your cutoff are connected by an edge. Blue is a positive correlation, red a negative one, thicker is stronger. A group of connected genes is usually a complex or a pathway.</p>
+            <p>Correlate compares every pair of genes in your set across ${nL} cell lines. Two genes that matter in the same cell lines are joined by a line, called an edge. Blue means they go together, red means they go opposite ways, thick means a strong connection. Genes that end up joined usually work together, in the same complex or pathway.</p>
             ${checks([
-                'The picture at the top: 22 cancer genes pasted with LFC and FDR from a screen. The nodes take the screen colours, so your hits sit on the DepMap network.',
-                'Built on CRISPR gene effect or on mRNA expression. The badge on the network says which.',
-                'Expand the set to find new partners, send a cluster to Enrichr, open a full-page view.',
+                'The picture at the top: 22 well-known cancer genes, pasted together with results from a screen. The colours show the screen results, so you see your hits on top of the DepMap data.',
+                'Build the network from the CRISPR data or from the mRNA data. A badge on the network says which.',
+                'Expand the set to find new partners, send a group to Enrichr, open the network full page.',
             ])}
         </div>
         ${shot('net_mrna', 'A 22-gene set built on mRNA expression', 'heroMrna', { cap: `Another set of ${nSet} genes, built on mRNA expression instead of gene effect. The same set on gene effect splits into four groups.`, btn: 'Build this set on mRNA' })}
@@ -221,7 +227,7 @@
         <div class="tour-text tour-text-wide">
             <p class="tour-eyebrow">2 &middot; Correlation plot</p>
             <h2>Double-click an edge to see the data behind it</h2>
-            <p>One dot per cell line, one gene against the other, with r and p. The plot is also a tool on its own: type any two genes.</p>
+            <p>One dot per cell line, one gene against the other, with r and p. You can also open the plot on its own: type any two genes.</p>
         </div>
         <div class="tour-wide-shot">
             ${shot('edge_to_plot', 'Double-clicking the edge between TP53 and MDM2 opens their correlation plot', 'pair', { cap: `The edge between ${gi('TP53')} and ${gi('MDM2')}, and the plot behind it: ${nL} cell lines, r −0.72. Cell lines that tolerate losing ${gi('TP53')} depend on ${gi('MDM2')}.`, btn: 'Open TP53 vs MDM2' })}
@@ -246,7 +252,7 @@
             <div class="tour-text">
                 <p class="tour-eyebrow">3 &middot; Cell Line Browser</p>
                 <h2>Find the right cell lines</h2>
-                <p>Filter the panel by tissue, mutation, fusion, copy number, sex, drug response, or the expression or dependency of any gene. Every cell line has a page of ten sections or more.</p>
+                <p>Narrow the ${nL} cell lines down by cancer type, mutation, fusion, copy number, sex, drug response, or how much they express or need any gene. Every cell line has its own page.</p>
                 ${checks([
                     `Example: melanoma cell lines with mutated ${gi('BRAF')}. The count updates as you go.`,
                     'From the list: compare the selection with the rest, a PCA or UMAP, a heatmap of any gene set.',
@@ -271,7 +277,7 @@
             <div class="tour-text">
                 <p class="tour-eyebrow">4 &middot; Gene Browser</p>
                 <h2>One gene, one page</h2>
-                <p>Type a gene. The page says how essential it is and where, how it is expressed, which genes follow it, and which complexes and pathways it belongs to. Export it as a PDF.</p>
+                <p>Type a gene. Its page says how much cells need it and which cancers need it most, how it is expressed, which genes follow it, and which complexes and pathways it belongs to. Save it as a PDF.</p>
                 ${checks([
                     'A verdict for dependency and for expression, ranked against every gene.',
                     'Co-dependencies and co-expression, with complex partners ringed.',
@@ -353,7 +359,10 @@
 #tourPage .tour-hero { background: linear-gradient(160deg, #1f3a12 0%, #3b5e23 55%, #4f7f30 100%); color: #fff; padding: 64px 0 0; position: relative; display: flow-root; }
 #tourPage .tour-hero .tour-eyebrow { color: #b9dd9a; }
 #tourPage .tour-hero h1 { font-size: 46px; line-height: 1.08; font-weight: 800; letter-spacing: -.02em; margin: 0 0 18px; max-width: 760px; }
-#tourPage .tour-sub { font-size: 18px; line-height: 1.6; color: #e3efd8; max-width: 720px; margin: 0 0 26px; }
+#tourPage .tour-sub { font-size: 18px; line-height: 1.6; color: #e3efd8; max-width: 720px; margin: 0 0 14px; }
+#tourPage .tour-hero-list { list-style: none; margin: 0 0 26px; padding: 0; max-width: 720px; }
+#tourPage .tour-hero-list li { font-size: 17px; line-height: 1.5; color: #fff; padding: 4px 0 4px 26px; position: relative; }
+#tourPage .tour-hero-list li::before { content: ''; position: absolute; left: 4px; top: 13px; width: 9px; height: 9px; border-radius: 50%; background: #b9dd9a; }
 #tourPage .tour-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 #tourPage .tour-cta-center { justify-content: center; margin: 28px 0 18px; }
 #tourPage .tour-try { font: inherit; font-size: 15px; font-weight: 700; color: #fff; background: #5d9239; border: 1px solid #5d9239; border-radius: 8px; padding: 11px 18px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
