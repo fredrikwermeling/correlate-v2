@@ -210,6 +210,7 @@
         myc: (a) => a.openGeneBrowser('MYC'),
         tsc1: (a) => a.openGeneBrowser('TSC1'),
         clb: (a) => openMelanoma(a, 'BRAF'),
+        oncoprint: async (a) => { await openMelanoma(a, ''); a.showOncoprint('clb', 'hotspot'); },
         wiki: (a) => a.openCellLineWiki(D.lineId('A375') || 'ACH-000219'),
         stats: () => { const m = document.getElementById('infographicModal'); if (m) m.style.display = 'flex'; },
     };
@@ -258,7 +259,7 @@
             <li>Find connections within your own gene list, for example hits from a CRISPR screen or a transcriptomics experiment, from unbiased correlations of CRISPR gene effect or mRNA across the cell lines.</li>
             <li>Find the right cell lines for your project, by mutations, mutation patterns and cancer type, and compare omics data between groups of cell lines.</li>
             <li>Get extensive information about any gene: dependency, expression, mutations, protein complexes, drugs and literature, gathered from DepMap, UniProt, Cellosaurus and other sources.</li>
-            <li>Export any view for an AI and discuss the data with it.</li>
+            <li>Export any view for AI, to discuss the data with your favourite language model.</li>
         </ul>
         </div>
         <div class="tour-hero-shot">
@@ -282,17 +283,16 @@
         <div class="tour-text tour-text-wide">
             <p class="tour-eyebrow">1 &middot; Network</p>
             <h2>Paste a gene set, get a network</h2>
-            <p>Correlate compares every pair of genes in your set across ${nL} cell lines. Two genes that matter in the same cell lines are joined by a line, called an edge. Blue means they go together, red means they go opposite ways, thick means a strong connection. Genes that end up joined usually work together, in the same complex or pathway.</p>
+            <p>Correlate compares every pair of genes in your set across ${nL} cell lines, on CRISPR gene effect or on mRNA. Two genes that behave similarly across the cell lines are joined by a line, called an edge. Blue means they go together, red means they go opposite ways, thick means a strong connection. Genes that end up joined usually work together, in the same complex or pathway.</p>
             ${checks([
                 'Hover over a gene or an edge for details. Double-click a gene for its gene effect across the cell lines, or an edge for the correlation plot behind it.',
                 'Paste your own screen results (LFC and FDR) next to the gene list, and Correlate shows the set as a network coloured by your results, or as a correlation matrix.',
-                'Build the network from the CRISPR data or from the mRNA data.',
-                'Expand the set to find new partners, send a group to Enrichr, open the network full page.',
+                'Expand the set to find new partners that are not in your list, and send genes to Enrichr to see which known gene sets (Reactome, GO and others) they overlap with.',
             ])}
         </div>
         <div class="tour-two tour-two-net">
-            ${shot('net_stats', 'A list of 22 cancer genes with screen statistics pasted alongside, nodes coloured by LFC', 'heroStats', { cap: 'A list of 22 cancer genes with results from a screen pasted alongside: the nodes take the screen colours (LFC).', btn: 'Build it with the screen results' })}
-            ${shot('net_mrna', 'The same eleven genes built on mRNA expression', 'heroMrna', { cap: `The ${nSet} genes from the top of the page built on mRNA expression instead: a different wiring, because genes that are expressed together are not the same as genes that are needed together.`, btn: 'Build this set on mRNA' })}
+            ${shot('net_stats', 'A list of 22 cancer genes with screen statistics pasted alongside, nodes coloured by LFC', 'heroStats', { cap: '22 cancer genes, each coloured by its result in a CRISPR screen (log fold change, LFC).', btn: 'Build it with the screen results' })}
+            ${shot('net_mrna', 'The same eleven genes built on mRNA expression', 'heroMrna', { cap: `The ${nSet} genes from the top of the page, built on mRNA instead of CRISPR gene effect. Genes that are expressed together are not always the genes that cells need together, so the network looks different.`, btn: 'Build this set on mRNA' })}
         </div>
     </div>
     <div class="tour-wrap tour-next-row">${nextBtn('tour-corr', 'Correlation plot')}</div>
@@ -303,7 +303,7 @@
         <div class="tour-text tour-text-wide">
             <p class="tour-eyebrow">2 &middot; Correlation plot</p>
             <h2>Double-click an edge to see what the connection is based on</h2>
-            <p>An edge in the network connects two genes. Double-click it and the correlation plot opens: each dot is a cell line, placed by its value for one gene against the other. The correlation (r) and its p-value are shown on top. The plot can also be opened on its own for any two genes.</p>
+            <p>An edge in the network connects two genes. Double-click it and the correlation plot opens: each dot is a cell line, placed by its value for one gene against the other. The correlation (Pearson r) says how closely the two genes rise and fall together across the cell lines: 1 means they always move together, 0 means no relation, and −1 means one goes up when the other goes down. The p-value says how likely an r this strong would be by chance. The plot can also be opened on its own for any two genes.</p>
         </div>
         <div class="tour-wide-shot tour-edge-shot">
             ${shot('edge_to_plot', 'Double-clicking the edge between TP53 and MDM2 opens their correlation plot', 'pair', { cap: `The edge between ${gi('TP53')} and ${gi('MDM2')}, and the plot behind it: ${nL} cell lines, r −0.72. Cell lines that tolerate losing ${gi('TP53')} depend on ${gi('MDM2')}.`, btn: 'Open TP53 vs MDM2, then hover, click and change the settings' })}
@@ -338,6 +338,16 @@
                 ])}
             </div>
             ${shot('clb_mel', 'The Cell Line Browser filtered to melanoma cell lines with mutated BRAF, A375 selected', 'clb', { cap: `Melanoma cell lines with mutated ${gi('BRAF')}, A375 opened in the side panel.`, btn: 'Open the browser with these filters' })}
+        </div>
+        <div class="tour-feature tour-flip tour-flip-wide">
+            <div class="tour-text">
+                <h3>Select cell lines by their mutations</h3>
+                ${checks([
+                    'The mutation grid (oncoprint) shows the most often mutated genes across the cell lines on screen, one column per cell line.',
+                    'Tick a gene to keep the cell lines that carry its mutation, or to leave them out, then apply. Copy number and fusions have their own grids.',
+                ])}
+            </div>
+            ${shot('oncoprint_mel', 'The mutation grid for the 67 melanoma cell lines with BRAF ticked', 'oncoprint', { cap: `The 67 melanoma cell lines, with ${gi('BRAF')} ticked: 50 of them carry a ${gi('BRAF')} hotspot mutation.`, btn: 'Open the mutation grid for melanoma' })}
         </div>
         <div class="tour-two tour-two-tight tour-two-pca">
             ${shot('volcano_mel', 'Volcano plot comparing the 50 BRAF-mutant melanoma cell lines with every other cell line', 'compare', { cap: `Compare: the 50 selected cell lines against the other 1,158. ${gi('BRAF')}, ${gi('SOX10')} and ${gi('MAPK1')} are their dependencies.`, btn: 'Compare these cell lines with the rest' })}
@@ -470,6 +480,7 @@ html.popout-open #tourNetHint { display: none; }
 #tourPage .tour-feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: center; }
 #tourPage .tour-feature + .tour-feature, #tourPage .tour-two + .tour-feature, #tourPage .tour-feature + .tour-two, #tourPage .tour-two + .tour-wide-shot, #tourPage .tour-wide-shot + .tour-feature { margin-top: 56px; }
 #tourPage .tour-flip .tour-text { order: 2; }
+#tourPage .tour-flip-wide { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
 #tourPage .tour-text h2 { font-size: 32px; line-height: 1.15; font-weight: 800; letter-spacing: -.02em; margin: 0 0 14px; color: #111827; }
 #tourPage .tour-text h3 { font-size: 21px; font-weight: 800; margin: 0 0 12px; color: #111827; letter-spacing: -.01em; }
 #tourPage .tour-text p { font-size: 16.5px; line-height: 1.6; color: #374151; margin: 0 0 14px; }
