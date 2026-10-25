@@ -1735,6 +1735,7 @@
         .gb-scope .gb-card-src { padding:8px 14px; border-top:1px solid #f1f5f9; font-size:10px; color:#9ca3af; }
         .gb-scope .gb-desc { margin:0 0 10px; font-size:11px; color:#6b7280; }
         .gb-scope .gb-summary { font-size:13px; line-height:1.6; }
+        .gb-scope .gb-verdict { font-size:12px; line-height:1.55; color:#1f2937; background:#f3faee; border-left:3px solid #6ba544; border-radius:0 4px 4px 0; padding:6px 10px; margin:0 0 10px; }
         .gb-scope .gb-m { font-size:10px; color:#6b7280; }
         .gb-scope .gb-sub { font-weight:600; color:#374151; font-size:12px; margin:12px 0 4px; }
         /* The main parts of a card (Related genes: co-dependencies, co-expression,
@@ -3007,6 +3008,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.97 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Gene Browser: the Dependency and Expression sections open with a one-line summary ranked against all genes: how essential or how highly expressed the gene is (for example top 5% of genes), how broadly, whether it varies a lot between lines, and how much cancer type explains, with the tissues where it is strongest. Tissue-restricted genes are called restricted rather than low. Explained in Methods.</li>
+                </ul>
                 <p><strong>v.90.96 (2026-10-25)</strong></p>
                 <ul>
                     <li>Gene Browser, Related genes: Co-dependencies, Expression correlations, Protein complexes and Pathways are clearer headings, each part set off by a divider.</li>
@@ -8623,7 +8628,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.96</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.97</a>
         </span>
     </div>
 
@@ -11985,7 +11990,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_96"></script>
+    <script src="app.js?v=v90_97"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
