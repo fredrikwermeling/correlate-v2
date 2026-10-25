@@ -12,6 +12,8 @@
     const num = (n) => Number(n).toLocaleString('en-US');
     const gi = (g) => `<i>${esc(g)}</i>`;
     const IMG = 'tour_img/';
+    // The pictures are cached by URL; the script's own ?v= tag renews them.
+    const IMG_V = (() => { const m = (document.currentScript?.src || [...document.scripts].map(x => x.src).find(x => /tour\.js/.test(x)) || '').match(/[?&]v=([^&]+)/); return m ? '?v=' + m[1] : ''; })();
 
     // ------------------------------------------------------------ data
     const D = {
@@ -151,7 +153,7 @@
         // the same thing.
         return `<figure class="tour-shot${o.cls ? ' ' + o.cls : ''}">
             <div class="tour-shot-bar"><span></span><span></span><span></span></div>
-            <img src="${IMG}${file}.webp" alt="${esc(alt)}" loading="${o.eager ? 'eager' : 'lazy'}" decoding="async">
+            <img src="${IMG}${file}.webp${IMG_V}" alt="${esc(alt)}" loading="${o.eager ? 'eager' : 'lazy'}" decoding="async">
             ${o.cap ? `<figcaption>${o.cap}</figcaption>` : ''}
             ${act && o.btn ? `<div class="tour-shot-act">${tryBtn(act, o.btn)}</div>` : ''}
         </figure>`;
@@ -186,6 +188,7 @@
             <li>See in which cancer types, and with which mutations, a gene matters.</li>
             <li>Find the right cell lines for your experiment.</li>
             <li>Read everything the data says about one gene, on one page.</li>
+            <li>Export any view for an AI and discuss the data with it.</li>
         </ul>
         <div class="tour-cta">
             ${tryBtn('hero', 'Build the example network')}
@@ -286,9 +289,8 @@
             </div>
             ${shot('gb_myc', 'The Gene Browser page for MYC: description, chromosome position and records', 'myc', { cap: `${gi('MYC')} in the Gene Browser: description, chromosome position and the records it links to.`, btn: 'Open MYC in the Gene Browser' })}
         </div>
-        <div class="tour-two tour-two-tight">
-            ${shot('gb_dependency', 'Dependency section for KRAS with the gene effect distribution', 'kras', { cap: `Dependency, here for ${gi('KRAS')}: where the gene sits among all genes, and the most dependent tissues.`, btn: 'Open KRAS' })}
-            ${shot('gb_expression', 'Expression section for KRAS with the mRNA distribution', 'kras', { cap: `Expression: the same for mRNA, with the highest and lowest tissues.` })}
+        <div class="tour-wide-shot">
+            ${shot('gb_kras_panels', 'Dependency and expression sections for KRAS', 'kras', { cap: `Dependency and expression, here for ${gi('KRAS')}: where the gene sits among all genes, the most dependent tissues, and the highest and lowest expressing ones.`, btn: 'Open KRAS in the Gene Browser' })}
         </div>
         <div class="tour-feature">
             <div class="tour-text">
@@ -319,7 +321,8 @@
         <div class="tour-feature tour-flip">
             <div class="tour-text">
                 <h3>Take it with you</h3>
-                <p>Under every view: Export image (PNG, SVG, PDF, PowerPoint at print size), Export for AI, Methods and CSV. An exported PNG or SVG reopens in Correlate with its analysis. Every figure on this page is such an export.</p>
+                <p>Under every view: Export image (PNG, SVG, PDF, PowerPoint at print size), Methods and CSV. An exported PNG or SVG reopens in Correlate with its analysis. Every figure on this page is such an export.</p>
+                <p><b>Export for AI</b> writes the data behind the view into one file made for a language model. Upload it to ChatGPT, Claude or Gemini and discuss the results: which of these dependencies has a drug, which cell line fits my experiment, what links these genes?</p>
             </div>
             ${shot('export_dialog', 'The Export image dialog', null, { cls: 'tour-shot-dialog', cap: 'Export image: what to export, format, size in cm, resolution, background.' })}
         </div>
@@ -401,6 +404,11 @@
 #tourPage .tour-shot-dialog { max-width: 420px; margin: 0 auto; }
 #tourPage .tour-two { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: start; }
 #tourPage .tour-two-tight { gap: 24px; }
+/* Paired figures share one frame height and keep their buttons on one
+   line, whatever the pictures' own proportions. */
+#tourPage .tour-two .tour-shot { display: flex; flex-direction: column; }
+#tourPage .tour-two .tour-shot img { aspect-ratio: 5 / 6; object-fit: contain; padding: 6px; }
+#tourPage .tour-two .tour-shot figcaption { flex: 1; }
 #tourPage .tour-card-fig h3 { font-size: 19px; font-weight: 800; margin: 18px 0 8px; color: #111827; }
 #tourPage .tour-card-fig p { font-size: 15px; line-height: 1.55; color: #374151; margin: 0 0 14px; }
 #tourPage .tour-wide-shot { margin-top: 40px; }
