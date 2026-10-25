@@ -3009,6 +3009,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.4 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Mutation analysis table: the groups (for example SMAD4 WT, SMAD4 Mut 1+2, Mut 1+2 vs WT, Mut 2 vs Mut 1) are a header row of their own in bold, in each group's colour, above short column names (N, Mean GE, Δ GE, p). Both rows stay in view when scrolling; exported images keep the full column names.</li>
+                </ul>
                 <p><strong>v.91.3 (2026-10-25)</strong></p>
                 <ul>
                     <li>References: EBI Complex Portal (Meldal et al. 2022), the source of the Gene Browser's protein complexes, is cited in the Gene Browser's Links and Methods and in Reference Data; Reactome's pathway sizes there are brought up to date.</li>
@@ -8650,7 +8654,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.3</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.4</a>
         </span>
     </div>
 
@@ -12028,7 +12032,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_3"></script>
+    <script src="app.js?v=v91_4"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
