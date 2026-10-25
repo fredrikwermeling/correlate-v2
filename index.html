@@ -3014,6 +3014,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.41 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Tour of the app: the Correlation plot section says the plot opens on its own from Other, then Correlation, to explore any two genes without building a network.</li>
+                </ul>
                 <p><strong>v.91.40 (2026-10-25)</strong></p>
                 <ul>
                     <li>Fixed: with a screen-results table loaded on the With Stats tab, Run rewrote the gene list from that table even after switching to Paste/Type and typing a new list. The table is now only read when the With Stats tab is open.</li>
@@ -8812,7 +8816,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.40</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.41</a>
         </span>
     </div>
 
@@ -12191,6 +12195,6 @@
     </div>
 
     <script src="app.js?v=v91_40"></script>
-    <script src="tour.js?v=v91_40"></script>
+    <script src="tour.js?v=v91_41"></script>
 </body>
 </html>
