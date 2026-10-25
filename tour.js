@@ -66,7 +66,7 @@
     const until = async (test, max) => { for (let i = 0; i < (max || 80); i++) { if (test()) return true; await wait(250); } return false; };
     // The "Test Genes" set with pasted screen statistics, nodes coloured by
     // LFC, genes without a correlation shown too.
-    async function runStatsExample(a) {
+    async function runStatsExample(a, withStats) {
         document.getElementById('modeGeneSetBtn')?.click();
         [...document.querySelectorAll('.input-tab')].find(b => /with stats/i.test(b.textContent))?.click();
         await wait(300);
@@ -76,7 +76,7 @@
         await wait(200);
         document.getElementById('runAnalysis')?.click();
         await until(() => a.results && a.results !== before && a.results.success);
-        tick('showUncorrelatedGenes'); await wait(800); tick('colorByStats');
+        if (withStats) { tick('showUncorrelatedGenes'); await wait(800); tick('colorByStats'); }
     }
     async function openMelanoma(a, hotspotGene) {
         a.openCellLineBrowser(); await wait(500);
@@ -129,7 +129,8 @@
         a.showGeneEffectDistribution('BRAF');
     }
     const ACTIONS = {
-        hero: (a) => runStatsExample(a),
+        hero: (a) => runStatsExample(a, false),
+        heroStats: (a) => runStatsExample(a, true),
         heroMrna: () => runExampleSet({ cutoff: 0.3, basis: 'expr' }),
         pair: (a) => a.openInspectByGenes('TP53', 'MDM2'),
         eda2r: (a) => { a._inspectPreset = { colorByGene: 'EDA2R', colorByGeneType: 'expr' }; a.openInspectByGenes('TP53', 'MDM2'); },
@@ -180,9 +181,9 @@
 
 <section class="tour-hero">
     <div class="tour-wrap">
-        <p class="tour-eyebrow">${nL} human cancer cell lines</p>
-        <h1>See which genes work together in cancer cells.</h1>
-        <p class="tour-sub">Correlate combines several data sets from human cancer cell lines: which genes each cell line needs to survive (CRISPR), how much of each gene it expresses (mRNA), and its mutations, copy number and drug response. With them you can:</p>
+        <p class="tour-eyebrow">Correlate</p>
+        <h1>One app that combines omics data from ${nL} human cancer cell lines.</h1>
+        <p class="tour-sub">Which genes each cell line needs to survive (CRISPR screens), how much of each gene it expresses (mRNA), and its mutations, copy number and drug response, all from DepMap and linked together. With them you can:</p>
         <ul class="tour-hero-list">
             <li>Discover connections between the genes in your gene set, without any prior assumptions.</li>
             <li>See in which cancer types, and with which mutations, a gene matters.</li>
@@ -190,13 +191,9 @@
             <li>Read everything the data says about one gene, on one page.</li>
             <li>Export any view for an AI and discuss the data with it.</li>
         </ul>
-        <div class="tour-cta">
-            ${tryBtn('hero', 'Build the example network')}
-            ${tryBtn('myc', 'Open MYC in the Gene Browser')}
-        </div>
     </div>
     <div class="tour-wrap tour-hero-shot">
-        ${shot('net_stats', 'The Test Genes set as a network, nodes coloured by the pasted screen statistics', 'hero', { eager: true })}
+        ${shot('net_plain', 'A network built from 22 cancer genes', 'hero', { eager: true, cap: `A network from a list of 22 cancer genes. The eight genes whose knockout effects correlate form three groups: p53 with ${gi('MDM2')} and ${gi('ATM')}, the TSC complex with ${gi('PTEN')}, and ${gi('BCR')} with ${gi('ABL1')}.`, btn: 'Try it: build this network' })}
     </div>
 </section>
 
@@ -216,12 +213,15 @@
             <h2>Paste a gene set, get a network</h2>
             <p>Correlate compares every pair of genes in your set across ${nL} cell lines. Two genes that matter in the same cell lines are joined by a line, called an edge. Blue means they go together, red means they go opposite ways, thick means a strong connection. Genes that end up joined usually work together, in the same complex or pathway.</p>
             ${checks([
-                'The picture at the top: 22 well-known cancer genes, pasted together with results from a screen. The colours show the screen results, so you see your hits on top of the DepMap data.',
+                'Paste your own screen results next to the gene list (LFC and FDR) and the network shows them: the nodes take the screen colours, and genes without a connection are shown too.',
                 'Build the network from the CRISPR data or from the mRNA data. A badge on the network says which.',
                 'Expand the set to find new partners, send a group to Enrichr, open the network full page.',
             ])}
         </div>
-        ${shot('net_mrna', 'A 22-gene set built on mRNA expression', 'heroMrna', { cap: `Another set of ${nSet} genes, built on mRNA expression instead of gene effect. The same set on gene effect splits into four groups.`, btn: 'Build this set on mRNA' })}
+        <div class="tour-stack">
+            ${shot('net_stats', 'The same 22 genes with screen statistics pasted alongside, nodes coloured by LFC', 'heroStats', { cap: 'The same 22 genes with results from a screen pasted alongside: nodes coloured by LFC, every gene in the list shown.', btn: 'Build it with the screen results' })}
+            ${shot('net_mrna', 'A 22-gene set built on mRNA expression', 'heroMrna', { cap: `Another set of ${nSet} genes, built on mRNA expression instead of gene effect.`, btn: 'Build this set on mRNA' })}
+        </div>
     </div>
 </section>
 
@@ -399,7 +399,10 @@
 #tourPage .tour-shot figcaption { font-size: 13px; line-height: 1.45; color: #6b7280; padding: 9px 12px 10px; border-top: 1px solid #eef0f3; background: #fff; }
 #tourPage .tour-shot-act { padding: 2px 12px 12px; background: #fff; }
 #tourPage .tour-shot-act .tour-try { width: 100%; }
+#tourPage .tour-hero-shot { max-width: 820px; }
 #tourPage .tour-hero-shot .tour-shot { box-shadow: 0 30px 70px rgba(0,0,0,.35); }
+#tourPage .tour-hero .tour-shot-act .tour-try { background: #5d9239; color: #fff; border-color: #5d9239; }
+#tourPage .tour-hero .tour-shot-act .tour-try:hover { background: #4f7f30; border-color: #4f7f30; }
 #tourPage .tour-stack { display: flex; flex-direction: column; gap: 18px; }
 #tourPage .tour-shot-dialog { max-width: 420px; margin: 0 auto; }
 #tourPage .tour-two { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: start; }
