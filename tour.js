@@ -286,13 +286,13 @@
             <p>Correlate compares every pair of genes in your set across ${nL} cell lines. Two genes that matter in the same cell lines are joined by a line, called an edge. Blue means they go together, red means they go opposite ways, thick means a strong connection. Genes that end up joined usually work together, in the same complex or pathway.</p>
             ${checks([
                 'Hover over a gene or an edge for details. Double-click a gene for its gene effect across the cell lines, or an edge for the correlation plot behind it.',
-                'Paste your own screen results next to the gene list (LFC and FDR) and the network shows them: the nodes take the screen colours, and genes without a connection are shown too.',
-                'Build the network from the CRISPR data or from the mRNA data. A badge on the network says which.',
+                'Paste your own screen results next to the gene list (LFC and FDR) and the nodes take the screen colours.',
+                'Build the network from the CRISPR data or from the mRNA data.',
                 'Expand the set to find new partners, send a group to Enrichr, open the network full page.',
             ])}
         </div>
         <div class="tour-two tour-two-net">
-            ${shot('net_stats', 'A list of 22 cancer genes with screen statistics pasted alongside, nodes coloured by LFC', 'heroStats', { cap: 'A list of 22 cancer genes with results from a screen pasted alongside: the nodes take the screen colours (LFC), and every gene in the list is shown.', btn: 'Build it with the screen results' })}
+            ${shot('net_stats', 'A list of 22 cancer genes with screen statistics pasted alongside, nodes coloured by LFC', 'heroStats', { cap: 'A list of 22 cancer genes with results from a screen pasted alongside: the nodes take the screen colours (LFC).', btn: 'Build it with the screen results' })}
             ${shot('net_mrna', 'The same eleven genes built on mRNA expression', 'heroMrna', { cap: `The ${nSet} genes from the top of the page built on mRNA expression instead: a different wiring, because genes that are expressed together are not the same as genes that are needed together.`, btn: 'Build this set on mRNA' })}
         </div>
     </div>
@@ -396,7 +396,7 @@
         <div class="tour-feature tour-flip">
             <div class="tour-text">
                 <h3>Take it with you</h3>
-                <p>Under every view: Export image (PNG, SVG, PDF, PowerPoint at print size) and CSV. An exported PNG or SVG reopens in Correlate with its analysis. Every figure on this page is such an export.</p>
+                <p>Under every view: Export image (PNG, SVG, PDF, PowerPoint at print size) and CSV. An exported PNG or SVG reopens in Correlate with its analysis.</p>
                 <p><b>Methods</b> writes the methods for the view you are looking at, from its actual settings: the DepMap release, which cell lines were included, the filters and the statistics used. You get one paragraph ready to paste into a materials and methods section, and a longer plain-language version that explains what the figure shows. Copy either or download them as a text file.</p>
                 <p><b>Export for AI</b> writes the data behind the view into one file made for a language model. Upload it to ChatGPT, Claude or Gemini and discuss the results: which of these dependencies has a drug, which cell line fits my experiment, what links these genes?</p>
             </div>
