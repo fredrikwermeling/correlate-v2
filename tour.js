@@ -41,13 +41,24 @@
         o = o || {};
         const a = A();
         document.getElementById('modeGeneSetBtn')?.click();
+        // The plain list tab, and none of the screen-results options a
+        // previous example may have left on.
+        [...document.querySelectorAll('.input-tab')].find(b => /paste/i.test(b.textContent))?.click();
+        for (const id of ['showUncorrelatedGenes', 'colorByStats']) {
+            const cb = document.getElementById(id);
+            if (cb?.checked) cb.click();
+        }
         const basis = document.querySelector(`input[name="analysisBasis"][value="${o.basis || 'ge'}"]`);
         if (basis && !basis.checked) { basis.checked = true; basis.dispatchEvent(new Event('change', { bubbles: true })); }
         if (o.cutoff) setVal('correlationCutoff', o.cutoff);
-        const ta = document.getElementById('geneTextarea');
-        if (ta) { ta.value = HERO_SET.filter(g => a.geneIndex.has(g)).join('\n'); ta.dispatchEvent(new Event('input', { bubbles: true })); }
+        // Written after the tab switch has settled: leaving the screen-results
+        // tab refills the gene box from its table.
         const before = a.results;
-        setTimeout(() => document.getElementById('runAnalysis')?.click(), 150);
+        setTimeout(() => {
+            const ta = document.getElementById('geneTextarea');
+            if (ta) { ta.value = HERO_SET.filter(g => a.geneIndex.has(g)).join('\n'); ta.dispatchEvent(new Event('input', { bubbles: true })); }
+            setTimeout(() => document.getElementById('runAnalysis')?.click(), 150);
+        }, 300);
         if (!o.colorGE) return;
         let tries = 0;
         const arm = () => {
@@ -291,8 +302,8 @@
             ])}
         </div>
         <div class="tour-two tour-two-net">
-            ${shot('net_stats', 'A list of 22 cancer genes with screen statistics pasted alongside, nodes coloured by LFC', 'heroStats', { cap: '22 cancer genes, each coloured by its result in a CRISPR screen (log fold change, LFC).', btn: 'Build it with the screen results' })}
-            ${shot('net_mrna', 'The same eleven genes built on mRNA expression', 'heroMrna', { cap: `The ${nSet} genes from the top of the page, built on mRNA instead of CRISPR gene effect. Genes that are expressed together are not always the genes that cells need together, so the network looks different.`, btn: 'Build this set on mRNA' })}
+            ${shot('net_stats', 'A list of 22 cancer genes with screen statistics pasted alongside, nodes coloured by LFC', 'heroStats', { cap: 'A network of 22 genes with statistics from your own experiment added: each gene is coloured by its value, here the log fold change (LFC) from a screen.', btn: 'Build it with the screen results' })}
+            ${shot('net_mrna', 'The same eleven genes built on mRNA expression', 'heroMrna', { cap: `The ${nSet} genes from the top of the page, as a network built on mRNA expression data.`, btn: 'Build this set on mRNA' })}
         </div>
     </div>
     <div class="tour-wrap tour-next-row">${nextBtn('tour-corr', 'Correlation plot')}</div>
