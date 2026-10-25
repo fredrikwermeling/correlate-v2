@@ -59,40 +59,86 @@
         };
         setTimeout(arm, 600);
     }
-    function openBrowserFiltered(a, tissue, hotspotGene) {
-        a.openCellLineBrowser();
-        setTimeout(() => {
-            if (tissue) setVal('clbTissueFilter', tissue);
-            if (hotspotGene) setVal('clbHotspotFilter', hotspotGene);
-        }, 400);
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const tick = (id) => { const cb = document.getElementById(id); if (cb && !cb.checked) cb.click(); };
+    const until = async (test, max) => { for (let i = 0; i < (max || 80); i++) { if (test()) return true; await wait(250); } return false; };
+    // The "Test Genes" set with pasted screen statistics, nodes coloured by
+    // LFC, genes without a correlation shown too.
+    async function runStatsExample(a) {
+        document.getElementById('modeGeneSetBtn')?.click();
+        [...document.querySelectorAll('.input-tab')].find(b => /with stats/i.test(b.textContent))?.click();
+        await wait(300);
+        a.loadTestGenesWithStats();
+        setVal('correlationCutoff', 0.4);
+        const before = a.results;
+        await wait(200);
+        document.getElementById('runAnalysis')?.click();
+        await until(() => a.results && a.results !== before && a.results.success);
+        tick('showUncorrelatedGenes'); await wait(800); tick('colorByStats');
     }
-    function compareSkinBraf(a) {
-        openBrowserFiltered(a, 'Skin', 'BRAF');
-        setTimeout(() => {
-            a._resetGEInspectScope();
-            a._geInspectScope = 'lineage';
-            a._runBusy({ button: 'clbInspectGEBtn', label: 'Comparing' }, () => a.inspectSelectionGE());
-        }, 1600);
+    async function openMelanoma(a, hotspotGene) {
+        a.openCellLineBrowser(); await wait(500);
+        setVal('clbTissueFilter', 'Skin'); await wait(500);
+        setVal('clbSubtypeFilter', 'Melanoma'); await wait(500);
+        setVal('clbHotspotFilter', hotspotGene || ''); await wait(700);
     }
-    function runMutationExample() {
+    async function compareMelanoma(a) {
+        await openMelanoma(a, 'BRAF');
+        a._resetGEInspectScope();
+        a._geInspectScope = 'all';
+        a._runBusy({ button: 'clbInspectGEBtn', label: 'Comparing' }, () => a.inspectSelectionGE());
+    }
+    async function pcaMelanoma(a) {
+        await openMelanoma(a, '');
+        [...document.querySelectorAll('#clbModalCard button')].find(b => /PCA \/ UMAP/.test(b.textContent))?.click();
+        await wait(800);
+        setVal('clbUmapMethod', 'pca'); setVal('clbUmapDataType', 'expr');
+        tick('clbUmapShowLoadings');
+        const before = a._clbUmapData;
+        document.getElementById('clbUmapRunBtn')?.click();
+        await until(() => a._clbUmapData && a._clbUmapData !== before, 120);
+        await wait(500);
+        const cg = document.getElementById('clbUmapColorGene');
+        if (cg) { cg.value = 'MITF'; cg.dispatchEvent(new Event('input', { bubbles: true })); }
+        setVal('clbUmapColorGeneType', 'expr');
+        document.getElementById('clbUmapColorGeneBtn')?.click();
+    }
+    async function heatmapMelanoma(a) {
+        await openMelanoma(a, '');
+        document.getElementById('clbHeatmapBtn')?.click();
+        await wait(800);
+        setVal('hmLineage', 'Skin'); await wait(400);
+        setVal('hmSubtype', 'Melanoma'); await wait(400);
+        const rows = a._hmAnnRows || [];
+        const mut = rows.find(r => r.mode === 'hotspot');
+        if (mut) { mut.gene = 'TP53'; mut.sortKey = 'cat-asc'; a._hmRenderAnnRowsBlock?.(); }
+        setVal('hmPreset', 'tp53_members');
+    }
+    async function runMutationExample(a) {
         document.getElementById('modeMutationBtn')?.click();
-        setTimeout(() => {
-            setVal('mutationHotspotSelect', 'BRAF');
-            setVal('lineageFilter', 'Skin');
-            setTimeout(() => document.getElementById('runMutationAnalysisBtn')?.click(), 500);
-        }, 700);
+        await wait(700);
+        setVal('mutationHotspotSelect', 'BRAF');
+        setVal('lineageFilter', 'Skin');
+        await wait(500);
+        const before = a.mutationResults;
+        document.getElementById('runMutationAnalysisBtn')?.click();
+        await until(() => a.mutationResults && a.mutationResults !== before, 120);
+        await wait(400);
+        a.showGeneEffectDistribution('BRAF');
     }
     const ACTIONS = {
-        hero: () => runExampleSet({ cutoff: 0.3, colorGE: true }),
+        hero: (a) => runStatsExample(a),
         heroMrna: () => runExampleSet({ cutoff: 0.3, basis: 'expr' }),
-        pair: (a) => a.openInspectByGenes('SOX10', 'MITF'),
-        tyr: (a) => { a._inspectPreset = { colorByGene: 'TYR', colorByGeneType: 'expr' }; a.openInspectByGenes('SOX10', 'MITF'); },
-        braf: (a) => { a._inspectPreset = { hotspotGene: 'BRAF', hotspotMode: 'color' }; a.openInspectByGenes('BRAF', 'MAPK1'); },
-        mutation: () => runMutationExample(),
-        compare: (a) => compareSkinBraf(a),
+        pair: (a) => a.openInspectByGenes('TP53', 'MDM2'),
+        eda2r: (a) => { a._inspectPreset = { colorByGene: 'EDA2R', colorByGeneType: 'expr' }; a.openInspectByGenes('TP53', 'MDM2'); },
+        mutation: (a) => runMutationExample(a),
+        compare: (a) => compareMelanoma(a),
+        pca: (a) => pcaMelanoma(a),
+        heatmap: (a) => heatmapMelanoma(a),
+        myc: (a) => a.openGeneBrowser('MYC'),
         kras: (a) => a.openGeneBrowser('KRAS'),
         tsc1: (a) => a.openGeneBrowser('TSC1'),
-        clb: (a) => openBrowserFiltered(a, 'Skin', 'BRAF'),
+        clb: (a) => openMelanoma(a, 'BRAF'),
         wiki: (a) => a.openCellLineWiki(D.lineId('A375') || 'ACH-000219'),
         stats: () => { const m = document.getElementById('infographicModal'); if (m) m.style.display = 'flex'; },
     };
@@ -137,11 +183,11 @@
         <p class="tour-sub">Correlate finds the genes whose CRISPR knockout effects, or mRNA levels, rise and fall together across the DepMap cancer cell lines. Four tools: a network from your gene set, the correlation plot behind every edge, a cell line browser and a gene browser.</p>
         <div class="tour-cta">
             ${tryBtn('hero', 'Build the example network')}
-            ${tryBtn('kras', 'Open KRAS in the Gene Browser')}
+            ${tryBtn('myc', 'Open MYC in the Gene Browser')}
         </div>
     </div>
     <div class="tour-wrap tour-hero-shot">
-        ${shot('hero_network', 'The example gene set as a network, coloured by gene effect', 'hero', { eager: true })}
+        ${shot('net_stats', 'The Test Genes set as a network, nodes coloured by the pasted screen statistics', 'hero', { eager: true })}
     </div>
 </section>
 
@@ -161,12 +207,12 @@
             <h2>Paste a gene set, get a network</h2>
             <p>Two genes whose profiles correlate above your cutoff are connected by an edge. Blue is a positive correlation, red a negative one, thicker is stronger. A group of connected genes is usually a complex or a pathway.</p>
             ${checks([
+                'The picture at the top: 22 cancer genes pasted with LFC and FDR from a screen. The nodes take the screen colours, so your hits sit on the DepMap network.',
                 'Built on CRISPR gene effect or on mRNA expression. The badge on the network says which.',
-                'Colour the genes by gene effect, by expression, or by your own screen results (LFC and FDR pasted next to the gene list).',
                 'Expand the set to find new partners, send a cluster to Enrichr, open a full-page view.',
             ])}
         </div>
-        ${shot('net_mrna', 'The example set built on mRNA expression', 'heroMrna', { cap: `The same ${nSet} genes built on mRNA expression. On gene effect (top of the page) they split into four groups.`, btn: 'Build the example set on mRNA' })}
+        ${shot('net_mrna', 'A 22-gene set built on mRNA expression', 'heroMrna', { cap: `Another set of ${nSet} genes, built on mRNA expression instead of gene effect. The same set on gene effect splits into four groups.`, btn: 'Build this set on mRNA' })}
     </div>
 </section>
 
@@ -178,7 +224,7 @@
             <p>One dot per cell line, one gene against the other, with r and p. The plot is also a tool on its own: type any two genes.</p>
         </div>
         <div class="tour-wide-shot">
-            ${shot('edge_to_plot', 'Double-clicking the edge between SOX10 and MITF opens their correlation plot', 'pair', { cap: `The edge between ${gi('SOX10')} and ${gi('MITF')}, and the plot behind it: 1,208 cell lines, r 0.51.`, btn: 'Open SOX10 vs MITF' })}
+            ${shot('edge_to_plot', 'Double-clicking the edge between TP53 and MDM2 opens their correlation plot', 'pair', { cap: `The edge between ${gi('TP53')} and ${gi('MDM2')}, and the plot behind it: ${nL} cell lines, r −0.72. Cell lines that tolerate losing ${gi('TP53')} depend on ${gi('MDM2')}.`, btn: 'Open TP53 vs MDM2' })}
         </div>
         <div class="tour-feature tour-flip">
             <div class="tour-text">
@@ -189,7 +235,7 @@
                     'Highlight cell lines, draw gates, compare tissues side by side.',
                 ])}
             </div>
-            ${shot('scatter_tyr', 'SOX10 against MITF gene effect, coloured by TYR mRNA', 'tyr', { cap: `The same plot coloured by ${gi('TYR')} mRNA: the cell lines that depend on both are the ones that express the pigmentation gene.`, btn: 'Open it coloured by TYR' })}
+            ${shot('scatter_eda2r', 'TP53 against MDM2 gene effect, coloured by EDA2R mRNA', 'eda2r', { cap: `The same plot coloured by ${gi('EDA2R')} mRNA, a p53 target gene: the cell lines that depend on ${gi('MDM2')} are the ones with active p53.`, btn: 'Open it coloured by EDA2R' })}
         </div>
     </div>
 </section>
@@ -202,16 +248,19 @@
                 <h2>Find the right cell lines</h2>
                 <p>Filter the panel by tissue, mutation, fusion, copy number, sex, drug response, or the expression or dependency of any gene. Every cell line has a page of ten sections or more.</p>
                 ${checks([
-                    `Example: skin, ${gi('BRAF')} mutated, female, sensitive to vemurafenib. The count updates as you go.`,
-                    'Compare your selection with the rest as volcano plots, on gene effect and on mRNA.',
+                    `Example: melanoma cell lines with mutated ${gi('BRAF')}. The count updates as you go.`,
+                    'From the list: compare the selection with the rest, a PCA or UMAP, a heatmap of any gene set.',
                     'Download a cell line’s full tables, or the list on screen, as CSV.',
                 ])}
             </div>
-            ${shot('clb', 'The Cell Line Browser filtered to skin cell lines with mutated BRAF, A375 selected', 'clb', { cap: `Skin cell lines with mutated ${gi('BRAF')}, A375 opened in the side panel.`, btn: 'Open the browser with these filters' })}
+            ${shot('clb_mel', 'The Cell Line Browser filtered to melanoma cell lines with mutated BRAF, A375 selected', 'clb', { cap: `Melanoma cell lines with mutated ${gi('BRAF')}, A375 opened in the side panel.`, btn: 'Open the browser with these filters' })}
         </div>
         <div class="tour-two tour-two-tight">
-            ${shot('wiki', 'The wiki page for A375', 'wiki', { cap: 'The A375 page: summary, origin, classification, genome, dependencies, drug response.', btn: 'Open the A375 page' })}
-            ${shot('volcano', 'Volcano plots comparing BRAF-mutant skin cell lines with the other skin lines', 'compare', { cap: `Compare: 50 ${gi('BRAF')}-mutant skin cell lines against the other 25.`, btn: 'Compare BRAF-mutant skin cell lines' })}
+            ${shot('volcano_mel', 'Volcano plot comparing the 50 BRAF-mutant melanoma cell lines with every other cell line', 'compare', { cap: `Compare: the 50 selected cell lines against the other 1,158. ${gi('BRAF')}, ${gi('SOX10')} and ${gi('MAPK1')} are their dependencies.`, btn: 'Compare these cell lines with the rest' })}
+            ${shot('pca_mitf', 'PCA of the melanoma cell lines on mRNA, coloured by MITF expression, with loadings', 'pca', { cap: `PCA of the melanoma cell lines on mRNA, coloured by ${gi('MITF')} expression. The loadings name the genes behind the axes.`, btn: 'Open this PCA' })}
+        </div>
+        <div class="tour-wide-shot">
+            ${shot('heatmap_tp53', 'Heatmap of the TP53 pathway members across the melanoma cell lines, with a TP53 mutation row', 'heatmap', { cap: `Heatmap: the ${gi('TP53')} pathway members across the melanoma cell lines, sorted by ${gi('TP53')} mutation. Wild-type cell lines depend on ${gi('MDM2')} and ${gi('USP7')}; mutant ones do not.`, btn: 'Open this heatmap' })}
         </div>
     </div>
 </section>
@@ -224,16 +273,16 @@
                 <h2>One gene, one page</h2>
                 <p>Type a gene. The page says how essential it is and where, how it is expressed, which genes follow it, and which complexes and pathways it belongs to. Export it as a PDF.</p>
                 ${checks([
-                    `A verdict for dependency and for expression, ranked against every gene. ${gi('KRAS')}: essential in half of the screened cell lines, most in pancreas and bowel.`,
+                    'A verdict for dependency and for expression, ranked against every gene.',
                     'Co-dependencies and co-expression, with complex partners ringed.',
                     'Mutations, fusions, copy number, drug response, structure and sequence.',
                 ])}
             </div>
-            ${shot('gb_top', 'The Gene Browser page for KRAS: description, ideogram and summary', 'kras', { cap: `${gi('KRAS')} in the Gene Browser: description, chromosome position and the summary.`, btn: 'Open KRAS in the Gene Browser' })}
+            ${shot('gb_myc', 'The Gene Browser page for MYC: description, chromosome position and records', 'myc', { cap: `${gi('MYC')} in the Gene Browser: description, chromosome position and the records it links to.`, btn: 'Open MYC in the Gene Browser' })}
         </div>
         <div class="tour-two tour-two-tight">
-            ${shot('gb_dependency', 'Dependency section for KRAS with the gene effect distribution', 'kras', { cap: 'Dependency: where the gene sits among all genes, and the most dependent tissues.' })}
-            ${shot('gb_expression', 'Expression section for KRAS with the mRNA distribution', 'kras', { cap: 'Expression: the same for mRNA, with the highest and lowest tissues.' })}
+            ${shot('gb_dependency', 'Dependency section for KRAS with the gene effect distribution', 'kras', { cap: `Dependency, here for ${gi('KRAS')}: where the gene sits among all genes, and the most dependent tissues.`, btn: 'Open KRAS' })}
+            ${shot('gb_expression', 'Expression section for KRAS with the mRNA distribution', 'kras', { cap: `Expression: the same for mRNA, with the highest and lowest tissues.` })}
         </div>
         <div class="tour-feature">
             <div class="tour-text">
@@ -257,27 +306,26 @@
         <div class="tour-feature">
             <div class="tour-text">
                 <h3>Mutation analysis</h3>
-                <p>Wild-type against mutated for any gene, every gene ranked by the difference in gene effect or mRNA.</p>
+                <p>Wild-type against mutated for any gene, every gene ranked by the difference in gene effect or mRNA. Any gene in the table opens as a strip plot.</p>
             </div>
-            ${shot('mutation_table', 'Mutation analysis table for BRAF in skin cell lines', 'mutation', { cap: `${gi('BRAF')} in skin: wild-type, mutated and double-mutant cell lines in separate column groups.`, btn: 'Open BRAF mutation analysis in skin' })}
+            ${shot('strip_braf', 'BRAF gene effect in skin cell lines by BRAF mutation status', 'mutation', { cap: `${gi('BRAF')} gene effect in skin cell lines, split by ${gi('BRAF')} mutation: the mutated cell lines depend on it, the wild-type ones do not.`, btn: 'Open BRAF mutation analysis in skin' })}
         </div>
         <div class="tour-feature tour-flip">
             <div class="tour-text">
                 <h3>Take it with you</h3>
-                <p>Under every view: Export image (PNG, SVG, PDF, PowerPoint at print size), Export for AI, Methods and CSV. An exported PNG or SVG reopens in Correlate with its analysis.</p>
+                <p>Under every view: Export image (PNG, SVG, PDF, PowerPoint at print size), Export for AI, Methods and CSV. An exported PNG or SVG reopens in Correlate with its analysis. Every figure on this page is such an export.</p>
             </div>
             ${shot('export_dialog', 'The Export image dialog', null, { cls: 'tour-shot-dialog', cap: 'Export image: what to export, format, size in cm, resolution, background.' })}
         </div>
         <div class="tour-chips">
-            <div><b>Heatmap</b>a gene set across the cell lines, clustered</div>
+            <div><b>Cell line pages</b>ten sections per cell line: origin, drivers, genome, dependencies, drug response</div>
             <div><b>Compilation</b>a grid of correlation plots, one per pair</div>
             <div><b>Threshold scan</b>how many edges the set keeps as the cutoff moves</div>
-            <div><b>PCA and UMAP</b>of cell lines or genes</div>
             <div><b>Correlation matrix</b>of the set, on gene effect or mRNA</div>
             <div><b>Gates</b>draw a cohort on any plot and carry it on</div>
             <div><b>Green Listed</b>library genes and curated gene classes</div>
         </div>
-        <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Build the example network')}${tryBtn('stats', 'The statistics behind the app')}</div>
+        <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Build the example network')}${tryBtn('wiki', 'Open the A375 page')}${tryBtn('stats', 'The statistics behind the app')}</div>
         <p class="tour-foot">Data: DepMap 26Q1 (Broad Institute), with EBI Complex Portal, Reactome, PRISM and the other sources listed under Reference Data. Correlate is developed in the Wermeling lab.</p>
     </div>
 </section>`;
