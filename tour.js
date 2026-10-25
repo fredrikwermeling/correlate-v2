@@ -30,8 +30,7 @@
 
     // ------------------------------------------------------------ actions
     // Every action reproduces the state shown in the screenshot beside it.
-    const HERO_SET = ['TP53', 'MDM2', 'MDM4', 'CDKN1A', 'PPM1D', 'USP7', 'MTOR', 'RPTOR', 'MLST8', 'RHEB', 'TSC1', 'TSC2',
-        'KRAS', 'RAF1', 'MAPK1', 'MAP2K1', 'SHOC2', 'NRAS', 'SOX10', 'MITF', 'TFAP2A', 'PAX3'];
+    const HERO_SET = ['TP53', 'MDM2', 'MDM4', 'PPM1D', 'USP7', 'CDKN1A', 'TP53BP1', 'CHEK2', 'ATM', 'TSC1', 'TSC2'];
     const setVal = (id, v) => {
         const el = document.getElementById(id); if (!el) return;
         el.value = v;
@@ -129,7 +128,7 @@
         a.showGeneEffectDistribution('BRAF');
     }
     const ACTIONS = {
-        hero: (a) => runStatsExample(a, false),
+        hero: () => runExampleSet({ cutoff: 0.5 }),
         heroStats: (a) => runStatsExample(a, true),
         heroMrna: () => runExampleSet({ cutoff: 0.3, basis: 'expr' }),
         pair: (a) => a.openInspectByGenes('TP53', 'MDM2'),
@@ -185,15 +184,14 @@
         <h1>Omics data from 1,000+ human cancer cell lines, in one app.</h1>
         <p class="tour-sub">Correlate brings together CRISPR knockout screens, mRNA expression, mutations, copy number and drug response from DepMap, and connects them. Use it to:</p>
         <ul class="tour-hero-list">
-            <li>Discover connections between the genes in your gene set, without any prior assumptions.</li>
-            <li>See in which cancer types, and with which mutations, a gene matters.</li>
-            <li>Find the right cell lines for your experiment.</li>
-            <li>Read everything the data says about one gene, on one page.</li>
+            <li>Find connections between genes from unbiased correlations of CRISPR gene effect or mRNA across the cell lines.</li>
+            <li>Find cell lines with specific mutations and mutation patterns, and compare omics data between groups of cell lines.</li>
+            <li>Get extensive information about any gene, on one page.</li>
             <li>Export any view for an AI and discuss the data with it.</li>
         </ul>
     </div>
     <div class="tour-wrap tour-hero-shot">
-        ${shot('net_plain', 'A network built from 22 cancer genes', 'hero', { eager: true, cap: `A network from a list of 22 cancer genes. The eight genes whose knockout effects correlate form three groups: p53 with ${gi('MDM2')} and ${gi('ATM')}, the TSC complex with ${gi('PTEN')}, and ${gi('BCR')} with ${gi('ABL1')}.`, btn: 'Try it: build this network' })}
+        ${shot('net_p53', 'A network built from eleven p53 pathway and TSC genes', 'hero', { eager: true, cap: `A network from a list of ${nSet} genes: the p53 pathway and the TSC complex. Blue edges join genes that cells need together, red edges join opposites: cells that need ${gi('MDM2')} tolerate losing ${gi('TP53')}.`, btn: 'Try it: build this network' })}
     </div>
 </section>
 
@@ -219,8 +217,8 @@
             ])}
         </div>
         <div class="tour-stack">
-            ${shot('net_stats', 'The same 22 genes with screen statistics pasted alongside, nodes coloured by LFC', 'heroStats', { cap: 'The same 22 genes with results from a screen pasted alongside: nodes coloured by LFC, every gene in the list shown.', btn: 'Build it with the screen results' })}
-            ${shot('net_mrna', 'A 22-gene set built on mRNA expression', 'heroMrna', { cap: `Another set of ${nSet} genes, built on mRNA expression instead of gene effect.`, btn: 'Build this set on mRNA' })}
+            ${shot('net_stats', 'A list of 22 cancer genes with screen statistics pasted alongside, nodes coloured by LFC', 'heroStats', { cap: 'A list of 22 cancer genes with results from a screen pasted alongside: the nodes take the screen colours (LFC), and every gene in the list is shown.', btn: 'Build it with the screen results' })}
+            ${shot('net_mrna', 'The same eleven genes built on mRNA expression', 'heroMrna', { cap: `The ${nSet} genes from the top of the page built on mRNA expression instead: a different wiring, because genes that are expressed together are not the same as genes that are needed together.`, btn: 'Build this set on mRNA' })}
         </div>
     </div>
 </section>
@@ -412,6 +410,7 @@
 #tourPage .tour-two .tour-shot { display: flex; flex-direction: column; }
 #tourPage .tour-two .tour-shot img { aspect-ratio: 5 / 6; object-fit: contain; padding: 6px; }
 #tourPage .tour-two .tour-shot figcaption { flex: 1; }
+#tourPage .tour-stack .tour-shot img { aspect-ratio: 4 / 3; object-fit: contain; padding: 6px; }
 #tourPage .tour-card-fig h3 { font-size: 19px; font-weight: 800; margin: 18px 0 8px; color: #111827; }
 #tourPage .tour-card-fig p { font-size: 15px; line-height: 1.55; color: #374151; margin: 0 0 14px; }
 #tourPage .tour-wide-shot { margin-top: 40px; }
