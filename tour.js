@@ -283,7 +283,7 @@
         <div class="tour-text tour-text-wide">
             <p class="tour-eyebrow">1 &middot; Network</p>
             <h2>Paste a gene set, get a network</h2>
-            <p>Correlate compares every pair of genes in your set across ${nL} cell lines, on CRISPR gene effect or on mRNA. Two genes that behave similarly across the cell lines are joined by a line, called an edge. Blue means they go together, red means they go opposite ways, thick means a strong connection. Genes that end up joined usually work together, in the same complex or pathway.</p>
+            <p>Correlate calculates the correlation (Pearson r) between every pair of genes in your set across the cell lines, on CRISPR gene effect (${nL} cell lines) or on mRNA expression. Pairs whose correlation passes the cutoff you set are joined by a line in the network: blue for a positive correlation, red for a negative one, thicker for a stronger one. Genes that end up joined often work together, in the same complex or pathway.</p>
             ${checks([
                 'Hover over a gene or an edge for details. Double-click a gene for its gene effect across the cell lines, or an edge for the correlation plot behind it.',
                 'Paste your own screen results (LFC and FDR) next to the gene list, and Correlate shows the set as a network coloured by your results, or as a correlation matrix.',
