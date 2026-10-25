@@ -127,8 +127,8 @@
         await wait(400);
         a.showGeneEffectDistribution('BRAF');
     }
-    // A one-time card in the corner listing what hovering and clicking the
-    // network does; kept off the network itself, whose layout varies per run.
+    // A one-time card beside the network listing what hovering and clicking
+    // it does; kept off the drawing itself, whose layout varies per run.
     // Closed with its own button or by the next run.
     async function networkHint(a) {
         document.getElementById('tourNetHint')?.remove();
@@ -149,6 +149,20 @@
             </ul>`;
         card.querySelector('button').addEventListener('click', () => card.remove());
         document.body.appendChild(card);
+        // Beside the network's left edge, pointing at it, in page coordinates
+        // so it scrolls with the network. No room on the left (narrow window):
+        // inside the network's top-left corner instead.
+        const placeCard = () => {
+            if (!card.isConnected) { removeEventListener('resize', placeCard); return; }
+            const r = wrap.getBoundingClientRect();
+            const w = card.offsetWidth, gap = 14;
+            const beside = r.left - w - gap >= 8;
+            card.classList.toggle('tour-hint-beside', beside);
+            card.style.left = `${Math.round((beside ? r.left - w - gap : r.left + 10) + scrollX)}px`;
+            card.style.top = `${Math.round(r.top + scrollY + (beside ? 40 : 10))}px`;
+        };
+        placeCard();
+        addEventListener('resize', placeCard);
         document.getElementById('runAnalysis')?.addEventListener('click', () => card.remove(), { once: true });
         wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
@@ -397,7 +411,8 @@
     // ------------------------------------------------------------ style
     const CSS = `
 #tourPlotHint { position: fixed; bottom: 80px; left: 40px; z-index: 1350; width: 300px; }
-#tourNetHint { position: fixed; bottom: 20px; left: 20px; z-index: 1200; width: 300px; }
+#tourNetHint { position: absolute; z-index: 1200; width: 250px; }
+#tourNetHint.tour-hint-beside::after { content: ''; position: absolute; right: -9px; top: 22px; width: 14px; height: 14px; background: #fff; border-top: 1px solid #b9dd9a; border-right: 1px solid #b9dd9a; transform: rotate(45deg); }
 #tourNetHint, #tourPlotHint { background: rgba(255,255,255,.96); border: 1px solid #b9dd9a; border-left: 4px solid #5d9239; border-radius: 8px; box-shadow: 0 6px 20px rgba(17,24,39,.14); padding: 10px 30px 8px 12px; font-size: 13px; line-height: 1.45; color: #374151; }
 #tourNetHint b, #tourPlotHint b { display: block; font-size: 13.5px; color: #2f4d1a; margin-bottom: 4px; }
 #tourNetHint ul, #tourPlotHint ul { margin: 0; padding: 0 0 0 16px; }
