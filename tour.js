@@ -208,7 +208,6 @@
         pca: (a) => pcaMelanoma(a),
         heatmap: (a) => heatmapMelanoma(a),
         myc: (a) => a.openGeneBrowser('MYC'),
-        kras: (a) => a.openGeneBrowser('KRAS'),
         tsc1: (a) => a.openGeneBrowser('TSC1'),
         clb: (a) => openMelanoma(a, 'BRAF'),
         wiki: (a) => a.openCellLineWiki(D.lineId('A375') || 'ACH-000219'),
@@ -347,6 +346,17 @@
         <div class="tour-wide-shot">
             ${shot('heatmap_tp53', 'Heatmap of the TP53 pathway members across the melanoma cell lines, with a TP53 mutation row', 'heatmap', { cap: `Heatmap: the ${gi('TP53')} pathway members across the melanoma cell lines, sorted by ${gi('TP53')} mutation. Wild-type cell lines depend on ${gi('MDM2')} and ${gi('USP7')}; mutant ones do not.`, btn: 'Open this heatmap' })}
         </div>
+        <div class="tour-feature">
+            <div class="tour-text">
+                <h3>A page for every cell line</h3>
+                ${checks([
+                    'A summary on top: cancer type, patient, drivers and genome.',
+                    'Where the cell line came from and which lines were derived from it, from Cellosaurus.',
+                    'Mutations, copy number, dependencies and drug response, each with its source.',
+                ])}
+            </div>
+            ${shot('wiki_a375', 'The cell line page for A375: summary, history and cancer classification', 'wiki', { cap: 'The page for A375: a summary, its history and derived lines, and how it is classified.', btn: 'Open the A375 page' })}
+        </div>
     </div>
     <div class="tour-wrap tour-next-row">${nextBtn('tour-gene', 'Gene Browser')}</div>
 </section>
@@ -365,9 +375,6 @@
                 ])}
             </div>
             ${shot('gb_myc', 'The Gene Browser page for MYC: description, chromosome position and records', 'myc', { cap: `${gi('MYC')} in the Gene Browser: description, chromosome position and the records it links to.`, btn: 'Open MYC in the Gene Browser' })}
-        </div>
-        <div class="tour-wide-shot">
-            ${shot('gb_kras_panels', 'Dependency and expression sections for KRAS', 'kras', { cap: `Dependency and expression, here for ${gi('KRAS')}: where the gene sits among all genes, the most dependent tissues, and the highest and lowest expressing ones.`, btn: 'Open KRAS in the Gene Browser' })}
         </div>
         <div class="tour-feature">
             <div class="tour-text">
@@ -395,7 +402,7 @@
         </div>
         <div class="tour-feature tour-flip">
             <div class="tour-text">
-                <h3>Take it with you</h3>
+                <h3>Export images, tables and methods</h3>
                 <p>Under every view: Export image (PNG, SVG, PDF, PowerPoint at print size) and CSV. An exported PNG or SVG reopens in Correlate with its analysis.</p>
                 <p><b>Methods</b> writes the methods for the view you are looking at, from its actual settings: the DepMap release, which cell lines were included, the filters and the statistics used. You get one paragraph ready to paste into a materials and methods section, and a longer plain-language version that explains what the figure shows. Copy either or download them as a text file.</p>
                 <p><b>Export for AI</b> writes the data behind the view into one file made for a language model. Upload it to ChatGPT, Claude or Gemini and discuss the results: which of these dependencies has a drug, which cell line fits my experiment, what links these genes?</p>
