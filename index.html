@@ -2995,6 +2995,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.93 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Matrix: Export image opens the usual dialog (PNG, TIFF, PDF, PowerPoint, print size, resolution) and saves the grid at that resolution with a title naming the data.</li>
+                    <li>Matrix: a tag says whether it is built on gene effect (CRISPR) or mRNA expression, as in the network.</li>
+                </ul>
                 <p><strong>v.90.92 (2026-10-25)</strong></p>
                 <ul>
                     <li>Gene Browser co-expression heatmap: every cell shows its value, and the gene's own row and column are set apart by a white gap.</li>
@@ -8594,7 +8599,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.92</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.93</a>
         </span>
     </div>
 
@@ -9315,10 +9320,10 @@
                         <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;"><input type="checkbox" id="matrixShowValues" checked> Show values</label>
                         <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Order the genes by the network's clusters; unticked, they follow the order you entered them in"><input type="checkbox" id="matrixClusterOrder" checked> Cluster order</label>
                         <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Blank every pair whose correlation did not clear the cutoff, so only the pairs in the network are colored"><input type="checkbox" id="matrixAboveCutoff"> Above cutoff only</label>
-                        <button class="btn btn-outline btn-sm mobile-hide" id="matrixExportPng" title="Save the grid as a PNG image">Export image</button>
+                        <button class="btn btn-outline btn-sm mobile-hide" id="matrixExportPng" title="Export the matrix, choose PNG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                         <button class="btn btn-outline btn-sm" id="matrixDownloadCsv" title="Download the grid of correlations as a CSV file">Download CSV</button>
                     </div>
-                    <div id="matrixNote" style="font-size:11px; color:#6b7280; margin-bottom:6px;"></div>
+                    <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin-bottom:6px;"><span id="matrixBasisBadge" style="display:none;"></span><span id="matrixNote" style="font-size:11px; color:#6b7280;"></span></div>
                     <div id="matrixScroll" style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;"><div id="matrixPlot" style="min-height:120px;"><div style="text-align:center; color:var(--gray-500); padding:40px;">Run analysis to see the matrix</div></div></div>
                 </div>
 
@@ -11956,7 +11961,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_92"></script>
+    <script src="app.js?v=v90_93"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
