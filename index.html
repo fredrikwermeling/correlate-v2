@@ -3009,6 +3009,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.7 (2026-10-25)</strong></p>
+                <ul>
+                    <li><b>Tour of the app</b> is now one scrolling page instead of slides: a hero with the example network, the data counts, and six sections (network, behind every link, compare two groups, Gene Browser, cell lines, take it with you), each with real screenshots of the app beside the feature text and buttons that open the same view with the same example (the 22-gene set on gene effect or mRNA, SOX10 vs MITF coloured by TYR, BRAF mutation analysis in skin, BRAF-mutant skin lines vs the rest, KRAS and TSC1 in the Gene Browser, the filtered Cell Line Browser, the A375 page). Clicking a screenshot opens the view too.</li>
+                </ul>
                 <p><strong>v.91.6 (2026-10-25)</strong></p>
                 <ul>
                     <li><b>Tour of the app</b> (the nav link that was How it works) rewritten: fifteen pages in six sections (the network, what a link is, compare groups, one gene, cell lines, take it with you), each with a lead line, a chart drawn from the real data and a Try it button that opens the same view with the same filters and colours. New pages: the network built on mRNA, colour the plot by a gene with Suggest, compare any two groups as a volcano, the Gene Browser, protein complexes with co-dependency per member, co-expression with chromosome neighbours flagged, the Cell Line Browser by drug response, and exports (image, Export for AI, Methods, reopen from an image).</li>
@@ -8653,7 +8657,7 @@
     <div class="nav-bar">
         <span class="nav-links">
             <span class="nav-side nav-side-l">
-                <a href="#" id="showInfoGraphic" title="A tour of the app: fifteen short pages, each with a real chart and a button that opens the view">Tour of the app</a>
+                <a href="#" id="showInfoGraphic" title="What Correlate does, with screenshots of each view and buttons that open the examples">Tour of the app</a>
                 <a href="#" id="showReferenceData">Reference Data</a>
             </span>
             <a href="https://greenlisted.cmm.se" target="_blank" rel="noopener noreferrer">Green Listed</a>
@@ -8663,7 +8667,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.6</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.7</a>
         </span>
     </div>
 
@@ -12042,6 +12046,6 @@
     </div>
 
     <script src="app.js?v=v91_6"></script>
-    <script src="tour.js?v=v91_6"></script>
+    <script src="tour.js?v=v91_7"></script>
 </body>
 </html>
