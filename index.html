@@ -3009,6 +3009,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.2 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Correlation plot, Color by Gene: <b>Suggest</b> ranks every gene (by the chosen mRNA, GE or CN) by how well it explains the plotted cell lines: where they sit along the trend, and how far above or below the trend line. Click a gene to colour by it.</li>
+                </ul>
                 <p><strong>v.91.1 (2026-10-25)</strong></p>
                 <ul>
                     <li>Every number box in the app has − and + buttons beside it, including the ones that lacked them (volcano labels per side, heatmap gene min n, compilation rows and columns, export preview sizes and fonts, correlation analysis caps, sequence positions and others built on the fly).</li>
@@ -8641,7 +8645,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.1</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.2</a>
         </span>
     </div>
 
@@ -9636,6 +9640,7 @@
                                         <option value="ge">GE</option>
                                         <option value="cn">CN</option>
                                     </select>
+                                    <button type="button" id="colorByGeneSuggestBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px;" title="Rank every gene by how well its values explain where the plotted cell lines sit: along the trend, or above and below it">Suggest</button>
                                 </span>
                                 <!-- Color only the chosen groups; everything else grays out. -->
                                 <button type="button" id="colorByGroupBtn" class="btn btn-sm btn-outline" style="display:none; font-size:10px; padding:2px 6px;" onclick="app.showColorByGroupPicker()">Pick groups...</button>
@@ -9648,6 +9653,8 @@
                                     <option value="median">Legend: n + x/y median</option>
                                 </select>
                             </div>
+                            <!-- Genes that explain the points, from Suggest; click one to colour by it. -->
+                            <div id="colorByGeneSuggest" style="display:none; margin-top:6px; font-size:11px;"></div>
                             <!-- Chosen groups, each removable without reopening the picker. -->
                             <div id="colorByChips" style="display:none; margin-top:3px; flex-wrap:wrap; gap:3px;"></div>
                             <div id="colorByLegend" style="display:none; margin-top:2px; max-height:20vh; overflow-y:auto; border:1px solid #e5e7eb; border-radius:3px; padding:2px;"></div>
@@ -12016,7 +12023,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_1"></script>
+    <script src="app.js?v=v91_2"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
