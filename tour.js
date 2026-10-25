@@ -132,8 +132,8 @@
         <h1>From a gene list to a network of dependencies.</h1>
         <p class="tour-sub">Correlate finds the genes whose CRISPR knockout effects, or mRNA levels, rise and fall together across the DepMap cancer cell lines, and turns that into networks, plots and pages you can take straight into a presentation or a manuscript.</p>
         <div class="tour-cta">
-            ${tryBtn('hero', 'Run the example set')}
-            ${tryBtn('kras', 'Open a gene instead', false)}
+            ${tryBtn('hero', 'Build the example network')}
+            ${tryBtn('kras', 'Open KRAS in the Gene Browser', false)}
         </div>
     </div>
     <div class="tour-wrap tour-hero-shot">
@@ -155,34 +155,34 @@
         <div class="tour-text">
             <p class="tour-eyebrow">01 &middot; The network</p>
             <h2>Paste a gene set, get a network</h2>
-            <p>Every pair of genes in your set is compared across the cell lines. Pairs whose profiles correlate above your cutoff are joined: blue for positive, red for negative, thicker for stronger. Clusters show the complexes and pathways in your set; single links point to partners you did not expect.</p>
+            <p>Every pair of genes in your set is compared across the cell lines. Two genes whose profiles correlate above your cutoff are connected by an edge, a line between them: blue for a positive correlation, red for a negative one, thicker for a stronger one. Genes that end up in a tightly connected group usually belong to the same complex or pathway. A single edge to a gene outside such a group points to a partner you did not expect.</p>
             ${checks([
-                `Built on CRISPR gene effect or on mRNA expression. The badge on the network says which, and the two often disagree in an informative way: the picture here shows the same ${nSet} genes on mRNA, where the housekeeping genes form one block.`,
+                `Build the network on CRISPR gene effect or on mRNA expression; a badge on the network says which one. The same gene set often gives two different networks, and the difference is informative: on mRNA (picture) the broadly expressed genes ${gi('MTOR')}, ${gi('RPTOR')}, ${gi('TSC1')}, ${gi('TSC2')} and ${gi('USP7')} merge into one block, while the melanocyte genes stay together.`,
                 'Colour the nodes by gene effect, by expression, or by your own screen statistics: paste LFC and FDR next to the gene list and your screen sits on top of the DepMap network.',
                 'Expand the set to find new partners, send any cluster to Enrichr, open a full-page view for large sets, and drag genes where you want them before you export.',
             ])}
-            <div class="tour-cta">${tryBtn('heroMrna', 'Try it: the example set on mRNA')}${tryBtn('hero', 'On gene effect', false)}</div>
+            <div class="tour-cta">${tryBtn('heroMrna', 'Try it: build the example set on mRNA')}${tryBtn('hero', 'Build it on gene effect', false)}</div>
         </div>
-        ${shot('net_mrna', 'The example set built on mRNA expression', 'heroMrna', { cap: `The same ${nSet} genes built on mRNA expression. On gene effect (top of the page) they split into the p53, mTORC1, MAPK and melanocyte groups.` })}
+        ${shot('net_mrna', 'The example set built on mRNA expression', 'heroMrna', { cap: `The same ${nSet} genes built on mRNA expression. Built on gene effect (top of the page) they split into the p53, mTORC1, MAPK and melanocyte groups.` })}
     </div>
 </section>
 
 <section class="tour-sec tour-alt" id="tour-links">
     <div class="tour-wrap tour-feature tour-flip">
         <div class="tour-text">
-            <p class="tour-eyebrow">02 &middot; Behind every link</p>
-            <h2>Every link is a plot you can open</h2>
-            <p>Double-click a link and you see the cell lines behind it: one dot per line, one gene against the other, with r, p and the regression line. This is where you judge whether a correlation is real, driven by one cancer type, or explained by a third gene.</p>
+            <p class="tour-eyebrow">02 &middot; Behind every edge</p>
+            <h2>Every edge in the network is a plot you can open</h2>
+            <p>Double-click an edge, the line between two genes, and you see the cell lines behind it: one dot per cell line, one gene against the other, with r, p and the regression line. This is where you judge whether a correlation is real, driven by one cancer type, or explained by a third gene.</p>
             ${checks([
                 'Filter to a cancer type, subtype or disease, to a mutation, a fusion or a copy-number change, or any combination. The statistics update with the filter.',
                 `Colour by tissue, by the mutation status of any gene, or by the expression or gene effect of a third gene. <b>Suggest</b> ranks the genes that explain the pattern best; here it points at ${gi('TYR')}.`,
-                'Highlight cell lines by name or group, draw gates to define cohorts, compare tissues side by side, and open any gene’s effect across all lines by tissue.',
+                'Highlight cell lines by name or group, draw gates to define cohorts, compare tissues side by side, and open any gene’s effect across all cell lines by tissue.',
             ])}
             <div class="tour-cta">${tryBtn('tyr', 'Try it: SOX10 vs MITF coloured by TYR')}${tryBtn('braf', 'BRAF vs MAPK1 by mutation', false)}</div>
         </div>
         <div class="tour-stack">
-            ${shot('scatter_tyr', 'SOX10 against MITF gene effect, coloured by TYR mRNA', 'tyr', { cap: `${gi('SOX10')} vs ${gi('MITF')} gene effect, coloured by ${gi('TYR')} mRNA: the lines that depend on both are the ones that express the pigmentation gene.` })}
-            ${shot('scatter_braf', 'BRAF against MAPK1 gene effect with BRAF-mutant cell lines coloured', 'braf', { cls: 'tour-shot-sm', cap: `${gi('BRAF')} vs ${gi('MAPK1')}, with ${gi('BRAF')}-mutant lines in colour.` })}
+            ${shot('scatter_tyr', 'SOX10 against MITF gene effect, coloured by TYR mRNA', 'tyr', { cap: `${gi('SOX10')} vs ${gi('MITF')} gene effect, coloured by ${gi('TYR')} mRNA: the cell lines that depend on both are the ones that express the pigmentation gene.` })}
+            ${shot('scatter_braf', 'BRAF against MAPK1 gene effect with BRAF-mutant cell lines coloured', 'braf', { cls: 'tour-shot-sm', cap: `${gi('BRAF')} vs ${gi('MAPK1')}, with ${gi('BRAF')}-mutant cell lines in colour.` })}
         </div>
     </div>
 </section>
@@ -198,12 +198,12 @@
             <div class="tour-card-fig">
                 ${shot('mutation_table', 'Mutation analysis table for BRAF in skin cell lines', 'mutation')}
                 <h3>Mutation analysis: ${gi('BRAF')} in skin</h3>
-                <p>Wild-type, all mutated and double-mutant lines in separate column groups, with the differences and p-values beside them. Search the table, send the list to Enrichr or a heatmap, open any gene’s plot.</p>
+                <p>Wild-type, all mutated and double-mutant cell lines in separate column groups, with the differences and p-values beside them. Search the table, send the list to Enrichr or a heatmap, open any gene’s plot.</p>
                 ${tryBtn('mutation', 'Try it: BRAF mutation analysis in skin')}
             </div>
             <div class="tour-card-fig">
                 ${shot('volcano', 'Volcano plots comparing BRAF-mutant skin cell lines with the other skin lines', 'compare')}
-                <h3>Selection compare: 50 ${gi('BRAF')}-mutant skin lines vs the other 25</h3>
+                <h3>Selection compare: 50 ${gi('BRAF')}-mutant skin cell lines vs the other 25</h3>
                 <p>Gene effect and mRNA side by side, q-values from Benjamini-Hochberg, the top genes labelled and listed. Adjust the thresholds and the plots redraw; the lists go straight to a network or Enrichr.</p>
                 ${tryBtn('compare', 'Try it: compare BRAF-mutant skin lines')}
             </div>
@@ -222,7 +222,7 @@
             <div class="tour-text">
                 <h3>A summary written from the data</h3>
                 ${checks([
-                    `A verdict for dependency and for expression, ranked against every gene: common essential or selective, expressed everywhere or restricted to a few cancers. ${gi('KRAS')} is essential in half of the screened lines, most strongly in pancreas and bowel, and hotspot-mutated lines depend on it most.`,
+                    `A verdict for dependency and for expression, ranked against every gene: common essential or selective, expressed everywhere or restricted to a few cancers. ${gi('KRAS')} is essential in half of the screened lines, most strongly in pancreas and bowel, and hotspot-mutated cell lines depend on it most.`,
                     'The most dependent tissues and cell lines, the highest and lowest expressing tissues, and the distributions behind them, each with a Copy figure button.',
                     'Hotspot mutations by position and cancer type, fusions, copy number, and drug response from PRISM where the gene is a known target.',
                 ])}
@@ -260,11 +260,11 @@
         <div class="tour-text">
             <p class="tour-eyebrow">05 &middot; Cell lines</p>
             <h2>Find the right cell lines, then read their pages</h2>
-            <p>The Cell Line Browser filters the panel by tissue, subtype and disease, by sex and loss of Y, by mutations, fusions and copy number, by expression or dependency of any gene, and by drug response, in any combination. Every line has a wiki page of ten pages or more assembled from DepMap and other sources.</p>
+            <p>The Cell Line Browser filters the panel by tissue, subtype and disease, by sex and loss of Y, by mutations, fusions and copy number, by expression or dependency of any gene, and by drug response, in any combination. Every cell line has a page of ten sections or more assembled from DepMap and other sources.</p>
             ${checks([
                 `Combine filters: skin, ${gi('BRAF')} mutated, female, sensitive to vemurafenib. The count updates as you go, and the list is one click from a heatmap, PCA or UMAP.`,
-                'Each line opens with a plain-language summary: origin, candidate drivers, derived lines, genome state. The wiki adds provenance, STR, signatures, dependencies, expression and drug response.',
-                'Download a line’s full gene effect, expression and mutation tables, or the list on screen, as CSV.',
+                'Each cell line opens with a plain-language summary: origin, candidate drivers, derived cell lines, genome state. The wiki adds provenance, STR, signatures, dependencies, expression and drug response.',
+                'Download a cell line’s full gene effect, expression and mutation tables, or the list on screen, as CSV.',
             ])}
             <div class="tour-cta">${tryBtn('clb', 'Try it: skin cell lines with mutated BRAF')}${tryBtn('wiki', 'Open the A375 page', false)}</div>
         </div>
@@ -298,14 +298,14 @@
         <div class="tour-chips">
             <div><b>Heatmap</b>a gene set across the cell lines, clustered, with annotation rows</div>
             <div><b>Compilation</b>a grid of correlation plots or gene effect panels, one per pair or gene</div>
-            <div><b>Threshold scan</b>how many links your set keeps as the cutoff moves</div>
+            <div><b>Threshold scan</b>how many edges your set keeps as the cutoff moves</div>
             <div><b>PCA and UMAP</b>of cell lines or genes, with gene classes and loadings</div>
             <div><b>Correlation matrix</b>of the set, on gene effect or mRNA</div>
             <div><b>Gates</b>draw a cohort on any plot and carry it to the next view</div>
             <div><b>Open saved figure</b>drop an exported PNG or SVG back in and continue</div>
             <div><b>Green Listed</b>library genes and curated gene classes, offline</div>
         </div>
-        <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Start with the example set')}${tryBtn('stats', 'The statistics behind the app', false)}</div>
+        <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Build the example network')}${tryBtn('stats', 'The statistics behind the app', false)}</div>
         <p class="tour-foot">Data: DepMap 26Q1 (Broad Institute), with EBI Complex Portal, Reactome, PRISM and the other sources listed under Reference Data. Correlate is developed in the Wermeling lab.</p>
     </div>
 </section>`;

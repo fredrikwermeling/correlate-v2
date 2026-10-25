@@ -3009,6 +3009,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.8 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Tour of the app: the lines between genes in the network are called edges throughout, with "the line between two genes" spelled out on first use; the gene effect vs mRNA comparison names the genes that merge on mRNA; "cell line" is written out everywhere; the buttons say what they open (Build the example network, Open KRAS in the Gene Browser, Build it on gene effect).</li>
+                    <li>Correlation plot, Color by gene: the colour bar is the only legend. Cell lines without a value for that gene stay grey and are counted under the colour bar instead of in an empty group legend box.</li>
+                    <li>Color by gene, Suggest: each gene is listed once, under the pattern (along the trend or above/below it) that it explains better, so the two lists no longer repeat the same genes with different r values.</li>
+                </ul>
                 <p><strong>v.91.7 (2026-10-25)</strong></p>
                 <ul>
                     <li><b>Tour of the app</b> is now one scrolling page instead of slides: a hero with the example network, the data counts, and six sections (network, behind every link, compare two groups, Gene Browser, cell lines, take it with you), each with real screenshots of the app beside the feature text and buttons that open the same view with the same example (the 22-gene set on gene effect or mRNA, SOX10 vs MITF coloured by TYR, BRAF mutation analysis in skin, BRAF-mutant skin lines vs the rest, KRAS and TSC1 in the Gene Browser, the filtered Cell Line Browser, the A375 page). Clicking a screenshot opens the view too.</li>
@@ -8667,7 +8673,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.7</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.8</a>
         </span>
     </div>
 
@@ -12045,7 +12051,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_6"></script>
-    <script src="tour.js?v=v91_7"></script>
+    <script src="app.js?v=v91_8"></script>
+    <script src="tour.js?v=v91_8"></script>
 </body>
 </html>
