@@ -99,13 +99,17 @@
     // ------------------------------------------------------------ page
     const shot = (file, alt, act, o) => {
         o = o || {};
-        return `<figure class="tour-shot${o.cls ? ' ' + o.cls : ''}"${act ? ` data-act="${act}" title="Open this view in the app"` : ''}>
+        // A figure is a picture; the one way to open its view is the button
+        // under it, so there is never a hidden click target and a button for
+        // the same thing.
+        return `<figure class="tour-shot${o.cls ? ' ' + o.cls : ''}">
             <div class="tour-shot-bar"><span></span><span></span><span></span></div>
             <img src="${IMG}${file}.webp" alt="${esc(alt)}" loading="${o.eager ? 'eager' : 'lazy'}" decoding="async">
             ${o.cap ? `<figcaption>${o.cap}</figcaption>` : ''}
+            ${act && o.btn ? `<div class="tour-shot-act">${tryBtn(act, o.btn)}</div>` : ''}
         </figure>`;
     };
-    const tryBtn = (act, label, primary) => `<button type="button" class="tour-try${primary === false ? ' tour-try-2' : ''}" data-act="${act}">${label}<span aria-hidden="true"> &rarr;</span></button>`;
+    const tryBtn = (act, label) => `<button type="button" class="tour-try" data-act="${act}">${label}<span aria-hidden="true"> &rarr;</span></button>`;
     const checks = (items) => `<ul class="tour-checks">${items.map(t => `<li>${t}</li>`).join('')}</ul>`;
 
     function pageHTML() {
@@ -133,7 +137,7 @@
         <p class="tour-sub">Correlate finds the genes whose CRISPR knockout effects, or mRNA levels, rise and fall together across the DepMap cancer cell lines, and turns that into networks, plots and pages you can take straight into a presentation or a manuscript.</p>
         <div class="tour-cta">
             ${tryBtn('hero', 'Build the example network')}
-            ${tryBtn('kras', 'Open KRAS in the Gene Browser', false)}
+            ${tryBtn('kras', 'Open KRAS in the Gene Browser')}
         </div>
     </div>
     <div class="tour-wrap tour-hero-shot">
@@ -143,10 +147,10 @@
 
 <section class="tour-stats">
     <div class="tour-wrap tour-stats-in">
-        <div><b>${nL}</b><span>cell lines with CRISPR gene effect</span></div>
-        <div><b>${nE}</b><span>cell lines with mRNA expression</span></div>
+        <div><b>${nL}</b><span>cell lines with DepMap CRISPR gene effect</span></div>
+        <div><b>${nE}</b><span>cell lines with DepMap mRNA expression</span></div>
         <div><b>${nG}</b><span>genes</span></div>
-        <div><b>10+</b><span>pages of wiki per cell line</span></div>
+        <div><b>10+</b><span>wiki pages per cell line, from DepMap, Cellosaurus and other sources</span></div>
     </div>
 </section>
 
@@ -161,9 +165,8 @@
                 'Colour the nodes by gene effect, by expression, or by your own screen statistics: paste LFC and FDR next to the gene list and your screen sits on top of the DepMap network.',
                 'Expand the set to find new partners, send any cluster to Enrichr, open a full-page view for large sets, and drag genes where you want them before you export.',
             ])}
-            <div class="tour-cta">${tryBtn('heroMrna', 'Try it: build the example set on mRNA')}${tryBtn('hero', 'Build it on gene effect', false)}</div>
         </div>
-        ${shot('net_mrna', 'The example set built on mRNA expression', 'heroMrna', { cap: `The same ${nSet} genes built on mRNA expression. Built on gene effect (top of the page) they split into the p53, mTORC1, MAPK and melanocyte groups.` })}
+        ${shot('net_mrna', 'The example set built on mRNA expression', 'heroMrna', { cap: `The same ${nSet} genes built on mRNA expression. Built on gene effect (top of the page) they split into the p53, mTORC1, MAPK and melanocyte groups.`, btn: 'Build the example set on mRNA' })}
     </div>
 </section>
 
@@ -178,11 +181,10 @@
                 `Colour by tissue, by the mutation status of any gene, or by the expression or gene effect of a third gene. <b>Suggest</b> ranks the genes that explain the pattern best; here it points at ${gi('TYR')}.`,
                 'Highlight cell lines by name or group, draw gates to define cohorts, compare tissues side by side, and open any gene’s effect across all cell lines by tissue.',
             ])}
-            <div class="tour-cta">${tryBtn('tyr', 'Try it: SOX10 vs MITF coloured by TYR')}${tryBtn('braf', 'BRAF vs MAPK1 by mutation', false)}</div>
         </div>
         <div class="tour-stack">
-            ${shot('scatter_tyr', 'SOX10 against MITF gene effect, coloured by TYR mRNA', 'tyr', { cap: `${gi('SOX10')} vs ${gi('MITF')} gene effect, coloured by ${gi('TYR')} mRNA: the cell lines that depend on both are the ones that express the pigmentation gene.` })}
-            ${shot('scatter_braf', 'BRAF against MAPK1 gene effect with BRAF-mutant cell lines coloured', 'braf', { cls: 'tour-shot-sm', cap: `${gi('BRAF')} vs ${gi('MAPK1')}, with ${gi('BRAF')}-mutant cell lines in colour.` })}
+            ${shot('scatter_tyr', 'SOX10 against MITF gene effect, coloured by TYR mRNA', 'tyr', { cap: `${gi('SOX10')} vs ${gi('MITF')} gene effect, coloured by ${gi('TYR')} mRNA: the cell lines that depend on both are the ones that express the pigmentation gene.`, btn: 'Open SOX10 vs MITF coloured by TYR' })}
+            ${shot('scatter_braf', 'BRAF against MAPK1 gene effect with BRAF-mutant cell lines coloured', 'braf', { cap: `${gi('BRAF')} vs ${gi('MAPK1')}, with ${gi('BRAF')}-mutant cell lines in colour.`, btn: 'Open BRAF vs MAPK1 by mutation' })}
         </div>
     </div>
 </section>
@@ -196,16 +198,14 @@
         </div>
         <div class="tour-two">
             <div class="tour-card-fig">
-                ${shot('mutation_table', 'Mutation analysis table for BRAF in skin cell lines', 'mutation')}
+                ${shot('mutation_table', 'Mutation analysis table for BRAF in skin cell lines', 'mutation', { btn: 'Open BRAF mutation analysis in skin' })}
                 <h3>Mutation analysis: ${gi('BRAF')} in skin</h3>
                 <p>Wild-type, all mutated and double-mutant cell lines in separate column groups, with the differences and p-values beside them. Search the table, send the list to Enrichr or a heatmap, open any gene’s plot.</p>
-                ${tryBtn('mutation', 'Try it: BRAF mutation analysis in skin')}
             </div>
             <div class="tour-card-fig">
-                ${shot('volcano', 'Volcano plots comparing BRAF-mutant skin cell lines with the other skin lines', 'compare')}
+                ${shot('volcano', 'Volcano plots comparing BRAF-mutant skin cell lines with the other skin lines', 'compare', { btn: 'Compare BRAF-mutant skin cell lines' })}
                 <h3>Selection compare: 50 ${gi('BRAF')}-mutant skin cell lines vs the other 25</h3>
                 <p>Gene effect and mRNA side by side, q-values from Benjamini-Hochberg, the top genes labelled and listed. Adjust the thresholds and the plots redraw; the lists go straight to a network or Enrichr.</p>
-                ${tryBtn('compare', 'Try it: compare BRAF-mutant skin lines')}
             </div>
         </div>
     </div>
@@ -226,9 +226,8 @@
                     'The most dependent tissues and cell lines, the highest and lowest expressing tissues, and the distributions behind them, each with a Copy figure button.',
                     'Hotspot mutations by position and cancer type, fusions, copy number, and drug response from PRISM where the gene is a known target.',
                 ])}
-                <div class="tour-cta">${tryBtn('kras', 'Try it: open KRAS')}</div>
             </div>
-            ${shot('gb_top', 'The Gene Browser page for KRAS: description, ideogram and summary', 'kras', { cap: `${gi('KRAS')} in the Gene Browser: description, chromosome position and the summary line.` })}
+            ${shot('gb_top', 'The Gene Browser page for KRAS: description, ideogram and summary', 'kras', { cap: `${gi('KRAS')} in the Gene Browser: description, chromosome position and the summary line.`, btn: 'Open KRAS in the Gene Browser' })}
         </div>
         <div class="tour-two tour-two-tight">
             ${shot('gb_dependency', 'Dependency section for KRAS with the gene effect distribution', 'kras', { cap: 'Dependency: the gene effect distribution with the gene marked, the most dependent tissues and lines.' })}
@@ -242,11 +241,10 @@
                     'Co-expression as a heatmap of every pair, with genes on the same chromosome arm flagged so an amplicon is not mistaken for shared function.',
                     `Protein complexes from the EBI Complex Portal and Reactome pathways, each member tagged with its co-dependency. ${gi('TSC2')} follows ${gi('TSC1')} at r 0.90; ${gi('TBC1D7')}, the third member, at 0.25.`,
                 ])}
-                <div class="tour-cta">${tryBtn('tsc1', 'Try it: open TSC1 and its complex')}</div>
             </div>
             <div class="tour-stack">
-                ${shot('gb_codep', 'Co-dependencies of TSC1 as a table and a fan figure', 'tsc1')}
-                ${shot('gb_complex', 'The TSC1-TSC2 complex card with co-dependency per member', 'tsc1', { cls: 'tour-shot-sm' })}
+                ${shot('gb_codep', 'Co-dependencies of TSC1 as a table and a fan figure', 'tsc1', { cap: `Co-dependencies of ${gi('TSC1')}: the table and the figure, complex partners ringed.`, btn: 'Open TSC1 in the Gene Browser' })}
+                ${shot('gb_complex', 'The TSC1-TSC2 complex card with co-dependency per member', 'tsc1', { cap: `The ${gi('TSC1')}-${gi('TSC2')} complex card, each member with its co-dependency.` })}
             </div>
         </div>
         <div class="tour-wide-shot">
@@ -266,11 +264,10 @@
                 'Each cell line opens with a plain-language summary: origin, candidate drivers, derived cell lines, genome state. The wiki adds provenance, STR, signatures, dependencies, expression and drug response.',
                 'Download a cell line’s full gene effect, expression and mutation tables, or the list on screen, as CSV.',
             ])}
-            <div class="tour-cta">${tryBtn('clb', 'Try it: skin cell lines with mutated BRAF')}${tryBtn('wiki', 'Open the A375 page', false)}</div>
         </div>
         <div class="tour-stack">
-            ${shot('clb', 'The Cell Line Browser filtered to skin cell lines with mutated BRAF, A375 selected', 'clb', { cap: `Skin cell lines with mutated ${gi('BRAF')}, with A375 opened in the side panel.` })}
-            ${shot('wiki', 'The wiki page for A375', 'wiki', { cls: 'tour-shot-sm', cap: 'The A375 wiki page: executive summary, provenance, classification and onwards.' })}
+            ${shot('clb', 'The Cell Line Browser filtered to skin cell lines with mutated BRAF, A375 selected', 'clb', { cap: `Skin cell lines with mutated ${gi('BRAF')}, with A375 opened in the side panel.`, btn: 'Open the browser with these filters' })}
+            ${shot('wiki', 'The wiki page for A375', 'wiki', { cap: 'The A375 wiki page: executive summary, provenance, classification and onwards.', btn: 'Open the A375 page' })}
         </div>
     </div>
 </section>
@@ -305,7 +302,7 @@
             <div><b>Open saved figure</b>drop an exported PNG or SVG back in and continue</div>
             <div><b>Green Listed</b>library genes and curated gene classes, offline</div>
         </div>
-        <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Build the example network')}${tryBtn('stats', 'The statistics behind the app', false)}</div>
+        <div class="tour-cta tour-cta-center">${tryBtn('hero', 'Build the example network')}${tryBtn('stats', 'The statistics behind the app')}</div>
         <p class="tour-foot">Data: DepMap 26Q1 (Broad Institute), with EBI Complex Portal, Reactome, PRISM and the other sources listed under Reference Data. Correlate is developed in the Wermeling lab.</p>
     </div>
 </section>`;
@@ -338,12 +335,8 @@
 #tourPage .tour-cta-center { justify-content: center; margin: 28px 0 18px; }
 #tourPage .tour-try { font: inherit; font-size: 15px; font-weight: 700; color: #fff; background: #5d9239; border: 1px solid #5d9239; border-radius: 8px; padding: 11px 18px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 #tourPage .tour-try:hover { background: #4f7f30; border-color: #4f7f30; }
-#tourPage .tour-try-2 { background: transparent; color: #3b5e23; border-color: #a3c98a; font-weight: 600; box-shadow: none; }
-#tourPage .tour-try-2:hover { background: #eef6e6; border-color: #5d9239; }
 #tourPage .tour-hero .tour-try { background: #fff; color: #2f4d1a; border-color: #fff; }
 #tourPage .tour-hero .tour-try:hover { background: #eef6e6; }
-#tourPage .tour-hero .tour-try-2 { background: transparent; color: #fff; border-color: rgba(255,255,255,.55); }
-#tourPage .tour-hero .tour-try-2:hover { background: rgba(255,255,255,.12); }
 #tourPage .tour-hero-shot { margin-top: 44px; margin-bottom: -90px; position: relative; z-index: 1; }
 #tourPage .tour-stats { background: #fff; padding: 120px 0 10px; }
 #tourPage .tour-stats-in { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; padding: 22px 0; }
@@ -364,16 +357,14 @@
 #tourPage .tour-checks li::before { content: ''; position: absolute; left: 0; top: 4px; width: 18px; height: 18px; border-radius: 50%; background: #eef6e6; border: 1px solid #b9dd9a; }
 #tourPage .tour-checks li::after { content: ''; position: absolute; left: 6px; top: 8px; width: 5px; height: 8px; border: solid #3b5e23; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 #tourPage .tour-shot { margin: 0; background: #fff; border: 1px solid #d9dee5; border-radius: 12px; overflow: hidden; box-shadow: 0 14px 40px rgba(17,24,39,.16), 0 2px 6px rgba(17,24,39,.06); }
-#tourPage .tour-shot[data-act] { cursor: pointer; transition: transform .18s, box-shadow .18s; }
-#tourPage .tour-shot[data-act]:hover { transform: translateY(-2px); box-shadow: 0 20px 48px rgba(17,24,39,.22), 0 2px 6px rgba(17,24,39,.08); }
 #tourPage .tour-shot-bar { height: 22px; background: #f3f4f6; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 5px; padding: 0 10px; }
 #tourPage .tour-shot-bar span { width: 8px; height: 8px; border-radius: 50%; background: #d1d5db; }
 #tourPage .tour-shot img { display: block; width: 100%; height: auto; }
 #tourPage .tour-shot figcaption { font-size: 13px; line-height: 1.45; color: #6b7280; padding: 9px 12px 10px; border-top: 1px solid #eef0f3; background: #fff; }
+#tourPage .tour-shot-act { padding: 2px 12px 12px; background: #fff; }
+#tourPage .tour-shot-act .tour-try { width: 100%; }
 #tourPage .tour-hero-shot .tour-shot { box-shadow: 0 30px 70px rgba(0,0,0,.35); }
 #tourPage .tour-stack { display: flex; flex-direction: column; gap: 18px; }
-#tourPage .tour-shot-sm { width: 78%; margin-left: auto; }
-#tourPage .tour-flip .tour-shot-sm { margin-left: 0; margin-right: auto; }
 #tourPage .tour-shot-dialog { max-width: 420px; margin: 0 auto; }
 #tourPage .tour-two { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: start; }
 #tourPage .tour-two-tight { gap: 24px; }
@@ -393,7 +384,6 @@
   #tourPage .tour-feature, #tourPage .tour-two, #tourPage .tour-cards { grid-template-columns: 1fr; }
   #tourPage .tour-feature { gap: 26px; }
   #tourPage .tour-flip .tour-text { order: 0; }
-  #tourPage .tour-shot-sm { width: 100%; }
   #tourPage .tour-stats-in { grid-template-columns: 1fr 1fr; }
   #tourPage .tour-chips { grid-template-columns: 1fr 1fr; }
   #tourPage .tour-hero h1 { font-size: 34px; }
