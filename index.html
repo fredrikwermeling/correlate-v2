@@ -3008,6 +3008,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.90.98 (2026-10-25)</strong></p>
+                <ul>
+                    <li>Correlation plot: Color by <b>Gene</b> colours every point by a chosen gene's mRNA expression, gene effect or copy number in that cell line, with a colour key; lines without a value are grey.</li>
+                </ul>
                 <p><strong>v.90.97 (2026-10-25)</strong></p>
                 <ul>
                     <li>Gene Browser: the Dependency and Expression sections open with a one-line summary ranked against all genes: how essential or how highly expressed the gene is (for example top 5% of genes), how broadly, whether it varies a lot between lines, and how much cancer type explains, with the tissues where it is strongest. Tissue-restricted genes are called restricted rather than low. Explained in Methods.</li>
@@ -8628,7 +8632,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.97</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.90.98</a>
         </span>
     </div>
 
@@ -9605,6 +9609,7 @@
                                     <button type="button" class="btn btn-sm btn-outline" data-color-by="subtype" title="Colour by subtype (the 8 largest at first; Groups picks others)">Subtype</button>
                                     <button type="button" class="btn btn-sm btn-outline" data-color-by="disease" title="Colour by disease (the 8 largest at first; Groups picks others)">Disease</button>
                                     <button type="button" class="btn btn-sm btn-outline" data-color-by="medium" title="Colour by culture medium">Medium</button>
+                                    <button type="button" class="btn btn-sm btn-outline" data-color-by="gene" title="Colour each point by a gene's gene effect, mRNA expression or copy number in that cell line">Gene</button>
                                 </div>
                                 <select id="colorByCategory" class="form-control" style="display:none;">
                                     <option value="">None</option>
@@ -9612,7 +9617,17 @@
                                     <option value="subtype" id="colorBySubtypeOption">By subtype</option>
                                     <option value="disease">By disease</option>
                                     <option value="medium">By culture medium</option>
+                                    <option value="gene">By a gene</option>
                                 </select>
+                                <!-- Colour by a gene: a continuous scale, its own key beside the plot. -->
+                                <span id="colorByGeneRow" style="display:none; align-items:center; gap:4px;">
+                                    <input type="text" id="colorByGene" class="form-control" placeholder="Gene" autocomplete="off" style="width:90px; font-size:11px; padding:2px 6px;">
+                                    <select id="colorByGeneType" class="form-control" style="width:auto; font-size:10px; padding:1px 3px;" title="What to colour by: gene effect (CRISPR), mRNA expression or copy number">
+                                        <option value="expr">mRNA</option>
+                                        <option value="ge">GE</option>
+                                        <option value="cn">CN</option>
+                                    </select>
+                                </span>
                                 <!-- Color only the chosen groups; everything else grays out. -->
                                 <button type="button" id="colorByGroupBtn" class="btn btn-sm btn-outline" style="display:none; font-size:10px; padding:2px 6px;" onclick="app.showColorByGroupPicker()">Pick groups...</button>
                                 <input type="hidden" id="colorByPicked" value="">
@@ -11990,7 +12005,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v90_97"></script>
+    <script src="app.js?v=v90_98"></script>
     <script src="tour.js?v=v89_49"></script>
 </body>
 </html>
