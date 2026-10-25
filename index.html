@@ -3009,6 +3009,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.6 (2026-10-25)</strong></p>
+                <ul>
+                    <li><b>Tour of the app</b> (the nav link that was How it works) rewritten: fifteen pages in six sections (the network, what a link is, compare groups, one gene, cell lines, take it with you), each with a lead line, a chart drawn from the real data and a Try it button that opens the same view with the same filters and colours. New pages: the network built on mRNA, colour the plot by a gene with Suggest, compare any two groups as a volcano, the Gene Browser, protein complexes with co-dependency per member, co-expression with chromosome neighbours flagged, the Cell Line Browser by drug response, and exports (image, Export for AI, Methods, reopen from an image).</li>
+                    <li>Correlation plot: a caller can open it already coloured by a gene (the tour does).</li>
+                </ul>
                 <p><strong>v.91.5 (2026-10-25)</strong></p>
                 <ul>
                     <li>Mutation analysis table: the three groups (WT, Mut 1+2, Mut 2) come first, then the three comparisons, so the levels and the differences each read side by side.</li>
@@ -8648,7 +8653,7 @@
     <div class="nav-bar">
         <span class="nav-links">
             <span class="nav-side nav-side-l">
-                <a href="#" id="showInfoGraphic">How it works</a>
+                <a href="#" id="showInfoGraphic" title="A tour of the app: fifteen short pages, each with a real chart and a button that opens the view">Tour of the app</a>
                 <a href="#" id="showReferenceData">Reference Data</a>
             </span>
             <a href="https://greenlisted.cmm.se" target="_blank" rel="noopener noreferrer">Green Listed</a>
@@ -8658,7 +8663,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centred links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.5</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.6</a>
         </span>
     </div>
 
@@ -12036,7 +12041,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_5"></script>
-    <script src="tour.js?v=v89_49"></script>
+    <script src="app.js?v=v91_6"></script>
+    <script src="tour.js?v=v91_6"></script>
 </body>
 </html>
