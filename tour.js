@@ -238,7 +238,8 @@
                 ${checks([
                     'Filter to a cancer type or a mutation. r and p follow the filter.',
                     `Colour the dots by tissue, by a mutation, or by a third gene. <b>Suggest</b> finds the gene that explains the pattern best.`,
-                    'Highlight cell lines, draw gates, compare tissues side by side.',
+                    'Draw gates around two groups of cell lines and <b>Compare</b> them: genes, tissues and mutations that differ, in the same view the Cell Line Browser uses.',
+                    '<b>Export for AI</b> sends the plot with the data behind it, so you can ask an AI what could explain the pattern.',
                 ])}
             </div>
             ${shot('scatter_eda2r', 'TP53 against MDM2 gene effect, coloured by EDA2R mRNA', 'eda2r', { cap: `The same plot coloured by ${gi('EDA2R')} mRNA, a p53 target gene: the cell lines that depend on ${gi('MDM2')} are the ones with active p53.`, btn: 'Open it coloured by EDA2R' })}
