@@ -1827,6 +1827,7 @@
         .gb-scope .gb-table-left td, .gb-scope .gb-table-left th { text-align:left; }
         .gb-scope .gb-table-tissue th:nth-child(2), .gb-scope .gb-table-tissue td:nth-child(2) { width:88px; }
         .gb-scope .gb-table-tissue th:nth-child(3), .gb-scope .gb-table-tissue td:nth-child(3) { width:76px; }
+        .gb-scope .gb-table-lines th:nth-child(3), .gb-scope .gb-table-lines td:nth-child(3) { width:42%; }
         .gb-scope .gb-rtab { display:grid; grid-template-columns:max-content minmax(50px,110px) max-content max-content max-content; column-gap:10px; row-gap:3px; align-items:center; }
         .gb-scope .gb-rbar { height:6px; background:#eef2e9; border-radius:3px; overflow:hidden; }
         .gb-scope .gb-rbar > span { display:block; height:100%; background:#6ba544; border-radius:3px; }
@@ -3019,6 +3020,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.62 (2026-10-26)</strong></p><ul>
+                    <li><b>Hover cards for gene and cell line names across the app.</b> Names in the Cell Line Browser list, compare tables, Inspect correlates, gate and UMAP tables, Enrichr overlaps, network side lists, the volcano label chips, Green Listed, the UpSet setup, Suggest, Threshold scan chips, parental and derived cell lines, and the identity checks in the cell line Wiki now show the same card as elsewhere. Shift-click a tagged gene to open it in the Gene Browser, a cell line to open its Wiki.</li>
+                    <li><b>Gene Browser: no dependent cell lines is said plainly.</b> When no cell line is below −0.5, the card says that no cell line depends on the gene and folds the "most dependent" lists away (they can still be opened). Otherwise, cell lines in the list above −0.5 are gray.</li>
+                    <li><b>Gene Browser cards line up.</b> The summary column has its own heading so it starts level with the table beside it, every table fills its column, and the expression-versus-gene-effect reading sits on its own line.</li>
+                </ul>
                 <p><strong>v.91.61 (2026-10-26)</strong></p><ul>
                     <li><b>Cancer type Wiki: hover cards.</b> Gene and cell line names, and the protein names over the surface matrix, show the same hover cards as elsewhere in the app.</li>
                     <li><b>Surface protein tables show the median in the other cell lines</b> beside the median in the group.</li>
@@ -8904,7 +8910,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.61</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.62</a>
         </span>
     </div>
 
@@ -12304,7 +12310,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_61"></script>
+    <script src="app.js?v=v91_62"></script>
     <script src="tour.js?v=v91_54"></script>
 </body>
 </html>
