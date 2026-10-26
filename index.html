@@ -3023,6 +3023,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.77 (2026-10-26)</strong></p><ul>
+                    <li><b>Gene Browser: a "More examples" button instead of viruses on the front.</b> The empty page offers three genes and the button; behind it sit cancer drivers, dependencies, surface and lineage markers, genes with an unusual structure, and last, the viruses the screen found with how many cell lines carry each. Every entry says in a word why it is worth opening.</li>
+                </ul>
                 <p><strong>v.91.76 (2026-10-26)</strong></p><ul>
                     <li><b>Untested cell lines are named as such, not as negative.</b> A cell line Wiki whose cell line has no public RNA-seq file now opens its viral section with "Not tested", why, and that this is missing data rather than a negative result. The virus page's cell line table says how many were tested and that the rest are missing rather than negative, and a tested cell line with nothing found now says which panel that "none" covers.</li>
                 </ul>
@@ -8969,7 +8972,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.76</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.77</a>
         </span>
     </div>
 
@@ -12389,7 +12392,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_76"></script>
+    <script src="app.js?v=v91_77"></script>
     <script src="tour.js?v=v91_54"></script>
 </body>
 </html>
