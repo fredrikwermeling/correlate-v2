@@ -3018,6 +3018,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.60 (2026-10-26)</strong></p><ul>
+                    <li><b>Identity check by whole transcriptome.</b> Every cell line with mRNA data is compared with every other by its 5,000 most variable genes, leaving out cell lines from the same patient so a cell line and its derivatives cannot vouch for each other. A cell line none of whose five most similar cell lines shares its tissue "looks like another cancer type". About 86% of cell lines look like their own tissue, and the check picks up several cell lines Cellosaurus lists as misclassified (SK-HEP-1, HD-MY-Z, G-401, OVCAR-5, HS-Sch-2).</li>
+                    <li><b>Cancer type Wiki:</b> a new Identity check section lists the group's cell lines that look like another cancer type, with their five most similar cell lines, the surface panel's second opinion and any Cellosaurus record. The surface protein sections say "mRNA levels, not protein" in their titles.</li>
+                    <li><b>Cell line Wiki:</b> the classification shows how the cell line looks by whole transcriptome, with a warning when it looks like another cancer type; the STR authentication section shows both checks.</li>
+                    <li><b>Quick filter "Looks like another cancer type by transcription"</b> (Provenance), to include or exclude these cell lines.</li>
+                    <li><b>Cell Line Browser: sort by primary or metastasis.</b></li>
+                </ul>
                 <p><strong>v.91.59 (2026-10-26)</strong></p><ul>
                     <li><b>The surface protein matrix in the Cancer type Wiki is clickable.</b> Clicking a square or a protein name opens that gene in the Gene Browser, scrolled to its expression by cancer type.</li>
                 </ul>
@@ -8888,7 +8895,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.59</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.60</a>
         </span>
     </div>
 
@@ -11667,6 +11674,7 @@
                 <option value="ychr">Sort: Y-linked expression</option>
                 <option value="xist">Sort: XIST expression</option>
                 <option value="medium">Sort: Culture medium</option>
+                <option value="origin">Sort: Primary or metastasis</option>
               </select>
               <button id="clbSortDir" title="Switch the sort direction" class="btn btn-outline btn-sm" style="width:32px;">&#x25B2;</button>
               <div id="clbSortGeneWrap" class="clb-anchor" style="visibility:hidden;">
@@ -12287,7 +12295,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_59"></script>
+    <script src="app.js?v=v91_60"></script>
     <script src="tour.js?v=v91_54"></script>
 </body>
 </html>
