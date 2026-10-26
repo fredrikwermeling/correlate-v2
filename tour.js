@@ -264,7 +264,9 @@
     const tryBtn = (act, label) => `<button type="button" class="tour-try" data-act="${act}">${label}<span aria-hidden="true"> &rarr;</span></button>`;
     const checks = (items) => `<ul class="tour-checks">${items.map(t => `<li>${t}</li>`).join('')}</ul>`;
 
-    const nextBtn = (id, label) => `<button type="button" class="tour-next" data-next="#${id}">Next: ${label} <span aria-hidden="true">&darr;</span></button>`;
+    // fx: an optional transition played while the page glides to the section
+    // ('cube' or 'zoom'). Only two sections use one, so it stays a surprise.
+    const nextBtn = (id, label, fx) => `<button type="button" class="tour-next" data-next="#${id}"${fx ? ` data-fx="${fx}"` : ''}>Next: ${label} <span aria-hidden="true">&darr;</span></button>`;
 
     function pageHTML() {
         const nL = num(D.nLines()), nE = num(D.nExprLines()), nG = num(D.nGenes()), nSet = HERO_SET.length;
@@ -289,9 +291,9 @@
         <h1>Correlate brings together CRISPR knockout screens, mRNA expression, mutations, copy number and drug response from DepMap, adds gene and cell line information from many other databases, and connects them.</h1>
         <p class="tour-sub">Use it to:</p>
         <ul class="tour-hero-list">
-            <li>Find connections within your gene list, for example hits from a CRISPR screen or a transcriptomics experiment, from unbiased correlations of CRISPR gene effect or mRNA across the cell lines.</li>
-            <li>Find the right cell lines for your project, by mutations, mutation patterns and cancer type, and compare omics data between groups of cell lines.</li>
-            <li>Get extensive information about any gene: dependency, expression, mutations, protein complexes, drugs and literature, gathered from DepMap, UniProt, Cellosaurus and other sources.</li>
+            <li class="tour-hero-fn"><button type="button" class="tour-modebtn" data-next="#tour-network">Gene set<br>analysis</button><span>Find connections within your gene list, for example hits from a CRISPR screen or a transcriptomics experiment, from unbiased correlations of CRISPR gene effect or mRNA across the cell lines.</span></li>
+            <li class="tour-hero-fn"><button type="button" class="tour-modebtn" data-next="#tour-cells">Cell Line<br>Browser</button><span>Find the right cell lines for your project, by mutations, mutation patterns and cancer type, and compare omics data between groups of cell lines.</span></li>
+            <li class="tour-hero-fn"><button type="button" class="tour-modebtn" data-next="#tour-gene">Gene<br>Browser</button><span>Get extensive information about any gene: dependency, expression, mutations, protein complexes, drugs and literature, gathered from DepMap, UniProt, Cellosaurus and other sources.</span></li>
             <li>Export any view for AI, to discuss the data with your favorite language model.</li>
         </ul>
         </div>
@@ -299,7 +301,7 @@
             ${shot('net_p53', 'A network built from eleven p53 pathway and TSC genes', 'hero', { eager: true, cap: `A network from a list of ${nSet} genes: the p53 pathway and the TSC complex. Blue edges join genes that cells need together, red edges join opposites: cells that need ${gi('MDM2')} tolerate losing ${gi('TP53')}. In the app, hover over genes and edges for details and double-click them to open their plots.`, btn: 'Try it: build and explore this network' })}
         </div>
     </div>
-    <div class="tour-wrap tour-next-row">${nextBtn('tour-network', 'Network')}</div>
+    <div class="tour-wrap tour-next-row">${nextBtn('tour-network', 'Network', 'cube')}</div>
 </section>
 
 <section class="tour-stats" id="tour-stats">
@@ -354,7 +356,7 @@
             ${shot('scatter_eda2r', 'TP53 against MDM2 gene effect, colored by EDA2R mRNA', 'eda2r', { cap: `The same plot, each dot a cell line, colored by its ${gi('EDA2R')} mRNA (a p53 target gene): the cell lines that depend on ${gi('MDM2')} are the ones with active p53.`, btn: 'Open it colored by EDA2R' })}
         </div>
     </div>
-    <div class="tour-wrap tour-next-row">${nextBtn('tour-cells', 'Cell Line Browser')}</div>
+    <div class="tour-wrap tour-next-row">${nextBtn('tour-cells', 'Cell Line Browser', 'zoom')}</div>
 </section>
 
 <section class="tour-sec" id="tour-cells">
@@ -517,6 +519,12 @@ html.popout-open #tourNetHint { display: none; }
 #tourPage .tour-hero-list { list-style: none; margin: 0; padding: 0; }
 #tourPage .tour-hero-list li { font-size: 18px; line-height: 1.5; color: #fff; padding: 4px 0 4px 26px; position: relative; }
 #tourPage .tour-hero-list li::before { content: ''; position: absolute; left: 4px; top: 13px; width: 9px; height: 9px; border-radius: 50%; background: #b9dd9a; }
+/* The three tool lines carry the app's own buttons, so the text columns line
+   up on one edge and the dot is dropped. */
+#tourPage .tour-hero-list li.tour-hero-fn { display: grid; grid-template-columns: 124px minmax(0, 1fr); gap: 14px; align-items: center; padding: 6px 0 6px 0; }
+#tourPage .tour-hero-list li.tour-hero-fn::before { display: none; }
+#tourPage .tour-modebtn { font: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; text-align: center; color: #3b5e23; background: #fff; border: 1px solid #b9dd9a; border-radius: 6px; padding: 7px 4px; width: 100%; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+#tourPage .tour-modebtn:hover { background: #eef6e6; }
 #tourPage .tour-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 #tourPage .tour-try { font: inherit; font-size: 15px; font-weight: 700; color: #fff; background: #5d9239; border: 1px solid #5d9239; border-radius: 8px; padding: 11px 18px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 #tourPage .tour-try:hover { background: #4f7f30; border-color: #4f7f30; }
@@ -597,6 +605,8 @@ html.popout-open #tourNetHint { display: none; }
   #tourPage .tour-hero { padding-top: 40px; }
   #tourPage .tour-hero h1 { font-size: 22px; }
   #tourPage .tour-sub { font-size: 16px; }
+  #tourPage .tour-hero-list li.tour-hero-fn { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  #tourPage .tour-modebtn { width: auto; justify-self: start; padding: 6px 12px; }
   #tourPage .tour-stats-in b { font-size: 24px; }
   #tourPage .tour-try { width: 100%; text-align: center; min-height: 44px; }
 }`;
@@ -614,6 +624,10 @@ html.popout-open #tourNetHint { display: none; }
         page.setAttribute('role', 'dialog');
         page.setAttribute('aria-label', 'Tour of the app');
         document.body.appendChild(page);
+        // A scroll of the reader's own always wins over a running glide.
+        const stopGlide = () => cancelAnimationFrame(scrollRaf);
+        page.addEventListener('wheel', stopGlide, { passive: true });
+        page.addEventListener('touchstart', stopGlide, { passive: true });
         page.addEventListener('click', (e) => {
             const act = e.target.closest('[data-act]');
             if (act) { e.preventDefault(); run(act.getAttribute('data-act')); return; }
@@ -625,11 +639,61 @@ html.popout-open #tourNetHint { display: none; }
                 // sticky bar, not with the section's empty top padding.
                 const head = t?.querySelector('.tour-eyebrow, h2, h3') || t;
                 const bar = page.querySelector('.tour-top')?.offsetHeight || 54;
-                if (head) page.scrollTo({ top: page.scrollTop + head.getBoundingClientRect().top - page.getBoundingClientRect().top - bar - 16, behavior: 'smooth' });
+                if (!head) return;
+                const top = page.scrollTop + head.getBoundingClientRect().top - page.getBoundingClientRect().top - bar - 16;
+                const dur = Math.min(1500, Math.max(600, Math.abs(top - page.scrollTop) * 0.6));
+                sectionFx(link.closest('section'), t, link.getAttribute('data-fx'), dur);
+                glideTo(page, top, dur);
             }
         });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) close(); });
     }
+    // The browser's own smooth scroll crosses a long page in a few hundred ms,
+    // which reads as a jump, so the glide is run by hand over a duration that
+    // grows with the distance and stops as soon as the reader scrolls.
+    let scrollRaf = 0;
+    function glideTo(page, top, dur) {
+        cancelAnimationFrame(scrollRaf);
+        const from = page.scrollTop, d = top - from, t0 = performance.now();
+        if (!d) return;
+        if (reduced()) { page.scrollTop = top; return; }
+        const step = (now) => {
+            const p = Math.min(1, (now - t0) / dur);
+            const e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+            page.scrollTop = from + d * e;
+            if (p < 1) scrollRaf = requestAnimationFrame(step);
+        };
+        scrollRaf = requestAnimationFrame(step);
+    }
+    const reduced = () => !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Two of the Next buttons turn the page rather than just scrolling it.
+    // The animations carry no fill, so the sections keep their plain styling
+    // once they are over and nothing is left behind to clean up.
+    function sectionFx(from, to, kind, dur) {
+        if (!kind || !from || !to || reduced() || !from.animate) return;
+        const a = [...from.querySelectorAll(':scope > .tour-wrap')];
+        const b = [...to.querySelectorAll(':scope > .tour-wrap')];
+        if (!a.length || !b.length) return;
+        const play = (els, frames, opt, origin) => els.map(el => {
+            if (origin) el.style.transformOrigin = origin;
+            return el.animate(frames, opt);
+        });
+        if (kind === 'cube') {
+            from.style.perspective = to.style.perspective = '1500px';
+            const done = () => { from.style.perspective = to.style.perspective = ''; };
+            play(a, [{ transform: 'rotateX(0deg)', opacity: 1 }, { transform: 'rotateX(-72deg)', opacity: .1 }],
+                 { duration: Math.round(dur * .75), easing: 'cubic-bezier(.55,0,.75,.35)' }, '50% 100%');
+            play(b, [{ transform: 'rotateX(72deg)', opacity: .1 }, { transform: 'rotateX(0deg)', opacity: 1 }],
+                 { duration: dur, easing: 'cubic-bezier(.2,.7,.25,1)' }, '50% 0%').forEach(an => { an.onfinish = done; an.oncancel = done; });
+        } else if (kind === 'zoom') {
+            play(a, [{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.07)', opacity: 0 }],
+                 { duration: Math.round(dur * .7), easing: 'cubic-bezier(.5,0,.8,.4)' });
+            play(b, [{ transform: 'scale(.92)', opacity: 0, filter: 'blur(6px)' }, { transform: 'scale(1)', opacity: 1, filter: 'blur(0px)' }],
+                 { duration: dur, easing: 'cubic-bezier(.2,.7,.25,1)' });
+        }
+    }
+
     const isOpen = () => !!document.getElementById('tourPage')?.classList.contains('active');
 
     function render() {
