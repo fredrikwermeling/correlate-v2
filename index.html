@@ -3021,6 +3021,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.68 (2026-10-26)</strong></p><ul>
+                    <li><b>A click outside a popout no longer closes it, anywhere in the app.</b> The Gene Browser, the cell line and Cancer type Wikis, the Cell Line Browser windows (PCA / UMAP, help, Viral RNA), Gene effect, Correlation analysis, Mutation analysis, Enrichr, the network popout, compilations, the threshold scan, Export for AI, Methods, Reference data, the oncoprint grid and the small question dialogs now close only with their &times; or Close / Cancel button, or Esc. Small dropdown menus still close when you click elsewhere.</li>
+                </ul>
                 <p><strong>v.91.67 (2026-10-26)</strong></p><ul>
                     <li><b>Transcript menu: "How to read this list".</b> A key under the menu explains MANE Select, the support levels TSL 1 to 5, "not scored" (added after the scores were computed, which is not a low score), "long-read", "alt. start" and the order. Unscored transcripts are now labeled "not scored" in the menu.</li>
                     <li><b>Sources are linked.</b> The key links to Ensembl's transcript support levels, GENCODE and MANE; the Gene Browser Methods and reference list describe the ordering, support levels, long-read models, start sites and the genomic view. The Viral RNA panel and Wiki section end with Methods and sources: the DepMap CCLE alignments, NCBI RefSeq genomes, Cellosaurus and the code with raw counts, each with its citation.</li>
@@ -8934,7 +8937,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.67</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.68</a>
         </span>
     </div>
 
@@ -12351,7 +12354,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_67"></script>
+    <script src="app.js?v=v91_68"></script>
     <script src="tour.js?v=v91_54"></script>
 </body>
 </html>
