@@ -3021,6 +3021,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.65 (2026-10-26)</strong></p><ul>
+                    <li><b>Viral RNA in the cell lines.</b> The RNA-seq reads that do not match the human genome were checked against 18 viruses and one mycoplasma, for every cohort cell line with a public RNA-seq file (719 of 1,208): a sample of about 330,000 unmapped reads per cell line. A virus counts when its reads cover a good part of its genome, graded strong, moderate or low.</li>
+                    <li><b>What it found:</b> EBV in 8 cell lines, every one also recorded by Cellosaurus; HPV16 in SiHa; HTLV-1 in C8166 and MJ; hepatitis B in 4 of the 11 recorded liver cell lines (the reference genotype misses most East Asian strains); mycoplasma in COV504; and strong mouse retrovirus (XMRV or MLV) in about 20 cell lines, led by 22Rv1, VCaP, SH-10-TC and the YD head and neck lines. Low-level hits are shown in gray: they can be carry-over from another sample sequenced in the same run.</li>
+                    <li><b>Where:</b> a Viral RNA button in the Cell Line Browser (each virus, its cell lines and the Cellosaurus record beside them, optionally only the cell lines listed), a Viral RNA section in every cell line Wiki, the quick filter "Viral RNA detected (RNA-seq)", and the cell line Wiki's Export for AI.</li>
+                </ul>
                 <p><strong>v.91.64 (2026-10-26)</strong></p><ul>
                     <li><b>Sequence viewer: genomic shows this transcript.</b> The genomic view now covers the transcript shown plus 1 kb each side. Before, it covered the whole gene region, which spans every annotated transcript and can reach far past the main one (ATP1B1: 205.6 kb because of two long Ensembl models, against 26 kb for MANE). "Genomic, whole gene region" is still in the menu.</li>
                     <li><b>Transcripts listed by evidence.</b> The transcript menu shows each transcript's support level (TSL 1 to 5) and orders them: the reference, then GENCODE basic transcripts by support level. A line under the menu explains the order.</li>
@@ -8922,7 +8927,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.64</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.65</a>
         </span>
     </div>
 
@@ -11544,6 +11549,22 @@
       </div>
     </div>
 
+    <div id="virModal" style="display:none; position:fixed; inset:0; z-index:1372; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:0 20px 20px; overflow-y:auto;">
+      <div style="background:#fff; width:100%; max-width:min(96vw, 1000px); margin-top:20px; border-radius:8px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+        <div style="position:sticky; top:0; z-index:3; display:flex; justify-content:space-between; align-items:center; padding:12px 18px; border-bottom:1px solid #e5e7eb; background:linear-gradient(90deg, #f0fdf4 0%, #fff 100%); border-radius:8px 8px 0 0;">
+          <div style="min-width:0;">
+            <h3 style="margin:0; font-size:17px; color:#4c782e;">Viral RNA across the cell lines</h3>
+            <div style="font-size:11px; color:#6b7280; margin-top:2px;">Virus and mycoplasma reads in the CCLE RNA-seq data</div>
+          </div>
+          <div class="pop-head-btns" style="display:flex; align-items:center; gap:8px;">
+            <button onclick="app.screenshotPopout('virBody','correlate_viral_rna')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px;" title="Save the panel as an image">Export image...</button>
+            <button id="virCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;" title="Close">&times;</button>
+          </div>
+        </div>
+        <div id="virBody" class="gb-scope" style="padding:16px 20px; font-size:12px; line-height:1.55; color:#374151; background:#fff; border-radius:0 0 8px 8px;"></div>
+      </div>
+    </div>
+
     <!-- Cell Line Browser Help Modal -->
     <div id="clbInfoModal" style="display:none; position:fixed; inset:0; z-index:1360; background:rgba(0,0,0,0.5); align-items:flex-start; justify-content:center; padding:40px;">
       <div style="background:#fff; max-width:720px; width:100%; max-height:80vh; overflow-y:auto; border-radius:8px; padding:20px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
@@ -11653,6 +11674,7 @@
             <button id="clbExportImageBtn" class="btn btn-outline btn-sm mobile-hide" title="Capture the Cell Line Browser as an image (PNG / TIFF / PDF / PowerPoint)">Export image...</button>
             <button id="clbUmapOpenBtn" class="btn btn-outline btn-sm mobile-hide" title="Open PCA / UMAP of the cell lines in a large window: lasso selection, gates, loadings">PCA / UMAP</button>
             <button id="clbHeatmapBtn" class="btn btn-outline btn-sm mobile-hide" title="Show a gene set across the cell lines currently listed, as a heatmap">Heatmap</button>
+            <button id="clbVirusBtn" class="btn btn-outline btn-sm" title="Which cell lines carry viral RNA in their RNA-seq data, beside the Cellosaurus virus records">Viral RNA</button>
             <button id="clbExportAIBtn" class="btn btn-outline btn-sm mobile-hide" title="Send the cell lines currently listed, with their alterations and gene-effect data, to an AI assistant for analysis">Export for AI</button>
             <button class="btn btn-outline btn-sm mobile-hide" onclick="app.openMethods('clb')" title="Write out how this list was arrived at, as a methods paragraph and as a plain walk-through">Methods</button>
             <button id="clbResetFilters" class="btn btn-outline btn-sm" title="Clear every filter, sort and selection">Reset</button>
@@ -12322,7 +12344,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_64"></script>
+    <script src="app.js?v=v91_65"></script>
     <script src="tour.js?v=v91_54"></script>
 </body>
 </html>

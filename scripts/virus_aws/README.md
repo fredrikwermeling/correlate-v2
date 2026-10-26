@@ -21,8 +21,15 @@ same 669 hg19 BAMs and the same `s3://depmap-omics-ccle` bucket as `../te_aws`.
   | MJ | HTLV-1 | HTLV-1 37,079 | 1.00 |
   | RT4 | none | none of these; **XMRV 45, breadth 0.5** | |
 
-  RT4's XMRV-like signal is the kind of thing this run is for. A murine
-  leukemia virus picked up in culture (or a retroviral vector) needs checking.
+  The mouse retrovirus XMRV checks out against the literature too:
+  - 22Rv1 (the known XMRV producer): 112,926 reads, 35% of its unmapped reads,
+    breadth 0.94.
+  - VCaP: 97,316 reads, breadth 0.92.
+  - PC-3, DU 145 and LNCaP: 0 to 6 reads (negative).
+
+  RT4's 45 XMRV reads are therefore far below a real infection. Low-level hits
+  like these are more likely carry-over from another library sequenced in the
+  same run than an infection of the cell line.
 
 ## How it works
 
@@ -88,4 +95,5 @@ The run can be resumed: rerunning skips finished cell lines and retries failed o
 | `virus_scan.py` | The scan (numpy only, no pysam) |
 | `verify_controls.py` | Raji, NAMALWA, PLC/PRF/5, MJ positive; RT4 negative |
 | `analyze.py` | Calls per virus, compared with Cellosaurus (`web_data/virus_status.json`) |
-| `lines_all.json`, `lines_verify.json` | The 669 BAMs (from `../te_aws`) and the five controls |
+| `lines_all.json`, `lines_verify.json` | The 669 hg19 BAMs (from `../te_aws`) and the five controls |
+| `lines_extra.json` | 50 more CRISPR-cohort cell lines from the bucket's `metadata/inventory.csv`: 41 hg38 STAR alignments and 9 hg19 files `../te_aws` missed. The unmapped block works the same way whatever the genome build. Together 719 of the 1,208 cohort cell lines; the rest have no public RNA file. |

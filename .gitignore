@@ -38,3 +38,4 @@ cell line browser image.png
 scripts/virus_aws/refs/
 scripts/virus_aws/counts_*.json
 scripts/virus_aws/verify.log
+scripts/virus_aws/*.log

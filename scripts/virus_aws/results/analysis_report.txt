@@ -1,0 +1,242 @@
+719 cell lines scanned
+
+== XMRV: 137 cell lines
+   22Rv1          Prostate               reads=112926  per M unmapped=355449.7 breadth=0.94  
+   VCaP           Prostate               reads=97316   per M unmapped=290076.4 breadth=0.92  
+   SH-10-TC       Esophagus/Stomach      reads=82380   per M unmapped=247353.2 breadth=0.94  
+   LMSU           Esophagus/Stomach      reads=38614   per M unmapped=115469.4 breadth=0.92  
+   Lu-65          Lung                   reads=30183   per M unmapped=90727.1  breadth=0.92  
+   KMM-1          Lymphoid               reads=27277   per M unmapped=81776.4  breadth=0.9  
+   BHY            Head and Neck          reads=25539   per M unmapped=75661.7  breadth=0.92  
+   Li-7           Liver                  reads=19555   per M unmapped=58100.2  breadth=0.86  
+   KELLY          Peripheral Nervous Sys reads=16558   per M unmapped=49112.8  breadth=0.86  
+   KYSE-70        Esophagus/Stomach      reads=10357   per M unmapped=30693.0  breadth=0.84  
+   SNU-C4         Bowel                  reads=8176    per M unmapped=24463.1  breadth=0.86  
+   NB-1           Peripheral Nervous Sys reads=6473    per M unmapped=19256.2  breadth=0.86  
+   GB-1           CNS/Brain              reads=5982    per M unmapped=17647.8  breadth=0.82  
+   L3.3           Pancreas               reads=4736    per M unmapped=14266.0  breadth=0.76  
+   LXF-289        Lung                   reads=2923    per M unmapped=8610.5   breadth=0.8  
+   253J-BV        Bladder/Urinary Tract  reads=2716    per M unmapped=7898.8   breadth=0.76  
+   DEL            Lymphoid               reads=2286    per M unmapped=6415.2   breadth=0.84  
+   S-117          Soft Tissue            reads=1491    per M unmapped=4614.6   breadth=0.82  
+   EKVX           Lung                   reads=254     per M unmapped=824.4    breadth=0.54  
+   TYK-nu         Ovary/Fallopian Tube   reads=229     per M unmapped=674.6    breadth=0.74  
+   F5             CNS/Brain              reads=294     per M unmapped=473.6    breadth=0.58  
+   T.T            Esophagus/Stomach      reads=97      per M unmapped=237.7    breadth=0.74  
+   Hs 746T        Esophagus/Stomach      reads=92      per M unmapped=217.3    breadth=0.68  
+   SNU-1          Esophagus/Stomach      reads=64      per M unmapped=190.4    breadth=0.56  
+   HARA           Lung                   reads=67      per M unmapped=188.3    breadth=0.6  
+   MCF-7          Breast                 reads=70      per M unmapped=165.1    breadth=0.6  
+   GSS            Esophagus/Stomach      reads=52      per M unmapped=157.8    breadth=0.52  
+   KYSE-30        Esophagus/Stomach      reads=50      per M unmapped=149.9    breadth=0.58  
+   PK-1           Pancreas               reads=46      per M unmapped=136.3    breadth=0.46  
+   RT4            Bladder/Urinary Tract  reads=45      per M unmapped=134.6    breadth=0.5  
+   HUP-T4         Pancreas               reads=44      per M unmapped=131.9    breadth=0.54  
+   A-375          Skin                   reads=43      per M unmapped=127.5    breadth=0.6  
+   IA-LM          Lung                   reads=43      per M unmapped=126.4    breadth=0.5  
+   KE-39          Esophagus/Stomach      reads=42      per M unmapped=125.4    breadth=0.48  
+   HT-29          Bowel                  reads=42      per M unmapped=124.5    breadth=0.48  
+   8-MG-BA        CNS/Brain              reads=42      per M unmapped=124.3    breadth=0.44  
+   NCI-H2009      Lung                   reads=41      per M unmapped=123.1    breadth=0.38  
+   OVISE          Ovary/Fallopian Tube   reads=41      per M unmapped=120.8    breadth=0.52  
+   NCI-H446       Lung                   reads=40      per M unmapped=119.7    breadth=0.46  
+   T-47D          Breast                 reads=40      per M unmapped=119.5    breadth=0.46  
+   PA-TU-8902     Pancreas               reads=40      per M unmapped=119.4    breadth=0.5  
+   MOLM-13        Myeloid                reads=39      per M unmapped=117.0    breadth=0.46  
+   PSN1           Pancreas               reads=38      per M unmapped=114.5    breadth=0.46  
+   ESS-1          Uterus                 reads=40      per M unmapped=114.1    breadth=0.56  
+   ABC-1          Lung                   reads=38      per M unmapped=113.8    breadth=0.52  
+   KYSE-150       Esophagus/Stomach      reads=38      per M unmapped=113.5    breadth=0.4  
+   Du4475         Breast                 reads=38      per M unmapped=112.8    breadth=0.44  
+   KNS-62         Lung                   reads=43      per M unmapped=108.8    breadth=0.54  
+   IST-MES1       Pleura                 reads=36      per M unmapped=106.7    breadth=0.46  
+   NCI-H2122      Lung                   reads=36      per M unmapped=106.4    breadth=0.42  
+   COR-L23        Lung                   reads=35      per M unmapped=105.4    breadth=0.56  
+   U-937          Myeloid                reads=35      per M unmapped=104.8    breadth=0.38  
+   NCI-H841       Lung                   reads=35      per M unmapped=104.5    breadth=0.4  
+   LS513          Bowel                  reads=35      per M unmapped=103.8    breadth=0.38  
+   HD-MY-Z        Myeloid                reads=35      per M unmapped=103.5    breadth=0.4  
+   YD-8           Head and Neck          reads=34      per M unmapped=102.4    breadth=0.3  
+   CCK-81         Bowel                  reads=34      per M unmapped=102.0    breadth=0.46  
+   SNU-16         Esophagus/Stomach      reads=34      per M unmapped=101.4    breadth=0.5  
+   CAL-62         Thyroid                reads=34      per M unmapped=101.2    breadth=0.44  
+   JHH-6          Liver                  reads=34      per M unmapped=100.9    breadth=0.44  
+   Hs 936.T       Skin                   reads=33      per M unmapped=99.1     breadth=0.38  
+   HCT-15         Bowel                  reads=33      per M unmapped=98.6     breadth=0.5  
+   NCI-H226       Pleura                 reads=33      per M unmapped=98.5     breadth=0.46  
+   TEN            Uterus                 reads=32      per M unmapped=96.2     breadth=0.46  
+   SUP-M2         Lymphoid               reads=31      per M unmapped=94.2     breadth=0.44  
+   MOR/CPR        Lung                   reads=31      per M unmapped=93.4     breadth=0.42  
+   SNU-C1         Bowel                  reads=31      per M unmapped=93.3     breadth=0.44  
+   HCC1419        Breast                 reads=31      per M unmapped=93.0     breadth=0.38  
+   PA-TU-8988T    Pancreas               reads=31      per M unmapped=92.2     breadth=0.44  
+   A2780          Ovary/Fallopian Tube   reads=30      per M unmapped=90.0     breadth=0.46  
+   YKG1           CNS/Brain              reads=30      per M unmapped=89.7     breadth=0.4  
+   C2BBe1         Bowel                  reads=29      per M unmapped=88.1     breadth=0.42  
+   FaDu           Head and Neck          reads=29      per M unmapped=87.0     breadth=0.44  
+   IPC-298        Skin                   reads=29      per M unmapped=86.7     breadth=0.4  
+   SF-295         CNS/Brain              reads=29      per M unmapped=86.1     breadth=0.36  
+   NMC-G1         CNS/Brain              reads=28      per M unmapped=85.8     breadth=0.42  
+   RL             Lymphoid               reads=28      per M unmapped=84.5     breadth=0.36  
+   TE-5           Esophagus/Stomach      reads=28      per M unmapped=84.3     breadth=0.38  
+   MEC-1          Lymphoid               reads=27      per M unmapped=80.9     breadth=0.42  
+   KP-3           Pancreas               reads=27      per M unmapped=79.9     breadth=0.28  
+   IM95           Esophagus/Stomach      reads=26      per M unmapped=78.4     breadth=0.4  
+   Caki-1         Kidney                 reads=26      per M unmapped=78.1     breadth=0.44  
+   NCI-H157-DM    Lung                   reads=26      per M unmapped=77.7     breadth=0.44  
+   RKO            Bowel                  reads=25      per M unmapped=75.6     breadth=0.42  
+   Ki-JK          Lymphoid               reads=26      per M unmapped=75.6     breadth=0.28  
+   SW 620         Bowel                  reads=25      per M unmapped=75.4     breadth=0.36  
+   KE-97          Lymphoid               reads=25      per M unmapped=74.8     breadth=0.38  
+   Set-2          Myeloid                reads=25      per M unmapped=74.8     breadth=0.38  
+   DAN-G          Pancreas               reads=25      per M unmapped=74.1     breadth=0.36  
+   HCC1954        Breast                 reads=29      per M unmapped=71.3     breadth=0.44  
+   NCI-H1568      Lung                   reads=23      per M unmapped=69.7     breadth=0.38  
+   LS 180         Bowel                  reads=23      per M unmapped=69.6     breadth=0.28  
+   Hep G2         Liver                  reads=23      per M unmapped=68.7     breadth=0.28  
+   HCC-33         Lung                   reads=22      per M unmapped=68.7     breadth=0.36  
+   JHOS-2         Ovary/Fallopian Tube   reads=23      per M unmapped=68.2     breadth=0.4  
+   MDA-MB-453     Breast                 reads=22      per M unmapped=65.8     breadth=0.36  
+   GSU            Esophagus/Stomach      reads=22      per M unmapped=65.3     breadth=0.26  
+   U-251 MG       CNS/Brain              reads=21      per M unmapped=63.1     breadth=0.32  
+   HGC-27         Esophagus/Stomach      reads=21      per M unmapped=62.9     breadth=0.3  
+   OC 314         Ovary/Fallopian Tube   reads=21      per M unmapped=62.9     breadth=0.44  
+   NCI-H460       Lung                   reads=21      per M unmapped=62.7     breadth=0.38  
+   CAL 27         Head and Neck          reads=27      per M unmapped=61.5     breadth=0.42  
+   KMRC-2         Kidney                 reads=21      per M unmapped=61.1     breadth=0.34  
+   MV4-11         Myeloid                reads=20      per M unmapped=59.7     breadth=0.28  
+   HSC-3          Head and Neck          reads=19      per M unmapped=58.6     breadth=0.34  
+   T3M-4          Pancreas               reads=19      per M unmapped=56.8     breadth=0.38  
+   23132/87       Esophagus/Stomach      reads=17      per M unmapped=53.1     breadth=0.28  
+   HCT 116        Bowel                  reads=17      per M unmapped=52.3     breadth=0.32  
+   KYSE-510       Esophagus/Stomach      reads=17      per M unmapped=51.3     breadth=0.34  
+   COR-L279       Lung                   reads=17      per M unmapped=51.1     breadth=0.3  
+   DMS 53         Lung                   reads=16      per M unmapped=50.3     breadth=0.34  
+   JHUEM-1        Uterus                 reads=16      per M unmapped=48.3     breadth=0.22  
+   G-401          Kidney                 reads=15      per M unmapped=47.0     breadth=0.28  
+   COR-L311       Lung                   reads=15      per M unmapped=46.5     breadth=0.22  
+   NCI-H716       Bowel                  reads=16      per M unmapped=46.2     breadth=0.3  
+   HCC-44         Lung                   reads=15      per M unmapped=46.2     breadth=0.26  
+   MFE-319        Uterus                 reads=16      per M unmapped=45.3     breadth=0.34  
+   Calu-1         Lung                   reads=14      per M unmapped=43.7     breadth=0.24  
+   786-O          Kidney                 reads=14      per M unmapped=43.7     breadth=0.3  
+   HCC-15         Lung                   reads=14      per M unmapped=43.5     breadth=0.26  
+   FU97           Esophagus/Stomach      reads=14      per M unmapped=43.2     breadth=0.24  
+   HCC1143        Breast                 reads=14      per M unmapped=43.0     breadth=0.26  
+   5637           Bladder/Urinary Tract  reads=14      per M unmapped=42.3     breadth=0.32  
+   Daoy           CNS/Brain              reads=12      per M unmapped=37.4     breadth=0.24  
+   EFO-27         Ovary/Fallopian Tube   reads=12      per M unmapped=36.9     breadth=0.24  
+   AGS            Esophagus/Stomach      reads=12      per M unmapped=35.7     breadth=0.26  
+   MCAS           Ovary/Fallopian Tube   reads=12      per M unmapped=35.1     breadth=0.2  
+   KATO III       Esophagus/Stomach      reads=11      per M unmapped=34.5     breadth=0.22  
+   KYSE-180       Esophagus/Stomach      reads=11      per M unmapped=34.4     breadth=0.24  
+   DMS 273        Lung                   reads=11      per M unmapped=34.2     breadth=0.2  
+   DB             Lymphoid               reads=11      per M unmapped=32.8     breadth=0.2  
+   MDA-MB-468     Breast                 reads=11      per M unmapped=32.3     breadth=0.2  
+   A549           Lung                   reads=11      per M unmapped=32.0     breadth=0.22  
+   KMS-11         Lymphoid               reads=10      per M unmapped=31.1     breadth=0.24  
+   L-1236         Lymphoid               reads=10      per M unmapped=29.4     breadth=0.22  
+   HEL 92.1.7     Myeloid                reads=9       per M unmapped=28.1     breadth=0.26  
+   CHP-212        Peripheral Nervous Sys reads=8       per M unmapped=23.6     breadth=0.2  
+== MLV: 54 cell lines
+   YD-8           Head and Neck          reads=51690   per M unmapped=155618.7 breadth=0.76  
+   YD-38          Head and Neck          reads=39372   per M unmapped=121485.5 breadth=0.74  
+   22Rv1          Prostate               reads=23878   per M unmapped=75159.2  breadth=0.46  
+   YD-15          Head and Neck          reads=12450   per M unmapped=37779.0  breadth=0.74  
+   SH-10-TC       Esophagus/Stomach      reads=12273   per M unmapped=36850.8  breadth=0.4  
+   BHY            Head and Neck          reads=10183   per M unmapped=30168.1  breadth=0.46  
+   VCaP           Prostate               reads=9302    per M unmapped=27727.1  breadth=0.36  
+   KMM-1          Lymphoid               reads=5660    per M unmapped=16968.7  breadth=0.34  
+   Lu-65          Lung                   reads=3042    per M unmapped=9143.9   breadth=0.32  
+   LMSU           Esophagus/Stomach      reads=2893    per M unmapped=8651.1   breadth=0.22  
+   Li-7           Liver                  reads=2369    per M unmapped=7038.6   breadth=0.36  
+   KELLY          Peripheral Nervous Sys reads=2135    per M unmapped=6332.6   breadth=0.28  
+   L3.3           Pancreas               reads=1702    per M unmapped=5126.8   breadth=0.44  
+   253J-BV        Bladder/Urinary Tract  reads=1041    per M unmapped=3027.5   breadth=0.4  
+   LXF-289        Lung                   reads=974     per M unmapped=2869.2   breadth=0.34  
+   DEL            Lymphoid               reads=974     per M unmapped=2733.3   breadth=0.44  
+   S-117          Soft Tissue            reads=791     per M unmapped=2448.1   breadth=0.46  
+   SNU-C4         Bowel                  reads=720     per M unmapped=2154.3   breadth=0.32  
+   NB-1           Peripheral Nervous Sys reads=662     per M unmapped=1969.3   breadth=0.2  
+   GB-1           CNS/Brain              reads=556     per M unmapped=1640.3   breadth=0.28  
+   TYK-nu         Ovary/Fallopian Tube   reads=78      per M unmapped=229.8    breadth=0.38  
+   SW837          Bowel                  reads=75      per M unmapped=228.6    breadth=0.64  
+   F5             CNS/Brain              reads=106     per M unmapped=170.8    breadth=0.34  
+   EKVX           Lung                   reads=36      per M unmapped=116.8    breadth=0.2  
+   COR-L47        Lung                   reads=33      per M unmapped=97.6     breadth=0.46  
+   DND-41         Lymphoid               reads=28      per M unmapped=83.6     breadth=0.34  
+   VM-CUB1        Bladder/Urinary Tract  reads=23      per M unmapped=70.3     breadth=0.36  
+   ST486          Lymphoid               reads=24      per M unmapped=70.3     breadth=0.42  
+   YH-13          CNS/Brain              reads=23      per M unmapped=69.3     breadth=0.32  
+   TE-8           Esophagus/Stomach      reads=23      per M unmapped=69.2     breadth=0.34  
+   WM983B         Skin                   reads=21      per M unmapped=63.8     breadth=0.34  
+   SNU-C5         Bowel                  reads=21      per M unmapped=63.8     breadth=0.36  
+   WM88           Skin                   reads=19      per M unmapped=58.0     breadth=0.32  
+   SW48           Bowel                  reads=19      per M unmapped=57.1     breadth=0.32  
+   Hs 746T        Esophagus/Stomach      reads=24      per M unmapped=56.7     breadth=0.26  
+   TE-10          Esophagus/Stomach      reads=19      per M unmapped=54.3     breadth=0.32  
+   SUIT-2         Pancreas               reads=17      per M unmapped=52.5     breadth=0.26  
+   SW 1573        Lung                   reads=17      per M unmapped=52.3     breadth=0.28  
+   EFO-21         Ovary/Fallopian Tube   reads=16      per M unmapped=47.5     breadth=0.34  
+   YAPC           Pancreas               reads=15      per M unmapped=45.8     breadth=0.3  
+   TALL-1         Lymphoid               reads=23      per M unmapped=45.4     breadth=0.4  
+   SU-DHL-5       Lymphoid               reads=14      per M unmapped=43.2     breadth=0.26  
+   UM-UC-1        Bladder/Urinary Tract  reads=14      per M unmapped=42.4     breadth=0.26  
+   SW1463         Bowel                  reads=13      per M unmapped=39.9     breadth=0.3  
+   SNU-81         Bowel                  reads=13      per M unmapped=39.8     breadth=0.2  
+   U-BLC1         Bladder/Urinary Tract  reads=13      per M unmapped=39.8     breadth=0.22  
+   SW403          Bowel                  reads=13      per M unmapped=39.7     breadth=0.22  
+   TE-6           Esophagus/Stomach      reads=13      per M unmapped=39.0     breadth=0.22  
+   TUHR14TKB      Kidney                 reads=12      per M unmapped=35.6     breadth=0.2  
+   TT2609-C02     Thyroid                reads=11      per M unmapped=33.5     breadth=0.2  
+   TCC-PAN2       Pancreas               reads=11      per M unmapped=33.3     breadth=0.26  
+   WM793          Skin                   reads=10      per M unmapped=29.7     breadth=0.22  
+   BT-12          CNS/Brain              reads=11      per M unmapped=28.0     breadth=0.2  
+   CAL-78         Bone                   reads=9       per M unmapped=27.7     breadth=0.2  
+== HTLV1: 15 cell lines
+   C8166          Lymphoid               reads=175107  per M unmapped=314151.9 breadth=1.0  Cellosaurus agrees
+   MJ             Lymphoid               reads=37079   per M unmapped=110765.9 breadth=1.0  Cellosaurus agrees
+   KD             Soft Tissue            reads=71      per M unmapped=162.2    breadth=0.48  
+   SF-172         CNS/Brain              reads=53      per M unmapped=135.9    breadth=0.36  
+   SK-PN-DW       Bone                   reads=46      per M unmapped=103.0    breadth=0.36  
+   TTC-549        Soft Tissue            reads=34      per M unmapped=78.8     breadth=0.4  
+   NCI-H1581      Lung                   reads=29      per M unmapped=74.5     breadth=0.44  
+   JH-EsoAd1      Esophagus/Stomach      reads=25      per M unmapped=73.9     breadth=0.24  
+   INA6           Lymphoid               reads=27      per M unmapped=68.6     breadth=0.32  
+   MON            Soft Tissue            reads=28      per M unmapped=65.8     breadth=0.4  
+   BT-12          CNS/Brain              reads=25      per M unmapped=63.7     breadth=0.34  
+   TM-87          Soft Tissue            reads=19      per M unmapped=48.1     breadth=0.28  
+   OCI-My7        Lymphoid               reads=16      per M unmapped=42.4     breadth=0.32  
+   NCI-H2004 RT   Kidney                 reads=12      per M unmapped=30.7     breadth=0.22  
+   RT112/84       Bladder/Urinary Tract  reads=12      per M unmapped=25.7     breadth=0.24  
+== EBV: 8 cell lines
+   KE-97          Lymphoid               reads=1789    per M unmapped=5351.8   breadth=0.82  Cellosaurus agrees
+   HuNS1          Lymphoid               reads=1329    per M unmapped=3893.3   breadth=0.66  Cellosaurus agrees
+   JVM-3          Lymphoid               reads=1153    per M unmapped=3396.6   breadth=0.82  Cellosaurus agrees
+   MEC-1          Lymphoid               reads=648     per M unmapped=1941.8   breadth=0.52  Cellosaurus agrees
+   JVM-2          Lymphoid               reads=370     per M unmapped=1101.8   breadth=0.5  Cellosaurus agrees
+   Raji           Lymphoid               reads=309     per M unmapped=899.2    breadth=0.52  Cellosaurus agrees
+   SNU-719        Esophagus/Stomach      reads=327     per M unmapped=897.5    breadth=0.5  Cellosaurus agrees
+   NAMALWA        Lymphoid               reads=138     per M unmapped=421.8    breadth=0.28  Cellosaurus agrees
+== HBV: 4 cell lines
+   PLC/PRF/5      Liver                  reads=848     per M unmapped=2497.7   breadth=0.44  Cellosaurus agrees
+   SNU-761        Liver                  reads=296     per M unmapped=861.6    breadth=0.48  Cellosaurus agrees
+   SNU-886        Liver                  reads=188     per M unmapped=556.6    breadth=0.54  Cellosaurus agrees
+   huH-1          Liver                  reads=65      per M unmapped=189.5    breadth=0.36  Cellosaurus agrees
+== SV40: 1 cell lines
+   KPL-1          Breast                 reads=21      per M unmapped=61.5     breadth=0.2  
+== HPV18: 1 cell lines
+   SF-172         CNS/Brain              reads=37      per M unmapped=94.8     breadth=0.32  
+== HPV16: 1 cell lines
+   SIHA           Cervix                 reads=2211    per M unmapped=4701.5   breadth=0.42  Cellosaurus agrees
+== Mhyo: 1 cell lines
+   COV504         Ovary/Fallopian Tube   reads=1827    per M unmapped=3703.9   breadth=0.4  
+
+Cellosaurus-recorded agents not found:
+   JHH-7          HBV
+   SNU-449        HBV
+   SNU-182        HBV
+   SNU-398        HBV
+   SNU-423        HBV
+   SNU-387        HBV
+   SNU-475        HBV

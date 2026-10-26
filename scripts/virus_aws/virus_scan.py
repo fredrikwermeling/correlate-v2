@@ -138,7 +138,7 @@ def _aligned(data, off, n=30):
         if off + 36 > len(data):
             return False
         bs, ref = struct.unpack_from('<ii', data, off)
-        if not (32 < bs < 20000 and -1 <= ref < 500):
+        if not (32 < bs < 20000 and -1 <= ref < 100000):
             return False
         off += 4 + bs
     return True
