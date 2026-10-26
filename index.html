@@ -3018,6 +3018,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.59 (2026-10-26)</strong></p><ul>
+                    <li><b>The surface protein matrix in the Cancer type Wiki is clickable.</b> Clicking a square or a protein name opens that gene in the Gene Browser, scrolled to its expression by cancer type.</li>
+                </ul>
                 <p><strong>v.91.58 (2026-10-26)</strong></p><ul>
                     <li><b>Surface proteins are labeled as mRNA.</b> The surface protein sections of the Cancer type Wiki say in their titles and in a note that they are built from mRNA levels, not measured protein, and so does the cell line Wiki's FACS marker list.</li>
                     <li><b>Identity check in the cell line Wiki.</b> The STR authentication section says whether the cell line's five most similar cell lines by surface mRNA include its own tissue, names them, and links to the surface protein panel.</li>
@@ -8885,7 +8888,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.58</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.59</a>
         </span>
     </div>
 
@@ -12284,7 +12287,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_58"></script>
+    <script src="app.js?v=v91_59"></script>
     <script src="tour.js?v=v91_54"></script>
 </body>
 </html>
