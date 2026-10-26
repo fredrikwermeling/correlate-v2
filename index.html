@@ -3021,6 +3021,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.66 (2026-10-26)</strong></p><ul>
+                    <li><b>Transcript menu: what a missing TSL means.</b> Transcripts added after Ensembl computed support levels have no TSL; the note under the menu now says this is "not scored", not a low score, and transcripts built from long-read sequencing are tagged "long-read".</li>
+                </ul>
                 <p><strong>v.91.65 (2026-10-26)</strong></p><ul>
                     <li><b>Viral RNA in the cell lines.</b> The RNA-seq reads that do not match the human genome were checked against 18 viruses and one mycoplasma, for every cohort cell line with a public RNA-seq file (719 of 1,208): a sample of about 330,000 unmapped reads per cell line. A virus counts when its reads cover a good part of its genome, graded strong, moderate or low.</li>
                     <li><b>What it found:</b> EBV in 8 cell lines, every one also recorded by Cellosaurus; HPV16 in SiHa; HTLV-1 in C8166 and MJ; hepatitis B in 4 of the 11 recorded liver cell lines (the reference genotype misses most East Asian strains); mycoplasma in COV504; and strong mouse retrovirus (XMRV or MLV) in about 20 cell lines, led by 22Rv1, VCaP, SH-10-TC and the YD head and neck lines. Low-level hits are shown in gray: they can be carry-over from another sample sequenced in the same run.</li>
@@ -8927,7 +8930,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.65</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.66</a>
         </span>
     </div>
 
@@ -12344,7 +12347,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_65"></script>
+    <script src="app.js?v=v91_66"></script>
     <script src="tour.js?v=v91_54"></script>
 </body>
 </html>
