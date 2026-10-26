@@ -289,7 +289,7 @@
         <h1>Correlate brings together CRISPR knockout screens, mRNA expression, mutations, copy number and drug response from DepMap, adds gene and cell line information from many other databases, and connects them.</h1>
         <p class="tour-sub">Use it to:</p>
         <ul class="tour-hero-list">
-            <li>Find connections within your own gene list, for example hits from a CRISPR screen or a transcriptomics experiment, from unbiased correlations of CRISPR gene effect or mRNA across the cell lines.</li>
+            <li>Find connections within your gene list, for example hits from a CRISPR screen or a transcriptomics experiment, from unbiased correlations of CRISPR gene effect or mRNA across the cell lines.</li>
             <li>Find the right cell lines for your project, by mutations, mutation patterns and cancer type, and compare omics data between groups of cell lines.</li>
             <li>Get extensive information about any gene: dependency, expression, mutations, protein complexes, drugs and literature, gathered from DepMap, UniProt, Cellosaurus and other sources.</li>
             <li>Export any view for AI, to discuss the data with your favorite language model.</li>
