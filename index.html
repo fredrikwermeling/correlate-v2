@@ -2051,6 +2051,15 @@
         .clb-entry input[type="checkbox"] { flex-shrink: 0; cursor: pointer; }
         .clb-entry-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; min-width: 0; max-width: calc(100% - 50px); }
         .clb-entry-tissue { font-size: 10px; color: var(--gray-500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0; }
+        /* The marks before a cell line's name sit in fixed slots, so every
+           name in the list starts at the same x whichever marks a line
+           carries. */
+        .clb-marks { flex: none; display: inline-flex; align-items: center; gap: 2px; }
+        .clb-marks > span { flex: none; display: inline-flex; align-items: center; justify-content: center; }
+        .clb-mk-sex { width: 12px; }
+        .clb-mk-org { width: 9px; }
+        .clb-mk-badge { width: 13px; }
+        .clb-mk-gate { width: 15px; }
         .clb-detail {
             width: 280px;
             flex-shrink: 0;
@@ -3023,6 +3032,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.83 (2026-10-26)</strong></p><ul>
+                    <li><b>Cell Line Browser: the names line up.</b> The sex, origin and warning marks before a name each have a slot of their own, so every name in the list starts at the same place whichever marks a cell line carries, instead of shifting from row to row.</li>
+                    <li><b>A recorded virus transformation is shown even when the cell line was never sequenced.</b> A cell line such as P4E6, recorded by Cellosaurus as HPV16-transformed but with no RNA-seq file, said only "not tested". Its Wiki now leads with the record, and says that the missing reads do not put it in doubt. Cell lines with both show the record above the reads.</li>
+                    <li><b>The viral gene table fits the card.</b> A spliced gene's position was printed part by part on one unwrapped line, which ran off the side and squeezed the gene names into a column one word wide. Each gene now shows its span with the number of parts underneath, the full list is in the link's tooltip, the product sits under the gene name instead of in a column of its own, and the labels under the coverage strip no longer print on top of each other.</li>
+                    <li>Tour of the app: only a deliberate push now stops the glide after Next; a trackpad sending small events as a gesture dies out no longer does.</li>
+                </ul>
                 <p><strong>v.91.82 (2026-10-26)</strong></p><ul>
                     <li><b>Next in the tour moves the page again.</b> A trackpad resting on the pad emits scroll events carrying no distance, and those were read as "the reader is scrolling" and stopped the glide a few pixels in. Only a real push stops it now.</li>
                     <li>Tour of the app: the first section is called Gene set analysis, after the button it describes, instead of Network.</li>
@@ -8990,7 +9005,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.82</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.83</a>
         </span>
     </div>
 
@@ -12410,7 +12425,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_79"></script>
-    <script src="tour.js?v=v91_82"></script>
+    <script src="app.js?v=v91_83"></script>
+    <script src="tour.js?v=v91_83"></script>
 </body>
 </html>

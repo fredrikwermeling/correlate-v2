@@ -624,16 +624,17 @@ html.popout-open #tourNetHint { display: none; }
         page.setAttribute('role', 'dialog');
         page.setAttribute('aria-label', 'Tour of the app');
         document.body.appendChild(page);
-        // A scroll of the reader's own wins over a running glide. A resting
-        // trackpad emits wheel events carrying no delta, so only a real push,
-        // and not one in the same moment as the click, counts.
+        // A deliberate scroll of the reader's own wins over a running glide.
+        // A trackpad keeps sending small wheel events after a gesture and
+        // while a finger rests on it, so only a real push counts, and not one
+        // in the same moment as the click: otherwise Next looks dead.
         const stopGlide = (e) => {
-            if (e.type === 'wheel' && Math.abs(e.deltaY || 0) < 3) return;
-            if (performance.now() - glideT0 < 220) return;
+            if (e.type === 'wheel' && Math.abs(e.deltaY || 0) < 40) return;
+            if (performance.now() - glideT0 < 400) return;
             cancelAnimationFrame(scrollRaf);
         };
         page.addEventListener('wheel', stopGlide, { passive: true });
-        page.addEventListener('touchstart', stopGlide, { passive: true });
+        page.addEventListener('touchmove', stopGlide, { passive: true });
         page.addEventListener('click', (e) => {
             const act = e.target.closest('[data-act]');
             if (act) { e.preventDefault(); run(act.getAttribute('data-act')); return; }
