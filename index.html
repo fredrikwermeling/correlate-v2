@@ -1897,6 +1897,16 @@
         .wiki-pw-chips { line-height: 1.9; }
         .wiki-pw-rich { margin: 6px 0 4px 16px; padding: 0; font-size: 11px; color: #374151; }
         .wiki-pw-synth { font-size: 11px; color: #374151; padding-top: 4px; border-top: 1px dashed #e5e7eb; }
+        /* Names the two parts of the card: the observations, then the reading
+           of them, so the bullets read as the case for the verdict. */
+        .wiki-pw-lbl { font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #9ca3af; margin: 6px 0 1px; }
+        /* Gene names along the top of the surface matrix. A rotate() puts the
+           text in its own layer and loses subpixel antialiasing, which at this
+           size reads as blur; sideways-lr gets the same direction with no
+           transform, and older browsers keep the rotate. */
+        .ctw-vlabel { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 10px; font-style: italic; white-space: nowrap; line-height: 13px; }
+        @supports (writing-mode: sideways-lr) { .ctw-vlabel { writing-mode: sideways-lr; transform: none; } }
+        .wiki-pw-lbl-in { display: inline; margin: 0 6px 0 0; }
         .wiki-pw-quiet { margin-top: 4px; font-size: 11px; }
         .wiki-pw-quiet a { color: #4c782e; text-decoration: none; }
         .wiki-pw-quiet-list { margin-top: 6px; }
@@ -3032,6 +3042,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.84 (2026-10-26)</strong></p><ul>
+                    <li><b>The pathway cards read as an argument, not a list of facts.</b> The bullets are now headed "What the data shows" and the line below them "Taken together", so it is clear that the CRISPR results are the case for the verdict in the corner. Where a cell line has lost CDKN2A, the CDK4/6 result says what that loss predicts and whether it holds.</li>
+                    <li><b>A CDKN2A deletion now counts in the cell cycle reading.</b> Only a damaging point mutation did, so a cell line whose card said "brake lost" from a deletion could end with "no obvious mutation driving it" underneath.</li>
+                    <li><b>The gene names along the top of the surface protein matrix are sharp again.</b> They were rotated with a transform, which drops the text into its own layer and loses subpixel antialiasing; at that size it reads as blur. The color key is larger too.</li>
+                    <li>Cell line Wiki: "Lung lineage markers" is now "Genes that mark Lung tissue", with the scale explained; the two links under the FACS markers were dropped.</li>
+                </ul>
                 <p><strong>v.91.83 (2026-10-26)</strong></p><ul>
                     <li><b>Cell Line Browser: the names line up.</b> The sex, origin and warning marks before a name each have a slot of their own, so every name in the list starts at the same place whichever marks a cell line carries, instead of shifting from row to row.</li>
                     <li><b>A recorded virus transformation is shown even when the cell line was never sequenced.</b> A cell line such as P4E6, recorded by Cellosaurus as HPV16-transformed but with no RNA-seq file, said only "not tested". Its Wiki now leads with the record, and says that the missing reads do not put it in doubt. Cell lines with both show the record above the reads.</li>
@@ -9005,7 +9021,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.83</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.84</a>
         </span>
     </div>
 
@@ -12425,7 +12441,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_83"></script>
+    <script src="app.js?v=v91_84"></script>
     <script src="tour.js?v=v91_83"></script>
 </body>
 </html>
