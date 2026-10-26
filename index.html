@@ -1529,6 +1529,8 @@
         .button-group-horizontal .btn {
             flex: 1;
         }
+        /* Buttons that do not need the full width of the row. */
+        .button-group-horizontal .btn-narrow { flex: 0 0 auto; }
 
         /* The old fixed 2-column / 1-column window-width fallbacks are gone:
            auto-fit above follows the panel's own width at every size. */
@@ -3021,6 +3023,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.70 (2026-10-26)</strong></p><ul>
+                    <li><b>Cell line Wiki: which viral genes are expressed.</b> For every clearly detected virus the Wiki now shows where the reads fall along the virus genome, then each viral gene with its product, its exact position (linked to that stretch of the sequence at NCBI), its read count and an approximate TPM, placed among the cell line's own genes ("top 8%") with GAPDH and ACTB for scale. SiHa, for example, shows HPV16 E6 and E7 in the top tenth of its genes while the capsid genes L1 and L2 sit near zero. Low-level hits keep their one-line entry: too few reads to say which gene they came from.</li>
+                    <li><b>Gene Browser pages for the viruses.</b> Typing a virus (EBV, HPV16, XMRV, HBV, HTLV1, Mhyo and the rest) opens its own page: the reference genome, the Cellosaurus records, which cell lines carry it and at what level by cancer type, and which of its genes are expressed across them. EBV's list is led by the latency genes EBNA-LP, EBNA-1, EBNA-2 and LMP-1.</li>
+                    <li><b>Highlight cell lines by virus.</b> Highlight boxes take <code>virus:EBV</code> (or <code>virus:any</code>), and the "+ Highlight group" menu lists every virus found among the cell lines on screen, beside the tissues and subtypes.</li>
+                    <li><b>Export for AI</b> carries the viral genes by name, with their positions, reads and approximate TPM.</li>
+                    <li><b>Network view controls are shorter:</b> Reset and Enrichr share one row and take only the width they need, instead of a full-width row each.</li>
+                </ul>
                 <p><strong>v.91.69 (2026-10-26)</strong></p><ul>
                     <li><b>The UCSC Genome Browser link shows only the transcripts.</b> It opens with just the GENCODE gene track, every transcript on its own row (including those UCSC filters out by default), instead of UCSC's dozens of default tracks, which made long genes slow to load or fail.</li>
                     <li><b>Sequence viewer counts a selection.</b> Drag over the sequence and the legend line shows how many bases (or amino acids) are selected and their positions; struck-out bases are not counted.</li>
@@ -8941,7 +8950,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.69</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.70</a>
         </span>
     </div>
 
@@ -9508,7 +9517,6 @@
                                 <button class="btn btn-secondary" id="networkAaBtn" style="font-weight:700;" title="Fonts, label and node colors, node border, legend size and other appearance settings for the network and its exports.">Settings</button>
                                 <button class="btn btn-secondary" id="shuffleNetworkBtn" title="Re-roll the layout from new random starting positions. Click until the arrangement looks right.">Shuffle</button>
                                 <button class="btn btn-secondary" id="highlightNetworkBtn" title="Click, then click genes to give them a thick dashed ring that stays in Export image and Copy network. Click again to finish.">Highlight</button>
-                                <button class="btn btn-secondary" id="resetNetworkControls" title="Reset the controls above the network, font / node / edge size, colors, label options and node border, back to defaults">Reset</button>
                                 <!-- Hidden master switch for the node border; several renderers read
                                      its state. The visible control lives in the Settings popout. -->
                                 <input type="checkbox" id="networkNodeBorder" checked style="display:none;">
@@ -9518,8 +9526,10 @@
                                  genes that were typed in, and which of the two you
                                  mean is the whole question, so it is asked rather
                                  than assumed. -->
-                            <div class="button-group-horizontal mobile-hide" style="margin-bottom: 4px; position:relative;">
-                                <button class="btn btn-secondary" id="netEnrichrBtn" aria-haspopup="true" aria-expanded="false" title="Pathway enrichment via Enrichr, for the genes you typed in or for the ones actually drawn">Enrichr &#9662;</button>
+                            <div class="button-group-horizontal" style="margin-bottom: 4px;">
+                                <button class="btn btn-secondary btn-narrow" id="resetNetworkControls" title="Reset the controls above the network, font / node / edge size, colors, label options and node border, back to defaults">Reset</button>
+                                <span class="mobile-hide" style="position:relative; display:inline-flex;">
+                                <button class="btn btn-secondary btn-narrow" id="netEnrichrBtn" aria-haspopup="true" aria-expanded="false" title="Pathway enrichment via Enrichr, for the genes you typed in or for the ones actually drawn">Enrichr &#9662;</button>
                                 <div id="netEnrichrMenu" style="display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:1500; background:#fff; border:1px solid var(--gray-200); border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,0.14); min-width:230px; padding:4px;">
                                     <div style="font-size:10px; color:#9ca3af; padding:3px 10px 4px;">Which genes to send?</div>
                                     <button class="options-menu-item" data-net-enrichr="input" title="Every gene in the box above, whether or not it reached the picture">All input genes</button>
@@ -9529,6 +9539,7 @@
                                         <a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" class="options-menu-item" style="color:#9ca3af; font-size:10px; text-decoration:none; display:block;">About Enrichr &#8599;</a>
                                     </div>
                                 </div>
+                                </span>
                             </div>
                             <p class="help-text" id="networkHelpText" style="font-size: 9px; margin-bottom: 6px;">Double-click node for Gene Effect, edge for Correlation</p>
                             <div id="selectedNodesList" style="display: none; font-size: 9px; margin-bottom: 6px; padding: 4px; background: #dbeafe; border-radius: 3px;">
@@ -12358,7 +12369,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_69"></script>
+    <script src="app.js?v=v91_70"></script>
     <script src="tour.js?v=v91_54"></script>
 </body>
 </html>

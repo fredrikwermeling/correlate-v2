@@ -34,7 +34,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-K, STEP, MIN_HITS, NBINS = 25, 4, 2, 50
+K, STEP, MIN_HITS, NBINS, POSBIN = 25, 4, 2, 50, 50
 CHUNK = 16 * 1024 * 1024
 MAGIC = b'\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00BC'
 
@@ -211,17 +211,23 @@ def _score(seqs, res):
             res['hits'][vi] += n
             hp = p[reads][m[reads]]
             res['bins'][vi] |= set((hp * NBINS // IDX['lens'][vi]).tolist())
+            # Where each counted read sits: the mean of its matching positions,
+            # in POSBIN-base bins, so reads can be assigned to the virus's genes.
+            centre = np.nanmean(np.where(m[reads], p[reads], np.nan), axis=1)
+            np.add.at(res['pos'][vi], (centre // POSBIN).astype(np.int64), 1)
 
 
 def scan_one(rec, sample_mb):
     t0 = time.time()
     out = {'model_id': rec['model_id'], 'name': rec.get('name'), 'lineage': rec.get('lineage')}
     nv = len(IDX['keys'])
-    res = {'hits': [0] * nv, 'bins': [set() for _ in range(nv)]}
+    res = {'hits': [0] * nv, 'bins': [set() for _ in range(nv)],
+           'pos': [np.zeros(int(L) // POSBIN + 1, np.int64) for L in IDX['lens']]}
     try:
         url = rec['bam']
         size = _size(url)
         start = find_unmapped_start(url, size)
+        out['unmapped_start'] = start
         if sample_mb:
             start = max(start, size - sample_mb * 1024 * 1024)
         out.update({'file_bytes': size, 'tail_start': start, 'mode': 'sample' if sample_mb else 'full'})
@@ -272,6 +278,8 @@ def scan_one(rec, sample_mb):
                     'bytes_read': size - start})
         out['hits'] = {IDX['keys'][i]: n for i, n in enumerate(res['hits']) if n}
         out['breadth'] = {IDX['keys'][i]: round(len(res['bins'][i]) / NBINS, 2) for i, n in enumerate(res['hits']) if n}
+        out['posbin'] = POSBIN
+        out['pos'] = {IDX['keys'][i]: [[int(b), int(c)] for b, c in enumerate(res['pos'][i]) if c] for i, n in enumerate(res['hits']) if n >= 3}
     except Exception as e:
         out['error'] = f'{type(e).__name__}: {e}'
     out['seconds'] = round(time.time() - t0, 1)

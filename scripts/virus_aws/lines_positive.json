@@ -1,0 +1,1395 @@
+[
+ {
+  "model_id": "ACH-000233",
+  "name": "DEL",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G27318.DEL.1.bam",
+  "size_gb": 16.9
+ },
+ {
+  "model_id": "ACH-000528",
+  "name": "ABC-1",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41700.ABC-1.5.bam",
+  "size_gb": 12.7
+ },
+ {
+  "model_id": "ACH-000167",
+  "name": "KE-97",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41723.KE-97.5.bam",
+  "size_gb": 13.3
+ },
+ {
+  "model_id": "ACH-000242",
+  "name": "RT4",
+  "lineage": "Bladder/Urinary Tract",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41706.RT4.5.bam",
+  "size_gb": 16.1
+ },
+ {
+  "model_id": "ACH-000421",
+  "name": "SW837",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30596.SW837.1.bam",
+  "size_gb": 8.5
+ },
+ {
+  "model_id": "ACH-000765",
+  "name": "WM983B",
+  "lineage": "Skin",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30635.WM983B.1.bam",
+  "size_gb": 10.3
+ },
+ {
+  "model_id": "ACH-000570",
+  "name": "YKG1",
+  "lineage": "CNS/Brain",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41695.YKG1.5.bam",
+  "size_gb": 12.5
+ },
+ {
+  "model_id": "ACH-000800",
+  "name": "NCI-H446",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41671.NCI-H446.5.bam",
+  "size_gb": 15.4
+ },
+ {
+  "model_id": "ACH-000317",
+  "name": "TUHR14TKB",
+  "lineage": "Kidney",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30558.TUHR14TKB.1.bam",
+  "size_gb": 12.9
+ },
+ {
+  "model_id": "ACH-000633",
+  "name": "FU97",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20485.FU97.2.bam",
+  "size_gb": 14.9
+ },
+ {
+  "model_id": "ACH-000376",
+  "name": "SF-295",
+  "lineage": "CNS/Brain",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41678.SF-295.5.bam",
+  "size_gb": 14.8
+ },
+ {
+  "model_id": "ACH-000685",
+  "name": "L3.3",
+  "lineage": "Pancreas",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G26230.L3.3.2.bam",
+  "size_gb": 16.0
+ },
+ {
+  "model_id": "ACH-000880",
+  "name": "AGS",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20478.AGS.2.bam",
+  "size_gb": 18.2
+ },
+ {
+  "model_id": "ACH-000552",
+  "name": "HT-29",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41670.HT-29.5.bam",
+  "size_gb": 9.2
+ },
+ {
+  "model_id": "ACH-000332",
+  "name": "YAPC",
+  "lineage": "Pancreas",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30557.YAPC.1.bam",
+  "size_gb": 9.6
+ },
+ {
+  "model_id": "ACH-000406",
+  "name": "U-937",
+  "lineage": "Myeloid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41727.U-937.5.bam",
+  "size_gb": 13.6
+ },
+ {
+  "model_id": "ACH-000971",
+  "name": "HCT 116",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20490.HCT_116.2.bam",
+  "size_gb": 13.2
+ },
+ {
+  "model_id": "ACH-000847",
+  "name": "HGC-27",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41724.HGC-27.5.bam",
+  "size_gb": 15.3
+ },
+ {
+  "model_id": "ACH-000832",
+  "name": "CAL 27",
+  "lineage": "Head and Neck",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20497.CAL_27.2.bam",
+  "size_gb": 11.9
+ },
+ {
+  "model_id": "ACH-000858",
+  "name": "KNS-62",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20493.KNS-62.2.bam",
+  "size_gb": 9.8
+ },
+ {
+  "model_id": "ACH-000787",
+  "name": "LXF-289",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28047.LXF-289.1.bam",
+  "size_gb": 11.6
+ },
+ {
+  "model_id": "ACH-000991",
+  "name": "SNU-81",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30633.SNU-81.1.bam",
+  "size_gb": 7.9
+ },
+ {
+  "model_id": "ACH-000213",
+  "name": "HUP-T4",
+  "lineage": "Pancreas",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41683.HUP-T4.5.bam",
+  "size_gb": 14.3
+ },
+ {
+  "model_id": "ACH-000749",
+  "name": "DMS 273",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20481.DMS_273.2.bam",
+  "size_gb": 12.9
+ },
+ {
+  "model_id": "ACH-000677",
+  "name": "SW 1573",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30620.SW_1573.1.bam",
+  "size_gb": 8.6
+ },
+ {
+  "model_id": "ACH-000485",
+  "name": "GSU",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41660.GSU.5.bam",
+  "size_gb": 13.7
+ },
+ {
+  "model_id": "ACH-000672",
+  "name": "IA-LM",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/IA-LM.bam",
+  "size_gb": 15.8
+ },
+ {
+  "model_id": "ACH-000784",
+  "name": "KYSE-70",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28067.KYSE-70.1.bam",
+  "size_gb": 12.0
+ },
+ {
+  "model_id": "ACH-000009",
+  "name": "C2BBe1",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20463.C2BBe1.2.bam",
+  "size_gb": 13.7
+ },
+ {
+  "model_id": "ACH-000491",
+  "name": "NCI-H716",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G26236.NCI-H716.2.bam",
+  "size_gb": 14.5
+ },
+ {
+  "model_id": "ACH-000702",
+  "name": "L-1236",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28032.L-1236.1.bam",
+  "size_gb": 11.9
+ },
+ {
+  "model_id": "ACH-000662",
+  "name": "COR-L23",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41697.COR-L23.5.bam",
+  "size_gb": 14.5
+ },
+ {
+  "model_id": "ACH-000943",
+  "name": "RKO",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41732.RKO.5.bam",
+  "size_gb": 11.6
+ },
+ {
+  "model_id": "ACH-000773",
+  "name": "Ki-JK",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28046.Ki-JK.1.bam",
+  "size_gb": 11.6
+ },
+ {
+  "model_id": "ACH-000722",
+  "name": "SNU-C1",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41735.SNU-C1.5.bam",
+  "size_gb": 13.4
+ },
+ {
+  "model_id": "ACH-000545",
+  "name": "VM-CUB1",
+  "lineage": "Bladder/Urinary Tract",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30630.VM-CUB1.3.bam",
+  "size_gb": 5.6
+ },
+ {
+  "model_id": "ACH-000898",
+  "name": "SNU-719",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/SNU-719.bam",
+  "size_gb": 13.4
+ },
+ {
+  "model_id": "ACH-000681",
+  "name": "A549",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20499.A549.2.bam",
+  "size_gb": 14.0
+ },
+ {
+  "model_id": "ACH-000108",
+  "name": "KP-3",
+  "lineage": "Pancreas",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28092.KP-3.1.bam",
+  "size_gb": 10.9
+ },
+ {
+  "model_id": "ACH-000258",
+  "name": "Du4475",
+  "lineage": "Breast",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41711.DU4475.5.bam",
+  "size_gb": 13.8
+ },
+ {
+  "model_id": "ACH-000226",
+  "name": "SUP-M2",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41688.SUP-M2.5.bam",
+  "size_gb": 13.5
+ },
+ {
+  "model_id": "ACH-000997",
+  "name": "HCT-15",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20507.HCT-15.2.bam",
+  "size_gb": 13.2
+ },
+ {
+  "model_id": "ACH-000944",
+  "name": "NAMALWA",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28578.NAMALWA.1.bam",
+  "size_gb": 19.9
+ },
+ {
+  "model_id": "ACH-000714",
+  "name": "KMS-11",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20462.KMS-11.2.bam",
+  "size_gb": 10.2
+ },
+ {
+  "model_id": "ACH-000836",
+  "name": "YD-15",
+  "lineage": "Head and Neck",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30639.YD-15.3.bam",
+  "size_gb": 6.6
+ },
+ {
+  "model_id": "ACH-000511",
+  "name": "Calu-1",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20486.Calu-1.2.bam",
+  "size_gb": 13.8
+ },
+ {
+  "model_id": "ACH-000834",
+  "name": "UM-UC-1",
+  "lineage": "Bladder/Urinary Tract",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30611.UM-UC-1.1.bam",
+  "size_gb": 9.0
+ },
+ {
+  "model_id": "ACH-000507",
+  "name": "KE-39",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41722.KE-39.5.bam",
+  "size_gb": 15.3
+ },
+ {
+  "model_id": "ACH-000334",
+  "name": "DB",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20488.DB.2.bam",
+  "size_gb": 13.5
+ },
+ {
+  "model_id": "ACH-000430",
+  "name": "TYK-nu",
+  "lineage": "Ovary/Fallopian Tube",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G27272.TYK-nu.1.bam",
+  "size_gb": 15.0
+ },
+ {
+  "model_id": "ACH-000374",
+  "name": "HCC1143",
+  "lineage": "Breast",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20479.HCC1143.2.bam",
+  "size_gb": 13.0
+ },
+ {
+  "model_id": "ACH-000928",
+  "name": "JHUEM-1",
+  "lineage": "Uterus",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41715.JHUEM-1.5.bam",
+  "size_gb": 36.8
+ },
+ {
+  "model_id": "ACH-000889",
+  "name": "KMM-1",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28050.KMM-1.1.bam",
+  "size_gb": 11.3
+ },
+ {
+  "model_id": "ACH-000318",
+  "name": "TE-10",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/TE-10.bam",
+  "size_gb": 14.0
+ },
+ {
+  "model_id": "ACH-000569",
+  "name": "IST-MES1",
+  "lineage": "Pleura",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41733.IST-MES1.5.bam",
+  "size_gb": 12.4
+ },
+ {
+  "model_id": "ACH-000187",
+  "name": "COR-L311",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20464.COR-L311.2.bam",
+  "size_gb": 12.1
+ },
+ {
+  "model_id": "ACH-000599",
+  "name": "PA-TU-8902",
+  "lineage": "Pancreas",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41684.PA-TU-8902.5.bam",
+  "size_gb": 15.6
+ },
+ {
+  "model_id": "ACH-000793",
+  "name": "KATO III",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20487.KATO_III.2.bam",
+  "size_gb": 11.8
+ },
+ {
+  "model_id": "ACH-000037",
+  "name": "S-117",
+  "lineage": "Soft Tissue",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G27483.S-117.2.bam",
+  "size_gb": 17.3
+ },
+ {
+  "model_id": "ACH-000824",
+  "name": "KYSE-510",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41682.KYSE-510.5.bam",
+  "size_gb": 12.6
+ },
+ {
+  "model_id": "ACH-000851",
+  "name": "MOR/CPR",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41698.MOR_CPR.5.bam",
+  "size_gb": 12.6
+ },
+ {
+  "model_id": "ACH-000470",
+  "name": "SW1463",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30581.SW1463.1.bam",
+  "size_gb": 6.3
+ },
+ {
+  "model_id": "ACH-000371",
+  "name": "RL",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41675.RL.5.bam",
+  "size_gb": 12.3
+ },
+ {
+  "model_id": "ACH-000132",
+  "name": "JHOS-2",
+  "lineage": "Ovary/Fallopian Tube",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20469.JHOS-2.2.bam",
+  "size_gb": 14.3
+ },
+ {
+  "model_id": "ACH-000855",
+  "name": "KYSE-150",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/KYSE-150.bam",
+  "size_gb": 12.9
+ },
+ {
+  "model_id": "ACH-000716",
+  "name": "TT2609-C02",
+  "lineage": "Thyroid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30622.TT2609-C02.1.bam",
+  "size_gb": 9.0
+ },
+ {
+  "model_id": "ACH-000936",
+  "name": "EFO-27",
+  "lineage": "Ovary/Fallopian Tube",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20475.EFO-27.2.bam",
+  "size_gb": 11.3
+ },
+ {
+  "model_id": "ACH-000988",
+  "name": "MFE-319",
+  "lineage": "Uterus",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28003.MFE-319.1.bam",
+  "size_gb": 9.5
+ },
+ {
+  "model_id": "ACH-000956",
+  "name": "22Rv1",
+  "lineage": "Prostate",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20502.22Rv1.2.bam",
+  "size_gb": 15.4
+ },
+ {
+  "model_id": "ACH-000652",
+  "name": "SUIT-2",
+  "lineage": "Pancreas",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30634.SUIT-2.1.bam",
+  "size_gb": 7.1
+ },
+ {
+  "model_id": "ACH-000007",
+  "name": "LS513",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41749.LS513.5.bam",
+  "size_gb": 14.6
+ },
+ {
+  "model_id": "ACH-000028",
+  "name": "KPL-1",
+  "lineage": "Breast",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28020.KPL-1.1.bam",
+  "size_gb": 12.0
+ },
+ {
+  "model_id": "ACH-000397",
+  "name": "TEN",
+  "lineage": "Uterus",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41713.TEN.5.bam",
+  "size_gb": 14.0
+ },
+ {
+  "model_id": "ACH-000277",
+  "name": "HCC1419",
+  "lineage": "Breast",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41743.HCC1419.5.bam",
+  "size_gb": 14.1
+ },
+ {
+  "model_id": "ACH-000537",
+  "name": "SNU-761",
+  "lineage": "Liver",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/SNU-761.bam",
+  "size_gb": 20.7
+ },
+ {
+  "model_id": "ACH-000706",
+  "name": "EKVX",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41811.EKVX.1.bam",
+  "size_gb": 14.7
+ },
+ {
+  "model_id": "ACH-000548",
+  "name": "BHY",
+  "lineage": "Head and Neck",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G27384.BHY.1.bam",
+  "size_gb": 16.8
+ },
+ {
+  "model_id": "ACH-000654",
+  "name": "Raji",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G27519.Raji.2.bam",
+  "size_gb": 19.2
+ },
+ {
+  "model_id": "ACH-000605",
+  "name": "TE-6",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30587.TE-6.1.bam",
+  "size_gb": 11.4
+ },
+ {
+  "model_id": "ACH-000195",
+  "name": "Set-2",
+  "lineage": "Myeloid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41659.Set-2.5.bam",
+  "size_gb": 13.5
+ },
+ {
+  "model_id": "ACH-000405",
+  "name": "MEC-1",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41748.MEC-1.5.bam",
+  "size_gb": 13.6
+ },
+ {
+  "model_id": "ACH-000367",
+  "name": "NCI-H226",
+  "lineage": "Pleura",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41734.NCI-H226.5.bam",
+  "size_gb": 12.1
+ },
+ {
+  "model_id": "ACH-000820",
+  "name": "SW403",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30623.SW403.1.bam",
+  "size_gb": 8.2
+ },
+ {
+  "model_id": "ACH-000232",
+  "name": "U-251 MG",
+  "lineage": "CNS/Brain",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41696.U-251_MG.5.bam",
+  "size_gb": 12.6
+ },
+ {
+  "model_id": "ACH-000649",
+  "name": "786-O",
+  "lineage": "Kidney",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20495.786-O.2.bam",
+  "size_gb": 12.1
+ },
+ {
+  "model_id": "ACH-000957",
+  "name": "LS 180",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41705.LS_180.5.bam",
+  "size_gb": 12.5
+ },
+ {
+  "model_id": "ACH-000859",
+  "name": "HCC1954",
+  "lineage": "Breast",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20496.HCC1954.2.bam",
+  "size_gb": 12.0
+ },
+ {
+  "model_id": "ACH-000762",
+  "name": "YD-38",
+  "lineage": "Head and Neck",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30643.YD-38.3.bam",
+  "size_gb": 6.8
+ },
+ {
+  "model_id": "ACH-000243",
+  "name": "DAN-G",
+  "lineage": "Pancreas",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41689.DAN-G.5.bam",
+  "size_gb": 16.2
+ },
+ {
+  "model_id": "ACH-000362",
+  "name": "MOLM-13",
+  "lineage": "Myeloid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41692.MOLM-13.5.bam",
+  "size_gb": 11.5
+ },
+ {
+  "model_id": "ACH-000843",
+  "name": "HARA",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20494.HARA.2.bam",
+  "size_gb": 10.9
+ },
+ {
+  "model_id": "ACH-000045",
+  "name": "MV4-11",
+  "lineage": "Myeloid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41677.MV-4-11.5.bam",
+  "size_gb": 15.8
+ },
+ {
+  "model_id": "ACH-000741",
+  "name": "U-BLC1",
+  "lineage": "Bladder/Urinary Tract",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30600.U-BLC1.1.bam",
+  "size_gb": 8.3
+ },
+ {
+  "model_id": "ACH-000667",
+  "name": "HCC-44",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20504.HCC-44.2.bam",
+  "size_gb": 12.2
+ },
+ {
+  "model_id": "ACH-000905",
+  "name": "5637",
+  "lineage": "Bladder/Urinary Tract",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20466.5637.2.bam",
+  "size_gb": 13.9
+ },
+ {
+  "model_id": "ACH-000026",
+  "name": "253J-BV",
+  "lineage": "Bladder/Urinary Tract",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G27287.253J-BV.1.bam",
+  "size_gb": 13.6
+ },
+ {
+  "model_id": "ACH-000516",
+  "name": "CAL-78",
+  "lineage": "Bone",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30615.CAL-78.1.bam",
+  "size_gb": 7.4
+ },
+ {
+  "model_id": "ACH-000527",
+  "name": "OVISE",
+  "lineage": "Ovary/Fallopian Tube",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41663.OVISE.5.bam",
+  "size_gb": 17.3
+ },
+ {
+  "model_id": "ACH-000433",
+  "name": "Caki-1",
+  "lineage": "Kidney",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41739.Caki-1.5.bam",
+  "size_gb": 12.9
+ },
+ {
+  "model_id": "ACH-000120",
+  "name": "CHP-212",
+  "lineage": "Peripheral Nervous System",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20472.CHP-212.2.bam",
+  "size_gb": 14.4
+ },
+ {
+  "model_id": "ACH-000438",
+  "name": "Lu-65",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28075.LU65.1.bam",
+  "size_gb": 10.6
+ },
+ {
+  "model_id": "ACH-000106",
+  "name": "JVM-2",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28008.JVM-2.1.bam",
+  "size_gb": 9.6
+ },
+ {
+  "model_id": "ACH-000698",
+  "name": "DMS 53",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20468.DMS_53.2.bam",
+  "size_gb": 12.9
+ },
+ {
+  "model_id": "ACH-000963",
+  "name": "CCK-81",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41679.CCK-81.5.bam",
+  "size_gb": 13.2
+ },
+ {
+  "model_id": "ACH-000932",
+  "name": "SNU-1",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41729.SNU-1.5.bam",
+  "size_gb": 17.4
+ },
+ {
+  "model_id": "ACH-000804",
+  "name": "NB-1",
+  "lineage": "Peripheral Nervous System",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41744.NB-1.5.bam",
+  "size_gb": 15.6
+ },
+ {
+  "model_id": "ACH-000829",
+  "name": "HuNS1",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28845.HuNS1.3.bam",
+  "size_gb": 14.7
+ },
+ {
+  "model_id": "ACH-000738",
+  "name": "GB-1",
+  "lineage": "CNS/Brain",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G26173.GB-1.2.bam",
+  "size_gb": 12.3
+ },
+ {
+  "model_id": "ACH-000921",
+  "name": "NCI-H157-DM",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/NCI-H1339.bam",
+  "size_gb": 13.4
+ },
+ {
+  "model_id": "ACH-000910",
+  "name": "MDA-MB-453",
+  "lineage": "Breast",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41676.MDA-MB-453.5.bam",
+  "size_gb": 10.3
+ },
+ {
+  "model_id": "ACH-000693",
+  "name": "KYSE-180",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20498.KYSE-180.2.bam",
+  "size_gb": 15.5
+ },
+ {
+  "model_id": "ACH-000913",
+  "name": "ESS-1",
+  "lineage": "Uterus",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20484.ESS-1.2.bam",
+  "size_gb": 13.3
+ },
+ {
+  "model_id": "ACH-000660",
+  "name": "SU-DHL-5",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30641.SU-DHL-5.1.bam",
+  "size_gb": 7.4
+ },
+ {
+  "model_id": "ACH-000915",
+  "name": "IPC-298",
+  "lineage": "Skin",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41667.IPC-298.5.bam",
+  "size_gb": 9.8
+ },
+ {
+  "model_id": "ACH-000292",
+  "name": "NCI-H841",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41745.NCI-H841.5.bam",
+  "size_gb": 29.7
+ },
+ {
+  "model_id": "ACH-000137",
+  "name": "8-MG-BA",
+  "lineage": "CNS/Brain",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41701.8-MG-BA.5.bam",
+  "size_gb": 15.2
+ },
+ {
+  "model_id": "ACH-000308",
+  "name": "EFO-21",
+  "lineage": "Ovary/Fallopian Tube",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30613.EFO-21.1.bam",
+  "size_gb": 18.1
+ },
+ {
+  "model_id": "ACH-000463",
+  "name": "NCI-H460",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41690.NCI-H460.5.bam",
+  "size_gb": 16.8
+ },
+ {
+  "model_id": "ACH-000147",
+  "name": "T-47D",
+  "lineage": "Breast",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41738.T-47D.5.bam",
+  "size_gb": 13.6
+ },
+ {
+  "model_id": "ACH-000899",
+  "name": "WM88",
+  "lineage": "Skin",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30585.WM-88.1.bam",
+  "size_gb": 8.6
+ },
+ {
+  "model_id": "ACH-000651",
+  "name": "SW 620",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41674.SW620.5.bam",
+  "size_gb": 14.2
+ },
+ {
+  "model_id": "ACH-000962",
+  "name": "OC 314",
+  "lineage": "Ovary/Fallopian Tube",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41737.OC_314.5.bam",
+  "size_gb": 14.1
+ },
+ {
+  "model_id": "ACH-000316",
+  "name": "SNU-886",
+  "lineage": "Liver",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/SNU-886.bam",
+  "size_gb": 21.2
+ },
+ {
+  "model_id": "ACH-000630",
+  "name": "YD-8",
+  "lineage": "Head and Neck",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30605.YD-8.1.bam",
+  "size_gb": 10.6
+ },
+ {
+  "model_id": "ACH-000657",
+  "name": "A2780",
+  "lineage": "Ovary/Fallopian Tube",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41668.A2780.5.bam",
+  "size_gb": 14.7
+ },
+ {
+  "model_id": "ACH-001318",
+  "name": "PLC/PRF/5",
+  "lineage": "Liver",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G27261.PLC_PRF_5.1.bam",
+  "size_gb": 14.1
+ },
+ {
+  "model_id": "ACH-000746",
+  "name": "GSS",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41661.GSS.5.bam",
+  "size_gb": 14.3
+ },
+ {
+  "model_id": "ACH-000255",
+  "name": "LMSU",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28044.LMSU.1.bam",
+  "size_gb": 11.0
+ },
+ {
+  "model_id": "ACH-000739",
+  "name": "Hep G2",
+  "lineage": "Liver",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41665.Hep_G2.5.bam",
+  "size_gb": 13.3
+ },
+ {
+  "model_id": "ACH-000801",
+  "name": "Hs 936.T",
+  "lineage": "Skin",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41731.Hs_936.T.5.bam",
+  "size_gb": 14.0
+ },
+ {
+  "model_id": "ACH-000452",
+  "name": "TE-8",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30563.TE-8.1.bam",
+  "size_gb": 10.2
+ },
+ {
+  "model_id": "ACH-000475",
+  "name": "huH-1",
+  "lineage": "Liver",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28886.huH-1.3.bam",
+  "size_gb": 14.0
+ },
+ {
+  "model_id": "ACH-000259",
+  "name": "KELLY",
+  "lineage": "Peripheral Nervous System",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28082.KELLY.1.bam",
+  "size_gb": 9.7
+ },
+ {
+  "model_id": "ACH-000764",
+  "name": "SH-10-TC",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41719.SH-10-TC.5.bam",
+  "size_gb": 12.4
+ },
+ {
+  "model_id": "ACH-000981",
+  "name": "DND-41",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30595.DND-41.3.bam",
+  "size_gb": 6.5
+ },
+ {
+  "model_id": "ACH-000709",
+  "name": "KMRC-2",
+  "lineage": "Kidney",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28012.KMRC-2.1.bam",
+  "size_gb": 10.9
+ },
+ {
+  "model_id": "ACH-000846",
+  "name": "FaDu",
+  "lineage": "Head and Neck",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41709.FaDu.5.bam",
+  "size_gb": 11.7
+ },
+ {
+  "model_id": "ACH-000948",
+  "name": "23132/87",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20505.23132_87.2.bam",
+  "size_gb": 11.6
+ },
+ {
+  "model_id": "ACH-000311",
+  "name": "NCI-H2122",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41673.NCI-H2122.5.bam",
+  "size_gb": 11.6
+ },
+ {
+  "model_id": "ACH-000077",
+  "name": "MJ",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28599.MJ.1.bam",
+  "size_gb": 20.1
+ },
+ {
+  "model_id": "ACH-000878",
+  "name": "HCC-15",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20483.HCC-15.2.bam",
+  "size_gb": 14.4
+ },
+ {
+  "model_id": "ACH-000515",
+  "name": "HCC-33",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20465.HCC-33.2.bam",
+  "size_gb": 13.0
+ },
+ {
+  "model_id": "ACH-000919",
+  "name": "IM95",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41680.IM95.5.bam",
+  "size_gb": 14.3
+ },
+ {
+  "model_id": "ACH-000827",
+  "name": "WM793",
+  "lineage": "Skin",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30632.WM-793.1.bam",
+  "size_gb": 14.0
+ },
+ {
+  "model_id": "ACH-000581",
+  "name": "SNU-16",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41710.SNU-16.5.bam",
+  "size_gb": 13.5
+ },
+ {
+  "model_id": "ACH-000778",
+  "name": "HSC-3",
+  "lineage": "Head and Neck",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20461.HSC-3.2.bam",
+  "size_gb": 12.1
+ },
+ {
+  "model_id": "ACH-000190",
+  "name": "HD-MY-Z",
+  "lineage": "Myeloid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41694.HD-MY-Z.5.bam",
+  "size_gb": 16.4
+ },
+ {
+  "model_id": "ACH-000958",
+  "name": "SW48",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30645.SW48.3.bam",
+  "size_gb": 7.2
+ },
+ {
+  "model_id": "ACH-000174",
+  "name": "CAL-62",
+  "lineage": "Thyroid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41746.CAL-62.5.bam",
+  "size_gb": 14.8
+ },
+ {
+  "model_id": "ACH-000257",
+  "name": "COR-L279",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20467.COR-L279.2.bam",
+  "size_gb": 12.4
+ },
+ {
+  "model_id": "ACH-000211",
+  "name": "Daoy",
+  "lineage": "CNS/Brain",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20471.Daoy.2.bam",
+  "size_gb": 13.0
+ },
+ {
+  "model_id": "ACH-000096",
+  "name": "G-401",
+  "lineage": "Kidney",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20489.G-401.2.bam",
+  "size_gb": 12.9
+ },
+ {
+  "model_id": "ACH-000849",
+  "name": "MDA-MB-468",
+  "lineage": "Breast",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28064.MDA-MB-468.1.bam",
+  "size_gb": 8.3
+ },
+ {
+  "model_id": "ACH-000219",
+  "name": "A-375",
+  "lineage": "Skin",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41669.A-375.5.bam",
+  "size_gb": 12.6
+ },
+ {
+  "model_id": "ACH-000777",
+  "name": "KYSE-30",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41685.KYSE-30.5.bam",
+  "size_gb": 14.4
+ },
+ {
+  "model_id": "ACH-000085",
+  "name": "T3M-4",
+  "lineage": "Pancreas",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41714.T3M-4.5.bam",
+  "size_gb": 14.2
+ },
+ {
+  "model_id": "ACH-000869",
+  "name": "NCI-H1568",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41703.NCI-H1568.5.bam",
+  "size_gb": 13.8
+ },
+ {
+  "model_id": "ACH-000023",
+  "name": "PA-TU-8988T",
+  "lineage": "Pancreas",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41691.PA-TU-8988T.5.bam",
+  "size_gb": 15.3
+ },
+ {
+  "model_id": "ACH-000307",
+  "name": "PK-1",
+  "lineage": "Pancreas",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41725.PK-1.5.bam",
+  "size_gb": 13.2
+ },
+ {
+  "model_id": "ACH-000346",
+  "name": "JVM-3",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28068.JVM-3.1.bam",
+  "size_gb": 11.5
+ },
+ {
+  "model_id": "ACH-000970",
+  "name": "SNU-C5",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30562.SNU-C5.1.bam",
+  "size_gb": 8.2
+ },
+ {
+  "model_id": "ACH-000471",
+  "name": "Li-7",
+  "lineage": "Liver",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28053.Li-7.1.bam",
+  "size_gb": 11.1
+ },
+ {
+  "model_id": "ACH-000886",
+  "name": "NCI-H2009",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41741.NCI-H2009.5.bam",
+  "size_gb": 13.2
+ },
+ {
+  "model_id": "ACH-000959",
+  "name": "SNU-C4",
+  "lineage": "Bowel",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30586.SNU-C4.1.bam",
+  "size_gb": 13.7
+ },
+ {
+  "model_id": "ACH-000796",
+  "name": "MCAS",
+  "lineage": "Ovary/Fallopian Tube",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28076.MCAS.1.bam",
+  "size_gb": 9.7
+ },
+ {
+  "model_id": "ACH-000469",
+  "name": "YH-13",
+  "lineage": "CNS/Brain",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30617.YH-13.1.bam",
+  "size_gb": 7.0
+ },
+ {
+  "model_id": "ACH-000695",
+  "name": "COR-L47",
+  "lineage": "Lung",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30591.COR-L47.1.bam",
+  "size_gb": 15.7
+ },
+ {
+  "model_id": "ACH-000408",
+  "name": "TE-5",
+  "lineage": "Esophagus/Stomach",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41699.TE-5.5.bam",
+  "size_gb": 14.1
+ },
+ {
+  "model_id": "ACH-000005",
+  "name": "HEL 92.1.7",
+  "lineage": "Myeloid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G20492.HEL_92.1.7.2.bam",
+  "size_gb": 14.2
+ },
+ {
+  "model_id": "ACH-000502",
+  "name": "TCC-PAN2",
+  "lineage": "Pancreas",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30638.TCC-PAN2.1.bam",
+  "size_gb": 9.8
+ },
+ {
+  "model_id": "ACH-000567",
+  "name": "ST486",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G30628.ST486.1.bam",
+  "size_gb": 17.1
+ },
+ {
+  "model_id": "ACH-000217",
+  "name": "JHH-6",
+  "lineage": "Liver",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41751.JHH-6.5.bam",
+  "size_gb": 16.3
+ },
+ {
+  "model_id": "ACH-000115",
+  "name": "VCaP",
+  "lineage": "Prostate",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41666.VCaP.5.bam",
+  "size_gb": 21.8
+ },
+ {
+  "model_id": "ACH-000320",
+  "name": "PSN1",
+  "lineage": "Pancreas",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41687.PSN1.5.bam",
+  "size_gb": 13.9
+ },
+ {
+  "model_id": "ACH-000200",
+  "name": "NMC-G1",
+  "lineage": "CNS/Brain",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41712.NMC-G1.5.bam",
+  "size_gb": 14.9
+ },
+ {
+  "model_id": "ACH-000887",
+  "name": "SF-172",
+  "lineage": "CNS/Brain",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-5QvWSq.Aligned.sortedByCoord.out.bam",
+  "size_gb": 17.1
+ },
+ {
+  "model_id": "ACH-000160",
+  "name": "BT-12",
+  "lineage": "CNS/Brain",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-Fdc1AO.Aligned.sortedByCoord.out.bam",
+  "size_gb": 15.9
+ },
+ {
+  "model_id": "ACH-000561",
+  "name": "T.T",
+  "lineage": "Esophagus/Stomach",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-FHmCOw.Aligned.sortedByCoord.out.bam",
+  "size_gb": 14.5
+ },
+ {
+  "model_id": "ACH-000019",
+  "name": "MCF-7",
+  "lineage": "Breast",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-5yMpMQ.Aligned.sortedByCoord.out.bam",
+  "size_gb": 15.0
+ },
+ {
+  "model_id": "ACH-001193",
+  "name": "SK-PN-DW",
+  "lineage": "Bone",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-F182u3.Aligned.sortedByCoord.out.bam",
+  "size_gb": 8.6
+ },
+ {
+  "model_id": "ACH-000197",
+  "name": "TALL-1",
+  "lineage": "Lymphoid",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-CxXfFB.Aligned.sortedByCoord.out.bam",
+  "size_gb": 11.3
+ },
+ {
+  "model_id": "ACH-001183",
+  "name": "RT112/84",
+  "lineage": "Bladder/Urinary Tract",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-LJhY0o.Aligned.sortedByCoord.out.bam",
+  "size_gb": 4.2
+ },
+ {
+  "model_id": "ACH-000216",
+  "name": "JH-EsoAd1",
+  "lineage": "Esophagus/Stomach",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-PPjT45.Aligned.sortedByCoord.out.bam",
+  "size_gb": 15.7
+ },
+ {
+  "model_id": "ACH-000556",
+  "name": "SIHA",
+  "lineage": "Cervix",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-OXLnHs.Aligned.sortedByCoord.out.bam",
+  "size_gb": 4.8
+ },
+ {
+  "model_id": "ACH-001067",
+  "name": "F5",
+  "lineage": "CNS/Brain",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-SA3OeM.Aligned.sortedByCoord.out.bam",
+  "size_gb": 4.1
+ },
+ {
+  "model_id": "ACH-001099",
+  "name": "KD",
+  "lineage": "Soft Tissue",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-UFAuQl.Aligned.sortedByCoord.out.bam",
+  "size_gb": 9.2
+ },
+ {
+  "model_id": "ACH-000512",
+  "name": "INA6",
+  "lineage": "Lymphoid",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-UyO40g.Aligned.sortedByCoord.out.bam",
+  "size_gb": 14.1
+ },
+ {
+  "model_id": "ACH-000616",
+  "name": "Hs 746T",
+  "lineage": "Esophagus/Stomach",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-UsIdOY.Aligned.sortedByCoord.out.bam",
+  "size_gb": 15.6
+ },
+ {
+  "model_id": "ACH-000533",
+  "name": "NCI-H2004 RT",
+  "lineage": "Kidney",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-by8tR8.Aligned.sortedByCoord.out.bam",
+  "size_gb": 15.5
+ },
+ {
+  "model_id": "ACH-000172",
+  "name": "TM-87",
+  "lineage": "Soft Tissue",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-dycNPt.Aligned.sortedByCoord.out.bam",
+  "size_gb": 15.5
+ },
+ {
+  "model_id": "ACH-000206",
+  "name": "C8166",
+  "lineage": "Lymphoid",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-kv9MeK.Aligned.sortedByCoord.out.bam",
+  "size_gb": 4.8
+ },
+ {
+  "model_id": "ACH-000436",
+  "name": "OCI-My7",
+  "lineage": "Lymphoid",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-qyLPao.Aligned.sortedByCoord.out.bam",
+  "size_gb": 15.5
+ },
+ {
+  "model_id": "ACH-001211",
+  "name": "TTC-549",
+  "lineage": "Soft Tissue",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-rvJWWm.Aligned.sortedByCoord.out.bam",
+  "size_gb": 8.7
+ },
+ {
+  "model_id": "ACH-001048",
+  "name": "COV504",
+  "lineage": "Ovary/Fallopian Tube",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-xoxjMy.Aligned.sortedByCoord.out.bam",
+  "size_gb": 4.7
+ },
+ {
+  "model_id": "ACH-001128",
+  "name": "MON",
+  "lineage": "Soft Tissue",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-zmiamL.Aligned.sortedByCoord.out.bam",
+  "size_gb": 7.9
+ },
+ {
+  "model_id": "ACH-000015",
+  "name": "NCI-H1581",
+  "lineage": "Lung",
+  "genome": "hg38",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/CDS-MpPGAD.bam",
+  "size_gb": 14.2
+ }
+]
