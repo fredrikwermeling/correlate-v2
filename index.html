@@ -3042,6 +3042,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.86 (2026-10-26)</strong></p><ul>
+                    <li><b>Hovering a gene program names its genes.</b> The score is a mean over a curated panel, so the panel is now in the hover: every gene with this cell line's own z-score, highest first, and any panel gene the cell line has no measurement for. Both the above-average and the below-average lists carry it.</li>
+                </ul>
                 <p><strong>v.91.85 (2026-10-26)</strong></p><ul>
                     <li><b>The tour screenshots are sharp.</b> They were saved as lossy WebP, which smears thin lines and small text, so the gene names and axis labels looked soft. Fourteen of the sixteen are now re-encoded losslessly from the original captures, at the same size.</li>
                 </ul>
@@ -9024,7 +9027,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.85</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.86</a>
         </span>
     </div>
 
@@ -12444,7 +12447,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_84"></script>
+    <script src="app.js?v=v91_86"></script>
     <script src="tour.js?v=v91_83"></script>
 </body>
 </html>
