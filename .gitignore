@@ -33,3 +33,8 @@ scripts/kegg_raw.json
 # Local working files, not repo material
 Make correlate scale for cell phone.docx
 cell line browser image.png
+
+# virus scan: downloaded references and run outputs
+scripts/virus_aws/refs/
+scripts/virus_aws/counts_*.json
+scripts/virus_aws/verify.log

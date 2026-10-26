@@ -1,0 +1,23 @@
+{
+  "_description": "Viral (and one mycoplasma) reference genomes screened for in the unmapped RNA-seq reads. Accessions checked against NCBI esummary on 2026-10-26.",
+  "references": [
+    {"acc": "NC_007605.1", "key": "EBV", "label": "Epstein-Barr virus (HHV-4)"},
+    {"acc": "NC_009333.1", "key": "KSHV", "label": "Kaposi sarcoma herpesvirus (HHV-8)"},
+    {"acc": "NC_001806.2", "key": "HSV1", "label": "Herpes simplex virus 1"},
+    {"acc": "NC_006273.2", "key": "CMV", "label": "Cytomegalovirus (HHV-5)"},
+    {"acc": "NC_003977.2", "key": "HBV", "label": "Hepatitis B virus"},
+    {"acc": "NC_004102.1", "key": "HCV", "label": "Hepatitis C virus genotype 1"},
+    {"acc": "NC_001436.1", "key": "HTLV1", "label": "Human T-lymphotropic virus 1"},
+    {"acc": "NC_001802.1", "key": "HIV1", "label": "Human immunodeficiency virus 1"},
+    {"acc": "NC_001526.4", "key": "HPV16", "label": "Human papillomavirus 16"},
+    {"acc": "NC_001357.1", "key": "HPV18", "label": "Human papillomavirus 18"},
+    {"acc": "NC_001590.1", "key": "HPV45", "label": "Human papillomavirus 45"},
+    {"acc": "NC_010277.2", "key": "MCPyV", "label": "Merkel cell polyomavirus"},
+    {"acc": "NC_001538.1", "key": "BKPyV", "label": "BK polyomavirus"},
+    {"acc": "NC_001669.1", "key": "SV40", "label": "Simian virus 40", "note": "SV40 promoter and polyA signals are in many plasmid vectors; a hit confined to those regions is a vector, not an infection (check breadth)."},
+    {"acc": "AC_000008.1", "key": "HAdV5", "label": "Human adenovirus 5", "note": "HEK293-derived and adenovirus-transformed lines carry adenovirus 5 DNA."},
+    {"acc": "NC_007815.2", "key": "XMRV", "label": "XMRV (mouse retrovirus)", "note": "Culture contaminant from mouse xenograft passage; shares sequence with MoMLV."},
+    {"acc": "NC_001501.1", "key": "MLV", "label": "Moloney murine leukemia virus", "note": "Also the backbone of retroviral vectors (LTRs); a narrow hit can be a vector."},
+    {"acc": "NC_014448.1", "key": "Mhyo", "label": "Mycoplasma hyorhinis", "note": "Culture contaminant. Bacterial mRNA has no polyA tail, so polyA-selected RNA-seq undercounts it; presence is informative, absence is weak evidence."}
+  ]
+}

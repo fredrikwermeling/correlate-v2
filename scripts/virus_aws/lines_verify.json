@@ -1,0 +1,37 @@
+[
+ {
+  "model_id": "ACH-000242",
+  "name": "RT4",
+  "lineage": "Bladder/Urinary Tract",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G41706.RT4.5.bam",
+  "size_gb": 16.1
+ },
+ {
+  "model_id": "ACH-000944",
+  "name": "NAMALWA",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28578.NAMALWA.1.bam",
+  "size_gb": 19.9
+ },
+ {
+  "model_id": "ACH-000654",
+  "name": "Raji",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G27519.Raji.2.bam",
+  "size_gb": 19.2
+ },
+ {
+  "model_id": "ACH-001318",
+  "name": "PLC/PRF/5",
+  "lineage": "Liver",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G27261.PLC_PRF_5.1.bam",
+  "size_gb": 14.1
+ },
+ {
+  "model_id": "ACH-000077",
+  "name": "MJ",
+  "lineage": "Lymphoid",
+  "bam": "https://depmap-omics-ccle.s3.us-east-1.amazonaws.com/data/rna/bam/G28599.MJ.1.bam",
+  "size_gb": 20.1
+ }
+]
