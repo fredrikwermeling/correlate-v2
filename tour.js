@@ -275,7 +275,7 @@
     <div class="tour-wrap tour-top-in">
         <div class="tour-brand"><b>Correlate</b><span>Tour of the app</span></div>
         <nav class="tour-nav" aria-label="Sections">
-            <a href="#tour-network">Network</a>
+            <a href="#tour-network">Gene set analysis</a>
             <a href="#tour-corr">Correlation plot</a>
             <a href="#tour-cells">Cell Line Browser</a>
             <a href="#tour-gene">Gene Browser</a>
@@ -301,7 +301,7 @@
             ${shot('net_p53', 'A network built from eleven p53 pathway and TSC genes', 'hero', { eager: true, cap: `A network from a list of ${nSet} genes: the p53 pathway and the TSC complex. Blue edges join genes that cells need together, red edges join opposites: cells that need ${gi('MDM2')} tolerate losing ${gi('TP53')}. In the app, hover over genes and edges for details and double-click them to open their plots.`, btn: 'Try it: build and explore this network' })}
         </div>
     </div>
-    <div class="tour-wrap tour-next-row">${nextBtn('tour-network', 'Network', 'cube')}</div>
+    <div class="tour-wrap tour-next-row">${nextBtn('tour-network', 'Gene set analysis', 'cube')}</div>
 </section>
 
 <section class="tour-stats" id="tour-stats">
@@ -316,7 +316,7 @@
 <section class="tour-sec" id="tour-network">
     <div class="tour-wrap">
         <div class="tour-text tour-text-wide">
-            <p class="tour-eyebrow">1 &middot; Network</p>
+            <p class="tour-eyebrow">1 &middot; Gene set analysis</p>
             <h2>Paste a gene set, get a network</h2>
             <p>Correlate calculates the correlation (Pearson r) between every pair of genes in your set across the cell lines, on CRISPR gene effect (${nL} cell lines) or on mRNA expression. Pairs whose correlation passes the cutoff you set are joined by a line in the network: blue for a positive correlation, red for a negative one, thicker for a stronger one. Genes that end up joined often work together, in the same complex or pathway.</p>
             ${checks([
@@ -624,8 +624,14 @@ html.popout-open #tourNetHint { display: none; }
         page.setAttribute('role', 'dialog');
         page.setAttribute('aria-label', 'Tour of the app');
         document.body.appendChild(page);
-        // A scroll of the reader's own always wins over a running glide.
-        const stopGlide = () => cancelAnimationFrame(scrollRaf);
+        // A scroll of the reader's own wins over a running glide. A resting
+        // trackpad emits wheel events carrying no delta, so only a real push,
+        // and not one in the same moment as the click, counts.
+        const stopGlide = (e) => {
+            if (e.type === 'wheel' && Math.abs(e.deltaY || 0) < 3) return;
+            if (performance.now() - glideT0 < 220) return;
+            cancelAnimationFrame(scrollRaf);
+        };
         page.addEventListener('wheel', stopGlide, { passive: true });
         page.addEventListener('touchstart', stopGlide, { passive: true });
         page.addEventListener('click', (e) => {
@@ -651,10 +657,11 @@ html.popout-open #tourNetHint { display: none; }
     // The browser's own smooth scroll crosses a long page in a few hundred ms,
     // which reads as a jump, so the glide is run by hand over a duration that
     // grows with the distance and stops as soon as the reader scrolls.
-    let scrollRaf = 0;
+    let scrollRaf = 0, glideT0 = 0;
     function glideTo(page, top, dur) {
         cancelAnimationFrame(scrollRaf);
         const from = page.scrollTop, d = top - from, t0 = performance.now();
+        glideT0 = t0;
         if (!d) return;
         if (reduced()) { page.scrollTop = top; return; }
         const step = (now) => {

@@ -3023,6 +3023,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.82 (2026-10-26)</strong></p><ul>
+                    <li><b>Next in the tour moves the page again.</b> A trackpad resting on the pad emits scroll events carrying no distance, and those were read as "the reader is scrolling" and stopped the glide a few pixels in. Only a real push stops it now.</li>
+                    <li>Tour of the app: the first section is called Gene set analysis, after the button it describes, instead of Network.</li>
+                </ul>
                 <p><strong>v.91.81 (2026-10-26)</strong></p><ul>
                     <li><b>Tour of the app: the opening now names the three tools.</b> Each of the first three lines carries the button it belongs to, Gene set analysis, Cell Line Browser or Gene Browser, and clicking one goes to that part of the tour.</li>
                     <li><b>Next moves down the page instead of jumping.</b> The glide takes longer the further it has to go, and stops the moment you scroll yourself. Two of the steps also turn the page: the opening tips back like the face of a cube, and the Correlation plot zooms through into the Cell Line Browser.</li>
@@ -8986,7 +8990,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.81</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.82</a>
         </span>
     </div>
 
@@ -12407,6 +12411,6 @@
     </div>
 
     <script src="app.js?v=v91_79"></script>
-    <script src="tour.js?v=v91_81"></script>
+    <script src="tour.js?v=v91_82"></script>
 </body>
 </html>
