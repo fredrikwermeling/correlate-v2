@@ -1737,6 +1737,7 @@
         .gb-scope .gb-summary { font-size:13px; line-height:1.6; }
         .gb-scope .gb-verdict { font-size:12px; line-height:1.55; color:#1f2937; background:#f3faee; border-left:3px solid #6ba544; border-radius:0 4px 4px 0; padding:6px 10px; margin:0 0 10px; }
         .gb-scope .gb-m { font-size:10px; color:#6b7280; }
+        .gb-scope .gb-rweak { color:#9ca3af; }
         .gb-scope .gb-mrna { font-size:11.5px; line-height:1.5; color:#78350f; background:#fffbeb; border-left:3px solid #d97706; border-radius:0 4px 4px 0; padding:6px 10px; margin:0 0 10px; }
         .gb-scope .gb-sub { font-weight:600; color:#374151; font-size:12px; margin:12px 0 4px; }
         /* The main parts of a card (Related genes: co-dependencies, co-expression,
@@ -3018,6 +3019,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.61 (2026-10-26)</strong></p><ul>
+                    <li><b>Cancer type Wiki: hover cards.</b> Gene and cell line names, and the protein names over the surface matrix, show the same hover cards as elsewhere in the app.</li>
+                    <li><b>Surface protein tables show the median in the other cell lines</b> beside the median in the group.</li>
+                    <li><b>CD names.</b> A CD marker's tag shows its CD name (EPCAM is CD326), also in its hover card.</li>
+                    <li><b>Gene Browser: weak correlations in gray.</b> In co-dependencies and expression correlations, an r below 0.3 either way is gray in the table and in the figure.</li>
+                    <li><b>Fix: Gene Browser plots by cancer type</b> drew the cutoff line beside the row labels when no cell line came near it. The axis now always takes in the cutoff.</li>
+                    <li><b>Fix: the "Color only these" picker marked Strongest r as chosen</b> whatever was ticked. The preset that matches the ticked groups is now the one marked.</li>
+                </ul>
                 <p><strong>v.91.60 (2026-10-26)</strong></p><ul>
                     <li><b>Identity check by whole transcriptome.</b> Every cell line with mRNA data is compared with every other by its 5,000 most variable genes, leaving out cell lines from the same patient so a cell line and its derivatives cannot vouch for each other. A cell line none of whose five most similar cell lines shares its tissue "looks like another cancer type". About 86% of cell lines look like their own tissue, and the check picks up several cell lines Cellosaurus lists as misclassified (SK-HEP-1, HD-MY-Z, G-401, OVCAR-5, HS-Sch-2).</li>
                     <li><b>Cancer type Wiki:</b> a new Identity check section lists the group's cell lines that look like another cancer type, with their five most similar cell lines, the surface panel's second opinion and any Cellosaurus record. The surface protein sections say "mRNA levels, not protein" in their titles.</li>
@@ -8895,7 +8904,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.60</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.61</a>
         </span>
     </div>
 
@@ -12295,7 +12304,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_60"></script>
+    <script src="app.js?v=v91_61"></script>
     <script src="tour.js?v=v91_54"></script>
 </body>
 </html>
