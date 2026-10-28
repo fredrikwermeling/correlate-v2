@@ -855,6 +855,7 @@
         /* Section headings that give box 1 its structure ("Lineage filter",
            "Genetic alterations"). */
         .param-section-heading {
+            flex-wrap: wrap;
             border-top: 1px solid #e5e7eb;
             margin: 12px 0 6px;
             padding-top: 10px;
@@ -862,6 +863,22 @@
             font-size: 0.9em;
             color: #374151;
         }
+
+        /* What a closed section reports: set between the title and the caret,
+           so a filter that is on is never hidden with the panel. */
+        .param-sec-sum {
+            flex-basis: 100%;
+            min-width: 0;
+            margin: -2px 0 2px;
+            font-size: 11px;
+            font-weight: 400;
+            color: #6ba544;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .param-sec-sum:empty,
+        [aria-expanded="true"] > .param-sec-sum { display: none; }
 
         /* The filter inputs in box 1 were set at the same weight and size as the
            headings, so the eye landed on "Search hotspot gene..." rather than on
@@ -3042,6 +3059,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.91 (2026-10-28)</strong></p><ul>
+                    <li><b>The two filter blocks in the sidebar are headings you open.</b> Lineage and disease, and Genetic alterations, are two blocks of selectors most runs never touch, and they sat between the gene box and Run. They now start as single lines that open on a click, the way they already did on a phone and an iPad, so Set Parameters ends where the settings you actually change end. A section that holds a filter writes it under its heading in green, so nothing is hidden by being closed, and the Active filters list under Run is unchanged.</li>
+                </ul>
                 <p><strong>v.91.90 (2026-10-28)</strong></p><ul>
                     <li><b>The full page exports the same figure as the normal view.</b> The filter banner and the legend are drawn at screen sizes and the whole picture is then scaled down to the print width, so the wider full-page panel left both of them small beside the network. They now scale with the panel, in the copied image, the PNG and the SVG, and the legend keeps its spacing and swatch sizes while it does.</li>
                     <li><b>Fit takes the labels in.</b> It framed the nodes alone, so a long gene name could sit half outside the view, and it could not zoom past 100 percent however much room was left. It now measures each node with its label, fills the panel as far as the shape of the layout allows, and waits for the nodes to settle when it has just put the spread back to full.</li>
@@ -9041,7 +9061,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.90</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.91</a>
         </span>
     </div>
 
@@ -12461,7 +12481,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_90"></script>
+    <script src="app.js?v=v91_91"></script>
     <script src="tour.js?v=v91_87"></script>
 </body>
 </html>
