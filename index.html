@@ -3042,6 +3042,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.90 (2026-10-28)</strong></p><ul>
+                    <li><b>The full page exports the same figure as the normal view.</b> The filter banner and the legend are drawn at screen sizes and the whole picture is then scaled down to the print width, so the wider full-page panel left both of them small beside the network. They now scale with the panel, in the copied image, the PNG and the SVG, and the legend keeps its spacing and swatch sizes while it does.</li>
+                    <li><b>Fit takes the labels in.</b> It framed the nodes alone, so a long gene name could sit half outside the view, and it could not zoom past 100 percent however much room was left. It now measures each node with its label, fills the panel as far as the shape of the layout allows, and waits for the nodes to settle when it has just put the spread back to full.</li>
+                </ul>
                 <p><strong>v.91.89 (2026-10-28)</strong></p><ul>
                     <li><b>Clicking a dot in the Gene Browser labels it.</b> A dot in the by-cancer-type figures used to open that cell line in the Cell Line Browser, a view hidden behind the Gene Browser, so the only sign anything had happened was movement in the background. A plain click now writes the cell line's name on the figure, and clicking the dot or the label again takes it off. Shift-click still opens the cell line, and closes the Gene Browser so you can see where you landed.</li>
                 </ul>
@@ -9037,7 +9041,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.89</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.90</a>
         </span>
     </div>
 
@@ -12457,7 +12461,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_89"></script>
+    <script src="app.js?v=v91_90"></script>
     <script src="tour.js?v=v91_87"></script>
 </body>
 </html>
