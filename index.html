@@ -3042,6 +3042,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.88 (2026-10-28)</strong></p><ul>
+                    <li><b>Complexes and pathways can be read on mRNA as well as gene effect.</b> A switch over the Gene Browser's complex and pathway lists puts either number on every member: gene effect asks whether the cell needs them together, mRNA whether it makes them together. The two often differ. The MCM complex is only partly co-dependent (median r 0.23, every subunit is essential everywhere) but strongly co-expressed (0.74), and for a gene no screen separates, mRNA is the only reading there is.</li>
+                    <li><b>An empty complex list now says both databases were checked.</b> It used to name only EBI Complex Portal, which read as if CORUM had never been looked at. The Pathways heading also says when Reactome lists none.</li>
+                </ul>
                 <p><strong>v.91.87 (2026-10-26)</strong></p><ul>
                     <li><b>The last two tour screenshots are sharp too.</b> The mRNA network and the TP53 exon and sequence picture had no original left to re-encode, so both were taken again from the app as it stands now, and saved losslessly.</li>
                 </ul>
@@ -9030,7 +9034,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.87</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.88</a>
         </span>
     </div>
 
@@ -12450,7 +12454,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_86"></script>
+    <script src="app.js?v=v91_88"></script>
     <script src="tour.js?v=v91_87"></script>
 </body>
 </html>
