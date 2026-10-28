@@ -3059,6 +3059,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.92 (2026-10-28)</strong></p><ul>
+                    <li><b>The page opens with about 45 MB less to download.</b> The mRNA matrix is 44 MB, more than half of everything the app pulled at startup, and a session that only correlates gene effect never reads a number out of it. It is fetched the first time something needs it instead, and the views built on it (the Gene Browser, the Cell Line Browser, the two Wikis) ask for it as they open, so it arrives while you are reading rather than when you want a value from it. A cold visit goes from about 76 MB to about 31 MB. Reactome's pathway memberships, a megabyte compressed and a good deal more once parsed, load the same way: with the Gene Browser's partner tags, the co-movement check or an AI export.</li>
+                    <li><b>The cell line Wiki waits for mRNA instead of leaving gaps.</b> The surface panel, the lineage markers, the gene programs and the class I call are all built from it, and they used to drop out silently when it was missing. The page now opens on a line saying what it is waiting for.</li>
+                    <li><b>A long run in the Gene Browser stops growing.</b> Each gene's page keeps that gene's correlation against all 18,531 others, about a megabyte, and nothing ever dropped them: forty genes meant forty copies. The last six are kept.</li>
+                </ul>
                 <p><strong>v.91.91 (2026-10-28)</strong></p><ul>
                     <li><b>The two filter blocks in the sidebar are headings you open.</b> Lineage and disease, and Genetic alterations, are two blocks of selectors most runs never touch, and they sat between the gene box and Run. They now start as single lines that open on a click, the way they already did on a phone and an iPad, so Set Parameters ends where the settings you actually change end. A section that holds a filter writes it under its heading in green, so nothing is hidden by being closed, and the Active filters list under Run is unchanged.</li>
                 </ul>
@@ -9061,7 +9066,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.91</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.92</a>
         </span>
     </div>
 
@@ -12481,7 +12486,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_91"></script>
+    <script src="app.js?v=v91_92"></script>
     <script src="tour.js?v=v91_87"></script>
 </body>
 </html>
