@@ -3059,6 +3059,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.93 (2026-11-01)</strong></p><ul>
+                    <li><b>Full page is a bigger sheet for the same network, not a magnified one.</b> Nodes, labels, edges and the legend keep the size they have in the normal view, and the network spreads out to fill the page, so a set too crowded to read in the panel opens up. An image exported from the full page is the same figure drawn wider, for a full-page-width figure where the normal view gives a one-column one, with the text the same size in both. Fit in the full page spreads the network to fill it at that size. Leaving the full page draws the network back in, exactly as it was.</li>
+                    <li><b>The tour of the app is in the main version of Correlate (correlate.cmm.se) as well.</b> It shows only the tools that version has, so the parts on the mRNA network, PCA and the heatmap are left out there.</li>
+                </ul>
                 <p><strong>v.91.92 (2026-10-28)</strong></p><ul>
                     <li><b>The page opens with about 45 MB less to download.</b> The mRNA matrix is 44 MB, more than half of everything the app pulled at startup, and a session that only correlates gene effect never reads a number out of it. It is fetched the first time something needs it instead, and the views built on it (the Gene Browser, the Cell Line Browser, the two Wikis) ask for it as they open, so it arrives while you are reading rather than when you want a value from it. A cold visit goes from about 76 MB to about 31 MB. Reactome's pathway memberships, a megabyte compressed and a good deal more once parsed, load the same way: with the Gene Browser's partner tags, the co-movement check or an AI export.</li>
                     <li><b>The cell line Wiki waits for mRNA instead of leaving gaps.</b> The surface panel, the lineage markers, the gene programs and the class I call are all built from it, and they used to drop out silently when it was missing. The page now opens on a line saying what it is waiting for.</li>
@@ -9066,7 +9070,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.92</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.93</a>
         </span>
     </div>
 
@@ -12486,7 +12490,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_92"></script>
-    <script src="tour.js?v=v91_87"></script>
+    <script src="app.js?v=v91_93"></script>
+    <script src="tour.js?v=v91_93"></script>
 </body>
 </html>

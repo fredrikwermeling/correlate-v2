@@ -66,7 +66,10 @@ ASSETS = ["network_example.svg", "scatter_example.svg", "tsc_pathway.svg",
           # UI images live in web_data but are build assets, not release data,
           # so they ride along with every rebuild rather than waiting for a
           # DepMap release copy.
-          "web_data/clb_banner.png", "web_data/correlate_logo.png"]
+          "web_data/clb_banner.png", "web_data/correlate_logo.png",
+          # The tour; tour_img/ is copied whole below (ASSET_DIRS).
+          "tour.js"]
+ASSET_DIRS = ["tour_img"]
 
 
 def cut_div(lines, div_id):
@@ -159,7 +162,11 @@ def main():
         s = os.path.join(V2, a)
         if os.path.exists(s):
             shutil.copy2(s, os.path.join(V1, a))
-    print(f"\nWrote index.html + app.js + {len(ASSETS)} assets to:\n  {V1}")
+    for d in ASSET_DIRS:
+        s = os.path.join(V2, d)
+        if os.path.isdir(s):
+            shutil.copytree(s, os.path.join(V1, d), dirs_exist_ok=True)
+    print(f"\nWrote index.html + app.js + {len(ASSETS)} assets + {', '.join(ASSET_DIRS)}/ to:\n  {V1}")
 
     # V1 is served by Apache (V2 and CoExpress are on GitHub Pages, which sets
     # its own headers), so the cache policy is a V1-only deployment file. It

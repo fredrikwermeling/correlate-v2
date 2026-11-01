@@ -249,6 +249,14 @@
     };
 
     // ------------------------------------------------------------ page
+    // The V1 build (scripts/build_v1.py) leaves some tools out, and the tour
+    // shows only what this build has; each test is that tool's markup.
+    const HAS = {
+        mrnaNet: () => !!document.querySelector('input[name="analysisBasis"]'),
+        pca: () => !!document.getElementById('clbUmapSection'),
+        heatmap: () => !!document.getElementById('heatmapModal'),
+        cutoff: () => !!document.getElementById('cutoffModal'),
+    };
     const shot = (file, alt, act, o) => {
         o = o || {};
         // A figure is a picture; the one way to open its view is the button
@@ -270,6 +278,10 @@
 
     function pageHTML() {
         const nL = num(D.nLines()), nE = num(D.nExprLines()), nG = num(D.nGenes()), nSet = HERO_SET.length;
+        const mrnaNet = HAS.mrnaNet(), pca = HAS.pca(), heatmap = HAS.heatmap();
+        const ways = ['against all other cell lines', pca && 'as a PCA', heatmap && 'as a heatmap of a gene set'].filter(Boolean);
+        const otherTools = ['mutation analysis', 'gene effect or expression of one gene', 'the correlation plot',
+            heatmap && 'the gene set heatmap', HAS.cutoff() && 'the threshold scan', 'Paste from AI', 'opening a saved figure'].filter(Boolean);
         return `
 <header class="tour-top">
     <div class="tour-wrap tour-top-in">
@@ -291,7 +303,7 @@
         <h1>Correlate brings together CRISPR knockout screens, mRNA expression, mutations, copy number and drug response from DepMap, adds gene and cell line information from many other databases, and connects them.</h1>
         <p class="tour-sub">Use it to:</p>
         <ul class="tour-hero-list">
-            <li class="tour-hero-fn"><button type="button" class="tour-modebtn" data-next="#tour-network">Gene set<br>analysis</button><span>Find connections within your gene list, for example hits from a CRISPR screen or a transcriptomics experiment, from unbiased correlations of CRISPR gene effect or mRNA across the cell lines.</span></li>
+            <li class="tour-hero-fn"><button type="button" class="tour-modebtn" data-next="#tour-network">Gene set<br>analysis</button><span>Find connections within your gene list, for example hits from a CRISPR screen or a transcriptomics experiment, from unbiased correlations of CRISPR gene effect${mrnaNet ? ' or mRNA' : ''} across the cell lines.</span></li>
             <li class="tour-hero-fn"><button type="button" class="tour-modebtn" data-next="#tour-cells">Cell Line<br>Browser</button><span>Find the right cell lines for your project, by mutations, mutation patterns and cancer type, and compare omics data between groups of cell lines.</span></li>
             <li class="tour-hero-fn"><button type="button" class="tour-modebtn" data-next="#tour-gene">Gene<br>Browser</button><span>Get extensive information about any gene: dependency, expression, mutations, protein complexes, drugs and literature, gathered from DepMap, UniProt, Cellosaurus and other sources.</span></li>
             <li>Export any view for AI, to discuss the data with your favorite language model.</li>
@@ -318,16 +330,16 @@
         <div class="tour-text tour-text-wide">
             <p class="tour-eyebrow">1 &middot; Gene set analysis</p>
             <h2>Paste a gene set, get a network</h2>
-            <p>Correlate calculates the correlation (Pearson r) between every pair of genes in your set across the cell lines, on CRISPR gene effect (${nL} cell lines) or on mRNA expression. Pairs whose correlation passes the cutoff you set are joined by a line in the network: blue for a positive correlation, red for a negative one, thicker for a stronger one. Genes that end up joined often work together, in the same complex or pathway.</p>
+            <p>Correlate calculates the correlation (Pearson r) between every pair of genes in your set across the cell lines, on CRISPR gene effect (${nL} cell lines)${mrnaNet ? ' or on mRNA expression' : ''}. Pairs whose correlation passes the cutoff you set are joined by a line in the network: blue for a positive correlation, red for a negative one, thicker for a stronger one. Genes that end up joined often work together, in the same complex or pathway.</p>
             ${checks([
                 'Hover over a gene or an edge for details. Double-click a gene for its gene effect across the cell lines, or an edge for the correlation plot behind it.',
                 'Paste your own screen results (LFC and FDR) next to the gene list, and Correlate shows the set as a network colored by your results, or as a correlation matrix.',
                 'Expand the set to find new partners that are not in your list, and send genes to Enrichr to see which known gene sets (Reactome, GO and others) they overlap with.',
             ])}
         </div>
-        <div class="tour-two tour-two-net">
+        <div class="tour-two tour-two-net${mrnaNet ? '' : ' tour-two-one'}">
             ${shot('net_stats', 'A list of 22 cancer genes with screen statistics pasted alongside, nodes colored by LFC', 'heroStats', { cap: 'A network of 22 genes with statistics from your own experiment added: each gene is colored by its value, here the log fold change (LFC) from a screen.', btn: 'Build it with the screen results' })}
-            ${shot('net_mrna', 'The same eleven genes built on mRNA expression', 'heroMrna', { cap: `The ${nSet} genes from the top of the page, as a network built on mRNA expression data.`, btn: 'Build this set on mRNA' })}
+            ${mrnaNet ? shot('net_mrna', 'The same eleven genes built on mRNA expression', 'heroMrna', { cap: `The ${nSet} genes from the top of the page, as a network built on mRNA expression data.`, btn: 'Build this set on mRNA' }) : ''}
         </div>
     </div>
     <div class="tour-wrap tour-next-row">${nextBtn('tour-corr', 'Correlation plot')}</div>
@@ -368,7 +380,7 @@
                 <p>Narrow the ${nL} cell lines down by cancer type, mutation, fusion, copy number, sex, drug response, or how much they express or need any gene. Every cell line has its own Wiki, a comprehensive summary.</p>
                 ${checks([
                     `Example: melanoma cell lines with mutated ${gi('BRAF')}. The count updates as you go.`,
-                    'From the list: compare the selection with the rest, a PCA or UMAP, a heatmap of any gene set.',
+                    `From the list: compare the selection with the rest${pca ? ', a PCA or UMAP' : ''}${heatmap ? ', a heatmap of any gene set' : ''}.`,
                     'Download a cell line’s full tables, or the list on screen, as CSV.',
                 ])}
             </div>
@@ -385,16 +397,16 @@
             ${shot('oncoprint_mel', 'The mutation grid for the 67 melanoma cell lines, BRAF mutated kept, TP53 and CDKN2A mutated left out', 'oncoprint', { cap: `The 67 melanoma cell lines: ${gi('BRAF')}-mutated kept (green), ${gi('TP53')}- and ${gi('CDKN2A')}-mutated left out (red), which leaves 38.`, btn: 'Open the mutation grid with these picks' })}
         </div>
         <div class="tour-text tour-text-wide" style="margin-top:56px;">
-            <h3>Compare the cell lines in different ways</h3>
-            <p>The same 50 <i>BRAF</i>-mutated melanoma cell lines, three ways: against all other cell lines, as a PCA, and as a heatmap of a gene set.</p>
+            <h3>${ways.length > 1 ? 'Compare the cell lines in different ways' : 'Compare them with the other cell lines'}</h3>
+            <p>The same 50 <i>BRAF</i>-mutated melanoma cell lines${ways.length > 1 ? `, ${ways.length === 3 ? 'three' : 'two'} ways: ${ways.slice(0, -1).join(', ')}${ways.length === 3 ? ',' : ''} and ${ways[ways.length - 1]}` : ` ${ways[0]}`}.</p>
         </div>
-        <div class="tour-two tour-two-tight tour-two-pca">
+        <div class="tour-two tour-two-tight ${pca ? 'tour-two-pca' : 'tour-two-one'}">
             ${shot('volcano_mel', 'Volcano plot comparing the 50 BRAF-mutant melanoma cell lines with every other cell line', 'compare', { cap: `Compare: the 50 selected cell lines against the other 1,158. ${gi('BRAF')}, ${gi('SOX10')} and ${gi('MAPK1')} are their dependencies.`, btn: 'Compare these cell lines with the rest' })}
-            ${shot('pca_mitf', 'PCA of the melanoma cell lines on mRNA, colored by MITF expression, with loadings', 'pca', { cap: `PCA of the same 50 cell lines on mRNA, colored by ${gi('MITF')} expression. The loadings name the genes behind the axes.`, btn: 'Open this PCA' })}
+            ${pca ? shot('pca_mitf', 'PCA of the melanoma cell lines on mRNA, colored by MITF expression, with loadings', 'pca', { cap: `PCA of the same 50 cell lines on mRNA, colored by ${gi('MITF')} expression. The loadings name the genes behind the axes.`, btn: 'Open this PCA' }) : ''}
         </div>
-        <div class="tour-wide-shot">
+        ${heatmap ? `<div class="tour-wide-shot">
             ${shot('heatmap_tp53', 'Heatmap of the TP53 pathway members across the 50 BRAF-mutated melanoma cell lines, with a TP53 mutation row', 'heatmap', { cap: `Heatmap: each column is one of the same 50 cell lines, each row a gene of the ${gi('TP53')} pathway. Cell lines with wild-type ${gi('TP53')} depend on ${gi('MDM2')} and ${gi('USP7')}; the ${gi('TP53')}-mutated ones, on the right, do not.`, btn: 'Open this heatmap' })}
-        </div>
+        </div>` : ''}
         <div class="tour-feature">
             <div class="tour-text">
                 <h3>The Wiki: a comprehensive summary of every cell line</h3>
@@ -454,7 +466,7 @@
 <section class="tour-sec" id="tour-more">
     <div class="tour-wrap">
         <p class="tour-eyebrow">Other features</p>
-        <p class="tour-lead-note">Found under <b>Other</b> in the app: mutation analysis, gene effect or expression of one gene, the correlation plot, the gene set heatmap, the threshold scan, Paste from AI and opening a saved figure.</p>
+        <p class="tour-lead-note">Found under <b>Other</b> in the app: ${otherTools.slice(0, -1).join(', ')} and ${otherTools[otherTools.length - 1]}.</p>
         <div class="tour-feature">
             <div class="tour-text">
                 <h3>Mutation analysis</h3>
@@ -578,6 +590,7 @@ html.popout-open #tourNetHint { display: none; }
 #tourPage .tour-two-pca { grid-template-columns: minmax(0, 99fr) minmax(0, 133fr); align-items: stretch; }
 #tourPage .tour-two-pca .tour-shot img { aspect-ratio: auto; }
 #tourPage .tour-two-net .tour-shot img { aspect-ratio: 1 / 1; }
+#tourPage .tour-two-one { grid-template-columns: minmax(0, 560px); justify-content: center; }
 #tourPage .tour-stack .tour-shot img { aspect-ratio: 4 / 3; object-fit: contain; padding: 6px; }
 #tourPage .tour-card-fig h3 { font-size: 19px; font-weight: 800; margin: 18px 0 8px; color: #111827; }
 #tourPage .tour-card-fig p { font-size: 15px; line-height: 1.55; color: #374151; margin: 0 0 14px; }
