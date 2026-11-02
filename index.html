@@ -3059,6 +3059,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.95 (2026-11-02)</strong></p><ul>
+                    <li><b>Saved figures, session files and links can no longer run code in the app.</b> A security review found 13 places where a file or link from someone else could put working page code into Correlate: reopening a saved figure or .json, a "New tab" link, a heatmap view file, a pasted Paste from AI block, a stats file's column names, and the answers from the outside gene services the Gene Browser reads. Every one that a file, link or paste could reach was tried in the browser, fixed and tried again; the gene-service answers are now checked to be the identifiers and numbers they should be. Names from these sources are now shown as plain text, sizes and colors must be numbers and colors, and a saved Wiki must name a real cell line. Saved work reopens as before.</li>
+                </ul>
                 <p><strong>v.91.94 (2026-11-02)</strong></p><ul>
                     <li><b>With Correlate on set to mRNA, the gene box accepts genes that have mRNA data but no CRISPR knockout.</b> About 750 such genes were dropped as "not found". The check says how many of the genes typed are mRNA-only, and "Find correlated genes" searches every expressed gene on this setting.</li>
                     <li><b>A line clicked in an mRNA network opens the mRNA scatter.</b> From the second line clicked onwards the scatter opened on gene effect, so the r in the plot was not the r on the line.</li>
@@ -9076,7 +9079,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.94</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.95</a>
         </span>
     </div>
 
@@ -12496,7 +12499,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_94"></script>
+    <script src="app.js?v=v91_95"></script>
     <script src="tour.js?v=v91_93"></script>
 </body>
 </html>
