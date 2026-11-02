@@ -3059,6 +3059,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.94 (2026-11-02)</strong></p><ul>
+                    <li><b>With Correlate on set to mRNA, the gene box accepts genes that have mRNA data but no CRISPR knockout.</b> About 750 such genes were dropped as "not found". The check says how many of the genes typed are mRNA-only, and "Find correlated genes" searches every expressed gene on this setting.</li>
+                    <li><b>A line clicked in an mRNA network opens the mRNA scatter.</b> From the second line clicked onwards the scatter opened on gene effect, so the r in the plot was not the r on the line.</li>
+                    <li><b>The AI exports are about four times faster.</b> Side by side on the same laptop, a full-panel Custom export went from 87 to 22 seconds and an export from a gene view from 74 to 15. The files are the same. The time went into building every gene's row before most were dropped, and into compressing on the page's own thread; compression now runs in the background, so the page stays responsive.</li>
+                    <li><b>PCA and UMAP show the working spinner</b>, as the heatmap does, and a second click on Run Analysis while one is running is ignored.</li>
+                </ul>
                 <p><strong>v.91.93 (2026-11-01)</strong></p><ul>
                     <li><b>Full page is a bigger sheet for the same network, not a magnified one.</b> Nodes, labels, edges and the legend keep the size they have in the normal view, and the network spreads out to fill the page, so a set too crowded to read in the panel opens up. An image exported from the full page is the same figure drawn wider, for a full-page-width figure where the normal view gives a one-column one, with the text the same size in both. Fit in the full page spreads the network to fill it at that size. Leaving the full page draws the network back in, exactly as it was.</li>
                     <li><b>The tour of the app is in the main version of Correlate (correlate.cmm.se) as well.</b> It shows only the tools that version has, so the parts on the mRNA network, PCA and the heatmap are left out there.</li>
@@ -9070,7 +9076,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.93</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.94</a>
         </span>
     </div>
 
@@ -12490,7 +12496,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_93"></script>
+    <script src="app.js?v=v91_94"></script>
     <script src="tour.js?v=v91_93"></script>
 </body>
 </html>
