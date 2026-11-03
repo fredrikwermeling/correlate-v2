@@ -3057,6 +3057,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.91.98 (2026-11-03)</strong></p><ul>
+                    <li><b>A scatter's X axis title keeps its unit.</b> When the title was too long for one line, its second line (for example "(log2 TPM+1)") was cut off below the plot, on screen and in saved images. The plot now leaves room for it.</li>
+                </ul>
                 <p><strong>v.91.97 (2026-11-03)</strong></p><ul>
                     <li><b>Export for AI from a scatter works again.</b> Since v.90.87 it stopped with "g is not defined" before writing anything, because of a typo in the line that names the Y axis. A check of the whole app for this kind of mistake found no others.</li>
                 </ul>
@@ -9083,7 +9086,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.97</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.98</a>
         </span>
     </div>
 
@@ -12490,7 +12493,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_97"></script>
+    <script src="app.js?v=v91_98"></script>
     <script src="tour.js?v=v91_93"></script>
 </body>
 </html>
