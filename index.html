@@ -3057,6 +3057,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.1 (2026-11-05)</strong></p><ul>
+                    <li><b>Faster start and a shorter freeze when the mRNA data arrives.</b> The data files are now unpacked by the browser's own decompressor, about five times faster and without stopping the page, and the work that follows the mRNA matrix (a quality check per cell line, per-gene statistics, the curated collections) runs in small steps with pauses in between. Measured on a laptop: the app is ready in 0.9 s instead of 1.5 s once the files are cached, and the first opening of the Cell Line Browser freezes the page for 2.0 s in total instead of 4.4 s, with no single pause over 0.75 s (was 2.4 s). Every number the app computes is unchanged.</li>
+                </ul>
                 <p><strong>v.91.100 (2026-11-05)</strong></p><ul>
                     <li><b>PCA loadings show both axes.</b> The loadings figure used to draw the 8 longest arrows, and a component that many genes share gives each of them a small weight, so PC1, which explains the most, could have no gene of its own in the figure. It now draws the 4 genes with the largest weight on each plotted axis (PC1 and PC2, or whichever pair is chosen).</li>
                     <li><b>Loadings labels never overlap and can be moved.</b> Labels are pushed apart, and one that ends up away from its arrow gets a thin line to the arrow tip. Drag a label to move it; a click still colors the plot by that gene. Moved labels keep their place in exported images.</li>
@@ -9094,7 +9097,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.91.100</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.1</a>
         </span>
     </div>
 
@@ -12501,7 +12504,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v91_100"></script>
+    <script src="app.js?v=v92_1"></script>
     <script src="tour.js?v=v91_99"></script>
 </body>
 </html>
