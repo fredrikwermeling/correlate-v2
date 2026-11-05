@@ -25,7 +25,6 @@ V1 = "/Users/fredrikwermeling/Documents/correlate app feb 2026 (färdig)/correla
 
 # id -> human name, for the contiguous <div id=...> blocks that come out
 REMOVE_DIVS = [
-    ("clbUmapSection", "PCA / UMAP dimensionality reduction"),
     ("changelogModal", "changelog modal"),
     ("basisParams", "expression basis toggle"),
     ("heatmapModal", "gene set heatmap"),
@@ -39,7 +38,6 @@ REMOVE_LINES = [
     ("showCutoffDirect", "Options > Other > Threshold scan"),
     ("mutHeatmapBtn", "mutation analysis Heatmap button"),
     ("clbHeatmapBtn", "Cell Line Browser Heatmap button"),
-    ("clbUmapOpenBtn", "Cell Line Browser PCA / UMAP button"),
     ("clbHelpHeatmap", "Cell Line Browser help line on the heatmap"),
 ]
 
