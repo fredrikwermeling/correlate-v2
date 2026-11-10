@@ -3057,6 +3057,14 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.3 (2026-11-10)</strong></p><ul>
+<li><b>Enter and Esc work in text boxes again.</b> A page-wide rule meant to keep typing away from the network also swallowed the keys before the boxes saw them, so pressing Enter to confirm a search, a gene or a value did nothing in many places.</li>
+                    <li><b>One Esc closes one layer.</b> With Text settings or another panel open on top of the Gene Effect view, Esc closes the panel, not the view under it.</li>
+                    <li><b>The main gene box accepts commas and semicolons</b>, like every other gene box. A list pasted as "TP53, MDM2, KRAS" used to be read as no genes at all.</li>
+                    <li><b>Statistics files are read more carefully.</b> A fold change or FDR of exactly 0 is kept (0 used to be treated as missing, which grayed out the most significant genes), decimal commas are understood, quoted cells may contain commas, tables saved from R with row names load, and rows are no longer dropped silently. MAGeCK gene summaries are recognized.</li>
+                    <li><b>Clicking a volcano label to remove it keeps working</b> after Text settings has been opened on the plot, and arrow keys stop nudging a label once Text settings is closed.</li>
+                    <li>Smaller: an empty or mistyped axis limit, minimum cell line count or p-value threshold falls back to its default instead of blanking the plot or the results; the node color legend no longer prints "Infinity" when no gene has a value; saved SVG files stay valid when a title contains &amp; or &lt;.</li>
+                </ul>
                 <p><strong>v.92.2 (2026-11-10)</strong></p><ul>
 <li><b>Corrected p-values in the 2x2 comparisons.</b> The chi-squared p-values in the gate A vs B mutation and tissue tables and in Compare cancer types were computed with the wrong degrees of freedom and came out 3 to 5 times too large. They now use 1 degree of freedom, as a 2x2 table requires.</li>
                     <li><b>p(&Delta;slope) is a real test.</b> In the by-cancer-type comparison it was a rough stand-in derived from the correlation difference and could exceed 1. It is now a t-test on the difference between the two regression slopes.</li>
@@ -9106,7 +9114,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.2</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.3</a>
         </span>
     </div>
 
@@ -12513,7 +12521,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_2"></script>
+    <script src="app.js?v=v92_3"></script>
     <script src="tour.js?v=v91_99"></script>
 </body>
 </html>
