@@ -3057,6 +3057,15 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.2 (2026-11-10)</strong></p><ul>
+<li><b>Corrected p-values in the 2x2 comparisons.</b> The chi-squared p-values in the gate A vs B mutation and tissue tables and in Compare cancer types were computed with the wrong degrees of freedom and came out 3 to 5 times too large. They now use 1 degree of freedom, as a 2x2 table requires.</li>
+                    <li><b>p(&Delta;slope) is a real test.</b> In the by-cancer-type comparison it was a rough stand-in derived from the correlation difference and could exceed 1. It is now a t-test on the difference between the two regression slopes.</li>
+                    <li><b>Three-line groups no longer look significant</b> in the By Tissue and By Hotspot correlation tables: a correlation from three points carries no usable variance, so its p-value stays 1.</li>
+                    <li><b>Tissue detail view</b>: the p-value compares the group with the other cell lines, as the table does, instead of with all cells including the group itself.</li>
+                    <li><b>Export for AI</b>: the pair p-value uses the exact t-test, like every other p in the file. It was too small when few cell lines were plotted.</li>
+                    <li><b>PCA</b>: the axis scale no longer shrinks when there are more genes than cell lines. Shape, explained variance and loadings were already right.</li>
+                    <li>Smaller: every SD in the gene effect and cluster tables is the sample SD (n &minus; 1), matching the detail views, and percentiles read 1st, 2nd, 3rd.</li>
+                </ul>
                 <p><strong>v.92.1 (2026-11-05)</strong></p><ul>
                     <li><b>Faster start and a shorter freeze when the mRNA data arrives.</b> The data files are now unpacked by the browser's own decompressor, about five times faster and without stopping the page, and the work that follows the mRNA matrix (a quality check per cell line, per-gene statistics, the curated collections) runs in small steps with pauses in between. Measured on a laptop: the app is ready in 0.9 s instead of 1.5 s once the files are cached, and the first opening of the Cell Line Browser freezes the page for 2.0 s in total instead of 4.4 s, with no single pause over 0.75 s (was 2.4 s). Every number the app computes is unchanged.</li>
                 </ul>
@@ -9097,7 +9106,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.1</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.2</a>
         </span>
     </div>
 
@@ -12504,7 +12513,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_1"></script>
+    <script src="app.js?v=v92_2"></script>
     <script src="tour.js?v=v91_99"></script>
 </body>
 </html>
