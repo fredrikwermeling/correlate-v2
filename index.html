@@ -3057,6 +3057,13 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.4 (2026-11-10)</strong></p><ul>
+<li>Reopening a saved figure brings back more of it: moved volcano labels, the mutation analysis p-value threshold, coverage and cell line subset, the network's Expand network and growth rate options, and the scatter plot size</li>
+                    <li>A reopened figure colored or filtered by copy number or expression loads that data first, instead of opening gray or empty</li>
+                    <li>Sorting the Cell Line Browser by a gene's expression loads the expression data when needed</li>
+                    <li>A page or popout closed while its data was still downloading stays closed</li>
+                    <li>A failed data download is reported at once and can be tried again without reloading the page</li>
+                </ul>
                 <p><strong>v.92.3 (2026-11-10)</strong></p><ul>
 <li><b>Enter and Esc work in text boxes again.</b> A page-wide rule meant to keep typing away from the network also swallowed the keys before the boxes saw them, so pressing Enter to confirm a search, a gene or a value did nothing in many places.</li>
                     <li><b>One Esc closes one layer.</b> With Text settings or another panel open on top of the Gene Effect view, Esc closes the panel, not the view under it.</li>
@@ -9114,7 +9121,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.3</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.4</a>
         </span>
     </div>
 
@@ -12521,7 +12528,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_3"></script>
+    <script src="app.js?v=v92_4"></script>
     <script src="tour.js?v=v91_99"></script>
 </body>
 </html>
