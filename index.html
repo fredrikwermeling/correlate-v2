@@ -3058,6 +3058,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.7 (2026-11-20)</strong></p><ul>
+                    <li>Gene set analysis: when a gene list gives more than about 300 correlations, a table now shows how many correlations and genes each cutoff would keep, with a suggested cutoff; pick a row to draw the network</li>
+                    <li>Larger networks picked from that table open directly in Full page</li>
+                </ul>
                 <p><strong>v.92.6 (2026-11-20)</strong></p><ul>
                     <li>After an update the app starts faster for returning users: the data is downloaded again only when the data itself has changed</li>
                     <li>CORUM protein complexes checked against the current CORUM release (no changes)</li>
@@ -9131,7 +9135,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.6</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.7</a>
         </span>
     </div>
 
@@ -12538,7 +12542,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_6"></script>
+    <script src="app.js?v=v92_7"></script>
     <script src="tour.js?v=v91_99"></script>
 </body>
 </html>
