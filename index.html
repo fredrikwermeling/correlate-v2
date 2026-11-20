@@ -3101,6 +3101,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.12 (2026-11-20)</strong></p><ul>
+                    <li><b>Cell lines whose gene expression looks like another cancer type are marked.</b> In the Cell Line Browser list such a cell line carries a &#8800; mark (hover it to see which tissue it looks like), and the summary on its card, hover card and Wiki says so in one sentence. Before, this was only shown inside the Wiki.</li>
+                </ul>
                 <p><strong>v.92.11 (2026-11-20)</strong></p><ul>
                     <li><b>Volcano: the color now shows the gene effect itself.</b> In the gene effect volcano, each shown dot is colored by its average gene effect in the selection: orange is a dependency, gray is no effect, purple is a gain. A gene on the right that is still a dependency, only a weaker one, now looks like one. Hovering a dot shows both group averages.</li>
                     <li><b>Volcano: gene card on hover, Shift-click for the Gene Browser.</b> Hovering a dot opens the same gene card as in the network, with this comparison's numbers on top. Shift-click opens the Gene Browser, and closing it brings you back.</li>
@@ -9203,7 +9206,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.11</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.12</a>
         </span>
     </div>
 
@@ -11873,6 +11876,7 @@
 
           <p style="margin-top:14px;"><strong>&#9888; Warning marks</strong>: a triangle beside a cell line's name means <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cellosaurus</a> records a problem with it. 56 of the 1,208 lines are flagged. Hover the mark for the full explanation, or open the line to see it with a link to the source.</p>
           <p style="margin-top:14px;"><strong>P / M / R origin marks</strong>: a letter beside a cell line's name says where the sample was taken: <b style="color:#9ca3af;">P</b> the primary tumor, <b style="color:#7c3aed;">M</b> a metastasis, <b style="color:#b45309;">R</b> a recurrent tumor. Cell lines with no record carry no letter. From the DepMap Model table; the list can also be sorted by it.</p>
+          <p style="margin-top:14px;"><strong style="color:#b45309;">&#8800; Expression mark</strong>: the gene expression of this cell line looks like another tissue than the one it is annotated as (its five most similar cell lines by whole transcriptome are all from other tissues). It can mean a misclassified or changed cell line, or two cancer types that simply look alike. Hover the mark to see which tissue.</p>
           <p style="margin-top:14px;"><strong>&#129440; Virus marks</strong>: a virus beside a cell line's name means <a href="https://www.cellosaurus.org/" target="_blank" style="color:#0066cc;" rel="noopener noreferrer">Cellosaurus</a> records which virus the line was transformed by. 53 of the 1,208 lines carry one, most often EBV, HPV16/18 or HBV. It matters because viral oncoproteins override host pathways: an HPV-transformed line behaves as p53- and RB-deficient whatever its <em>TP53</em> and <em>RB1</em> sequence says, and an EBV-immortalised lymphoblastoid line is not a tumor line at all. <b>A line without the mark simply has no such record</b>, which is not the same as being free of the virus. The matching quick filters are named &ldquo;Confirmed &hellip;-transformed&rdquo; for that reason.</p>
 
           <ul style="margin:4px 0 10px 20px;">
@@ -12599,7 +12603,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_11"></script>
+    <script src="app.js?v=v92_12"></script>
     <script src="tour.js?v=v92_10"></script>
 </body>
 </html>
