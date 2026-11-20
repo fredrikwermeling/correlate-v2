@@ -3058,6 +3058,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.8 (2026-11-20)</strong></p><ul>
+                    <li>Gene set analysis: a Compare button next to the correlation cutoff opens the cutoff table for any gene list</li>
+                </ul>
                 <p><strong>v.92.7 (2026-11-20)</strong></p><ul>
                     <li>Gene set analysis: when a gene list gives more than about 300 correlations, a table now shows how many correlations and genes each cutoff would keep, with a suggested cutoff; pick a row to draw the network</li>
                     <li>Larger networks picked from that table open directly in Full page</li>
@@ -9135,7 +9138,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.7</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.8</a>
         </span>
     </div>
 
@@ -9252,7 +9255,7 @@
                     </div>
 
                     <div class="form-group" id="correlationParams">
-                        <label class="form-label">Correlation Cutoff: <span class="slider-value" id="cutoffValue">0.50</span></label>
+                        <label class="form-label" style="display:flex; align-items:baseline; gap:6px;"><span>Correlation Cutoff: <span class="slider-value" id="cutoffValue">0.50</span></span><button type="button" id="cutoffTableBtn" onclick="app.openCutoffTable()" title="List how many correlations and genes each cutoff would keep for the current gene list, then pick one to draw." style="margin-left:auto; font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; color:#374151;">Compare</button></label>
                         <div style="display:flex; gap:3px; align-items:center;">
                             <button type="button" onclick="app.adjustNumber('correlationCutoff', -0.05)" style="font-size:11px; padding:0 6px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer;">−</button>
                             <input type="range" id="correlationCutoff" min="0.1" max="0.8" step="0.05" value="0.5" data-grow-max="1" title="Drag for the usual range; the + button keeps going past 0.8 when you want only the very strongest correlations." style="flex:1; min-width:0;">
@@ -12542,7 +12545,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_7"></script>
+    <script src="app.js?v=v92_8"></script>
     <script src="tour.js?v=v91_99"></script>
 </body>
 </html>
