@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="data-version" content="208ebee236">
     <title>Correlate V2</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
@@ -3057,6 +3058,10 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.6 (2026-11-20)</strong></p><ul>
+                    <li>After an update the app starts faster for returning users: the data is downloaded again only when the data itself has changed</li>
+                    <li>CORUM protein complexes checked against the current CORUM release (no changes)</li>
+                </ul>
                 <p><strong>v.92.5 (2026-11-10)</strong></p><ul>
 <li>The tissue breakdown window stays open on a click outside it, like the other windows: close it with ×, Apply or Esc</li>
                     <li>Dots in the Threshold scan stay clickable after the chart was emptied and drawn again</li>
@@ -9126,7 +9131,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.5</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.6</a>
         </span>
     </div>
 
@@ -12533,7 +12538,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_5"></script>
+    <script src="app.js?v=v92_6"></script>
     <script src="tour.js?v=v91_99"></script>
 </body>
 </html>

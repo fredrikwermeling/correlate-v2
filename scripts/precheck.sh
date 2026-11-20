@@ -1,11 +1,13 @@
 #!/bin/sh
 # Checks run before every push (also installed as .git/hooks/pre-push):
-# syntax, the statistics against scipy references, and a lint pass that
+# syntax, the data-version token, the statistics against scipy references,
+# and a lint pass that
 # stops on real errors (undefined names, duplicate keys and the like).
 # The linter is optional: npm install eslint@8.57.0 --prefix scripts/.lint
 cd "$(dirname "$0")/.." || exit 1
 node --check app.js || exit 1
 node --check tour.js || exit 1
+python3 scripts/data_version.py > /dev/null || { python3 scripts/data_version.py; exit 1; }
 node scripts/stat_check.js > /dev/null || { node scripts/stat_check.js; exit 1; }
 ESLINT=scripts/.lint/node_modules/eslint/bin/eslint.js
 if [ -f "$ESLINT" ]; then
