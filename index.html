@@ -2133,6 +2133,10 @@
             display: none;
         }
         .clb-detail.active { display: block; }
+        .clb-detail { position: relative; }
+        .clb-detail h4 { padding-right: 22px; }
+        .clb-detail-x { position: absolute; top: 8px; right: 10px; background: none; border: none; font-size: 20px; line-height: 1; color: #6b7280; cursor: pointer; padding: 2px 4px; }
+        .clb-detail-x:hover { color: #111827; }
         .clb-detail h4 { margin: 0 0 4px 0; font-size: 14px; color: var(--green-800); }
         .clb-detail .clb-detail-id { font-size: 10px; color: var(--gray-500); margin-bottom: 10px; word-break: break-all; }
         .clb-detail-section { margin-bottom: 10px; }
@@ -3101,6 +3105,12 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.17 (2026-11-25)</strong></p><ul>
+                    <li><b>PCA / UMAP: clearer literature-use colors.</b> Very common lines are red, common green, uncommon blue and rare light gray, so the most used ones stand out most.</li>
+                    <li><b>PCA / UMAP: labels use the usual cell line names</b> (LNCaP, MDA-MB-231, HCT 116) instead of the compact form.</li>
+                    <li><b>PCA / UMAP: Large plot.</b> A new button makes the plot as large as the window allows, for lasso selection, labels and hovering. Click it again for the normal size.</li>
+                    <li><b>Cell Line Browser card is shorter and can be closed.</b> The card shows the summary and the Wiki button; the detailed rows and top gene lists sit under "More details". An &times; in the upper right closes the card and gives the list the full width.</li>
+                </ul>
                 <p><strong>v.92.16 (2026-11-25)</strong></p><ul>
                     <li><b>PCA / UMAP is colored by literature use by default.</b> Points are shaded in four steps, very common, common, uncommon and rare, so the well-studied cell lines stand out from the start. Tissue, subtype and cell bank coloring are still in the menu.</li>
                 </ul>
@@ -9219,7 +9229,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.16</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.17</a>
         </span>
     </div>
 
@@ -12172,7 +12182,11 @@
             <div class="clb-detail-placeholder" id="clbDetailPlaceholder">Click a cell line to view details</div>
             <div id="clbDetailContent" style="display:none;">
               <button id="clbDetailCloseBtn" onclick="app.closeCellLineDetail()" style="display:none; width:100%; margin-bottom:8px; padding:7px; font-size:13px; font-weight:600; background:#f3f4f6; border:1px solid #d1d5db; border-radius:6px; color:#374151; cursor:pointer;">&#10005; Close</button>
+              <button type="button" class="clb-detail-x" onclick="app.closeCellLineDetail()" title="Close the card">&times;</button>
               <div id="clbDetailTop"></div>
+              <a href="#" id="clbDetailMoreToggle" style="display:block; font-size:11px; color:var(--green-700); text-decoration:none; margin:-4px 0 8px;"></a>
+              <div id="clbDetailMore" style="display:none;">
+              <div id="clbDetailRest"></div>
               <div class="mobile-hide" style="display:flex; align-items:center; gap:6px; margin:8px 0 4px 0;">
                 <label style="font-size:11px; color:var(--gray-500); white-space:nowrap;">Show top</label>
                 <select id="clbTopN" style="padding:2px 4px; font-size:11px; border:1px solid var(--gray-200); border-radius:3px;">
@@ -12184,6 +12198,7 @@
                 <label style="font-size:11px; color:var(--gray-500);">genes per list</label>
               </div>
               <div id="clbDetailGeneLists"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -12248,13 +12263,14 @@
                 <input type="range" id="clbUmapMarkerSize" min="2" max="14" value="9" style="width:60px; vertical-align:middle;" title="Marker size">
                 <span class="clb-umap-lbl">W</span>
                 <button onclick="app.adjustNumber('clbUmapPlotWidth', -20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">−</button>
-                <input type="number" id="clbUmapPlotWidth" class="clb-umap-ctl" value="600" min="300" max="1200" step="20" style="width:50px; text-align:center;" title="Plot width">
+                <input type="number" id="clbUmapPlotWidth" class="clb-umap-ctl" value="600" min="300" max="2400" step="20" style="width:50px; text-align:center;" title="Plot width">
                 <button onclick="app.adjustNumber('clbUmapPlotWidth', 20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">+</button>
                 <span class="clb-umap-lbl">H</span>
                 <button onclick="app.adjustNumber('clbUmapPlotHeight', -20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">−</button>
                 <input type="number" id="clbUmapPlotHeight" class="clb-umap-ctl" value="500" min="250" max="1000" step="20" style="width:50px; text-align:center;" title="Plot height">
                 <button onclick="app.adjustNumber('clbUmapPlotHeight', 20)" style="font-size:10px; padding:0 5px; border:1px solid #ddd; border-radius:3px; background:#f9f9f9; cursor:pointer; height:24px;">+</button>
                 <span class="clb-umap-sep"></span>
+                <button id="clbUmapBigBtn" class="clb-umap-btn" title="Make the plot as large as the window allows, for lasso selection, labels and hovering; click again to return to the normal size">Large plot</button>
                 <button id="clbUmapTopGenesBtn" class="clb-umap-btn" title="Show top genes correlated with axes">Top Genes</button>
                 <button id="clbUmapClusterStatsBtn" class="clb-umap-btn" title="Rank tissues by how tightly they cluster in this projection (silhouette score). Click a tissue in the table to highlight its cell lines.">Cluster stats</button>
                 <button id="clbUmapLabelTopBtn" class="clb-umap-btn" title="Name the 15 most-used cell lines in the plot (by papers), as landmarks for finding your way around it">Label most used</button>
@@ -12620,7 +12636,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_16"></script>
+    <script src="app.js?v=v92_17"></script>
     <script src="tour.js?v=v92_10"></script>
 </body>
 </html>
