@@ -3105,6 +3105,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.20 (2026-11-25)</strong></p><ul>
+                    <li><b>Cancer type Wiki: clearer mutations section.</b> Common mutations and fusions now has two labeled parts. <b>Specific changes</b> lists exact variants, driver fusions and functional loss, with a note on why these can differ from the gene counts. <b>Mutated cancer genes</b> holds the two tables, with their own explanation.</li>
+                </ul>
                 <p><strong>v.92.19 (2026-11-25)</strong></p><ul>
                     <li><b>PCA / UMAP: no accidental selections.</b> Dragging on the plot does nothing until you ask for it: Set Gate A or B turns on drawing for that gate, and the <b>Lasso select</b> button under the plot switches lasso selection on and off for copying names or ticking them in the Cell Line Browser.</li>
                     <li><b>PCA / UMAP: Export for AI.</b> One file with every plotted cell line (coordinates, all components, the group and its color, literature use, cell banks, gate, label), the loadings and the label positions, plus a picture of the plot, so a language model can explain the figure or redraw it.</li>
@@ -9237,7 +9240,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.19</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.20</a>
         </span>
     </div>
 
@@ -12645,7 +12648,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_19"></script>
+    <script src="app.js?v=v92_20"></script>
     <script src="tour.js?v=v92_10"></script>
 </body>
 </html>
