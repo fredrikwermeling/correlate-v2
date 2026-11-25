@@ -3105,6 +3105,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.27 (2026-11-25)</strong></p><ul>
+                    <li><b>Every table export can be saved as Excel.</b> Exporting a table now asks Excel (.xlsx) or CSV, with an option to remember the choice; a remembered choice shows a short note with a link to change it. The Excel file keeps numbers as numbers in any language setting (a CSV with decimal points opens as text where the decimal mark is a comma, as in Sweden), has a bold header row, sensible column widths and, for plain tables, a frozen header. The export buttons now read "Export table", "Download table" and "Export data" instead of naming CSV.</li>
+                </ul>
                 <p><strong>v.92.26 (2026-11-25)</strong></p><ul>
                     <li><b>Full gene profile CSV splits into columns in Numbers.</b> The text rows used semicolons, which Numbers in a decimal-comma region (such as Sweden) took for the column separator, leaving every row in one column. The file now has no semicolons; commas inside a text value are quoted.</li>
                 </ul>
@@ -3238,7 +3241,7 @@
                     <li><b>Export for AI from a scatter works again.</b> Since v.90.87 it stopped with "g is not defined" before writing anything, because of a typo in the line that names the Y axis. A check of the whole app for this kind of mistake found no others.</li>
                 </ul>
                 <p><strong>v.91.96 (2026-11-02)</strong></p><ul>
-                    <li><b>The Cell Line Browser's toolbar is a row shorter.</b> The five spreadsheet exports share one <b>Export CSV</b> menu in the header, beside Export image and Export for AI, and each entry still says on hover what it writes. The Methods button that sat at the end of that row opened the same text as Methods in the header, so it is gone. The Active filters box is one line, still on screen when nothing is filtered so the list never jumps. On a laptop screen the list now starts about 75 px higher, three more rows of cell lines.</li>
+                    <li><b>The Cell Line Browser's toolbar is a row shorter.</b> The five spreadsheet exports share one <b>Export table</b> menu in the header, beside Export image and Export for AI, and each entry still says on hover what it writes. The Methods button that sat at the end of that row opened the same text as Methods in the header, so it is gone. The Active filters box is one line, still on screen when nothing is filtered so the list never jumps. On a laptop screen the list now starts about 75 px higher, three more rows of cell lines.</li>
                 </ul>
                 <p><strong>v.91.95 (2026-11-02)</strong></p><ul>
                     <li><b>Saved figures, session files and links can no longer run code in the app.</b> A security review found 13 places where a file or link from someone else could put working page code into Correlate: reopening a saved figure or .json, a "New tab" link, a heatmap view file, a pasted Paste from AI block, a stats file's column names, and the answers from the outside gene services the Gene Browser reads. Every one that a file, link or paste could reach was tried in the browser, fixed and tried again; the gene-service answers are now checked to be the identifiers and numbers they should be. Names from these sources are now shown as plain text, sizes and colors must be numbers and colors, and a saved Wiki must name a real cell line. Saved work reopens as before.</li>
@@ -6834,7 +6837,7 @@
                 <ul>
                     <li><b>Fix: exporting from the UpSet plot did nothing visible.</b> The export dialog opened <em>behind</em> the plot, because it only looked at the declared modals when deciding how high to stack, and the UpSet popup sits above all of them. It now stacks above whatever is actually on screen.</li>
                     <li><b>Fix: the print size chosen for an SVG was ignored.</b> Width and height were set in cm and then overwritten in points by the step that cleans the file for drawing programs, so every SVG came out at the same size no matter what you asked for. This affected every chart in the app.</li>
-                    <li><b>One export button everywhere.</b> Separate <b>SVG</b> and <b>PNG</b> buttons are replaced by <b>Export image...</b>, which opens the usual dialog with format, print size, resolution and background. The oncoprint no longer saves straight to disk with no choices; its data export is now labeled <b>Export data (CSV)</b>.</li>
+                    <li><b>One export button everywhere.</b> Separate <b>SVG</b> and <b>PNG</b> buttons are replaced by <b>Export image...</b>, which opens the usual dialog with format, print size, resolution and background. The oncoprint no longer saves straight to disk with no choices; its data export is now labeled <b>Export data</b>.</li>
                     <li><b>Fix: the Tissues heading floated over the list.</b> A 4px strip at the top of the list sat above where the heading pins, so rows scrolled through it and the heading looked like it was hovering in mid-list. Also fixed the heading being see-through, which needed the table's borders separated to work at all.</li>
                     <li><b>The lineage list is no longer a native menu.</b> With 31 tissues the browser's own menu opened taller than the screen and scrolled by growing upward with no way back down. It is now a panel that fits on screen, with a filter box for typing a tissue name.</li>
                     <li>The SVG option no longer names a particular drawing program.</li>
@@ -7362,7 +7365,7 @@
                 <p><strong>v.83.31 (2026-06-12)</strong></p>
                 <ul>
                     <li>Removed the <b>Inspect Correlations</b> button from the Cell Line Browser toolbar.</li>
-                    <li>The Cell Line Browser export buttons are now grouped under an explicit <b>Export CSV:</b> label (and the inspect buttons under <b>Inspect:</b>) so it's clear what they do.</li>
+                    <li>The Cell Line Browser export buttons are now grouped under an explicit <b>Export table:</b> label (and the inspect buttons under <b>Inspect:</b>) so it's clear what they do.</li>
                     <li>Color cleanup: the export / screenshot / data-download buttons swap their off-palette purple for an <b>earthy bronze</b> that sits alongside the brand green. Semantic colors (subtype calls, mutation badges) are unchanged.</li>
                 </ul>
                 <p><strong>v.83.30 (2026-06-12)</strong></p>
@@ -7403,7 +7406,7 @@
                 <p><strong>v.83.22 (2026-06-12)</strong></p>
                 <ul>
                     <li><b>Cell line browser exports renamed and expanded.</b> Three clearer exports: <b>Cell line: GE + expression</b> (selected lines, every gene), <b>Cell line: full profile</b> (selected lines, every gene with GE + Expression + Hotspot + Damaging + Fusion + focal CN amplifications / deletions), and <b>Genes: full profile</b> (one or a few genes, all that info across the selected/visible lines). All include the DepMap version and citation.</li>
-                    <li><b>Export gene info (.csv)</b> button added to the cell line Wiki, next to Download PDF, exporting the full per-gene profile for that one cell line.</li>
+                    <li><b>Export gene info</b> button added to the cell line Wiki, next to Download PDF, exporting the full per-gene profile for that one cell line.</li>
                 </ul>
                 <p><strong>v.83.21 (2026-06-12)</strong></p>
                 <ul>
@@ -8333,7 +8336,7 @@
                 </ul>
                 <p><strong>v.74.6 (2026-04-23)</strong></p>
                 <ul>
-                    <li>CLB <strong>Export Genes CSV</strong>: dropped the <code>Sex_expression</code> column. The CSV now carries a single <code>Sex</code> column (annotated sex) alongside <code>Tissue</code> and <code>Subtype</code>.</li>
+                    <li>CLB <strong>Export genes table</strong>: dropped the <code>Sex_expression</code> column. The CSV now carries a single <code>Sex</code> column (annotated sex) alongside <code>Tissue</code> and <code>Subtype</code>.</li>
                 </ul>
                 <p><strong>v.74.5 (2026-04-23)</strong></p>
                 <ul>
@@ -8344,7 +8347,7 @@
                 <p><strong>v.74.4 (2026-04-23)</strong></p>
                 <ul>
                     <li>CLB <b>?</b> help text updated with the new sort options: <em>GE for gene(s)</em> and <em>Expression of gene(s)</em>. Explains that multiple gene symbols are averaged per cell line (comma / semicolon / newline / whitespace separators).</li>
-                    <li>New <strong>Export Genes CSV</strong> button in the CLB toolbar. Prompts for one or more gene symbols and exports a tidy CSV with one row per selected cell line (or per visible cell line if nothing is selected). Columns: <code>CellLineID, CellLineName, Tissue, Subtype, Sex_annotation, Sex_expression, GE_&lt;gene&gt;, Expr_&lt;gene&gt;</code> &mdash; two data columns per gene.</li>
+                    <li>New <strong>Export genes table</strong> button in the CLB toolbar. Prompts for one or more gene symbols and exports a tidy CSV with one row per selected cell line (or per visible cell line if nothing is selected). Columns: <code>CellLineID, CellLineName, Tissue, Subtype, Sex_annotation, Sex_expression, GE_&lt;gene&gt;, Expr_&lt;gene&gt;</code> &mdash; two data columns per gene.</li>
                     <li>New <strong>Find correlates</strong> button in the correlation / inspect scatter modal. Takes the X-axis gene (GE or Expression, as selected), applies the current inspect filters (tissue / hotspot / fusion / custom-CL), and returns two lists side-by-side: top GE correlates and top Expression correlates (|r|-sorted, n=100 each). Click any gene to set it as the Y axis with the matching data type and redraw the scatter.</li>
                 </ul>
                 <p><strong>v.74.3 (2026-04-23)</strong></p>
@@ -9260,7 +9263,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.26</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.27</a>
         </span>
     </div>
 
@@ -9945,7 +9948,7 @@
                         <button class="btn btn-outline btn-sm" id="filterCorrelationsToggle" title="Toggle column filters">Filters</button>
                         <label id="showBelowCutoffWrap" style="display:none; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Also list the pairs that fell just short of the correlation cutoff, so a borderline result is still visible. They appear grayed below a divider and are not part of the network or the clusters."><input type="checkbox" id="showBelowCutoff"> below cutoff</label>
                         <button class="btn btn-outline btn-sm" id="copyCorrelationGenes" title="Copy gene names to clipboard">Copy Genes</button>
-                        <button class="btn btn-outline btn-sm" id="downloadCorrelations" title="Download the correlation table as a CSV file">Download CSV</button>
+                        <button class="btn btn-outline btn-sm" id="downloadCorrelations" title="Download the correlation table as a CSV file">Download table</button>
                         <button class="btn btn-outline btn-sm mobile-hide" onclick="app.openMethods('correlations')" title="Write out how this table was made, as a methods paragraph and as a plain walk-through">Methods</button>
                         <button class="btn btn-secondary btn-sm enrichrBtn" data-source="correlations" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr, Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
                         <!-- AI button removed, Full Export supersedes it -->
@@ -9984,7 +9987,7 @@
                         <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Order the genes by the network's clusters; unticked, they follow the order you entered them in"><input type="checkbox" id="matrixClusterOrder" checked> Cluster order</label>
                         <label style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Blank every pair whose correlation did not clear the cutoff, so only the pairs in the network are colored"><input type="checkbox" id="matrixAboveCutoff"> Above cutoff only</label>
                         <button class="btn btn-outline btn-sm mobile-hide" id="matrixExportPng" title="Export the matrix, choose PNG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
-                        <button class="btn btn-outline btn-sm" id="matrixDownloadCsv" title="Download the grid of correlations as a CSV file">Download CSV</button>
+                        <button class="btn btn-outline btn-sm" id="matrixDownloadCsv" title="Download the grid of correlations as a CSV file">Download table</button>
                     </div>
                     <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px; margin-bottom:6px;"><span id="matrixBasisBadge" style="display:none;"></span><span id="matrixNote" style="font-size:11px; color:#6b7280;"></span></div>
                     <div id="matrixScroll" style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;"><div id="matrixPlot" style="min-height:120px;"><div style="text-align:center; color:var(--gray-500); padding:40px;">Run analysis to see the matrix</div></div></div>
@@ -10001,7 +10004,7 @@
                         <button class="btn btn-outline btn-sm" id="filterClustersToggle" title="Toggle column filters">Filters</button>
                         <label id="showBelowCutoffClustersWrap" style="display:none; align-items:center; gap:4px; font-size:11px; color:#374151; cursor:pointer; white-space:nowrap;" title="Also list the input genes without correlations, grayed. Genes whose best pair just missed the cutoff say Below cutoff in the Correlation column; any such gene not otherwise listed is added at the bottom. Context only: these are not in the network and have no cluster."><input type="checkbox" id="showBelowCutoffClusters"> below cutoff</label>
                         <button class="btn btn-outline btn-sm" id="copyClustersGenes" title="Copy gene names to clipboard">Copy Genes</button>
-                        <button class="btn btn-outline btn-sm" id="downloadClusters" title="Download the cluster table as a CSV file">Download CSV</button>
+                        <button class="btn btn-outline btn-sm" id="downloadClusters" title="Download the cluster table as a CSV file">Download table</button>
                         <button class="btn btn-outline btn-sm mobile-hide" onclick="app.openMethods('clusters')" title="Write out how these clusters were made, as a methods paragraph and as a plain walk-through">Methods</button>
                         <button class="btn btn-secondary btn-sm enrichrBtn" data-source="clusters" title="Pathway enrichment analysis via Enrichr">Enrichr</button><a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener" title="Enrichr, Ma'ayan Lab" style="color:#9ca3af; font-size:10px; margin-left:2px; text-decoration:none;">&#8599;</a>
                         <!-- AI button removed, Full Export supersedes it -->
@@ -10134,7 +10137,7 @@
                         <div>
                             <input type="text" id="synonymsSearch" class="form-control" placeholder="Search genes..." style="width: 200px; display: inline-block; margin-right: 10px;">
                         </div>
-                        <button class="btn btn-outline btn-sm" id="downloadSynonyms">Export CSV</button>
+                        <button class="btn btn-outline btn-sm" id="downloadSynonyms">Export table</button>
                     </div>
                     <p class="help-text" id="synonymsHelpText" style="margin-bottom: 10px; font-size: 11px;">
                         <strong>Low Risk:</strong> Exact synonyms from HGNC. <strong>Mid Risk:</strong> Less certain synonyms. <strong>Orthologs:</strong> Mouse-to-human gene mappings.
@@ -10798,7 +10801,7 @@
                     <button class="btn btn-outline btn-sm mobile-hide" onclick="app.copyPlotToClipboard('geneEffectPlot', 'Chart')" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>
                     <button class="btn btn-sm btn-outline" id="geExpandFullBtn" title="Show the full analysis (filters + statistics table)" style="font-size:11px;">&#10530; Full view</button>
                     </span>
-                    <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap; margin-left: 10px;"><span style="font-size: 12px; color: #6b7280;">Export CSV:</span>
+                    <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap; margin-left: 10px;"><span style="font-size: 12px; color: #6b7280;">Export table:</span>
                     <button class="btn btn-outline btn-sm" id="downloadGETableCSV" title="Download the table above as a CSV file">By Group</button>
                     <button class="btn btn-outline btn-sm" id="downloadGECellLineCSV" title="Download the per-cell-line values behind this view as a CSV file">By Cell Line</button>
                     </span>
@@ -10838,7 +10841,7 @@
                             </div>
                             <button class="btn btn-sm" id="runExprCorrelatesBtn" style="background: #6ba544; color: white;">Run</button>
                             <span id="exprCorrelatesStatus" style="font-size: 12px; color: #6b7280;"></span>
-                            <button class="btn btn-outline btn-sm" id="downloadExprCorrelatesCSV" style="display: none; margin-left: auto; border-color: #6ba544; color: #5d9239;" title="Download the correlate list as a CSV file">Export CSV</button>
+                            <button class="btn btn-outline btn-sm" id="downloadExprCorrelatesCSV" style="display: none; margin-left: auto; border-color: #6ba544; color: #5d9239;" title="Download the correlate list as a CSV file">Export table</button>
                             <button class="btn btn-outline btn-sm mobile-hide" onclick="app.openMethods('exprCorrelates')" style="border-color: #6ba544; color: #5d9239;" title="Write out how this list was made, as a methods paragraph and as a plain walk-through">Methods</button>
                         </div>
 
@@ -11047,7 +11050,7 @@
                     <button class="btn btn-outline btn-sm mobile-hide" id="downloadCorrAnalysisPNG" title="Export the chart, choose PNG / SVG / TIFF / PDF / PowerPoint in the popup">Export image...</button>
                     <button class="btn btn-outline btn-sm mobile-hide" onclick="app.copyPlotToClipboard(app._caView === 'tissue' ? 'corrAnalysisTissuePlot' : 'corrAnalysisHotspotPlot', 'Chart')" title="Copy this as an image to the clipboard, ready to paste into an email or slide">Copy</button>
                     </span>
-                    <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap; margin-left: 10px;"><span style="font-size: 12px; color: #6b7280;">Export CSV:</span>
+                    <span style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap; margin-left: 10px;"><span style="font-size: 12px; color: #6b7280;">Export table:</span>
                     <button class="btn btn-outline btn-sm" id="downloadCorrAnalysisCSV" title="Download the table above as a CSV file">By Group</button>
                     <button class="btn btn-outline btn-sm" id="downloadCACellLineCSV" title="Download the per-cell-line values behind this view as a CSV file">By Cell Line</button>
                     </span>
@@ -11765,7 +11768,7 @@
           <div style="display:flex; gap:8px; align-items:center;">
 
             <button id="enrichrExportAIBtn" class="btn btn-outline btn-sm" title="Download the enrichment as a text file for a language model: the genes sent, the significant sets in every library with their genes and scores, and the gene of interest if one is set">Export for AI</button>
-            <button id="enrichrDownloadBtn" class="btn btn-outline btn-sm" title="The active library's full result table as CSV">Download CSV</button>
+            <button id="enrichrDownloadBtn" class="btn btn-outline btn-sm" title="The active library's full result table as CSV">Download table</button>
             <button id="enrichrCloseBtn" style="background:none; border:none; color:#6b7280; font-size:24px; cursor:pointer; padding:0 4px; line-height:1;">&times;</button>
           </div>
         </div>
@@ -11855,7 +11858,7 @@
           <div class="pop-head-btns" style="display:flex; align-items:center; gap:8px;">
             <button id="clbWikiDownloadBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px;" title="Save this Wiki as a multi-page PDF (charts embedded as images, white background)">Export PDF</button>
             <button onclick="app.screenshotPopout('clbWikiBody','correlate_wiki')" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px;" title="Save the wiki as an image, choosing format, resolution and whether to capture the whole page or just what is on screen">Export image...</button>
-            <button id="clbWikiExportGenesBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px;" title="Export the full per-gene profile for this cell line (GE, Expression, Hotspot, Damaging, Fusion, focal CN amplifications / deletions) as a CSV">Export gene info (.csv)</button>
+            <button id="clbWikiExportGenesBtn" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px;" title="Export the full per-gene profile for this cell line (GE, Expression, Hotspot, Damaging, Fusion, focal CN amplifications / deletions) as a CSV">Export gene info</button>
             <button id="clbWikiAnalyzeWithAI" class="btn btn-outline btn-sm mobile-hide" style="font-size:11px; padding:4px 10px;" title="Package this cell line as one compressed file for a language model, so you can ask questions about it">Export for AI</button>
             <button id="clbWikiCloseBtn" style="background:none; border:none; font-size:24px; cursor:pointer; line-height:1; color:#6b7280;" title="Close the wiki">&times;</button>
           </div>
@@ -12675,7 +12678,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_26"></script>
-    <script src="tour.js?v=v92_24"></script>
+    <script src="app.js?v=v92_27"></script>
+    <script src="tour.js?v=v92_27"></script>
 </body>
 </html>
