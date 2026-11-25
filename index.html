@@ -3105,6 +3105,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.22 (2026-11-25)</strong></p><ul>
+                    <li><b>Tour of the app without the Gene Browser.</b> Its section, menu link and opening line are removed; the tour now covers Gene set analysis, the correlation plot, the Cell Line Browser and other features.</li>
+                </ul>
                 <p><strong>v.92.21 (2026-11-25)</strong></p><ul>
                     <li><b>Cell Line Browser: literature use and cell bank menus.</b> A third filter row has <b>Any literature use</b> (very common to rare) and <b>Any cell bank</b> (any, ATCC, DSMZ, ECACC, JCRB or RIKEN, none), each with counts. They set the same quick filters as the panel and show as chips.</li>
                     <li><b>Functional loss filter and grid.</b> A <b>Functional loss</b> menu next to the hotspot, fusion and copy-number filters keeps lines where a tumor suppressor is lost (deep deletion, loss-of-function mutation or silenced expression) or intact. Its grid button opens a functional loss oncoprint with include / exclude per gene and UpSet.</li>
@@ -9245,7 +9248,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.21</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.22</a>
         </span>
     </div>
 
@@ -12660,7 +12663,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_21"></script>
-    <script src="tour.js?v=v92_10"></script>
+    <script src="app.js?v=v92_22"></script>
+    <script src="tour.js?v=v92_22"></script>
 </body>
 </html>
