@@ -42,3 +42,5 @@ scripts/virus_aws/*.log
 
 # Local linter install used by scripts/precheck.sh
 scripts/.lint/
+# Europe PMC query cache for build_cellline_usage.py
+scripts/.cache/
