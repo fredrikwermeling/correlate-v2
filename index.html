@@ -3101,6 +3101,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.15 (2026-11-25)</strong></p><ul>
+                    <li><b>PCA / UMAP starts from gene expression.</b> The analysis of the cell lines in the Cell Line Browser list now uses expression by default (gene effect and both together are still in the menu). The expression data loads in the background as soon as the Cell Line Browser opens, so Run Analysis does not have to wait for it.</li>
+                </ul>
                 <p><strong>v.92.14 (2026-11-25)</strong></p><ul>
                     <li><b>Quick filters: the panel stays open while you pick, fits inside the Cell Line Browser, and scrolls on its own.</b> Clicking + or &#8722; no longer closes the panel. On a smaller window it shrinks to fit instead of running past the edge, and scrolling over it no longer moves the list behind it.</li>
                 </ul>
@@ -9213,7 +9216,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.14</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.15</a>
         </span>
     </div>
 
@@ -12201,8 +12204,8 @@
                     <option value="umap">UMAP</option>
                 </select>
                 <select id="clbUmapDataType" class="clb-umap-ctl">
+                    <option value="expr" selected>Expression</option>
                     <option value="ge">Gene Effect</option>
-                    <option value="expr">Expression</option>
                     <option value="both">GE + Expression</option>
                 </select>
                 <input type="text" id="clbUmapGeneList" class="clb-umap-ctl" placeholder="Genes (optional)" title="Optional: restrict the analysis to this gene list (comma / semicolon / whitespace separated). Leave empty to use the top-variance genes across the dataset." style="width:120px;" autocomplete="off">
@@ -12614,7 +12617,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_14"></script>
+    <script src="app.js?v=v92_15"></script>
     <script src="tour.js?v=v92_10"></script>
 </body>
 </html>
