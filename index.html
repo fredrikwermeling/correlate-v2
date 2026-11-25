@@ -3105,6 +3105,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.26 (2026-11-25)</strong></p><ul>
+                    <li><b>Full gene profile CSV splits into columns in Numbers.</b> The text rows used semicolons, which Numbers in a decimal-comma region (such as Sweden) took for the column separator, leaving every row in one column. The file now has no semicolons; commas inside a text value are quoted.</li>
+                </ul>
                 <p><strong>v.92.25 (2026-11-25)</strong></p><ul>
                     <li><b>Full gene profile CSV opens tidily on a Mac.</b> The summary is one sentence per row and the column key one column per row, so a spreadsheet preview no longer stretches the second column across the screen and pushes the data out of view. The file is marked as UTF-8 so Excel shows every character correctly, and the stray spaces in the summary are gone.</li>
                 </ul>
@@ -9257,7 +9260,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.25</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.26</a>
         </span>
     </div>
 
@@ -12672,7 +12675,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_25"></script>
+    <script src="app.js?v=v92_26"></script>
     <script src="tour.js?v=v92_24"></script>
 </body>
 </html>
