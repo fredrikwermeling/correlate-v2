@@ -4,6 +4,8 @@
 set -e
 V="$1"; MSG="$2"; TRAILER="$3"
 cd "$(dirname "$0")/.."
+# data_version hashes tracked files only, so stage new web_data files first.
+git add -A
 python3 scripts/data_version.py --write
 scripts/precheck.sh
 git add -A

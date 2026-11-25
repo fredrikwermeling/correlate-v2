@@ -3101,6 +3101,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.14 (2026-11-25)</strong></p><ul>
+                    <li><b>Quick filters: the panel stays open while you pick, fits inside the Cell Line Browser, and scrolls on its own.</b> Clicking + or &#8722; no longer closes the panel. On a smaller window it shrinks to fit instead of running past the edge, and scrolling over it no longer moves the list behind it.</li>
+                </ul>
                 <p><strong>v.92.13 (2026-11-25)</strong></p><ul>
                     <li><b>Cell Line Browser: how widely used a cell line is, and where to get it.</b> A new sort ranks cell lines by the number of papers that mention them (Europe PMC full-text search). New quick filters under "Use and access" pick very common, common, uncommon or rarely used lines, and lines sold by ATCC, DSMZ, ECACC, a Japanese bank or any cell bank. Each card and Wiki shows the paper count and the cell banks that sell the line, with catalog numbers. Very short names, and names that are also ordinary words, are not counted.</li>
                     <li><b>PCA: color by literature use or by cell bank, and label the most used lines.</b> Two new coloring options show which parts of the plot hold well-studied, easy-to-get cell lines. "Label most used" names the 15 most-used lines in the plot as landmarks.</li>
@@ -9210,7 +9213,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.13</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.14</a>
         </span>
     </div>
 
@@ -12611,7 +12614,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_13"></script>
+    <script src="app.js?v=v92_14"></script>
     <script src="tour.js?v=v92_10"></script>
 </body>
 </html>
