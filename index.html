@@ -3101,6 +3101,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.16 (2026-11-25)</strong></p><ul>
+                    <li><b>PCA / UMAP is colored by literature use by default.</b> Points are shaded in four steps, very common, common, uncommon and rare, so the well-studied cell lines stand out from the start. Tissue, subtype and cell bank coloring are still in the menu.</li>
+                </ul>
                 <p><strong>v.92.15 (2026-11-25)</strong></p><ul>
                     <li><b>PCA / UMAP starts from gene expression.</b> The analysis of the cell lines in the Cell Line Browser list now uses expression by default (gene effect and both together are still in the menu). The expression data loads in the background as soon as the Cell Line Browser opens, so Run Analysis does not have to wait for it.</li>
                 </ul>
@@ -9216,7 +9219,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.15</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.16</a>
         </span>
     </div>
 
@@ -12221,9 +12224,9 @@
                     <option value="">All subtypes</option>
                 </select>
                 <select id="clbUmapColorBy" class="clb-umap-ctl">
+                    <option value="usage" selected>Color by literature use</option>
                     <option value="tissue">Color by tissue</option>
                     <option value="subtissue">Color by subtype</option>
-                    <option value="usage">Color by literature use</option>
                     <option value="access">Color by cell bank</option>
                 </select>
                 <button id="clbUmapRunBtn" class="clb-umap-btn" style="background:#5d9239; color:white; border-color:#5d9239;">Run Analysis</button>
@@ -12617,7 +12620,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_15"></script>
+    <script src="app.js?v=v92_16"></script>
     <script src="tour.js?v=v92_10"></script>
 </body>
 </html>
