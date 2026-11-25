@@ -3105,6 +3105,11 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.21 (2026-11-25)</strong></p><ul>
+                    <li><b>Cell Line Browser: literature use and cell bank menus.</b> A third filter row has <b>Any literature use</b> (very common to rare) and <b>Any cell bank</b> (any, ATCC, DSMZ, ECACC, JCRB or RIKEN, none), each with counts. They set the same quick filters as the panel and show as chips.</li>
+                    <li><b>Functional loss filter and grid.</b> A <b>Functional loss</b> menu next to the hotspot, fusion and copy-number filters keeps lines where a tumor suppressor is lost (deep deletion, loss-of-function mutation or silenced expression) or intact. Its grid button opens a functional loss oncoprint with include / exclude per gene and UpSet.</li>
+                    <li><b>Quick filters stay inside the Cell Line Browser.</b> Dragging the panel stops at the card edges, and it refits when its content or the window changes size.</li>
+                </ul>
                 <p><strong>v.92.20 (2026-11-25)</strong></p><ul>
                     <li><b>Cancer type Wiki: clearer mutations section.</b> Common mutations and fusions now has two labeled parts. <b>Specific changes</b> lists exact variants, driver fusions and functional loss, with a note on why these can differ from the gene counts. <b>Mutated cancer genes</b> holds the two tables, with their own explanation.</li>
                 </ul>
@@ -9240,7 +9245,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.20</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.21</a>
         </span>
     </div>
 
@@ -12051,7 +12056,14 @@
                 <button id="clbGridCnBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Copy-number grid for the cell lines currently shown">&#9638;</button>
                 <select id="clbCnLevel" style="display:none;"><option value="altered" selected>With event</option><option value="wt">Only WT</option></select>
               </div>
+              <div id="clbLofFilterWrap" class="clb-pair">
+                <select id="clbLofFilter" style="width:150px;" title="Keep cell lines where a tumor suppressor is functionally lost (deep deletion, loss-of-function mutation or silenced expression), or intact"><option value="">Functional loss...</option></select>
+                <button id="clbGridLofBtn" class="btn btn-outline btn-sm clb-icon-btn" type="button" title="Functional loss grid for the cell lines currently shown, click a gene to require it lost or intact">&#9638;</button>
+              </div>
 
+              <span class="clb-break"></span>
+              <select id="clbUsageFilter" style="width:200px;" title="Filter by how often a cell line appears in papers (Europe PMC)"><option value="">Any literature use</option></select>
+              <select id="clbBankFilter" style="width:190px;" title="Filter by which cell bank sells the line, according to Cellosaurus"><option value="">Any cell bank</option></select>
               <span class="clb-sep"></span>
               <div id="clbCollectionFilterWrap" class="clb-anchor">
                 <button id="clbCollectionBtn" class="btn btn-outline btn-sm" type="button" title="Pick or exclude quick filters (include/exclude, like the alteration grids)">Quick filters<span id="clbCollectionCount" style="color:#6b7280; font-weight:400; margin-left:5px;"></span></button>
@@ -12648,7 +12660,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_20"></script>
+    <script src="app.js?v=v92_21"></script>
     <script src="tour.js?v=v92_10"></script>
 </body>
 </html>
