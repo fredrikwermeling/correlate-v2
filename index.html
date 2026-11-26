@@ -3107,6 +3107,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.34 (2026-11-26)</strong></p><ul>
+                    <li>Cell Line Browser: the Viral RNA overview moved from the Analyze row to the top right of the browser, beside the help button. The Analyze row now holds only what works on the listed or ticked cell lines.</li>
+                </ul>
                 <p><strong>v.92.33 (2026-11-26)</strong></p><ul>
                     <li>Cell Line Browser: the two unfiltered menu entries now read "Literature use: all cell lines" and "Cell bank: all cell lines", since nothing is hidden until you pick an entry. On a short window the list keeps a usable height and the whole browser scrolls instead.</li>
                 </ul>
@@ -9283,7 +9286,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.33</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.34</a>
         </span>
     </div>
 
@@ -12030,6 +12033,7 @@
         <div class="modal-header">
           <img src="web_data/clb_banner.png" alt="Cell Line Browser" style="height:44px; width:auto; min-width:0; flex:0 1 auto; object-fit:contain; object-position:left center;">
           <div style="margin-left:auto; display:flex; align-items:center; gap:6px;">
+            <button id="clbVirusBtn" class="btn btn-outline btn-sm" title="Overview of the viral RNA scan: which cell lines carry viral RNA in their RNA-seq data, beside the Cellosaurus virus records">Viral RNA</button>
             <button id="clbInfoBtn" class="btn btn-outline btn-sm clb-icon-btn" title="How the Cell Line Browser works: the filters, sorts, quick filters, symbols, warnings and where each piece of data comes from">?</button>
             <button id="clbExportMenuBtn" class="btn btn-outline btn-sm mobile-hide" title="Save the browser as an image, a spreadsheet, a methods text or a file for an AI assistant">Export &#9662;</button>
             <button id="clbExportImageBtn" class="btn btn-outline btn-sm mobile-hide" style="display:none;" title="Capture the Cell Line Browser as an image (PNG / TIFF / PDF / PowerPoint)">Export image...</button>
@@ -12148,7 +12152,6 @@
               <span class="clb-sep"></span>
             <button id="clbUmapOpenBtn" class="btn btn-outline btn-sm mobile-hide" title="Open PCA / UMAP of the cell lines in a large window: lasso selection, gates, loadings">PCA / UMAP</button>
             <button id="clbHeatmapBtn" class="btn btn-outline btn-sm mobile-hide" title="Show a gene set across the cell lines currently listed, as a heatmap">Heatmap</button>
-            <button id="clbVirusBtn" class="btn btn-outline btn-sm" title="Which cell lines carry viral RNA in their RNA-seq data, beside the Cellosaurus virus records">Viral RNA</button>
               <span class="clb-sep"></span>
               <button id="clbSendToBtn" class="btn btn-outline btn-sm" style="color:#5d9239; border-color:#6ba544;" title="Carry these cell lines over to another view: highlight them on a chart, or narrow that view to them.">Send to another view</button>
 
@@ -12714,7 +12717,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_33"></script>
+    <script src="app.js?v=v92_34"></script>
     <script src="tour.js?v=v92_28"></script>
 </body>
 </html>
