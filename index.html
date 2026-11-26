@@ -3105,6 +3105,9 @@
                 <button onclick="this.closest('#changelogModal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6; color:#374151;">
+                <p><strong>v.92.29 (2026-11-26)</strong></p><ul>
+                    <li>Scatter plot, Color by: the suggested genes show only while Gene is chosen and Suggest is on. Press the button again (it reads Hide) or the &times; to hide them.</li>
+                </ul>
                 <p><strong>v.92.28 (2026-11-25)</strong></p><ul>
                     <li>Tour of the app: the network is described as generating hypotheses (genes needed or expressed in the same cell lines may share a function); the download bullet says what the tables hold; Export for AI names any language model, ChatGPT and Claude as examples.</li>
                 </ul>
@@ -9266,7 +9269,7 @@
             </span>
             <!-- Positioned off the row's right end (see #versionBadge CSS), so
                  it sits next to YouTube without moving the centered links. -->
-            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.28</a>
+            <a href="#" id="versionBadge" onclick="event.preventDefault();document.getElementById('changelogModal').style.display='flex'" style="font-family:monospace; font-size:11px; background:#f3f4f6; padding:2px 8px; border-radius:10px; color:#6b7280; border:1px solid #d1d5db; font-weight:400;">v.92.29</a>
         </span>
     </div>
 
@@ -10263,7 +10266,7 @@
                                         <option value="ge">GE</option>
                                         <option value="cn">CN</option>
                                     </select>
-                                    <button type="button" id="colorByGeneSuggestBtn" class="btn btn-outline btn-sm" style="font-size:10px; padding:2px 8px;" title="Rank every gene by how well its values explain where the plotted cell lines sit: along the trend, or above and below it">Suggest</button>
+                                    <button type="button" id="colorByGeneSuggestBtn" class="btn btn-outline btn-sm" aria-pressed="false" style="font-size:10px; padding:2px 8px; min-width:56px;" title="Show or hide a ranking of the genes whose values best follow the trend of the plotted cell lines">Suggest</button>
                                 </span>
                                 <!-- Color only the chosen groups; everything else grays out. -->
                                 <button type="button" id="colorByGroupBtn" class="btn btn-sm btn-outline" style="display:none; font-size:10px; padding:2px 6px;" onclick="app.showColorByGroupPicker()">Pick groups...</button>
@@ -12681,7 +12684,7 @@
       </div>
     </div>
 
-    <script src="app.js?v=v92_28"></script>
+    <script src="app.js?v=v92_29"></script>
     <script src="tour.js?v=v92_28"></script>
 </body>
 </html>
